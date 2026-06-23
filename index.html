@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="لوحة معلومات تنفيذية لمبيعات السيارات — تحليل تفاعلي بالعربية">
+  <meta name="theme-color" content="#0f1419">
+  <title>لوحة المعلومات التنفيذية - مبيعات السيارات</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --dark-bg: #0f1419;
+      --dark-card: #1a1f2e;
+      --dark-border: #2a3142;
+      --neon-green: #00ff41;
+      --tiffany-blue: #14b8a6;
+      --neon-red: #ff3366;
+      --neon-orange: #ff9500;
+      --text-primary: #e4e4e7;
+      --text-secondary: #a1a1a6;
+    }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      background-color: var(--dark-bg);
+      color: var(--text-primary);
+      direction: rtl;
+      overflow-x: hidden;
+    }
+
+    .dashboard {
+      min-height: 100vh;
+      padding: 32px;
+      background: linear-gradient(135deg, var(--dark-bg) 0%, #151b28 100%);
+    }
+
+    .dashboard-header {
+      margin-bottom: 40px;
+      text-align: right;
+    }
+
+    .dashboard-title {
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--neon-green) 0%, var(--tiffany-blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .dashboard-subtitle {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* Filters Section */
+    .filters-section {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .filter-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .filter-input {
+      padding: 10px 16px;
+      background-color: var(--dark-card);
+      border: 1px solid var(--dark-border);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: 'Cairo', sans-serif;
+      font-size: 13px;
+      min-width: 160px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23a1a1a6' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: left 12px center;
+      padding-left: 36px;
+    }
+
+    .filter-input option {
+      background-color: var(--dark-card);
+      color: var(--text-primary);
+    }
+
+    .filter-input:hover {
+      border-color: var(--tiffany-blue);
+      box-shadow: 0 0 12px rgba(20, 184, 166, 0.2);
+    }
+
+    .filter-input:focus {
+      outline: none;
+      border-color: var(--neon-green);
+      box-shadow: 0 0 16px rgba(0, 255, 65, 0.3);
+    }
+
+    /* KPI Cards */
+    .kpi-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      margin-bottom: 40px;
+    }
+
+    .kpi-card {
+      background: linear-gradient(135deg, var(--dark-card) 0%, rgba(26, 31, 46, 0.7) 100%);
+      border: 1px solid var(--dark-border);
+      border-radius: 12px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 2px;
+      height: 100%;
+      background: linear-gradient(180deg, var(--neon-green) 0%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .kpi-card:nth-child(2)::before {
+      background: linear-gradient(180deg, var(--tiffany-blue) 0%, transparent 100%);
+    }
+
+    .kpi-card:nth-child(3)::before {
+      background: linear-gradient(180deg, var(--neon-orange) 0%, transparent 100%);
+    }
+
+    .kpi-card:nth-child(4)::before {
+      background: linear-gradient(180deg, var(--neon-red) 0%, transparent 100%);
+    }
+
+    .kpi-card:hover::before {
+      opacity: 1;
+    }
+
+    .kpi-card:hover {
+      border-color: var(--tiffany-blue);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(20, 184, 166, 0.15);
+    }
+
+    .kpi-icon {
+      font-size: 28px;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .kpi-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .kpi-subtext {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    /* Charts Section */
+    .charts-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .chart-card {
+      background: linear-gradient(135deg, var(--dark-card) 0%, rgba(26, 31, 46, 0.7) 100%);
+      border: 1px solid var(--dark-border);
+      border-radius: 12px;
+      padding: 24px;
+      transition: all 0.3s ease;
+    }
+
+    .chart-card:hover {
+      border-color: var(--tiffany-blue);
+      box-shadow: 0 12px 32px rgba(20, 184, 166, 0.15);
+    }
+
+    .chart-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 20px;
+      text-align: right;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      width: 100%;
+    }
+
+    canvas {
+      max-height: 300px;
+    }
+
+    /* Insights Section */
+    .insights-section {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .insight-card {
+      background: linear-gradient(135deg, rgba(0, 255, 65, 0.05) 0%, rgba(20, 184, 166, 0.05) 100%);
+      border: 1px solid rgba(0, 255, 65, 0.2);
+      border-radius: 12px;
+      padding: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .insight-card:hover {
+      border-color: rgba(0, 255, 65, 0.5);
+      box-shadow: 0 8px 24px rgba(0, 255, 65, 0.08);
+    }
+
+    .insight-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--neon-green);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+
+    .insight-content {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .insight-detail {
+      font-size: 13px;
+      color: var(--tiffany-blue);
+      font-weight: 600;
+    }
+
+    /* Data Table */
+    .table-section {
+      margin-top: 40px;
+    }
+
+    .table-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 20px;
+      text-align: right;
+    }
+
+    .table-wrapper {
+      background: linear-gradient(135deg, var(--dark-card) 0%, rgba(26, 31, 46, 0.7) 100%);
+      border: 1px solid var(--dark-border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      direction: rtl;
+    }
+
+    thead {
+      background-color: rgba(0, 255, 65, 0.05);
+      border-bottom: 2px solid var(--dark-border);
+    }
+
+    th {
+      padding: 16px;
+      text-align: right;
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--neon-green);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--dark-border);
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+
+    tbody tr:hover {
+      background-color: rgba(20, 184, 166, 0.05);
+    }
+
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-green { background: rgba(0, 255, 65, 0.15); color: var(--neon-green); }
+    .badge-blue  { background: rgba(20, 184, 166, 0.15); color: var(--tiffany-blue); }
+    .badge-orange{ background: rgba(255, 149, 0, 0.15); color: var(--neon-orange); }
+    .badge-red   { background: rgba(255, 51, 102, 0.15); color: var(--neon-red); }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .kpi-section {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .dashboard {
+        padding: 16px;
+      }
+
+      .dashboard-title {
+        font-size: 24px;
+      }
+
+      .kpi-section {
+        grid-template-columns: 1fr;
+      }
+
+      .filters-section {
+        flex-direction: column-reverse;
+      }
+
+      .filter-input {
+        min-width: 100%;
+      }
+
+      .charts-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="dashboard">
+  <!-- Header -->
+  <div class="dashboard-header">
+    <h1 class="dashboard-title">لوحة المعلومات التنفيذية</h1>
+    <p class="dashboard-subtitle">نظرة شاملة على مبيعات المركبات والأداء حسب البيانات الفعلية</p>
+  </div>
+
+  <!-- Filters Section -->
+  <div class="filters-section">
+    <div class="filter-group">
+      <label class="filter-label">الشهر</label>
+      <select class="filter-input" id="filterMonth">
+        <option value="">جميع الأشهر</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">العلامة التجارية</label>
+      <select class="filter-input" id="filterBrand">
+        <option value="">جميع العلامات</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">الفرع</label>
+      <select class="filter-input" id="filterBranch">
+        <option value="">جميع الفروع</option>
+      </select>
+    </div>
+
+    <div class="filter-group">
+      <label class="filter-label">السنة</label>
+      <select class="filter-input" id="filterYear">
+        <option value="">جميع السنوات</option>
+        <option value="2024">2024</option>
+        <option value="2025">2025</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- KPI Cards -->
+  <div class="kpi-section">
+    <div class="kpi-card">
+      <span class="kpi-icon">💰</span>
+      <div class="kpi-label">إجمالي المبيعات</div>
+      <div class="kpi-value" id="kpiTotalSales">—</div>
+      <div class="kpi-subtext" id="kpiTotalSalesSubtext">—</div>
+    </div>
+
+    <div class="kpi-card">
+      <span class="kpi-icon">🚗</span>
+      <div class="kpi-label">السيارات المباعة</div>
+      <div class="kpi-value" id="kpiUnitsSold">—</div>
+      <div class="kpi-subtext" id="kpiUnitsSoldSubtext">—</div>
+    </div>
+
+    <div class="kpi-card">
+      <span class="kpi-icon">📊</span>
+      <div class="kpi-label">متوسط السعر</div>
+      <div class="kpi-value" id="kpiAvgPrice">—</div>
+      <div class="kpi-subtext">لكل وحدة</div>
+    </div>
+
+    <div class="kpi-card">
+      <span class="kpi-icon">🏢</span>
+      <div class="kpi-label">الفروع النشطة</div>
+      <div class="kpi-value" id="kpiActiveBranches">—</div>
+      <div class="kpi-subtext">تم تحديثها اليوم</div>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3 class="chart-title">المبيعات حسب الشهر</h3>
+      <div class="chart-container">
+        <canvas id="monthlySalesChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-title">المبيعات حسب الفرع</h3>
+      <div class="chart-container">
+        <canvas id="branchSalesChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-title">توزيع المبيعات حسب العلامة التجارية</h3>
+      <div class="chart-container">
+        <canvas id="brandSalesChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-title">المبيعات حسب اللون</h3>
+      <div class="chart-container">
+        <canvas id="colorSalesChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-title">المبيعات التراكمية</h3>
+      <div class="chart-container">
+        <canvas id="cumulativeSalesChart"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <h3 class="chart-title">ملخص الأداء الرئيسي</h3>
+      <div class="chart-container">
+        <canvas id="summaryChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Insights -->
+  <div class="insights-section">
+    <div class="insight-card">
+      <div class="insight-title">الفرع الأفضل أداءً</div>
+      <div class="insight-content" id="insightTopBranchName">—</div>
+      <div class="insight-detail" id="insightTopBranchSales">—</div>
+    </div>
+
+    <div class="insight-card">
+      <div class="insight-title">العلامة التجارية الأفضل</div>
+      <div class="insight-content" id="insightTopBrandName">—</div>
+      <div class="insight-detail" id="insightTopBrandSales">—</div>
+    </div>
+
+    <div class="insight-card">
+      <div class="insight-title">أعلى لون مبيعاً</div>
+      <div class="insight-content" id="insightTopColorName">—</div>
+      <div class="insight-detail" id="insightTopColorSales">—</div>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="table-section">
+    <h2 class="table-title">بيانات المبيعات التفصيلية</h2>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>السعر الإجمالي</th>
+            <th>العلامة التجارية</th>
+            <th>اسم العميل</th>
+            <th>تاريخ البيع</th>
+          </tr>
+        </thead>
+        <tbody id="salesTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ── Apps Script Web App endpoint ───────────────────────────────────────────
+  const API_URL = 'https://script.google.com/macros/s/AKfycbggIQWtNFsoOA4rrCkyHVnGs9m0Ep05TUBfav_9W0GyOFCLWtmAP9mUkxT1_sCdxuKlw/exec';
+
+  // ── Fallback mock data (used when live fetch fails) ────────────────────────
+  // Each row is a flat record — no separate lookup tables needed.
+  const MOCK_SALES = [
+    { id: 1,  totalPrice: 125000, quantity: 1, saleDate: '2024-01-05', customerName: 'أحمد محمد',    branchName: 'الرياض', brand: 'تويوتا',       color: 'أسود',  monthName: 'يناير',  year: 2024 },
+    { id: 2,  totalPrice: 185000, quantity: 1, saleDate: '2024-01-12', customerName: 'فاطمة علي',    branchName: 'جدة',    brand: 'هيونداي',      color: 'أبيض',  monthName: 'يناير',  year: 2024 },
+    { id: 3,  totalPrice: 95000,  quantity: 1, saleDate: '2024-01-18', customerName: 'محمود حسن',    branchName: 'الرياض', brand: 'كيا',          color: 'فضي',   monthName: 'يناير',  year: 2024 },
+    { id: 4,  totalPrice: 215000, quantity: 1, saleDate: '2024-01-25', customerName: 'سارة عبدالله', branchName: 'الدمام', brand: 'تويوتا',       color: 'أسود',  monthName: 'يناير',  year: 2024 },
+    { id: 5,  totalPrice: 155000, quantity: 1, saleDate: '2024-02-03', customerName: 'خالد إبراهيم', branchName: 'جدة',    brand: 'نيسان',        color: 'رمادي', monthName: 'فبراير', year: 2024 },
+    { id: 6,  totalPrice: 125000, quantity: 1, saleDate: '2024-02-10', customerName: 'ليلى محمود',   branchName: 'مكة',    brand: 'هيونداي',      color: 'أبيض',  monthName: 'فبراير', year: 2024 },
+    { id: 7,  totalPrice: 195000, quantity: 1, saleDate: '2024-02-17', customerName: 'ناصر محمد',    branchName: 'الرياض', brand: 'بي إم دبليو', color: 'أزرق',  monthName: 'فبراير', year: 2024 },
+    { id: 8,  totalPrice: 145000, quantity: 1, saleDate: '2024-02-24', customerName: 'زينب أحمد',    branchName: 'الدمام', brand: 'كيا',          color: 'فضي',   monthName: 'فبراير', year: 2024 },
+    { id: 9,  totalPrice: 175000, quantity: 1, saleDate: '2024-03-05', customerName: 'عمر سالم',     branchName: 'جدة',    brand: 'تويوتا',       color: 'أسود',  monthName: 'مارس',   year: 2024 },
+    { id: 10, totalPrice: 135000, quantity: 1, saleDate: '2024-03-12', customerName: 'نور علي',      branchName: 'مكة',    brand: 'نيسان',        color: 'رمادي', monthName: 'مارس',   year: 2024 },
+    { id: 11, totalPrice: 225000, quantity: 1, saleDate: '2024-03-19', customerName: 'يوسف حامد',    branchName: 'الرياض', brand: 'بي إم دبليو', color: 'أزرق',  monthName: 'مارس',   year: 2024 },
+    { id: 12, totalPrice: 165000, quantity: 1, saleDate: '2024-03-26', customerName: 'منى خالد',     branchName: 'الدمام', brand: 'هيونداي',      color: 'أبيض',  monthName: 'مارس',   year: 2024 },
+    { id: 13, totalPrice: 185000, quantity: 1, saleDate: '2024-04-02', customerName: 'عائشة محمود',  branchName: 'جدة',    brand: 'تويوتا',       color: 'أسود',  monthName: 'أبريل',  year: 2024 },
+    { id: 14, totalPrice: 145000, quantity: 1, saleDate: '2024-04-09', customerName: 'إبراهيم علي',  branchName: 'مكة',    brand: 'كيا',          color: 'فضي',   monthName: 'أبريل',  year: 2024 },
+    { id: 15, totalPrice: 205000, quantity: 1, saleDate: '2024-04-16', customerName: 'رحاب أحمد',    branchName: 'الرياض', brand: 'نيسان',        color: 'رمادي', monthName: 'أبريل',  year: 2024 },
+    { id: 16, totalPrice: 175000, quantity: 1, saleDate: '2024-04-23', customerName: 'سامي حسن',     branchName: 'الدمام', brand: 'بي إم دبليو', color: 'أزرق',  monthName: 'أبريل',  year: 2024 },
+    { id: 17, totalPrice: 195000, quantity: 1, saleDate: '2024-05-01', customerName: 'هند محمد',     branchName: 'جدة',    brand: 'هيونداي',      color: 'أبيض',  monthName: 'مايو',   year: 2024 },
+    { id: 18, totalPrice: 155000, quantity: 1, saleDate: '2024-05-08', customerName: 'طارق فاروق',   branchName: 'مكة',    brand: 'تويوتا',       color: 'أسود',  monthName: 'مايو',   year: 2024 },
+    { id: 19, totalPrice: 215000, quantity: 1, saleDate: '2024-05-15', customerName: 'جمال علي',     branchName: 'الرياض', brand: 'كيا',          color: 'فضي',   monthName: 'مايو',   year: 2024 },
+    { id: 20, totalPrice: 185000, quantity: 1, saleDate: '2024-05-22', customerName: 'ريم أحمد',     branchName: 'الدمام', brand: 'نيسان',        color: 'رمادي', monthName: 'مايو',   year: 2024 },
+  ];
+
+  // ── Arabic month order for chart axis sorting ──────────────────────────────
+  const MONTH_ORDER = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+
+  // ── CSV column-name aliases ────────────────────────────────────────────────
+  // Each key maps to an ordered list of possible header names in the sheet.
+  const COL_ALIASES = {
+    saleDate:     ['تاريخ البيع',     'تاريخ_البيع',      'SaleDate',  'Date'],
+    customerName: ['اسم العميل',      'اسم_العميل',       'Customer',  'CustomerName'],
+    brand:        ['العلامة',         'العلامة التجارية', 'العلامة_التجارية', 'Brand', 'Make'],
+    totalPrice:   ['السعر الإجمالي', 'السعر_الإجمالي',  'TotalPrice','Price', 'Total'],
+    quantity:     ['الكمية',          'Quantity',          'Qty'],
+    branchName:   ['اسم الفرع',      'اسم_الفرع',        'Branch',    'BranchName'],
+    color:        ['اللون',           'Color'],
+    monthName:    ['اسم الشهر',      'اسم_الشهر',        'Month',     'MonthName'],
+    year:         ['السنة',           'Year'],
+  };
+
+  // ── Active dataset — replaced by live data after a successful fetch ────────
+  let DATA = buildDerivedData(MOCK_SALES);
+
+  // ── Helpers shared by the JSON adapter ────────────────────────────────────
+
+  // Normalise date strings to YYYY-MM-DD regardless of input format
+  function normaliseDate(raw) {
+    if (!raw) return '';
+    const s = String(raw).trim();
+    if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+    // DD/MM/YYYY or D/M/YYYY
+    const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    // Excel serial number (days since 1899-12-30)
+    if (/^\d{5}$/.test(s)) {
+      const d = new Date((parseInt(s, 10) - 25569) * 86400000);
+      if (!isNaN(d)) return d.toISOString().slice(0, 10);
+    }
+    return s;
+  }
+
+  function monthNameFromDate(dateStr) {
+    const d = new Date(dateStr);
+    return isNaN(d) ? '' : (MONTH_ORDER[d.getMonth()] ?? '');
+  }
+
+  // Find the value in a plain object whose key matches any alias (case-insensitive,
+  // strips zero-width spaces). Returns '' when nothing matches.
+  function pickField(obj, aliases) {
+    const clean = k => String(k).replace(/​/g, '').trim();
+    const keys  = Object.keys(obj);
+    for (const alias of aliases) {
+      const hit = keys.find(k => clean(k) === alias);
+      if (hit !== undefined) return String(obj[hit] ?? '').trim();
+    }
+    return '';
+  }
+
+  // ── JSON response normaliser ───────────────────────────────────────────────
+  // Apps Script Web Apps return data in several common shapes.
+  // This function detects the shape and always returns an array of plain
+  // row-objects so the rest of the pipeline sees one consistent format.
+  //
+  //  Shape A — array of objects (most common Apps Script pattern):
+  //    [ {تاريخ البيع: "…", العلامة: "…", …}, … ]
+  //
+  //  Shape B — object wrapper whose value is an array of row-objects:
+  //    { status: "success", data: [ {…}, … ] }
+  //    { result: [{…}] }  |  { records: [{…}] }  |  { rows: [{…}] }
+  //
+  //  Shape C — separate headers array + array of value arrays:
+  //    { headers: ["col1","col2"], rows: [["v1","v2"], …] }
+  //    { columns: […], values: [[…], …] }
+  //
+  function isRowObject(v) {
+    return v !== null && typeof v === 'object' && !Array.isArray(v);
+  }
+
+  function normaliseJsonResponse(payload) {
+    // Shape A — top-level array
+    if (Array.isArray(payload)) return payload;
+    if (!payload || typeof payload !== 'object') return [];
+
+    // Shape C — must be checked BEFORE Shape B because both can have a "rows" key.
+    // Shape C is identified by a headers/columns key AND a rows/values key whose
+    // first element is itself an array (not an object).
+    const hKey = ['headers','columns','fields'].find(k => Array.isArray(payload[k]));
+    if (hKey) {
+      const rKey = ['rows','values','data','records'].find(
+        k => Array.isArray(payload[k]) && (payload[k].length === 0 || Array.isArray(payload[k][0]))
+      );
+      if (rKey) {
+        const headers = payload[hKey];
+        return payload[rKey].map(row => {
+          const obj = {};
+          headers.forEach((h, i) => { obj[h] = row[i] ?? ''; });
+          return obj;
+        });
+      }
+    }
+
+    // Shape B — wrapper key whose value is an array of row-objects (not arrays)
+    for (const key of ['data','result','rows','records','items','sales','مبيعات']) {
+      const val = payload[key];
+      if (Array.isArray(val) && (val.length === 0 || isRowObject(val[0]))) return val;
+    }
+
+    console.warn('[Dashboard] Unrecognised JSON shape:', JSON.stringify(payload).slice(0, 300));
+    return [];
+  }
+
+  // Convert an array of raw row-objects from the API into the flat sale records
+  // the dashboard expects, using COL_ALIASES to match Arabic or English keys.
+  function jsonToSales(rawRows) {
+    return rawRows
+      .filter(r => r && typeof r === 'object')
+      .map((r, i) => {
+        const rawDate   = pickField(r, COL_ALIASES.saleDate);
+        const saleDate  = normaliseDate(rawDate);
+        const yearRaw   = pickField(r, COL_ALIASES.year);
+        const year      = yearRaw
+          ? parseInt(yearRaw, 10)
+          : (saleDate ? new Date(saleDate).getFullYear() : 0);
+        const monthName = pickField(r, COL_ALIASES.monthName) || monthNameFromDate(saleDate);
+        const priceRaw  = pickField(r, COL_ALIASES.totalPrice);
+        const price     = parseFloat(priceRaw.replace(/[^0-9.]/g, '')) || 0;
+        const qtyRaw    = pickField(r, COL_ALIASES.quantity);
+        const qty       = parseInt(qtyRaw.replace(/[^0-9]/g, ''), 10) || 1;
+
+        return {
+          id:           i + 1,
+          totalPrice:   price,
+          quantity:     qty,
+          saleDate,
+          customerName: pickField(r, COL_ALIASES.customerName) || `عميل ${i + 1}`,
+          branchName:   pickField(r, COL_ALIASES.branchName)   || 'غير محدد',
+          brand:        pickField(r, COL_ALIASES.brand)         || 'غير محدد',
+          color:        pickField(r, COL_ALIASES.color)         || 'غير محدد',
+          monthName,
+          year,
+        };
+      })
+      .filter(r => r.totalPrice > 0 || r.saleDate);
+  }
+
+  // Derive sorted dimension lists from the flat sales rows
+  function buildDerivedData(sales) {
+    const branches = [...new Set(sales.map(s => s.branchName).filter(Boolean))];
+    const brands   = [...new Set(sales.map(s => s.brand).filter(Boolean))];
+    const colors   = [...new Set(sales.map(s => s.color).filter(Boolean))];
+    const years    = [...new Set(sales.map(s => s.year).filter(Boolean))].sort();
+    const months   = [...new Set(sales.map(s => s.monthName).filter(Boolean))].sort((a, b) => {
+      const ai = MONTH_ORDER.indexOf(a), bi = MONTH_ORDER.indexOf(b);
+      return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+    });
+    return { sales, branches, brands, colors, months, years };
+  }
+
+  // ── Fetch live JSON data from Apps Script on every page load ─────────────
+  async function loadData() {
+    showBanner('loading');
+    try {
+      // Apps Script Web Apps deployed as "Anyone, even anonymous" return
+      // Access-Control-Allow-Origin: * — fetch works from any HTTPS origin.
+      // cache:'no-cache' ensures every page load pulls the latest sheet data.
+      const res = await fetch(API_URL, { method: 'GET', mode: 'cors', cache: 'no-cache' });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const payload = await res.json();
+      console.info('[Dashboard] API response (first 500 chars):', JSON.stringify(payload).slice(0, 500));
+
+      const rawRows = normaliseJsonResponse(payload);
+      console.info('[Dashboard] Normalised rows:', rawRows.length);
+
+      const sales = jsonToSales(rawRows);
+      if (sales.length === 0) throw new Error('لم يتم العثور على صفوف صالحة في استجابة API');
+
+      DATA = buildDerivedData(sales);
+      showBanner('live', sales.length);
+    } catch (err) {
+      console.warn('[Dashboard] API fetch failed, falling back to mock data:', err.message);
+      DATA = buildDerivedData(MOCK_SALES);
+      showBanner('fallback', 0, err.message);
+    }
+    // Reset filters so stale selections from a prior dataset don't linger
+    Object.assign(state, { year: '', branch: '', brand: '', month: '' });
+    rebuildFilters();
+    destroyCharts();
+    render();
+  }
+
+  // ── Status banner ──────────────────────────────────────────────────────────
+  function showBanner(type, count = 0, errMsg = '') {
+    let el = document.getElementById('dataBanner');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'dataBanner';
+      el.style.cssText = [
+        'position:fixed', 'bottom:20px', 'left:50%', 'transform:translateX(-50%)',
+        'padding:10px 20px', 'border-radius:8px', 'font-family:Cairo,sans-serif',
+        'font-size:13px', 'z-index:9999', 'transition:opacity .6s ease',
+        'display:flex', 'align-items:center', 'gap:10px',
+        'direction:rtl', 'max-width:90vw', 'white-space:nowrap',
+      ].join(';');
+      document.body.appendChild(el);
+    }
+    if (type === 'loading') {
+      el.style.cssText += ';opacity:1';
+      el.style.background = '#1a1f2e';
+      el.style.border     = '1px solid #2a3142';
+      el.style.color      = '#a1a1a6';
+      el.innerHTML = '<span style="display:inline-block;animation:spin 1s linear infinite">⟳</span> جاري تحميل البيانات من Google Sheets…';
+    } else if (type === 'live') {
+      el.style.background = 'rgba(0,255,65,0.1)';
+      el.style.border     = '1px solid rgba(0,255,65,0.3)';
+      el.style.color      = '#00ff41';
+      el.style.opacity    = '1';
+      el.innerHTML = `✓ تم تحميل ${count} سجل من Google Sheets`;
+      setTimeout(() => { el.style.opacity = '0'; }, 4000);
+    } else {
+      el.style.background = 'rgba(255,149,0,0.1)';
+      el.style.border     = '1px solid rgba(255,149,0,0.4)';
+      el.style.color      = '#ff9500';
+      el.style.opacity    = '1';
+      el.title            = errMsg;
+      el.innerHTML = `⚠ تعذّر تحميل البيانات المباشرة — يتم عرض بيانات تجريبية <span style="font-size:11px;opacity:.7">(${errMsg})</span>`;
+    }
+  }
+
+  // Spin keyframe injected once
+  (function injectSpin() {
+    const s = document.createElement('style');
+    s.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(s);
+  })();
+
+  // ── Colour palette ─────────────────────────────────────────────────────────
+  const COLORS = {
+    green:  '#00ff41',
+    blue:   '#14b8a6',
+    orange: '#ff9500',
+    red:    '#ff3366',
+    cyan:   '#00ffff',
+  };
+  const PALETTE = [COLORS.green, COLORS.blue, COLORS.orange, COLORS.red, COLORS.cyan];
+
+  const CHART_DEFAULTS = {
+    color:     '#a1a1a6',
+    gridColor: 'rgba(42, 49, 66, 0.4)',
+    font:      { family: 'Cairo', size: 12 },
+  };
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  const state = { year: '', branch: '', brand: '', month: '' };
+  const charts = {};
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function formatCurrency(n) {
+    return new Intl.NumberFormat('ar-SA', {
+      style: 'currency', currency: 'SAR', minimumFractionDigits: 0,
+    }).format(n);
+  }
+
+  function getFiltered() {
+    return DATA.sales.filter(s => {
+      if (state.month  && s.monthName  !== state.month)         return false;
+      if (state.year   && String(s.year) !== state.year)        return false;
+      if (state.branch && s.branchName  !== state.branch)       return false;
+      if (state.brand  && s.brand       !== state.brand)        return false;
+      return true;
+    });
+  }
+
+  function groupBy(sales, keyFn, allKeys) {
+    const map = {};
+    allKeys.forEach(k => { map[k] = 0; });
+    sales.forEach(s => { const k = keyFn(s); if (k !== undefined) map[k] = (map[k] || 0) + s.totalPrice; });
+    return map;
+  }
+
+  // ── Filter dropdowns ───────────────────────────────────────────────────────
+  function rebuildFilters() {
+    const fill = (id, items, current) => {
+      const sel = document.getElementById(id);
+      const first = sel.options[0]; // keep the "all" option
+      sel.innerHTML = '';
+      sel.appendChild(first);
+      items.forEach(v => {
+        const o = document.createElement('option');
+        o.value = v; o.textContent = v;
+        if (v === current) o.selected = true;
+        sel.appendChild(o);
+      });
+    };
+
+    fill('filterMonth',  DATA.months,   state.month);
+    fill('filterBrand',  DATA.brands,   state.brand);
+    fill('filterBranch', DATA.branches, state.branch);
+
+    // Rebuild year options from actual data
+    const yearSel   = document.getElementById('filterYear');
+    const firstYear = yearSel.options[0];
+    yearSel.innerHTML = '';
+    yearSel.appendChild(firstYear);
+    DATA.years.forEach(y => {
+      const o = document.createElement('option');
+      o.value = String(y); o.textContent = y;
+      if (String(y) === state.year) o.selected = true;
+      yearSel.appendChild(o);
+    });
+  }
+
+  // ── KPI Cards ──────────────────────────────────────────────────────────────
+  function updateKPIs(filtered) {
+    const total    = filtered.reduce((s, r) => s + r.totalPrice, 0);
+    const units    = filtered.length;
+    const avg      = units ? Math.round(total / units) : 0;
+    const branches = new Set(filtered.map(s => s.branchName)).size;
+
+    document.getElementById('kpiTotalSales').textContent        = formatCurrency(total);
+    document.getElementById('kpiTotalSalesSubtext').textContent = `${units} معاملة`;
+    document.getElementById('kpiUnitsSold').textContent         = units;
+    document.getElementById('kpiUnitsSoldSubtext').textContent  = `متوسط ${formatCurrency(avg)} لكل معاملة`;
+    document.getElementById('kpiAvgPrice').textContent          = formatCurrency(avg);
+    document.getElementById('kpiActiveBranches').textContent    = branches;
+  }
+
+  // ── Insights ───────────────────────────────────────────────────────────────
+  function updateInsights(filtered) {
+    const branchMap = groupBy(filtered, s => s.branchName, DATA.branches);
+    const brandMap  = groupBy(filtered, s => s.brand,      DATA.brands);
+    const colorMap  = groupBy(filtered, s => s.color,      DATA.colors);
+
+    const top = map => Object.entries(map).sort((a, b) => b[1] - a[1])[0] ?? ['—', 0];
+    const [tb, tbs] = top(branchMap);
+    const [tbr, tbrs] = top(brandMap);
+    const [tc, tcs]  = top(colorMap);
+
+    document.getElementById('insightTopBranchName').textContent  = tb;
+    document.getElementById('insightTopBranchSales').textContent = formatCurrency(tbs);
+    document.getElementById('insightTopBrandName').textContent   = tbr;
+    document.getElementById('insightTopBrandSales').textContent  = formatCurrency(tbrs);
+    document.getElementById('insightTopColorName').textContent   = tc;
+    document.getElementById('insightTopColorSales').textContent  = formatCurrency(tcs);
+  }
+
+  // ── Table ──────────────────────────────────────────────────────────────────
+  const BADGE_CLASSES = ['badge-green','badge-blue','badge-orange','badge-red','badge-green'];
+
+  function updateTable(filtered) {
+    const tbody = document.getElementById('salesTableBody');
+    tbody.innerHTML = filtered.slice(0, 10).map((s, i) => {
+      const badge = BADGE_CLASSES[i % BADGE_CLASSES.length];
+      const date  = s.saleDate ? new Date(s.saleDate).toLocaleDateString('ar-SA') : s.saleDate;
+      return `<tr>
+        <td>${formatCurrency(s.totalPrice)}</td>
+        <td><span class="badge ${badge}">${s.brand}</span></td>
+        <td>${s.customerName}</td>
+        <td>${date}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── Charts ─────────────────────────────────────────────────────────────────
+  function axisOpts(horizontal = false) {
+    const base = {
+      ticks: { color: CHART_DEFAULTS.color, font: CHART_DEFAULTS.font },
+      grid:  { color: CHART_DEFAULTS.gridColor },
+    };
+    return horizontal
+      ? { x: base, y: { ...base, grid: { display: false } } }
+      : { x: base, y: base };
+  }
+
+  // Destroy all chart instances so they can be recreated with fresh data/labels
+  function destroyCharts() {
+    for (const [key, chart] of Object.entries(charts)) {
+      chart.destroy();
+      delete charts[key];
+    }
+  }
+
+  function buildChart(id, config) {
+    const ctx = document.getElementById(id);
+    if (!ctx) return;
+    charts[id] = new Chart(ctx, config);
+  }
+
+  function updateCharts(filtered) {
+    const branchMap  = groupBy(filtered, s => s.branchName, DATA.branches);
+    const brandMap   = groupBy(filtered, s => s.brand,      DATA.brands);
+    const colorMap   = groupBy(filtered, s => s.color,      DATA.colors);
+    const monthlyMap = groupBy(filtered, s => s.monthName,  DATA.months);
+
+    const monthLabels  = DATA.months;
+    const monthData    = monthLabels.map(m => monthlyMap[m] || 0);
+    const branchLabels = DATA.branches;
+    const branchData   = branchLabels.map(b => branchMap[b] || 0);
+    const brandLabels  = DATA.brands;
+    const brandData    = brandLabels.map(b => brandMap[b] || 0);
+    const colorLabels  = DATA.colors;
+    const colorData    = colorLabels.map(c => colorMap[c] || 0);
+
+    const sorted    = [...filtered].sort((a, b) => new Date(a.saleDate) - new Date(b.saleDate));
+    let cum = 0;
+    const cumData   = sorted.map(s => { cum += s.totalPrice; return cum; });
+    const cumLabels = sorted.map(s => (s.saleDate || '').slice(5));
+
+    const topBranch = Object.entries(branchMap).sort((a, b) => b[1] - a[1])[0] ?? ['—', 0];
+    const topBrand  = Object.entries(brandMap).sort((a,  b) => b[1] - a[1])[0] ?? ['—', 0];
+    const totalAll  = filtered.reduce((s, r) => s + r.totalPrice, 0);
+
+    // Destroy stale instances only if labels changed (after a data reload)
+    const existingLabels = charts['monthlySalesChart']?.data?.labels ?? null;
+    if (existingLabels && JSON.stringify(existingLabels) !== JSON.stringify(monthLabels)) {
+      destroyCharts();
+    }
+
+    // ── Monthly Sales (area line) ────────────────────────────────────────────
+    if (!charts['monthlySalesChart']) {
+      buildChart('monthlySalesChart', {
+        type: 'line',
+        data: { labels: monthLabels, datasets: [{ label: 'المبيعات الشهرية', data: monthData,
+          borderColor: COLORS.green, backgroundColor: 'rgba(0,255,65,0.1)',
+          borderWidth: 2, fill: true, tension: 0.4,
+          pointBackgroundColor: COLORS.blue, pointBorderColor: COLORS.green,
+          pointRadius: 4, pointHoverRadius: 6 }] },
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } }, scales: axisOpts() },
+      });
+    } else {
+      charts['monthlySalesChart'].data.datasets[0].data = monthData;
+      charts['monthlySalesChart'].update();
+    }
+
+    // ── Branch Sales (horizontal bar) ────────────────────────────────────────
+    if (!charts['branchSalesChart']) {
+      buildChart('branchSalesChart', {
+        type: 'bar',
+        data: { labels: branchLabels, datasets: [{ label: 'المبيعات', data: branchData,
+          backgroundColor: PALETTE, borderColor: PALETTE,
+          borderWidth: 2, borderRadius: 8 }] },
+        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+          plugins: { legend: { display: false } }, scales: axisOpts(true) },
+      });
+    } else {
+      charts['branchSalesChart'].data.datasets[0].data = branchData;
+      charts['branchSalesChart'].update();
+    }
+
+    // ── Brand Donut ──────────────────────────────────────────────────────────
+    if (!charts['brandSalesChart']) {
+      buildChart('brandSalesChart', {
+        type: 'doughnut',
+        data: { labels: brandLabels, datasets: [{ data: brandData,
+          backgroundColor: PALETTE, borderColor: '#1a1f2e',
+          borderWidth: 3, hoverOffset: 8 }] },
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'right',
+            labels: { color: '#e4e4e7', font: CHART_DEFAULTS.font, padding: 16 } } } },
+      });
+    } else {
+      charts['brandSalesChart'].data.datasets[0].data = brandData;
+      charts['brandSalesChart'].update();
+    }
+
+    // ── Color Sales (horizontal bar) ─────────────────────────────────────────
+    if (!charts['colorSalesChart']) {
+      buildChart('colorSalesChart', {
+        type: 'bar',
+        data: { labels: colorLabels, datasets: [{ label: 'المبيعات', data: colorData,
+          backgroundColor: COLORS.blue, borderColor: COLORS.green,
+          borderWidth: 2, borderRadius: 8 }] },
+        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+          plugins: { legend: { display: false } }, scales: axisOpts(true) },
+      });
+    } else {
+      charts['colorSalesChart'].data.labels = colorLabels;
+      charts['colorSalesChart'].data.datasets[0].data = colorData;
+      charts['colorSalesChart'].update();
+    }
+
+    // ── Cumulative Sales (line) ──────────────────────────────────────────────
+    if (!charts['cumulativeSalesChart']) {
+      buildChart('cumulativeSalesChart', {
+        type: 'line',
+        data: { labels: cumLabels, datasets: [{ label: 'المبيعات التراكمية', data: cumData,
+          borderColor: COLORS.orange, backgroundColor: 'rgba(255,149,0,0.1)',
+          borderWidth: 2, fill: true, tension: 0.4,
+          pointBackgroundColor: COLORS.red, pointBorderColor: COLORS.orange,
+          pointRadius: 3, pointHoverRadius: 5 }] },
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false } }, scales: axisOpts() },
+      });
+    } else {
+      charts['cumulativeSalesChart'].data.labels = cumLabels;
+      charts['cumulativeSalesChart'].data.datasets[0].data = cumData;
+      charts['cumulativeSalesChart'].update();
+    }
+
+    // ── Summary Bar ──────────────────────────────────────────────────────────
+    const sumLabels = [`${topBranch[0]} (أفضل فرع)`, `${topBrand[0]} (أفضل علامة)`, 'إجمالي المبيعات'];
+    const sumData   = [topBranch[1], topBrand[1], totalAll];
+    if (!charts['summaryChart']) {
+      buildChart('summaryChart', {
+        type: 'bar',
+        data: { labels: sumLabels, datasets: [{ label: 'المبيعات', data: sumData,
+          backgroundColor: [COLORS.green, COLORS.blue, COLORS.orange], borderRadius: 8 }] },
+        options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+          plugins: { legend: { display: false } }, scales: axisOpts(true) },
+      });
+    } else {
+      charts['summaryChart'].data.labels = sumLabels;
+      charts['summaryChart'].data.datasets[0].data = sumData;
+      charts['summaryChart'].update();
+    }
+  }
+
+  // ── Main render ────────────────────────────────────────────────────────────
+  function render() {
+    const filtered = getFiltered();
+    updateKPIs(filtered);
+    updateInsights(filtered);
+    updateTable(filtered);
+    updateCharts(filtered);
+  }
+
+  // ── Wire up filters ────────────────────────────────────────────────────────
+  document.getElementById('filterYear').addEventListener('change',   e => { state.year   = e.target.value; render(); });
+  document.getElementById('filterBranch').addEventListener('change', e => { state.branch = e.target.value; render(); });
+  document.getElementById('filterBrand').addEventListener('change',  e => { state.brand  = e.target.value; render(); });
+  document.getElementById('filterMonth').addEventListener('change',  e => { state.month  = e.target.value; render(); });
+
+  // ── Boot: fetch live data immediately on every page load ──────────────────
+  loadData();
+</script>
+</body>
+</html>
