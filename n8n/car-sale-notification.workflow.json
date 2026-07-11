@@ -1,0 +1,197 @@
+{
+  "name": "إشعار مبيعة سيارة جديدة - car-sales-dashboard",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "PUT_YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "list"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "id": "a1e6a3b0-1111-4a1a-9a11-000000000001",
+      "name": "مراقبة صفوف جديدة (Google Sheets)",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        -640,
+        0
+      ],
+      "credentials": {
+        "googleSheetsTriggerOAuth2Api": {
+          "id": "PUT_YOUR_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "f1",
+              "name": "customerName",
+              "type": "string",
+              "value": "={{ $json['اسم العميل'] || $json['Customer'] || $json['CustomerName'] || 'غير معروف' }}"
+            },
+            {
+              "id": "f2",
+              "name": "brand",
+              "type": "string",
+              "value": "={{ $json['العلامة التجارية'] || $json['العلامة'] || $json['Brand'] || 'غير محدد' }}"
+            },
+            {
+              "id": "f3",
+              "name": "branchName",
+              "type": "string",
+              "value": "={{ $json['اسم الفرع'] || $json['Branch'] || 'غير محدد' }}"
+            },
+            {
+              "id": "f4",
+              "name": "totalPrice",
+              "type": "number",
+              "value": "={{ Number(String($json['السعر الإجمالي'] || $json['Price'] || $json['Total'] || 0).replace(/[^0-9.]/g, '')) }}"
+            },
+            {
+              "id": "f5",
+              "name": "saleDate",
+              "type": "string",
+              "value": "={{ $json['تاريخ البيع'] || $json['Date'] || $json['SaleDate'] || '' }}"
+            },
+            {
+              "id": "f6",
+              "name": "color",
+              "type": "string",
+              "value": "={{ $json['اللون'] || $json['Color'] || 'غير محدد' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1e6a3b0-1111-4a1a-9a11-000000000002",
+      "name": "تنسيق بيانات البيع",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "PUT_YOUR_SLACK_CHANNEL_ID",
+          "mode": "id"
+        },
+        "text": "=🚗 *مبيعة جديدة مُسجّلة*\n👤 العميل: {{ $json.customerName }}\n🏷️ العلامة التجارية: {{ $json.brand }}\n🏢 الفرع: {{ $json.branchName }}\n🎨 اللون: {{ $json.color }}\n💰 السعر الإجمالي: {{ $json.totalPrice }} ريال\n📅 تاريخ البيع: {{ $json.saleDate }}",
+        "otherOptions": {}
+      },
+      "id": "a1e6a3b0-1111-4a1a-9a11-000000000003",
+      "name": "إرسال إشعار Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        -120
+      ],
+      "credentials": {
+        "slackApi": {
+          "id": "PUT_YOUR_CREDENTIAL_ID",
+          "name": "Slack account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "PUT_YOUR_GOOGLE_SHEET_ID_HERE",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Notifications",
+          "mode": "list"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "التاريخ والوقت": "={{ $now.toISO() }}",
+            "العميل": "={{ $json.customerName }}",
+            "العلامة التجارية": "={{ $json.brand }}",
+            "الفرع": "={{ $json.branchName }}",
+            "السعر الإجمالي": "={{ $json.totalPrice }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "a1e6a3b0-1111-4a1a-9a11-000000000004",
+      "name": "تسجيل في سجل الإشعارات",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        -160,
+        120
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "PUT_YOUR_CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "مراقبة صفوف جديدة (Google Sheets)": {
+      "main": [
+        [
+          {
+            "node": "تنسيق بيانات البيع",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "تنسيق بيانات البيع": {
+      "main": [
+        [
+          {
+            "node": "إرسال إشعار Slack",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "تسجيل في سجل الإشعارات",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
