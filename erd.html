@@ -279,6 +279,12 @@
   .p-ex { margin-top: 4px !important; font-size: 13px; }
   .p-ex-k { color: var(--muted); font-size: 12px; }
   .p-note { font-size: 12.5px; color: var(--muted); }
+  .p-sm { font-size: 12.5px; color: var(--muted); margin-top: 6px !important; }
+  .p-grp { color: var(--ink); font-weight: 600; }
+  .p-dep li { font-size: 13px; }
+  .p-type { font-family: var(--mono); font-size: 10.5px; color: var(--muted); border: 1px solid var(--border); background: #fff; border-radius: 3px; padding: 0 5px; margin-inline-start: 6px; vertical-align: middle; }
+  .p-type.tx { background: var(--tx-bg); border-color: var(--tx-border); color: #8c7a50; }
+  .p-q { font-size: 14px; font-weight: 500; margin-top: 4px; }
   .ind-item { margin: 8px 0 10px; }
   .ind-item p { font-size: 13px; margin-top: 4px; }
   .rel-link {
@@ -1031,47 +1037,67 @@ Object.entries(cards).forEach(([name, el]) => {
    ========================================================= */
 const panel = $("#panel");
 
-function selectTable(name) {
-  selTable = name; selRel = null; hideTip(); applyState();
-  const t = TABLES[name];
-  const direct = relsOf(name);
-  const fkRels = RELS.filter(r => r.t === name);
-  const typeLabel = t.g === "tx" ? "Transaction Data" : "Master Data";
-  panel.innerHTML = `
-    <div class="p-head"><h2>فهم الجدول</h2><button class="btn-close" type="button">إغلاق</button></div>
-    <div class="p-sub">${esc(name)}</div>
-
-    <h3>الدور</h3>
-    <p>${esc(t.desc)} ${esc(t.why)}</p>
-
-    <h3>النوع</h3>
-    <p><span class="en">${typeLabel}</span> — ${esc(t.kind)}</p>
-
-    <h3>المحتويات</h3>
-    <p>${esc(t.stores)}</p>
-    <p class="p-ex"><span class="p-ex-k">مثال:</span> ${esc(t.ex)}</p>
-
-    <h3>PK</h3>
-    <p>${code(t.pk)}</p>
-
-    <h3>FKs</h3>
-    ${fkRels.length
-      ? `<ul class="p-list">${fkRels.map(r => `<li dir="ltr" class="p-ltr">${code(r.tc)} → ${code(r.f + "." + r.fc)}</li>`).join("")}</ul>`
-      : `<p>ما فيه FK في هذا الجدول. الجداول الثانية هي اللي تحفظ ${code(t.pk)} كـ FK.</p>`}
-
-    <h3>العلاقات المباشرة <span class="tag-dir">مباشرة</span></h3>
-    <ul class="p-list">${direct.map(r => `
+function relItem(r) {
+  const v = relView(r);
+  return `
       <li class="p-rel">
-        <div dir="ltr" class="p-ltr"><span class="rel-link" data-r="${r.id}">${esc(r.t)} → ${esc(r.f)}</span>
-          <span class="p-card">${relView(r).type}</span></div>
-        <div class="p-use"><span class="p-ex-k">المعنى:</span> ${esc(r.m)}</div>
+        <div dir="ltr" class="p-ltr"><span class="rel-link" data-r="${r.id}">${esc(v.from)} → ${esc(v.to)}</span>
+          <span class="p-card">${v.type}</span></div>
+        <div class="p-use">${esc(r.m)}</div>
         ${r.z ? `<div class="p-use p-ex-k">${esc(r.z)}</div>` : ""}
         <div class="p-use"><span class="p-ex-k">ليش نحتاجها؟</span> ${esc(r.w)}</div>
         <div dir="ltr" class="p-ltr p-cols">${code(r.t + "." + r.tc)} → ${code(r.f + "." + r.fc)}</div>
-      </li>`).join("")}
-    </ul>
+      </li>`;
+}
 
-    <h3>العلاقات غير المباشرة</h3>
+function selectTable(name) {
+  selTable = name; selRel = null; hideTip(); applyState();
+  const t = TABLES[name];
+  const parents = RELS.filter(r => r.t === name);   // this table holds the FK
+  const children = RELS.filter(r => r.f === name);  // other tables hold this PK as FK
+  const isTx = t.g === "tx";
+  const typeLabel = isTx ? "Transaction Data" : "Master Data";
+  const typeMeaning = isTx
+    ? "بيانات حركات: تزيد كل ما صارت عملية، وكل سجل يمثل حدث صار."
+    : "بيانات أساسية (تعريفية): ثابتة نسبيًا، نعرّفها مرة وحدة وترجع لها الجداول الثانية.";
+  const en = n => `<span class="en">${esc(n)}</span>`;
+
+  panel.innerHTML = `
+    <div class="p-head"><h2>فهم الجدول</h2><button class="btn-close" type="button">إغلاق</button></div>
+    <div class="p-sub">${esc(name)} <span class="p-type ${isTx ? "tx" : ""}">${typeLabel}</span></div>
+
+    <h3>1. الدور — وش هو وليش نحتاجه؟</h3>
+    <p>${esc(t.desc)} ${esc(t.why)}</p>
+
+    <h3>2. من وين يجي؟</h3>
+    <p>${esc(t.kind)}</p>
+    ${parents.length
+      ? `<p class="p-sm">يرجع لهذه الجداول عن طريق FK:</p>
+         <ul class="p-list p-dep">${parents.map(r => `<li>${en(r.f)} <span class="p-ex-k">عن طريق</span> ${code(r.tc)}</li>`).join("")}</ul>`
+      : `<p class="p-sm">ما يرجع لأي جدول ثاني (ما فيه FK)، يعني هو نقطة بداية في الـ ERD.</p>`}
+    ${children.length
+      ? `<p class="p-sm">وهذه الجداول ترجع له عن طريق FK:</p>
+         <ul class="p-list p-dep">${children.map(r => `<li>${en(r.t)} <span class="p-ex-k">عن طريق</span> ${code(r.tc)}</li>`).join("")}</ul>`
+      : `<p class="p-sm">وما فيه جدول يرجع له.</p>`}
+
+    <h3>3. النوع</h3>
+    <p><span class="en">${typeLabel}</span> — ${esc(typeMeaning)}</p>
+
+    <h3>4. وش يخزن؟</h3>
+    <p>${esc(t.stores)}</p>
+    <p class="p-ex"><span class="p-ex-k">مثال:</span> ${esc(t.ex)}</p>
+
+    <h3>5. المفاتيح</h3>
+    <p><span class="kb pk">PK</span> ${code(t.pk)} — يميّز كل سجل داخل الجدول.</p>
+    ${parents.length
+      ? `<ul class="p-list">${parents.map(r => `<li dir="ltr" class="p-ltr"><span class="kb fk">FK</span> ${code(r.tc)} → ${code(r.f + "." + r.fc)}</li>`).join("")}</ul>`
+      : `<p class="p-sm">ما فيه FK في هذا الجدول.</p>`}
+
+    <h3>6. العلاقات المباشرة <span class="tag-dir">مباشرة</span></h3>
+    ${parents.length ? `<p class="p-sm p-grp">هذا الجدول يرجع إلى (${parents.length}):</p><ul class="p-list">${parents.map(relItem).join("")}</ul>` : ""}
+    ${children.length ? `<p class="p-sm p-grp">جداول ترجع لهذا الجدول (${children.length}):</p><ul class="p-list">${children.map(relItem).join("")}</ul>` : ""}
+
+    <h3>7. العلاقات غير المباشرة</h3>
     <p class="p-note">هذا المسار يوضح كيف نقدر نوصل من جدول إلى جدول آخر عن طريق جدول وسيط، وليس FK مباشر بين الجدولين.</p>
     ${t.ind.map(i => `
       <div class="ind-item">
@@ -1080,8 +1106,8 @@ function selectTable(name) {
         <p>${esc(i.t)}</p>
       </div>`).join("")}
 
-    <h3>السؤال اللي يجاوب عليه</h3>
-    <p>${esc(t.q)}</p>`;
+    <h3>8. السؤال اللي يجاوب عليه</h3>
+    <div class="note p-q">${esc(t.q)}</div>`;
   openPanel();
 }
 
