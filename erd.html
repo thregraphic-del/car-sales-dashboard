@@ -192,6 +192,7 @@
   .tip dt { color: var(--muted); font-size: 11.5px; margin-top: 5px; }
   .tip dt:first-child { margin-top: 0; }
   .tip dd { margin: 0; }
+  .tip dd.tip-z { color: var(--muted); font-size: 12px; }
 
   /* ---------- Side panel ---------- */
   .panel {
@@ -617,117 +618,119 @@ const TABLES = {
 
 const RELS = [
   { f:"Brands", fc:"BrandID", t:"Models", tc:"BrandID", c:"1:N",
-    s:"الـ Brand الواحد ممكن يكون له أكثر من Model.",
-    w:"عشان كل Model يحفظ BrandID بدل ما نكرر بيانات الـ Brand في كل Model.",
+    m:"الـ Brand الواحد (الماركة) يمكن أن يكون له عدة Models، وكل Model يتبع Brand واحد.",
+    w:"عشان نعرف كل موديل يتبع أي ماركة، بدون ما نكرر بيانات الماركة مع كل موديل.",
     q:"أي Models تتبع هذا الـ Brand؟" },
   { f:"Models", fc:"ModelID", t:"Products", tc:"ModelID", c:"1:N",
-    s:"الـ Model الواحد ممكن يكون له أكثر من Product.",
-    w:"عشان كل Product يحفظ ModelID بدل ما نكرر بيانات الـ Model في كل Product.",
+    m:"الـ Model الواحد يمكن أن يكون له عدة Products، وكل Product يتبع Model واحد.",
+    w:"عشان نعرف كل منتج يتبع أي موديل.",
     q:"أي Products تتبع هذا الـ Model؟" },
   { f:"Products", fc:"ProductID", t:"Vehicles", tc:"ProductID", c:"1:N",
-    s:"الـ Product الواحد ممكن يكون له أكثر من Vehicle.",
-    w:"عشان كل Vehicle تحفظ ProductID بدل ما نكرر بيانات الـ Product مع كل سيارة.",
+    m:"الـ Product الواحد يمكن أن يكون له عدة سيارات فعلية (Vehicles)، وكل Vehicle تتبع Product واحد.",
+    w:"عشان نعرف كل سيارة فعلية من أي منتج.",
     q:"أي Vehicles تتبع هذا الـ Product؟" },
   { f:"Products", fc:"ProductID", t:"SaleItems", tc:"ProductID", c:"1:N",
-    s:"الـ Product الواحد ممكن يظهر في أكثر من SaleItem.",
-    w:"عشان كل SaleItem يحفظ ProductID بدل ما نكرر بيانات الـ Product في كل سطر بيع.",
+    m:"المنتج الواحد يمكن أن يظهر في عدة تفاصيل مبيعات، وكل SaleItem يشير إلى منتج واحد.",
+    w:"عشان نعرف وش المنتج اللي انباع في كل سطر من الفاتورة.",
     q:"في أي SaleItems ظهر هذا الـ Product؟" },
   { f:"Products", fc:"ProductID", t:"InventoryTransactions", tc:"ProductID", c:"1:N",
-    s:"الـ Product الواحد ممكن يكون له أكثر من InventoryTransaction.",
-    w:"عشان كل حركة مخزون تحفظ ProductID ونعرف أي Product تخصه.",
+    m:"المنتج الواحد يمكن أن يكون له عدة حركات مخزون، وكل حركة مخزون تخص منتج واحد.",
+    w:"عشان نعرف حركات المخزون الخاصة بكل منتج.",
     q:"وش حركات المخزون اللي صارت على هذا الـ Product؟" },
   { f:"Branches", fc:"BranchID", t:"Employees", tc:"BranchID", c:"1:N",
-    s:"الـ Branch الواحد ممكن يكون فيه أكثر من Employee.",
-    w:"عشان كل Employee يحفظ BranchID بدل ما نكرر بيانات الفرع مع كل موظف.",
+    m:"الفرع الواحد يمكن أن يكون فيه عدة موظفين، وكل موظف يتبع فرع واحد.",
+    w:"عشان نعرف كل موظف يشتغل في أي فرع.",
     q:"مين الموظفين في هذا الـ Branch؟" },
   { f:"Branches", fc:"BranchID", t:"Sales", tc:"BranchID", c:"1:N",
-    s:"الـ Branch الواحد ممكن يكون له أكثر من Sale.",
-    w:"عشان كل Sale تحفظ BranchID ونعرف في أي فرع تمت.",
+    m:"الفرع الواحد يمكن أن تتم فيه عدة عمليات بيع، وكل عملية بيع تتم في فرع واحد.",
+    w:"عشان نعرف كل عملية بيع تمت في أي فرع.",
     q:"وش المبيعات اللي تمت في هذا الـ Branch؟" },
   { f:"Branches", fc:"BranchID", t:"Leads", tc:"BranchID", c:"1:N",
-    s:"الـ Branch الواحد ممكن يكون له أكثر من Lead.",
-    w:"عشان كل Lead يحفظ BranchID ونعرف أي فرع مرتبط فيه.",
+    m:"الفرع الواحد يمكن أن يكون له عدة عملاء محتملين (Leads)، وكل Lead مرتبط بفرع واحد.",
+    w:"عشان نعرف كل Lead تابع لأي فرع.",
     q:"وش الـ Leads المرتبطة بهذا الـ Branch؟" },
   { f:"Branches", fc:"BranchID", t:"Vehicles", tc:"CurrentBranchID", c:"1:N",
-    s:"الـ Branch الواحد ممكن يكون فيه أكثر من Vehicle حاليًا.",
-    w:"عشان كل Vehicle تحفظ CurrentBranchID ونعرف الفرع اللي هي فيه الآن.",
+    m:"الفرع الواحد يمكن أن توجد فيه عدة سيارات حاليًا، وكل سيارة موجودة حاليًا في فرع واحد.",
+    w:"عشان نعرف وين موجودة كل سيارة الآن.",
     q:"وش الـ Vehicles الموجودة حاليًا في هذا الـ Branch؟" },
   { f:"Branches", fc:"BranchID", t:"InventoryTransactions", tc:"BranchID", c:"1:N",
-    s:"الـ Branch الواحد ممكن يكون له أكثر من InventoryTransaction.",
-    w:"عشان كل حركة مخزون تحفظ BranchID ونعرف في أي فرع صارت.",
+    m:"الفرع الواحد يمكن أن تصير فيه عدة حركات مخزون، وكل حركة مخزون تصير في فرع واحد.",
+    w:"عشان نعرف كل حركة مخزون صارت في أي فرع.",
     q:"وش حركات المخزون اللي صارت في هذا الـ Branch؟" },
   { f:"Employees", fc:"EmployeeID", t:"Sales", tc:"SalesEmployeeID", c:"1:N",
-    s:"الـ Employee الواحد ممكن يسجل أكثر من Sale.",
-    w:"عشان كل Sale تحفظ SalesEmployeeID ونعرف مين الموظف اللي سجلها.",
+    m:"الموظف الواحد يمكن أن يسجل عدة عمليات بيع، وكل عملية بيع مرتبطة بموظف واحد.",
+    w:"عشان نعرف مين الموظف اللي سجل كل عملية بيع.",
     q:"وش المبيعات اللي سجلها هذا الموظف؟" },
   { f:"Employees", fc:"EmployeeID", t:"Leads", tc:"AssignedEmployeeID", c:"1:N",
-    s:"الـ Employee الواحد ممكن يكون مسؤول عن أكثر من Lead.",
-    w:"عشان كل Lead يحفظ AssignedEmployeeID ونعرف مين الموظف المسؤول عنه.",
+    m:"الموظف الواحد يمكن أن يكون مسؤولًا عن عدة Leads، وكل Lead مسند لموظف واحد.",
+    w:"عشان نعرف مين الموظف المسؤول عن متابعة كل Lead.",
     q:"وش الـ Leads المسندة لهذا الموظف؟" },
   { f:"Customers", fc:"CustomerID", t:"Sales", tc:"CustomerID", c:"1:N",
-    s:"الـ Customer الواحد ممكن يكون له أكثر من Sale.",
-    w:"عشان كل Sale تحفظ CustomerID بدل ما نكرر بيانات العميل في كل فاتورة.",
+    m:"العميل الواحد يمكن أن يكون لديه عدة عمليات بيع، وكل عملية بيع تخص عميلًا واحدًا.",
+    w:"عشان نعرف مين العميل في كل عملية بيع، بدون ما نكرر بياناته في كل فاتورة.",
     q:"وش المبيعات الخاصة بهذا العميل؟" },
   { f:"Customers", fc:"CustomerID", t:"Leads", tc:"CustomerID", c:"1:N",
-    s:"الـ Customer الواحد ممكن يكون له أكثر من Lead.",
-    w:"عشان كل Lead يحفظ CustomerID بدل ما نكرر بيانات العميل في كل Lead.",
+    m:"العميل الواحد يمكن أن يكون له عدة Leads، وكل Lead يخص عميلًا واحدًا.",
+    w:"عشان نعرف كل Lead يخص أي عميل.",
     q:"وش الـ Leads المرتبطة بهذا العميل؟" },
   { f:"Channels", fc:"ChannelID", t:"Sales", tc:"ChannelID", c:"1:N",
-    s:"الـ Channel الواحد ممكن يكون له أكثر من Sale.",
-    w:"عشان كل Sale تحفظ ChannelID ونعرف من أي قناة جات.",
+    m:"القناة الواحدة يمكن أن تأتي منها عدة عمليات بيع، وكل عملية بيع مرتبطة بقناة واحدة.",
+    w:"عشان نعرف كل عملية بيع جات من أي قناة.",
     q:"وش المبيعات اللي جات من هذا الـ Channel؟" },
   { f:"Channels", fc:"ChannelID", t:"Leads", tc:"ChannelID", c:"1:N",
-    s:"الـ Channel الواحد ممكن يكون له أكثر من Lead.",
-    w:"عشان كل Lead يحفظ ChannelID ونعرف من أي قناة جاء.",
+    m:"القناة الواحدة يمكن أن يأتي منها عدة Leads، وكل Lead مرتبط بقناة واحدة.",
+    w:"عشان نعرف كل Lead جاء من أي قناة.",
     q:"وش الـ Leads اللي جات من هذا الـ Channel؟" },
   { f:"Channels", fc:"ChannelID", t:"Campaigns", tc:"ChannelID", c:"1:N",
-    s:"الـ Channel الواحد ممكن يكون له أكثر من Campaign.",
-    w:"عشان كل Campaign تحفظ ChannelID ونعرف على أي قناة كانت.",
+    m:"القناة الواحدة يمكن أن يكون عليها عدة حملات، وكل حملة مرتبطة بقناة واحدة.",
+    w:"عشان نعرف كل حملة كانت على أي قناة.",
     q:"وش الحملات اللي على هذا الـ Channel؟" },
   { f:"Campaigns", fc:"CampaignID", t:"Sales", tc:"CampaignID", c:"1:N",
-    s:"الـ Campaign الواحدة ممكن يرتبط فيها أكثر من Sale.",
-    w:"عشان كل Sale تحفظ CampaignID ونعرف أي حملة مرتبطة فيها.",
+    m:"الحملة الواحدة يمكن أن ترتبط بها عدة عمليات بيع، وكل عملية بيع مرتبطة بحملة واحدة.",
+    w:"عشان نعرف المبيعات المرتبطة بكل حملة.",
     q:"وش المبيعات المرتبطة بهذه الحملة؟" },
   { f:"Campaigns", fc:"CampaignID", t:"Leads", tc:"CampaignID", c:"1:N",
-    s:"الـ Campaign الواحدة ممكن يرتبط فيها أكثر من Lead.",
-    w:"عشان كل Lead يحفظ CampaignID ونعرف أي حملة مرتبطة فيه.",
+    m:"الحملة الواحدة يمكن أن يرتبط بها عدة Leads، وكل Lead مرتبط بحملة واحدة.",
+    w:"عشان نعرف الـ Leads المرتبطة بكل حملة.",
     q:"وش الـ Leads اللي جات من هذه الحملة؟" },
   { f:"Models", fc:"ModelID", t:"Leads", tc:"InterestedModelID", c:"1:N",
-    s:"الـ Model الواحد ممكن يهتم فيه أكثر من Lead.",
-    w:"عشان كل Lead يحفظ InterestedModelID ونعرف أي Model مهتم فيه.",
+    m:"الموديل الواحد يمكن أن يهتم فيه عدة Leads، وكل Lead مهتم بموديل واحد.",
+    w:"عشان نعرف كل عميل محتمل مهتم بأي موديل.",
     q:"مين الـ Leads المهتمين بهذا الـ Model؟" },
   { f:"Leads", fc:"LeadID", t:"Sales", tc:"LeadID", c:"1:N",
-    s:"الـ Lead الواحد ممكن يرتبط بأكثر من Sale.",
-    w:"عشان كل Sale تحفظ LeadID ونقدر نرجع للـ Lead اللي جات منه.",
+    m:"الـ Lead الواحد يمكن أن ترتبط به عدة عمليات بيع، وكل عملية بيع مرتبطة بـ Lead واحد.",
+    w:"عشان نعرف كل عملية بيع جات من أي Lead.",
     q:"أي مبيعات مرتبطة بهذا الـ Lead؟" },
   { f:"Sales", fc:"SaleID", t:"SaleItems", tc:"SaleID", c:"1:N",
-    s:"الـ Sale الواحدة (الفاتورة) ممكن تحتوي أكثر من SaleItem.",
-    w:"عشان كل SaleItem يحفظ SaleID، وبيانات الفاتورة تنحفظ مرة وحدة في Sales بدل ما تتكرر مع كل سطر.",
+    m:"الفاتورة الواحدة يمكن أن تحتوي على عدة تفاصيل للمنتجات، وكل SaleItem يتبع فاتورة واحدة.",
+    w:"عشان نعرف وش التفاصيل الموجودة داخل كل فاتورة، بدون ما نكرر بيانات الفاتورة مع كل سطر.",
     q:"وش المنتجات الموجودة داخل هذه الفاتورة؟",
     note:"فصلنا Sale عن SaleItems لأن Sale يمثل الفاتورة نفسها، بينما SaleItems يمثل التفاصيل الموجودة داخل الفاتورة." },
   { f:"Sales", fc:"SaleID", t:"Payments", tc:"SaleID", c:"1:N",
-    s:"الـ Sale الواحدة ممكن يكون لها أكثر من Payment.",
-    w:"عشان كل Payment تحفظ SaleID ونعرف أي فاتورة تخصها.",
+    m:"الفاتورة الواحدة يمكن أن يكون لها دفعة أو أكثر، وكل دفعة مرتبطة بفاتورة واحدة.",
+    w:"عشان نعرف الدفعات المرتبطة بكل فاتورة.",
     q:"وش الدفعات اللي انسجلت على هذه الفاتورة؟" },
   { f:"Vehicles", fc:"VehicleID", t:"SaleItems", tc:"VehicleID", c:"1:0..1",
-    s:"الـ Vehicle الواحدة ممكن ترتبط بـ SaleItem واحد بالكثير، أو ما ترتبط بأي SaleItem.",
-    w:"عشان SaleItem يحفظ VehicleID ونعرف أي سيارة بالضبط في سطر البيع، والسيارة الوحدة ما تظهر في أكثر من SaleItem.",
+    m:"السيارة الواحدة يمكن أن ترتبط بـ SaleItem واحد كحد أقصى، وقد لا ترتبط بأي SaleItem. وكل SaleItem يشير إلى سيارة واحدة.",
+    w:"عشان نعرف أي سيارة بالضبط في سطر البيع، والسيارة الواحدة ما تظهر في أكثر من سطر بيع.",
+    z:"قد لا يوجد: يعني ممكن تكون السيارة موجودة عندنا وما ظهرت في أي سطر بيع.",
     q:"هل هذه الـ Vehicle مرتبطة بسطر بيع؟ وإذا نعم، أي سطر؟" },
   { f:"PaymentMethods", fc:"PaymentMethodID", t:"Payments", tc:"PaymentMethodID", c:"1:N",
-    s:"الـ PaymentMethod الواحدة ممكن تُستخدم في أكثر من Payment.",
-    w:"عشان كل Payment تحفظ PaymentMethodID بدل ما نكتب اسم طريقة الدفع في كل دفعة.",
+    m:"طريقة الدفع الواحدة يمكن استخدامها في عدة دفعات، وكل دفعة تستخدم طريقة دفع واحدة.",
+    w:"عشان نعرف كل دفعة تمت بأي طريقة دفع.",
     q:"وش الدفعات اللي تمت بطريقة الدفع هذه؟" },
   { f:"Suppliers", fc:"SupplierID", t:"InventoryTransactions", tc:"SupplierID", c:"1:N",
-    s:"الـ Supplier الواحد ممكن يكون له أكثر من InventoryTransaction.",
-    w:"عشان كل حركة مخزون تحفظ SupplierID ونعرف أي مورد مرتبط فيها.",
+    m:"المورد الواحد يمكن أن يكون له عدة حركات مخزون، وكل حركة مخزون مرتبطة بمورد واحد.",
+    w:"عشان نعرف كل حركة مخزون مرتبطة بأي مورد.",
     q:"وش حركات المخزون المرتبطة بهذا المورد؟" },
   { f:"SaleItems", fc:"SaleItemID", t:"InventoryTransactions", tc:"SaleItemID", c:"1:0..1",
-    s:"الـ SaleItem الواحد ممكن يرتبط بـ InventoryTransaction وحدة بالكثير، أو ما يرتبط بأي حركة.",
-    w:"عشان InventoryTransaction تحفظ SaleItemID ونعرف سطر البيع اللي تخصه الحركة، وسطر البيع ما يظهر في أكثر من حركة.",
+    m:"سطر البيع الواحد (SaleItem) يمكن أن ترتبط به حركة مخزون واحدة كحد أقصى، وقد لا ترتبط به أي حركة. وكل InventoryTransaction تشير إلى SaleItem واحد.",
+    w:"عشان نعرف حركة المخزون اللي تخص كل سطر بيع.",
+    z:"قد لا يوجد: يعني ممكن يكون فيه سطر بيع ما له أي حركة مخزون مرتبطة فيه.",
     q:"هل فيه حركة مخزون مرتبطة بسطر البيع هذا؟" },
   { f:"Vehicles", fc:"VehicleID", t:"InventoryTransactions", tc:"VehicleID", c:"1:N",
-    s:"الـ Vehicle الواحدة ممكن يكون لها أكثر من InventoryTransaction.",
-    w:"عشان كل حركة مخزون تحفظ VehicleID ونقدر نتتبع كل حركات السيارة.",
+    m:"السيارة الواحدة يمكن أن يكون لها عدة حركات مخزون، وكل حركة مخزون تخص سيارة واحدة.",
+    w:"عشان نتتبع كل الحركات اللي صارت على السيارة.",
     q:"وش الحركات اللي صارت على هذه الـ Vehicle؟" }
 ];
 RELS.forEach((r, i) => r.id = i);
@@ -979,14 +982,29 @@ function moveTip(ev) {
 const arrow = (a, b) => `<span class="en">${esc(a)} → ${esc(b)}</span>`;
 const cardTxt = c => `<span class="en">${esc(c)}</span>`;
 
+/* Relationship explanations are read from the FK table's side
+   (e.g. Payments → Sales, N:1): "each payment belongs to one sale". */
+function relView(r) {
+  const opt = r.c === "1:0..1";
+  return {
+    from: r.t, to: r.f,
+    cols: arrow(r.t + "." + r.tc, r.f + "." + r.fc),
+    type: opt ? "0..1 : 1" : "N : 1",
+    typeAr: opt
+      ? `كل سجل في ${r.f} يرتبط بسجل واحد كحد أقصى في ${r.t}، أو ما يرتبط بأي سجل.`
+      : `عدة سجلات في ${r.t} ممكن ترتبط بسجل واحد في ${r.f}.`,
+    diagram: `${r.f} → ${r.t} (${r.c})`
+  };
+}
 function relTip(r) {
+  const v = relView(r);
   return `<dl>
-    <dt>العلاقة:</dt><dd>${arrow(r.f, r.t)}</dd>
-    <dt>الأعمدة:</dt><dd>${arrow(r.f + "." + r.fc, r.t + "." + r.tc)}</dd>
-    <dt>النوع:</dt><dd>${cardTxt(r.c)}</dd>
-    <dt>ببساطة:</dt><dd>${esc(r.s)}</dd>
-    <dt>ليش موجودة؟</dt><dd>${esc(r.w)}</dd>
-    <dt>السؤال اللي تجاوب عليه:</dt><dd>${esc(r.q)}</dd>
+    <dt>العلاقة:</dt><dd>${arrow(v.from, v.to)}</dd>
+    <dt>المعنى:</dt><dd>${esc(r.m)}</dd>
+    ${r.z ? `<dd class="tip-z">${esc(r.z)}</dd>` : ""}
+    <dt>ليش نحتاجها؟</dt><dd>${esc(r.w)}</dd>
+    <dt>الأعمدة:</dt><dd>${v.cols}</dd>
+    <dt>النوع:</dt><dd><span class="en">${v.type}</span> — ${esc(v.typeAr)}</dd>
   </dl>`;
 }
 function tableTip(name) {
@@ -1044,10 +1062,12 @@ function selectTable(name) {
     <h3>العلاقات المباشرة <span class="tag-dir">مباشرة</span></h3>
     <ul class="p-list">${direct.map(r => `
       <li class="p-rel">
-        <div dir="ltr" class="p-ltr"><span class="rel-link" data-r="${r.id}">${esc(r.f)} → ${esc(r.t)}</span>
-          <span class="p-card">${esc(r.c)}</span></div>
-        <div dir="ltr" class="p-ltr p-cols">${code(r.f + "." + r.fc)} → ${code(r.t + "." + r.tc)}</div>
-        <div class="p-use"><span class="p-ex-k">فائدتها:</span> ${esc(r.w)}</div>
+        <div dir="ltr" class="p-ltr"><span class="rel-link" data-r="${r.id}">${esc(r.t)} → ${esc(r.f)}</span>
+          <span class="p-card">${relView(r).type}</span></div>
+        <div class="p-use"><span class="p-ex-k">المعنى:</span> ${esc(r.m)}</div>
+        ${r.z ? `<div class="p-use p-ex-k">${esc(r.z)}</div>` : ""}
+        <div class="p-use"><span class="p-ex-k">ليش نحتاجها؟</span> ${esc(r.w)}</div>
+        <div dir="ltr" class="p-ltr p-cols">${code(r.t + "." + r.tc)} → ${code(r.f + "." + r.fc)}</div>
       </li>`).join("")}
     </ul>
 
@@ -1067,21 +1087,23 @@ function selectTable(name) {
 
 function selectRel(id) {
   selRel = id; selTable = null; hideTip(); applyState();
-  const r = RELS[id];
+  const r = RELS[id], v = relView(r);
   panel.innerHTML = `
     <div class="p-head"><h2>فهم العلاقة</h2><button class="btn-close" type="button">إغلاق</button></div>
-    <div class="p-sub">${esc(r.f)} → ${esc(r.t)}</div>
-    <h3>العلاقة:</h3><p>${arrow(r.f, r.t)}</p>
-    <h3>الأعمدة:</h3><p dir="ltr" style="text-align:right">${code(r.f + "." + r.fc)} <span class="kb pk">PK</span> → ${code(r.t + "." + r.tc)} <span class="kb fk">FK</span></p>
-    <h3>النوع:</h3><p>${cardTxt(r.c)}</p>
-    <h3>ببساطة:</h3><p>${esc(r.s)}</p>
-    <h3>ليش موجودة؟</h3><p>${esc(r.w)}</p>
+    <div class="p-sub">${esc(v.from)} → ${esc(v.to)}</div>
+    <h3>العلاقة:</h3><p>${arrow(v.from, v.to)}</p>
+    <h3>المعنى:</h3><p>${esc(r.m)}</p>
+    ${r.z ? `<div class="note">${esc(r.z)}</div>` : ""}
+    <h3>ليش نحتاجها؟</h3><p>${esc(r.w)}</p>
+    <h3>الأعمدة:</h3><p dir="ltr" style="text-align:right">${code(r.t + "." + r.tc)} <span class="kb fk">FK</span> → ${code(r.f + "." + r.fc)} <span class="kb pk">PK</span></p>
+    <h3>النوع:</h3><p><span class="en">${v.type}</span> — ${esc(v.typeAr)}</p>
+    <p class="p-note">في الرسم تظهر كذا: <span class="en">${esc(v.diagram)}</span></p>
     <h3>السؤال اللي تجاوب عليه:</h3><p>${esc(r.q)}</p>
     ${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}
     <h3>الجداول</h3>
     <ul>
-      <li><span class="rel-link" data-t="${esc(r.f)}"><span class="en">${esc(r.f)}</span></span> — ${esc(TABLES[r.f].desc)}</li>
       <li><span class="rel-link" data-t="${esc(r.t)}"><span class="en">${esc(r.t)}</span></span> — ${esc(TABLES[r.t].desc)}</li>
+      <li><span class="rel-link" data-t="${esc(r.f)}"><span class="en">${esc(r.f)}</span></span> — ${esc(TABLES[r.f].desc)}</li>
     </ul>`;
   openPanel();
 }
@@ -1144,6 +1166,8 @@ function selfCheck() {
   actual.forEach(k => check(EXPECTED_RELS.includes(k), `extra relationship ${k}`));
   check(new Set(actual).size === actual.length, "duplicate relationship");
 
+  RELS.forEach(r => ["m","w","q"].forEach(f => check(r[f], `relationship ${key(r)} missing text ${f}`)));
+  RELS.forEach(r => check(!!r.z === (r.c === "1:0..1"), `relationship ${key(r)}: "قد لا يوجد" note must exist only for 1:0..1`));
   RELS.forEach(r => {
     check(TABLES[r.f] && TABLES[r.t], `unknown table in ${key(r)}`);
     check(TABLES[r.f] && TABLES[r.f].pk === r.fc, `from-column is not the PK in ${key(r)}`);
