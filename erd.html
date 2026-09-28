@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ERD — Core Relationships</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fafaf8;
+    --paper: #ffffff;
+    --ink: #1f2328;
+    --muted: #5f6670;
+    --line: #d6d8dc;
+    --border: #c9ccd1;
+    --edge: #8a9099;
+    --accent: #1d5fbf;
+    --accent-soft: #e8f0fb;
+    --tx-bg: #fbf8f1;
+    --tx-border: #d9ccad;
+    --tx-zone: #f5efe1;
+    --pk: #8a5a00;
+    --fk: #1d5fbf;
+    --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "IBM Plex Sans Arabic", "Segoe UI", Tahoma, "Noto Sans Arabic", sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  code, .en {
+    font-family: var(--mono);
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+  code { font-size: 0.92em; }
+
+  header.page {
+    max-width: 1500px;
+    margin: 0 auto;
+    padding: 24px 16px 8px;
+  }
+  header.page h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+  header.page p { margin: 4px 0 0; color: var(--muted); }
+  .hint {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--muted);
+    border-inline-start: 3px solid var(--line);
+    padding-inline-start: 10px;
+  }
+
+  /* ---------- Diagram ---------- */
+  .wrap {
+    max-width: 1500px;
+    margin: 8px auto 0;
+    padding: 0 16px;
+  }
+  .scroller {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    background: var(--paper);
+    border-radius: 6px;
+  }
+  .canvas {
+    position: relative;
+    direction: ltr;           /* diagram flows left → right like the arrows */
+    min-width: 1080px;
+  }
+  svg.edges {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .zone-rect { fill: var(--tx-zone); stroke: var(--tx-border); stroke-dasharray: 4 4; }
+  .zone-label {
+    font-family: var(--mono);
+    font-size: 11px;
+    fill: #8c7a50;
+    letter-spacing: 1px;
+  }
+  .master-label { fill: #8a9099; }
+
+  .edge {
+    fill: none;
+    stroke: var(--edge);
+    stroke-width: 1.3;
+    transition: opacity .15s, stroke .15s;
+  }
+  .edge.opt { stroke-dasharray: 5 4; }
+  .edge-hit {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 12;
+    cursor: pointer;
+    pointer-events: stroke;
+  }
+  .card-lbl {
+    font-family: var(--mono);
+    font-size: 11px;
+    fill: var(--muted);
+    paint-order: stroke;
+    stroke: var(--paper);
+    stroke-width: 4px;
+    stroke-linejoin: round;
+    pointer-events: none;
+    transition: opacity .15s;
+  }
+  .edge.hl { stroke: var(--accent); stroke-width: 2.4; }
+  .card-lbl.hl { fill: var(--accent); font-weight: 500; }
+  .edge.dim, .card-lbl.dim { opacity: 0.12; }
+
+  .card {
+    position: absolute;
+    width: 190px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 7px 9px 8px;
+    direction: rtl;
+    text-align: right;
+    cursor: pointer;
+    transition: opacity .15s, border-color .15s, box-shadow .15s;
+    z-index: 2;
+  }
+  .card.tx { background: var(--tx-bg); border-color: var(--tx-border); }
+  .card .c-name {
+    font-family: var(--mono);
+    font-weight: 500;
+    font-size: 13.5px;
+    direction: ltr;
+    text-align: left;
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid var(--line);
+  }
+  .card .c-desc { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 4px; }
+  .card .c-keys { font-size: 11.5px; line-height: 1.55; }
+  .krow { display: flex; gap: 6px; align-items: flex-start; }
+  .krow + .krow { margin-top: 2px; }
+  .kb {
+    flex: none;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 500;
+    padding: 0 4px;
+    border-radius: 3px;
+    border: 1px solid currentColor;
+    line-height: 1.5;
+    margin-top: 1px;
+  }
+  .kb.pk { color: var(--pk); }
+  .kb.fk { color: var(--fk); }
+  .kvals { display: flex; flex-wrap: wrap; gap: 0 8px; direction: ltr; justify-content: flex-end; }
+  .kvals code { font-size: 11px; }
+  .kvals .none { font-family: inherit; color: var(--muted); direction: rtl; }
+
+  .card:hover { border-color: var(--accent); }
+  .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .card.sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .card.near { border-color: var(--accent); }
+  .card.dim { opacity: 0.25; }
+
+  /* ---------- Tooltip ---------- */
+  .tip {
+    position: fixed;
+    z-index: 50;
+    max-width: 330px;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 9px 11px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+    pointer-events: none;
+    display: none;
+  }
+  .tip.show { display: block; }
+  .tip dt { color: var(--muted); font-size: 11.5px; margin-top: 5px; }
+  .tip dt:first-child { margin-top: 0; }
+  .tip dd { margin: 0; }
+  .tip dd.tip-z { color: var(--muted); font-size: 12px; }
+
+  /* ---------- Side panel ---------- */
+  .panel {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    width: 350px;
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    background: var(--paper);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px 16px;
+    z-index: 40;
+    box-shadow: 0 2px 10px rgba(0,0,0,.07);
+    display: none;
+  }
+  .panel.show { display: block; }
+  .panel .p-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 8px;
+    margin-bottom: 8px;
+  }
+  .panel h2 { margin: 0; font-size: 16px; font-weight: 600; }
+  .panel .p-sub { font-family: var(--mono); font-size: 13px; color: var(--accent); direction: ltr; text-align: right; }
+  .panel h3 {
+    margin: 12px 0 4px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .panel p { margin: 0; }
+  .panel ul { margin: 0; padding: 0; list-style: none; }
+  .panel li { margin: 3px 0; }
+  .btn-close {
+    font: inherit;
+    font-size: 12px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 10px;
+    cursor: pointer;
+    color: var(--muted);
+  }
+  .btn-close:hover { color: var(--ink); border-color: var(--ink); }
+  .path {
+    direction: ltr;
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 12px;
+    background: #f4f5f7;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 3px 7px;
+    display: block;
+  }
+  .tag-ind {
+    display: inline-block;
+    font-size: 11px;
+    border: 1px dashed var(--muted);
+    color: var(--muted);
+    border-radius: 3px;
+    padding: 0 6px;
+    margin-bottom: 3px;
+  }
+  .tag-dir {
+    display: inline-block;
+    font-size: 11px;
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    border-radius: 3px;
+    padding: 0 6px;
+  }
+  .p-list li { margin: 4px 0; }
+  .p-ltr { text-align: right; }
+  .p-rel { border-bottom: 1px solid var(--line); padding: 5px 0 6px; }
+  .p-rel:last-child { border-bottom: 0; }
+  .p-card { font-family: var(--mono); font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; margin-inline-start: 4px; }
+  .p-cols { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .p-use { font-size: 13px; margin-top: 2px; }
+  .p-ex { margin-top: 4px !important; font-size: 13px; }
+  .p-ex-k { color: var(--muted); font-size: 12px; }
+  .p-note { font-size: 12.5px; color: var(--muted); }
+  .p-sm { font-size: 12.5px; color: var(--muted); margin-top: 6px !important; }
+  .p-grp { color: var(--ink); font-weight: 600; }
+  .p-dep li { font-size: 13px; }
+  .p-type { font-family: var(--mono); font-size: 10.5px; color: var(--muted); border: 1px solid var(--border); background: #fff; border-radius: 3px; padding: 0 5px; margin-inline-start: 6px; vertical-align: middle; }
+  .p-type.tx { background: var(--tx-bg); border-color: var(--tx-border); color: #8c7a50; }
+  .p-q { font-size: 14px; font-weight: 500; margin-top: 4px; }
+  .ind-item { margin: 8px 0 10px; }
+  .ind-item p { font-size: 13px; margin-top: 4px; }
+  .rel-link {
+    cursor: pointer;
+    border-bottom: 1px dotted var(--muted);
+  }
+  .rel-link:hover { color: var(--accent); border-color: var(--accent); }
+  .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; align-items: baseline; }
+  .kv .k { color: var(--muted); font-size: 12.5px; }
+  .kv .v { direction: ltr; text-align: right; }
+  .note {
+    margin-top: 10px;
+    background: var(--tx-bg);
+    border: 1px solid var(--tx-border);
+    border-radius: 4px;
+    padding: 6px 9px;
+    font-size: 13px;
+  }
+
+  /* ---------- Legend ---------- */
+  .legend {
+    max-width: 1500px;
+    margin: 16px auto 32px;
+    padding: 0 16px;
+  }
+  .legend h2 { font-size: 15px; margin: 0 0 8px; font-weight: 600; }
+  .legend-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 8px;
+  }
+  .lg {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 8px 10px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .lg .sym {
+    flex: none;
+    min-width: 64px;
+    font-family: var(--mono);
+    font-size: 12px;
+    direction: ltr;
+    text-align: center;
+    padding-top: 2px;
+  }
+  .lg .txt b { font-weight: 600; display: block; font-family: var(--mono); font-size: 12.5px; direction: ltr; text-align: right; }
+  .lg .txt span { font-size: 13px; color: var(--muted); }
+  .sw { display: inline-block; width: 18px; height: 12px; border-radius: 2px; vertical-align: middle; }
+
+  @media (max-width: 760px) {
+    header.page h1 { font-size: 19px; }
+    .panel {
+      top: auto;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      width: auto;
+      max-height: 60vh;
+      border-radius: 8px 8px 0 0;
+    }
+  }
+</style>
+</head>
+<body>
+
+<header class="page">
+  <h1><span class="en" style="font-family: inherit;">ERD — Core Relationships</span></h1>
+  <p>خريطة مبسطة لفهم الجداول والعلاقات قبل تطبيقها في SQL</p>
+  <div class="hint">مرّر الماوس على أي جدول أو خط علاقة عشان يطلع لك شرح سريع. اضغط على الجدول أو الخط عشان تفتح الشرح الكامل. اضغط على مكان فاضي أو <code>Esc</code> عشان ترجع للوضع العادي.</div>
+</header>
+
+<div class="wrap">
+  <div class="scroller" id="scroller" dir="ltr">
+    <div class="canvas" id="canvas">
+      <svg class="edges" id="svg" xmlns="http://www.w3.org/2000/svg">
+        <g id="zoneLayer"></g>
+        <g id="edgeLayer"></g>
+        <g id="lblLayer"></g>
+        <g id="hitLayer"></g>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<section class="legend">
+  <h2>دليل الرموز</h2>
+  <div class="legend-grid">
+    <div class="lg"><div class="sym"><span class="kb pk">PK</span></div><div class="txt"><b>PK</b><span>المفتاح الأساسي، يميز كل سجل داخل الجدول.</span></div></div>
+    <div class="lg"><div class="sym"><span class="kb fk">FK</span></div><div class="txt"><b>FK</b><span>مفتاح يربط سجل في جدول بسجل في جدول ثاني.</span></div></div>
+    <div class="lg"><div class="sym"><svg width="60" height="14"><text x="0" y="11" font-size="11" fill="#5f6670">1</text><line x1="10" y1="7" x2="44" y2="7" stroke="#8a9099" stroke-width="1.3"/><text x="48" y="11" font-size="11" fill="#5f6670">N</text></svg></div><div class="txt"><b>1:N</b><span>سجل واحد من الجدول الأول ممكن يرتبط بعدة سجلات من الجدول الثاني.</span></div></div>
+    <div class="lg"><div class="sym"><svg width="64" height="14"><text x="0" y="11" font-size="11" fill="#5f6670">1</text><line x1="10" y1="7" x2="36" y2="7" stroke="#8a9099" stroke-width="1.3" stroke-dasharray="5 4"/><text x="39" y="11" font-size="11" fill="#5f6670">0..1</text></svg></div><div class="txt"><b>1:0..1</b><span>السجل ممكن يكون مرتبط بسجل واحد أو ما يكون مرتبط.</span></div></div>
+    <div class="lg"><div class="sym"><span class="tag-dir">مباشرة</span></div><div class="txt"><b>Direct Relationship</b><span>علاقة موجودة مباشرة عن طريق PK/FK.</span></div></div>
+    <div class="lg"><div class="sym"><span class="tag-ind" style="margin:0">غير مباشرة</span></div><div class="txt"><b>Indirect Relationship</b><span>الوصول من جدول إلى جدول ثاني عن طريق جدول أو أكثر.</span></div></div>
+    <div class="lg"><div class="sym"><span class="sw" style="background:#fff;border:1px solid #c9ccd1"></span></div><div class="txt"><b>Master Data</b><span>بيانات أساسية ثابتة نسبيًا، نرجع لها كثير (ماركات، فروع، عملاء...).</span></div></div>
+    <div class="lg"><div class="sym"><span class="sw" style="background:#fbf8f1;border:1px solid #d9ccad"></span></div><div class="txt"><b>Transaction Data</b><span>بيانات حركات تزيد كل يوم (مبيعات، دفعات، حركات مخزون...).</span></div></div>
+  </div>
+</section>
+
+<div class="tip" id="tip"></div>
+<aside class="panel" id="panel" aria-live="polite"></aside>
+
+<script>
+/* =========================================================
+   DATA — table and column names stay in English,
+   all explanations are in simple Arabic.
+   ========================================================= */
+const TABLES = {
+  Brands: {
+    g: "master",
+    desc: "يمثل الماركة، مثل Toyota أو Hyundai.",
+    why: "نحتاجه عشان نخزن كل ماركة مرة وحدة، وترجع لها الموديلات.",
+    kind: "جدول تعريفي يعرّف الماركات.",
+    q: "وش الماركات الموجودة، ووش الموديلات التابعة لكل ماركة؟",
+    stores: "بيانات الماركة، مثل اسم الماركة.",
+    pk: "BrandID", fk: [],
+    ex: "Toyota سجل في Brands له BrandID خاص فيه، وكل Model تابع لـ Toyota يحفظ نفس الـ BrandID.",
+    ind: [
+      { p: ["Brands","Models","Products","Vehicles"], t: "من Brand نقدر نوصل إلى Models، وبعدها إلى Products، ومن خلالها نعرف Vehicles التابعة لهذا الـ Brand." },
+      { p: ["Brands","Models","Products","SaleItems","Sales"], t: "من Brand نقدر نوصل إلى Models ثم Products، وبعدها إلى SaleItems، ومن خلالها نعرف Sales اللي فيها منتجات من هذا الـ Brand." }
+    ]
+  },
+  Models: {
+    g: "master",
+    desc: "يمثل موديل السيارة، مثل Camry.",
+    why: "نحتاجه عشان نعرّف الموديلات ونربط كل موديل بماركته.",
+    kind: "جدول تعريفي يعرّف الموديلات.",
+    q: "وش الموديلات التابعة لكل Brand، وأي موديل عليه اهتمام من الـ Leads؟",
+    stores: "بيانات الموديل، مثل اسم الموديل، ومعه BrandID.",
+    pk: "ModelID", fk: ["BrandID"],
+    ex: "Camry سجل في Models، وفيه BrandID يشير إلى Toyota في Brands.",
+    ind: [
+      { p: ["Models","Products","SaleItems","Sales"], t: "من Model نقدر نوصل إلى Products، وبعدها إلى SaleItems، ومن خلالها نعرف Sales اللي انباع فيها هذا الـ Model." },
+      { p: ["Models","Leads","Sales"], t: "من Model نقدر نوصل إلى Leads المهتمة فيه، ومن خلالها نعرف Sales المرتبطة بهذه الـ Leads." }
+    ]
+  },
+  Products: {
+    g: "master",
+    desc: "يمثل المنتج اللي نبيعه، مثل موديل بفئة وسنة معينة.",
+    why: "نحتاجه عشان نفرق بين المنتجات اللي نبيعها لنفس الموديل.",
+    kind: "جدول تعريفي يعرّف المنتجات.",
+    q: "وش المنتجات الموجودة لكل Model، ووين ظهرت في المبيعات؟",
+    stores: "بيانات المنتج، مثل الفئة والسنة والسعر، ومعه ModelID.",
+    pk: "ProductID", fk: ["ModelID"],
+    ex: "Camry GLE 2024 سجل في Products، وفيه ModelID يشير إلى Camry في Models.",
+    ind: [
+      { p: ["Products","SaleItems","Sales","Customers"], t: "من Product نقدر نوصل إلى SaleItems، وبعدها إلى Sales، ومن خلالها نعرف Customers اللي اشتروا هذا الـ Product." },
+      { p: ["Products","Models","Brands"], t: "من Product نقدر نوصل إلى Model، ومن خلاله نعرف Brand." }
+    ]
+  },
+  Vehicles: {
+    g: "master",
+    desc: "يمثل السيارة الفعلية نفسها (سيارة وحدة محددة).",
+    why: "نحتاجه عشان نتابع كل سيارة فعلية لوحدها: وش منتجها ووين موجودة.",
+    kind: "جدول تعريفي يعرّف السيارات الفعلية.",
+    q: "وش السيارات الموجودة حاليًا في كل فرع، ولأي Product تتبع؟",
+    stores: "بيانات السيارة، مثل رقم الهيكل واللون، ومعها ProductID و CurrentBranchID.",
+    pk: "VehicleID", fk: ["ProductID","CurrentBranchID"],
+    ex: "سيارة Camry GLE 2024 بيضاء: ProductID يشير إلى المنتج، و CurrentBranchID يشير إلى الفرع اللي هي فيه الآن.",
+    ind: [
+      { p: ["Vehicles","Products","Models","Brands"], t: "من Vehicle نقدر نوصل إلى Product، وبعدها إلى Model، ومن خلاله نعرف Brand." },
+      { p: ["Vehicles","SaleItems","Sales","Customers"], t: "من Vehicle نقدر نوصل إلى SaleItem (إذا كانت مرتبطة بسطر بيع)، وبعدها إلى Sale، ومن خلالها نعرف Customer." }
+    ]
+  },
+  Customers: {
+    g: "master",
+    desc: "يمثل العميل.",
+    why: "نحتاجه عشان نخزن بيانات العميل مرة وحدة ونربطها بمبيعاته والـ Leads الخاصة فيه.",
+    kind: "جدول تعريفي يعرّف العملاء.",
+    q: "مين العملاء، ووش المبيعات والـ Leads الخاصة بكل عميل؟",
+    stores: "بيانات العميل، مثل الاسم ورقم الجوال.",
+    pk: "CustomerID", fk: [],
+    ex: "العميل أحمد له CustomerID، وهذا الرقم يظهر في Sales و Leads الخاصة فيه.",
+    ind: [
+      { p: ["Customers","Sales","SaleItems","Products"], t: "من Customer نقدر نوصل إلى Sales، وبعدها إلى SaleItems، ومن خلالها نعرف Products المرتبطة بالمبيعات." },
+      { p: ["Customers","Sales","Payments","PaymentMethods"], t: "من Customer نقدر نوصل إلى Sales، وبعدها إلى Payments، ومن خلالها نعرف PaymentMethods المستخدمة." }
+    ]
+  },
+  Branches: {
+    g: "master",
+    desc: "يمثل فرع المعرض.",
+    why: "نحتاجه عشان نربط الموظفين والمبيعات والـ Leads والسيارات وحركات المخزون بالفرع.",
+    kind: "جدول تعريفي يعرّف الفروع.",
+    q: "وش الموظفين والمبيعات والسيارات المرتبطة بكل فرع؟",
+    stores: "بيانات الفرع، مثل اسم الفرع والمدينة.",
+    pk: "BranchID", fk: [],
+    ex: "فرع أبها له BranchID، وهذا الرقم يظهر في Employees و Sales و Leads و InventoryTransactions، ويظهر في Vehicles باسم CurrentBranchID.",
+    ind: [
+      { p: ["Branches","Sales","SaleItems","Products"], t: "من Branch نقدر نوصل إلى Sales، وبعدها إلى SaleItems، ومن خلالها نعرف Products الموجودة داخل مبيعات الفرع." },
+      { p: ["Branches","Sales","Payments"], t: "من Branch نقدر نوصل إلى Sales، ومن خلالها نعرف Payments الخاصة بمبيعات الفرع." }
+    ]
+  },
+  Employees: {
+    g: "master",
+    desc: "يمثل الموظف.",
+    why: "نحتاجه عشان نعرف مين سجل البيع، ومين المسؤول عن كل Lead.",
+    kind: "جدول تعريفي يعرّف الموظفين.",
+    q: "مين الموظفين في كل فرع، ووش المبيعات والـ Leads المرتبطة بكل موظف؟",
+    stores: "بيانات الموظف، مثل الاسم والوظيفة، ومعه BranchID.",
+    pk: "EmployeeID", fk: ["BranchID"],
+    ex: "الموظفة سارة لها EmployeeID، ويظهر في Sales باسم SalesEmployeeID، وفي Leads باسم AssignedEmployeeID.",
+    ind: [
+      { p: ["Employees","Sales","SaleItems","Products"], t: "من Employee نقدر نوصل إلى Sales اللي سجلها، وبعدها إلى SaleItems، ومن خلالها نعرف Products اللي باعها." },
+      { p: ["Employees","Sales","Customers"], t: "من Employee نقدر نوصل إلى Sales اللي سجلها، ومن خلالها نعرف Customers في هذه المبيعات." }
+    ]
+  },
+  Suppliers: {
+    g: "master",
+    desc: "يمثل المورد.",
+    why: "نحتاجه عشان نعرف المورد المرتبط بحركات المخزون.",
+    kind: "جدول تعريفي يعرّف الموردين.",
+    q: "وش حركات المخزون المرتبطة بكل مورد؟",
+    stores: "بيانات المورد، مثل الاسم ورقم التواصل.",
+    pk: "SupplierID", fk: [],
+    ex: "المورد له SupplierID، وهذا الرقم يظهر في InventoryTransactions المرتبطة فيه.",
+    ind: [
+      { p: ["Suppliers","InventoryTransactions","Products","Models"], t: "من Supplier نقدر نوصل إلى InventoryTransactions، وبعدها إلى Products، ومن خلالها نعرف Models." },
+      { p: ["Suppliers","InventoryTransactions","Vehicles"], t: "من Supplier نقدر نوصل إلى InventoryTransactions، ومن خلالها نعرف Vehicles المرتبطة بهذه الحركات." }
+    ]
+  },
+  Channels: {
+    g: "master",
+    desc: "يمثل القناة اللي جاء منها العميل أو البيع، مثل الموقع أو المعرض.",
+    why: "نحتاجه عشان نعرف القناة المرتبطة بالمبيعات والـ Leads والحملات.",
+    kind: "جدول تعريفي يعرّف القنوات.",
+    q: "وش المبيعات والـ Leads والحملات المرتبطة بكل قناة؟",
+    stores: "بيانات القناة، مثل اسم القناة.",
+    pk: "ChannelID", fk: [],
+    ex: "قناة الموقع لها ChannelID، وهذا الرقم يظهر في Sales و Leads و Campaigns.",
+    ind: [
+      { p: ["Channels","Sales","SaleItems","Products"], t: "من Channel نقدر نوصل إلى Sales، وبعدها إلى SaleItems، ومن خلالها نعرف Products اللي انباعت عن طريق هذه القناة." },
+      { p: ["Channels","Leads","Models"], t: "من Channel نقدر نوصل إلى Leads، ومن خلالها نعرف Models اللي مهتمين فيها العملاء اللي جوا من هذه القناة." }
+    ]
+  },
+  Campaigns: {
+    g: "master",
+    desc: "يمثل الحملة التسويقية.",
+    why: "نحتاجه عشان نربط المبيعات والـ Leads بالحملة التسويقية.",
+    kind: "جدول تعريفي يعرّف الحملات.",
+    q: "وش المبيعات والـ Leads المرتبطة بكل حملة؟",
+    stores: "بيانات الحملة، مثل الاسم وتاريخ البداية والنهاية، ومعها ChannelID.",
+    pk: "CampaignID", fk: ["ChannelID"],
+    ex: "حملة رمضان لها CampaignID، وهذا الرقم يظهر في Sales و Leads المرتبطة فيها.",
+    ind: [
+      { p: ["Campaigns","Leads","Customers"], t: "من Campaign نقدر نوصل إلى Leads، ومن خلالها نعرف Customers المرتبطين بهذه الـ Leads." },
+      { p: ["Campaigns","Sales","Payments"], t: "من Campaign نقدر نوصل إلى Sales، ومن خلالها نعرف Payments الخاصة بهذه المبيعات." }
+    ]
+  },
+  PaymentMethods: {
+    g: "master",
+    desc: "يمثل طريقة الدفع، مثل كاش أو تحويل.",
+    why: "نحتاجه عشان نخزن طرق الدفع مرة وحدة، وتستخدمها الدفعات.",
+    kind: "جدول تعريفي يعرّف طرق الدفع.",
+    q: "وش طرق الدفع المستخدمة في الدفعات؟",
+    stores: "بيانات طريقة الدفع، مثل اسم الطريقة.",
+    pk: "PaymentMethodID", fk: [],
+    ex: "طريقة التحويل لها PaymentMethodID، وهذا الرقم يظهر في كل Payment تم بالتحويل.",
+    ind: [
+      { p: ["PaymentMethods","Payments","Sales","Customers"], t: "من PaymentMethod نقدر نوصل إلى Payments، وبعدها إلى Sales، ومن خلالها نعرف Customers." },
+      { p: ["PaymentMethods","Payments","Sales","Branches"], t: "من PaymentMethod نقدر نوصل إلى Payments، وبعدها إلى Sales، ومن خلالها نعرف Branches." }
+    ]
+  },
+  Leads: {
+    g: "tx",
+    desc: "يمثل العميل المحتمل أو فرصة البيع.",
+    why: "نحتاجه عشان نسجل اهتمام العميل قبل البيع، ونربطه بالفرع والموظف والقناة والحملة والموديل.",
+    kind: "ينتج عند تسجيل عميل محتمل أو فرصة بيع.",
+    q: "مين العملاء المحتملين، ووش الموديل اللي مهتمين فيه، ومين الموظف المسؤول؟",
+    stores: "بيانات الـ Lead، مثل التاريخ والحالة، ومعه FKs تربطه بالعميل والفرع والموظف والقناة والحملة والموديل.",
+    pk: "LeadID", fk: ["CustomerID","BranchID","AssignedEmployeeID","ChannelID","CampaignID","InterestedModelID"],
+    ex: "عميل مهتم بـ Tucson: يتسجل Lead فيه CustomerID للعميل، و InterestedModelID للموديل اللي مهتم فيه.",
+    ind: [
+      { p: ["Leads","Sales","SaleItems","Products"], t: "من Lead نقدر نوصل إلى Sales المرتبطة فيه، وبعدها إلى SaleItems، ومن خلالها نعرف Products." },
+      { p: ["Leads","Models","Brands"], t: "من Lead نقدر نوصل إلى Model اللي مهتم فيه، ومن خلاله نعرف Brand." }
+    ]
+  },
+  Sales: {
+    g: "tx",
+    desc: "يمثل عملية البيع أو الفاتورة.",
+    why: "نحتاجه عشان نسجل كل عملية بيع كفاتورة وحدة، ونربطها بالعميل والفرع والموظف.",
+    kind: "ينتج عند حدوث عملية بيع.",
+    q: "وش المبيعات اللي تمت، ومن العميل والفرع والموظف المرتبط فيها؟",
+    stores: "بيانات الفاتورة، مثل التاريخ والإجمالي، ومعها FKs تربطها بالعميل والفرع والموظف والقناة والحملة والـ Lead.",
+    pk: "SaleID", fk: ["CustomerID","BranchID","SalesEmployeeID","ChannelID","CampaignID","LeadID"],
+    ex: "فاتورة رقم 1001 لها SaleID، وفيها CustomerID للعميل، و BranchID للفرع، و SalesEmployeeID للموظف.",
+    ind: [
+      { p: ["Sales","SaleItems","Products","Models"], t: "من Sale نقدر نوصل إلى SaleItems، وبعدها إلى Products، ومن خلالها نعرف Models." },
+      { p: ["Sales","Payments","PaymentMethods"], t: "من Sale نقدر نوصل إلى Payments، ومن خلالها نعرف PaymentMethods المستخدمة." }
+    ]
+  },
+  SaleItems: {
+    g: "tx",
+    desc: "يمثل سطر داخل الفاتورة.",
+    why: "نحتاجه عشان نفصل تفاصيل الفاتورة عن بيانات الفاتورة نفسها.",
+    kind: "ينتج مع عملية البيع، كل سطر يمثل تفصيلة داخل الفاتورة.",
+    q: "وش المنتجات والسيارات الموجودة داخل كل فاتورة؟",
+    stores: "تفاصيل السطر، مثل السعر والكمية، ومعه SaleID و ProductID و VehicleID.",
+    pk: "SaleItemID", fk: ["SaleID","ProductID","VehicleID"],
+    ex: "فاتورة 1001 فيها سطرين في SaleItems، والسطرين يحفظون نفس SaleID = 1001.",
+    ind: [
+      { p: ["SaleItems","Sales","Customers"], t: "من SaleItem نقدر نوصل إلى Sale، ومن خلالها نعرف Customer." },
+      { p: ["SaleItems","Products","Models","Brands"], t: "من SaleItem نقدر نوصل إلى Product، وبعدها إلى Model، ومن خلاله نعرف Brand." }
+    ]
+  },
+  Payments: {
+    g: "tx",
+    desc: "يمثل دفعة على الفاتورة.",
+    why: "نحتاجه لأن الفاتورة الوحدة ممكن يكون لها أكثر من دفعة.",
+    kind: "ينتج عند تسجيل دفعة على فاتورة.",
+    q: "وش الدفعات اللي انسجلت على كل فاتورة، وبأي طريقة دفع؟",
+    stores: "بيانات الدفعة، مثل المبلغ والتاريخ، ومعها SaleID و PaymentMethodID.",
+    pk: "PaymentID", fk: ["SaleID","PaymentMethodID"],
+    ex: "فاتورة 1001 ممكن يكون لها دفعتين في Payments، والثنتين يحفظون SaleID = 1001.",
+    ind: [
+      { p: ["Payments","Sales","Customers"], t: "من Payment نقدر نوصل إلى Sale، ومن خلالها نعرف Customer." },
+      { p: ["Payments","Sales","Branches"], t: "من Payment نقدر نوصل إلى Sale، ومن خلالها نعرف Branch." }
+    ]
+  },
+  InventoryTransactions: {
+    g: "tx",
+    desc: "يمثل حركة في المخزون.",
+    why: "نحتاجه عشان نسجل كل حركة مخزون ونربطها بالمنتج والسيارة والفرع والمورد وسطر البيع.",
+    kind: "ينتج عند حدوث حركة في المخزون.",
+    q: "وش الحركات اللي صارت على كل منتج أو سيارة، وفي أي فرع؟",
+    stores: "بيانات الحركة، مثل النوع والتاريخ، ومعها ProductID و VehicleID و BranchID و SupplierID و SaleItemID.",
+    pk: "InventoryTransactionID", fk: ["ProductID","VehicleID","BranchID","SupplierID","SaleItemID"],
+    ex: "حركة مخزون لسيارة معينة: VehicleID يشير إلى السيارة، و BranchID يشير إلى الفرع اللي صارت فيه الحركة.",
+    ind: [
+      { p: ["InventoryTransactions","SaleItems","Sales"], t: "من InventoryTransaction نقدر نوصل إلى SaleItem، ومن خلاله نعرف Sale." },
+      { p: ["InventoryTransactions","Products","Models","Brands"], t: "من InventoryTransaction نقدر نوصل إلى Product، وبعدها إلى Model، ومن خلاله نعرف Brand." }
+    ]
+  }
+};
+
+const RELS = [
+  { f:"Brands", fc:"BrandID", t:"Models", tc:"BrandID", c:"1:N",
+    m:"الـ Brand الواحد (الماركة) يمكن أن يكون له عدة Models، وكل Model يتبع Brand واحد.",
+    w:"عشان نعرف كل موديل يتبع أي ماركة، بدون ما نكرر بيانات الماركة مع كل موديل.",
+    q:"أي Models تتبع هذا الـ Brand؟" },
+  { f:"Models", fc:"ModelID", t:"Products", tc:"ModelID", c:"1:N",
+    m:"الـ Model الواحد يمكن أن يكون له عدة Products، وكل Product يتبع Model واحد.",
+    w:"عشان نعرف كل منتج يتبع أي موديل.",
+    q:"أي Products تتبع هذا الـ Model؟" },
+  { f:"Products", fc:"ProductID", t:"Vehicles", tc:"ProductID", c:"1:N",
+    m:"الـ Product الواحد يمكن أن يكون له عدة سيارات فعلية (Vehicles)، وكل Vehicle تتبع Product واحد.",
+    w:"عشان نعرف كل سيارة فعلية من أي منتج.",
+    q:"أي Vehicles تتبع هذا الـ Product؟" },
+  { f:"Products", fc:"ProductID", t:"SaleItems", tc:"ProductID", c:"1:N",
+    m:"المنتج الواحد يمكن أن يظهر في عدة تفاصيل مبيعات، وكل SaleItem يشير إلى منتج واحد.",
+    w:"عشان نعرف وش المنتج اللي انباع في كل سطر من الفاتورة.",
+    q:"في أي SaleItems ظهر هذا الـ Product؟" },
+  { f:"Products", fc:"ProductID", t:"InventoryTransactions", tc:"ProductID", c:"1:N",
+    m:"المنتج الواحد يمكن أن يكون له عدة حركات مخزون، وكل حركة مخزون تخص منتج واحد.",
+    w:"عشان نعرف حركات المخزون الخاصة بكل منتج.",
+    q:"وش حركات المخزون اللي صارت على هذا الـ Product؟" },
+  { f:"Branches", fc:"BranchID", t:"Employees", tc:"BranchID", c:"1:N",
+    m:"الفرع الواحد يمكن أن يكون فيه عدة موظفين، وكل موظف يتبع فرع واحد.",
+    w:"عشان نعرف كل موظف يشتغل في أي فرع.",
+    q:"مين الموظفين في هذا الـ Branch؟" },
+  { f:"Branches", fc:"BranchID", t:"Sales", tc:"BranchID", c:"1:N",
+    m:"الفرع الواحد يمكن أن تتم فيه عدة عمليات بيع، وكل عملية بيع تتم في فرع واحد.",
+    w:"عشان نعرف كل عملية بيع تمت في أي فرع.",
+    q:"وش المبيعات اللي تمت في هذا الـ Branch؟" },
+  { f:"Branches", fc:"BranchID", t:"Leads", tc:"BranchID", c:"1:N",
+    m:"الفرع الواحد يمكن أن يكون له عدة عملاء محتملين (Leads)، وكل Lead مرتبط بفرع واحد.",
+    w:"عشان نعرف كل Lead تابع لأي فرع.",
+    q:"وش الـ Leads المرتبطة بهذا الـ Branch؟" },
+  { f:"Branches", fc:"BranchID", t:"Vehicles", tc:"CurrentBranchID", c:"1:N",
+    m:"الفرع الواحد يمكن أن توجد فيه عدة سيارات حاليًا، وكل سيارة موجودة حاليًا في فرع واحد.",
+    w:"عشان نعرف وين موجودة كل سيارة الآن.",
+    q:"وش الـ Vehicles الموجودة حاليًا في هذا الـ Branch؟" },
+  { f:"Branches", fc:"BranchID", t:"InventoryTransactions", tc:"BranchID", c:"1:N",
+    m:"الفرع الواحد يمكن أن تصير فيه عدة حركات مخزون، وكل حركة مخزون تصير في فرع واحد.",
+    w:"عشان نعرف كل حركة مخزون صارت في أي فرع.",
+    q:"وش حركات المخزون اللي صارت في هذا الـ Branch؟" },
+  { f:"Employees", fc:"EmployeeID", t:"Sales", tc:"SalesEmployeeID", c:"1:N",
+    m:"الموظف الواحد يمكن أن يسجل عدة عمليات بيع، وكل عملية بيع مرتبطة بموظف واحد.",
+    w:"عشان نعرف مين الموظف اللي سجل كل عملية بيع.",
+    q:"وش المبيعات اللي سجلها هذا الموظف؟" },
+  { f:"Employees", fc:"EmployeeID", t:"Leads", tc:"AssignedEmployeeID", c:"1:N",
+    m:"الموظف الواحد يمكن أن يكون مسؤولًا عن عدة Leads، وكل Lead مسند لموظف واحد.",
+    w:"عشان نعرف مين الموظف المسؤول عن متابعة كل Lead.",
+    q:"وش الـ Leads المسندة لهذا الموظف؟" },
+  { f:"Customers", fc:"CustomerID", t:"Sales", tc:"CustomerID", c:"1:N",
+    m:"العميل الواحد يمكن أن يكون لديه عدة عمليات بيع، وكل عملية بيع تخص عميلًا واحدًا.",
+    w:"عشان نعرف مين العميل في كل عملية بيع، بدون ما نكرر بياناته في كل فاتورة.",
+    q:"وش المبيعات الخاصة بهذا العميل؟" },
+  { f:"Customers", fc:"CustomerID", t:"Leads", tc:"CustomerID", c:"1:N",
+    m:"العميل الواحد يمكن أن يكون له عدة Leads، وكل Lead يخص عميلًا واحدًا.",
+    w:"عشان نعرف كل Lead يخص أي عميل.",
+    q:"وش الـ Leads المرتبطة بهذا العميل؟" },
+  { f:"Channels", fc:"ChannelID", t:"Sales", tc:"ChannelID", c:"1:N",
+    m:"القناة الواحدة يمكن أن تأتي منها عدة عمليات بيع، وكل عملية بيع مرتبطة بقناة واحدة.",
+    w:"عشان نعرف كل عملية بيع جات من أي قناة.",
+    q:"وش المبيعات اللي جات من هذا الـ Channel؟" },
+  { f:"Channels", fc:"ChannelID", t:"Leads", tc:"ChannelID", c:"1:N",
+    m:"القناة الواحدة يمكن أن يأتي منها عدة Leads، وكل Lead مرتبط بقناة واحدة.",
+    w:"عشان نعرف كل Lead جاء من أي قناة.",
+    q:"وش الـ Leads اللي جات من هذا الـ Channel؟" },
+  { f:"Channels", fc:"ChannelID", t:"Campaigns", tc:"ChannelID", c:"1:N",
+    m:"القناة الواحدة يمكن أن يكون عليها عدة حملات، وكل حملة مرتبطة بقناة واحدة.",
+    w:"عشان نعرف كل حملة كانت على أي قناة.",
+    q:"وش الحملات اللي على هذا الـ Channel؟" },
+  { f:"Campaigns", fc:"CampaignID", t:"Sales", tc:"CampaignID", c:"1:N",
+    m:"الحملة الواحدة يمكن أن ترتبط بها عدة عمليات بيع، وكل عملية بيع مرتبطة بحملة واحدة.",
+    w:"عشان نعرف المبيعات المرتبطة بكل حملة.",
+    q:"وش المبيعات المرتبطة بهذه الحملة؟" },
+  { f:"Campaigns", fc:"CampaignID", t:"Leads", tc:"CampaignID", c:"1:N",
+    m:"الحملة الواحدة يمكن أن يرتبط بها عدة Leads، وكل Lead مرتبط بحملة واحدة.",
+    w:"عشان نعرف الـ Leads المرتبطة بكل حملة.",
+    q:"وش الـ Leads اللي جات من هذه الحملة؟" },
+  { f:"Models", fc:"ModelID", t:"Leads", tc:"InterestedModelID", c:"1:N",
+    m:"الموديل الواحد يمكن أن يهتم فيه عدة Leads، وكل Lead مهتم بموديل واحد.",
+    w:"عشان نعرف كل عميل محتمل مهتم بأي موديل.",
+    q:"مين الـ Leads المهتمين بهذا الـ Model؟" },
+  { f:"Leads", fc:"LeadID", t:"Sales", tc:"LeadID", c:"1:N",
+    m:"الـ Lead الواحد يمكن أن ترتبط به عدة عمليات بيع، وكل عملية بيع مرتبطة بـ Lead واحد.",
+    w:"عشان نعرف كل عملية بيع جات من أي Lead.",
+    q:"أي مبيعات مرتبطة بهذا الـ Lead؟" },
+  { f:"Sales", fc:"SaleID", t:"SaleItems", tc:"SaleID", c:"1:N",
+    m:"الفاتورة الواحدة يمكن أن تحتوي على عدة تفاصيل للمنتجات، وكل SaleItem يتبع فاتورة واحدة.",
+    w:"عشان نعرف وش التفاصيل الموجودة داخل كل فاتورة، بدون ما نكرر بيانات الفاتورة مع كل سطر.",
+    q:"وش المنتجات الموجودة داخل هذه الفاتورة؟",
+    note:"فصلنا Sale عن SaleItems لأن Sale يمثل الفاتورة نفسها، بينما SaleItems يمثل التفاصيل الموجودة داخل الفاتورة." },
+  { f:"Sales", fc:"SaleID", t:"Payments", tc:"SaleID", c:"1:N",
+    m:"الفاتورة الواحدة يمكن أن يكون لها دفعة أو أكثر، وكل دفعة مرتبطة بفاتورة واحدة.",
+    w:"عشان نعرف الدفعات المرتبطة بكل فاتورة.",
+    q:"وش الدفعات اللي انسجلت على هذه الفاتورة؟" },
+  { f:"Vehicles", fc:"VehicleID", t:"SaleItems", tc:"VehicleID", c:"1:0..1",
+    m:"السيارة الواحدة يمكن أن ترتبط بـ SaleItem واحد كحد أقصى، وقد لا ترتبط بأي SaleItem. وكل SaleItem يشير إلى سيارة واحدة.",
+    w:"عشان نعرف أي سيارة بالضبط في سطر البيع، والسيارة الواحدة ما تظهر في أكثر من سطر بيع.",
+    z:"قد لا يوجد: يعني ممكن تكون السيارة موجودة عندنا وما ظهرت في أي سطر بيع.",
+    q:"هل هذه الـ Vehicle مرتبطة بسطر بيع؟ وإذا نعم، أي سطر؟" },
+  { f:"PaymentMethods", fc:"PaymentMethodID", t:"Payments", tc:"PaymentMethodID", c:"1:N",
+    m:"طريقة الدفع الواحدة يمكن استخدامها في عدة دفعات، وكل دفعة تستخدم طريقة دفع واحدة.",
+    w:"عشان نعرف كل دفعة تمت بأي طريقة دفع.",
+    q:"وش الدفعات اللي تمت بطريقة الدفع هذه؟" },
+  { f:"Suppliers", fc:"SupplierID", t:"InventoryTransactions", tc:"SupplierID", c:"1:N",
+    m:"المورد الواحد يمكن أن يكون له عدة حركات مخزون، وكل حركة مخزون مرتبطة بمورد واحد.",
+    w:"عشان نعرف كل حركة مخزون مرتبطة بأي مورد.",
+    q:"وش حركات المخزون المرتبطة بهذا المورد؟" },
+  { f:"SaleItems", fc:"SaleItemID", t:"InventoryTransactions", tc:"SaleItemID", c:"1:0..1",
+    m:"سطر البيع الواحد (SaleItem) يمكن أن ترتبط به حركة مخزون واحدة كحد أقصى، وقد لا ترتبط به أي حركة. وكل InventoryTransaction تشير إلى SaleItem واحد.",
+    w:"عشان نعرف حركة المخزون اللي تخص كل سطر بيع.",
+    z:"قد لا يوجد: يعني ممكن يكون فيه سطر بيع ما له أي حركة مخزون مرتبطة فيه.",
+    q:"هل فيه حركة مخزون مرتبطة بسطر البيع هذا؟" },
+  { f:"Vehicles", fc:"VehicleID", t:"InventoryTransactions", tc:"VehicleID", c:"1:N",
+    m:"السيارة الواحدة يمكن أن يكون لها عدة حركات مخزون، وكل حركة مخزون تخص سيارة واحدة.",
+    w:"عشان نتتبع كل الحركات اللي صارت على السيارة.",
+    q:"وش الحركات اللي صارت على هذه الـ Vehicle؟" }
+];
+RELS.forEach((r, i) => r.id = i);
+
+/* Layout: x = column (0..4, left → right), y = row (vertical units). */
+const POS = {
+  Channels:        { x: 0,   y: 0.55 },
+  Customers:       { x: 1,   y: 0    },
+  Campaigns:       { x: 0,   y: 1.75 },
+  Employees:       { x: 0,   y: 3.0  },
+  Branches:        { x: 1,   y: 3.35 },
+  PaymentMethods:  { x: 1,   y: 4.75 },
+
+  Leads:           { x: 2,   y: 0.6  },
+  Sales:           { x: 2,   y: 2.15 },
+  Payments:        { x: 2,   y: 4.6  },
+  SaleItems:       { x: 3,   y: 2.15 },
+  InventoryTransactions: { x: 3, y: 4.0 },
+
+  Brands:          { x: 4,   y: 0    },
+  Models:          { x: 4,   y: 1.05 },
+  Products:        { x: 4,   y: 2.1  },
+  Vehicles:        { x: 4,   y: 3.15 },
+  Suppliers:       { x: 4,   y: 4.55 }
+};
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;" }[c]));
+const code = s => `<code>${esc(s)}</code>`;
+const NS = "http://www.w3.org/2000/svg";
+const svgEl = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+
+function neighbors(name) {
+  const set = [];
+  RELS.forEach(r => {
+    if (r.f === name && !set.includes(r.t)) set.push(r.t);
+    if (r.t === name && !set.includes(r.f)) set.push(r.f);
+  });
+  return set;
+}
+function relsOf(name) { return RELS.filter(r => r.f === name || r.t === name); }
+function hasEdge(a, b) { return RELS.some(r => (r.f === a && r.t === b) || (r.f === b && r.t === a)); }
+
+/* =========================================================
+   BUILD CARDS
+   ========================================================= */
+const canvas = $("#canvas");
+const cards = {};
+Object.entries(TABLES).forEach(([name, t]) => {
+  const el = document.createElement("div");
+  el.className = "card" + (t.g === "tx" ? " tx" : "");
+  el.tabIndex = 0;
+  el.dataset.t = name;
+  el.setAttribute("role", "button");
+  el.setAttribute("aria-label", name);
+  const fk = t.fk.length ? t.fk.map(code).join("") : `<span class="none">لا يوجد</span>`;
+  el.innerHTML = `
+    <div class="c-name">${esc(name)}</div>
+    <div class="c-desc">${esc(t.desc)}</div>
+    <div class="c-keys">
+      <div class="krow"><span class="kb pk">PK</span><div class="kvals">${code(t.pk)}</div></div>
+      <div class="krow"><span class="kb fk">FK</span><div class="kvals">${fk}</div></div>
+    </div>`;
+  canvas.appendChild(el);
+  cards[name] = el;
+});
+
+/* =========================================================
+   LAYOUT + EDGES
+   ========================================================= */
+const edgeLayer = $("#edgeLayer"), lblLayer = $("#lblLayer"), hitLayer = $("#hitLayer"), zoneLayer = $("#zoneLayer");
+const edgeEls = {};  // id -> { line, hit, l1, l2 }
+
+function layout() {
+  const scroller = $("#scroller");
+  const W = Math.max(1080, scroller.clientWidth);
+  const CW = W < 1250 ? 184 : 204;
+  const PADX = 36, PADT = 44, ROWH = 150;
+  canvas.style.width = W + "px";
+
+  let maxBottom = 0;
+  const box = {};
+  Object.entries(POS).forEach(([name, p]) => {
+    const el = cards[name];
+    el.style.width = CW + "px";
+    const h = el.offsetHeight;
+    const cx = PADX + CW / 2 + (p.x / 4) * (W - 2 * PADX - CW);
+    const cy = PADT + 70 + p.y * ROWH;
+    const left = cx - CW / 2, top = cy - h / 2;
+    el.style.left = left + "px";
+    el.style.top = top + "px";
+    box[name] = { l: left, t: top, r: left + CW, b: top + h, w: CW, h, cx, cy };
+    maxBottom = Math.max(maxBottom, top + h);
+  });
+  canvas.style.height = (maxBottom + 36) + "px";
+
+  drawZone(box, W);
+  drawEdges(box);
+  applyState();
+}
+
+function drawZone(box, W) {
+  zoneLayer.innerHTML = "";
+  const tx = Object.keys(TABLES).filter(n => TABLES[n].g === "tx").map(n => box[n]);
+  const pad = 16;
+  const l = Math.min(...tx.map(b => b.l)) - pad, r = Math.max(...tx.map(b => b.r)) + pad;
+  const t = Math.min(...tx.map(b => b.t)) - pad - 14, bt = Math.max(...tx.map(b => b.b)) + pad;
+  zoneLayer.appendChild(svgEl("rect", { x: l, y: t, width: r - l, height: bt - t, rx: 6, class: "zone-rect" }));
+  const lt = svgEl("text", { x: l + 10, y: t + 15, class: "zone-label" });
+  lt.textContent = "TRANSACTION DATA";
+  zoneLayer.appendChild(lt);
+  const ml = svgEl("text", { x: 16, y: 24, class: "zone-label master-label" });
+  ml.textContent = "MASTER DATA";
+  zoneLayer.appendChild(ml);
+  const mr = svgEl("text", { x: W - 16, y: 24, class: "zone-label master-label", "text-anchor": "end" });
+  mr.textContent = "MASTER DATA";
+  zoneLayer.appendChild(mr);
+}
+
+/* Pick the side of the box that faces the other box. */
+function sideFor(a, b) {
+  const dx = b.cx - a.cx, dy = b.cy - a.cy;
+  // Tables in different columns connect through their left/right sides,
+  // tables in the same column connect through top/bottom.
+  if (Math.abs(dx) > (a.w + b.w) / 2) return dx > 0 ? "R" : "L";
+  return dy > 0 ? "B" : "T";
+}
+
+function drawEdges(box) {
+  edgeLayer.innerHTML = ""; lblLayer.innerHTML = ""; hitLayer.innerHTML = "";
+
+  // 1) choose a side for each endpoint, 2) spread endpoints evenly along that side
+  const ends = {}; // "Table|Side" -> [{rel, which, other}]
+  RELS.forEach(r => {
+    const A = box[r.f], B = box[r.t];
+    const sa = sideFor(A, B), sb = sideFor(B, A);
+    r._sa = sa; r._sb = sb;
+    (ends[r.f + "|" + sa] ||= []).push({ r, which: "a", other: B });
+    (ends[r.t + "|" + sb] ||= []).push({ r, which: "b", other: A });
+  });
+  Object.entries(ends).forEach(([key, list]) => {
+    const [name, side] = key.split("|");
+    const bx = box[name];
+    const horiz = side === "T" || side === "B";
+    list.sort((p, q) => horiz ? p.other.cx - q.other.cx : p.other.cy - q.other.cy);
+    const n = list.length;
+    list.forEach((e, i) => {
+      const f = (i + 1) / (n + 1);
+      let x, y;
+      if (horiz) { x = bx.l + 14 + f * (bx.w - 28); y = side === "T" ? bx.t : bx.b; }
+      else { y = bx.t + 10 + f * (bx.h - 20); x = side === "L" ? bx.l : bx.r; }
+      e.r["_" + e.which] = { x, y, side };
+    });
+  });
+
+  RELS.forEach(r => {
+    const a = r._a, b = r._b;
+    const d = curve(a, b);
+    const line = svgEl("path", { d, class: "edge" + (r.c === "1:0..1" ? " opt" : "") });
+    const hit = svgEl("path", { d, class: "edge-hit", "data-r": r.id, tabindex: 0 });
+    edgeLayer.appendChild(line);
+    hitLayer.appendChild(hit);
+    const l1 = endLabel(a, "1");
+    const l2 = endLabel(b, r.c === "1:N" ? "N" : "0..1");
+    lblLayer.appendChild(l1); lblLayer.appendChild(l2);
+    edgeEls[r.id] = { line, hit, l1, l2 };
+
+    hit.addEventListener("mouseenter", ev => { hoverRel = r.id; applyState(); showTip(relTip(r), ev); });
+    hit.addEventListener("mousemove", moveTip);
+    hit.addEventListener("mouseleave", () => { hoverRel = null; applyState(); hideTip(); });
+    hit.addEventListener("click", ev => { ev.stopPropagation(); selectRel(r.id); });
+    hit.addEventListener("keydown", ev => { if (ev.key === "Enter") selectRel(r.id); });
+  });
+}
+
+const OUT = { L: [-1, 0], R: [1, 0], T: [0, -1], B: [0, 1] };
+function curve(a, b) {
+  const dist = Math.hypot(b.x - a.x, b.y - a.y);
+  const k = Math.min(70, dist * 0.35);
+  const [ax, ay] = OUT[a.side], [bx, by] = OUT[b.side];
+  return `M${a.x},${a.y} C${a.x + ax * k},${a.y + ay * k} ${b.x + bx * k},${b.y + by * k} ${b.x},${b.y}`;
+}
+function endLabel(p, txt) {
+  const [ox, oy] = OUT[p.side];
+  let x = p.x + ox * 10, y = p.y + oy * 12;
+  let anchor = "middle";
+  if (p.side === "L") anchor = "end";
+  if (p.side === "R") anchor = "start";
+  if (p.side === "T" || p.side === "B") { x += 7; anchor = "start"; }
+  const t = svgEl("text", { x, y: y + 4, class: "card-lbl", "text-anchor": anchor });
+  t.textContent = txt;
+  return t;
+}
+
+/* =========================================================
+   STATE: hover / selection highlighting
+   ========================================================= */
+let selTable = null, selRel = null, hoverRel = null, hoverTable = null;
+
+function applyState() {
+  let focusTables = null, focusRels = null, mainTable = null;
+  if (selTable) {
+    mainTable = selTable;
+    focusRels = new Set(relsOf(selTable).map(r => r.id));
+    focusTables = new Set([selTable, ...neighbors(selTable)]);
+  } else if (selRel !== null) {
+    const r = RELS[selRel];
+    focusRels = new Set([r.id]);
+    focusTables = new Set([r.f, r.t]);
+  }
+  const hlRels = new Set(focusRels || []);
+  if (hoverRel !== null) hlRels.add(hoverRel);
+  if (!focusRels && hoverTable) relsOf(hoverTable).forEach(r => hlRels.add(r.id));
+
+  RELS.forEach(r => {
+    const e = edgeEls[r.id]; if (!e) return;
+    const hl = hlRels.has(r.id);
+    const dim = focusRels && !focusRels.has(r.id) && r.id !== hoverRel;
+    [e.line, e.l1, e.l2].forEach(el => {
+      el.classList.toggle("hl", hl);
+      el.classList.toggle("dim", !!dim);
+    });
+    if (hl) edgeLayer.appendChild(e.line); // bring to front
+  });
+  Object.entries(cards).forEach(([name, el]) => {
+    el.classList.toggle("sel", name === mainTable || (selRel !== null && focusTables.has(name)));
+    el.classList.toggle("near", !!focusTables && focusTables.has(name) && name !== mainTable);
+    el.classList.toggle("dim", !!focusTables && !focusTables.has(name));
+  });
+}
+
+/* =========================================================
+   TOOLTIP
+   ========================================================= */
+const tip = $("#tip");
+function showTip(html, ev) { tip.innerHTML = html; tip.classList.add("show"); moveTip(ev); }
+function hideTip() { tip.classList.remove("show"); }
+function moveTip(ev) {
+  const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = ev.clientX + pad, y = ev.clientY + pad;
+  if (x + w > innerWidth - 8) x = ev.clientX - w - pad;
+  if (y + h > innerHeight - 8) y = ev.clientY - h - pad;
+  tip.style.left = Math.max(8, x) + "px";
+  tip.style.top = Math.max(8, y) + "px";
+}
+const arrow = (a, b) => `<span class="en">${esc(a)} → ${esc(b)}</span>`;
+const cardTxt = c => `<span class="en">${esc(c)}</span>`;
+
+/* Relationship explanations are read from the FK table's side
+   (e.g. Payments → Sales, N:1): "each payment belongs to one sale". */
+function relView(r) {
+  const opt = r.c === "1:0..1";
+  return {
+    from: r.t, to: r.f,
+    cols: arrow(r.t + "." + r.tc, r.f + "." + r.fc),
+    type: opt ? "0..1 : 1" : "N : 1",
+    typeAr: opt
+      ? `كل سجل في ${r.f} يرتبط بسجل واحد كحد أقصى في ${r.t}، أو ما يرتبط بأي سجل.`
+      : `عدة سجلات في ${r.t} ممكن ترتبط بسجل واحد في ${r.f}.`,
+    diagram: `${r.f} → ${r.t} (${r.c})`
+  };
+}
+function relTip(r) {
+  const v = relView(r);
+  return `<dl>
+    <dt>العلاقة:</dt><dd>${arrow(v.from, v.to)}</dd>
+    <dt>المعنى:</dt><dd>${esc(r.m)}</dd>
+    ${r.z ? `<dd class="tip-z">${esc(r.z)}</dd>` : ""}
+    <dt>ليش نحتاجها؟</dt><dd>${esc(r.w)}</dd>
+    <dt>الأعمدة:</dt><dd>${v.cols}</dd>
+    <dt>النوع:</dt><dd><span class="en">${v.type}</span> — ${esc(v.typeAr)}</dd>
+  </dl>`;
+}
+function tableTip(name) {
+  const t = TABLES[name];
+  return `<dl>
+    <dt>وش هذا الجدول؟</dt><dd><b class="en">${esc(name)}</b> — ${esc(t.desc)}</dd>
+    <dt>وش يخزن؟</dt><dd>${esc(t.stores)}</dd>
+    <dt>PK</dt><dd>${code(t.pk)}</dd>
+    <dt>FK</dt><dd>${t.fk.length ? t.fk.map(code).join("، ") : "لا يوجد"}</dd>
+    <dt>يرتبط مباشرة مع</dt><dd>${neighbors(name).map(n => `<span class="en">${esc(n)}</span>`).join("، ")}</dd>
+  </dl>`;
+}
+
+Object.entries(cards).forEach(([name, el]) => {
+  el.addEventListener("mouseenter", ev => { hoverTable = name; applyState(); showTip(tableTip(name), ev); });
+  el.addEventListener("mousemove", moveTip);
+  el.addEventListener("mouseleave", () => { hoverTable = null; applyState(); hideTip(); });
+  el.addEventListener("click", ev => { ev.stopPropagation(); selectTable(name); });
+  el.addEventListener("keydown", ev => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); selectTable(name); } });
+});
+
+/* =========================================================
+   SIDE PANEL
+   ========================================================= */
+const panel = $("#panel");
+
+function relItem(r) {
+  const v = relView(r);
+  return `
+      <li class="p-rel">
+        <div dir="ltr" class="p-ltr"><span class="rel-link" data-r="${r.id}">${esc(v.from)} → ${esc(v.to)}</span>
+          <span class="p-card">${v.type}</span></div>
+        <div class="p-use">${esc(r.m)}</div>
+        ${r.z ? `<div class="p-use p-ex-k">${esc(r.z)}</div>` : ""}
+        <div class="p-use"><span class="p-ex-k">ليش نحتاجها؟</span> ${esc(r.w)}</div>
+        <div dir="ltr" class="p-ltr p-cols">${code(r.t + "." + r.tc)} → ${code(r.f + "." + r.fc)}</div>
+      </li>`;
+}
+
+function selectTable(name) {
+  selTable = name; selRel = null; hideTip(); applyState();
+  const t = TABLES[name];
+  const parents = RELS.filter(r => r.t === name);   // this table holds the FK
+  const children = RELS.filter(r => r.f === name);  // other tables hold this PK as FK
+  const isTx = t.g === "tx";
+  const typeLabel = isTx ? "Transaction Data" : "Master Data";
+  const typeMeaning = isTx
+    ? "بيانات حركات: تزيد كل ما صارت عملية، وكل سجل يمثل حدث صار."
+    : "بيانات أساسية (تعريفية): ثابتة نسبيًا، نعرّفها مرة وحدة وترجع لها الجداول الثانية.";
+  const en = n => `<span class="en">${esc(n)}</span>`;
+
+  panel.innerHTML = `
+    <div class="p-head"><h2>فهم الجدول</h2><button class="btn-close" type="button">إغلاق</button></div>
+    <div class="p-sub">${esc(name)} <span class="p-type ${isTx ? "tx" : ""}">${typeLabel}</span></div>
+
+    <h3>1. الدور — وش هو وليش نحتاجه؟</h3>
+    <p>${esc(t.desc)} ${esc(t.why)}</p>
+
+    <h3>2. من وين يجي؟</h3>
+    <p>${esc(t.kind)}</p>
+    ${parents.length
+      ? `<p class="p-sm">يرجع لهذه الجداول عن طريق FK:</p>
+         <ul class="p-list p-dep">${parents.map(r => `<li>${en(r.f)} <span class="p-ex-k">عن طريق</span> ${code(r.tc)}</li>`).join("")}</ul>`
+      : `<p class="p-sm">ما يرجع لأي جدول ثاني (ما فيه FK)، يعني هو نقطة بداية في الـ ERD.</p>`}
+    ${children.length
+      ? `<p class="p-sm">وهذه الجداول ترجع له عن طريق FK:</p>
+         <ul class="p-list p-dep">${children.map(r => `<li>${en(r.t)} <span class="p-ex-k">عن طريق</span> ${code(r.tc)}</li>`).join("")}</ul>`
+      : `<p class="p-sm">وما فيه جدول يرجع له.</p>`}
+
+    <h3>3. النوع</h3>
+    <p><span class="en">${typeLabel}</span> — ${esc(typeMeaning)}</p>
+
+    <h3>4. وش يخزن؟</h3>
+    <p>${esc(t.stores)}</p>
+    <p class="p-ex"><span class="p-ex-k">مثال:</span> ${esc(t.ex)}</p>
+
+    <h3>5. المفاتيح</h3>
+    <p><span class="kb pk">PK</span> ${code(t.pk)} — يميّز كل سجل داخل الجدول.</p>
+    ${parents.length
+      ? `<ul class="p-list">${parents.map(r => `<li dir="ltr" class="p-ltr"><span class="kb fk">FK</span> ${code(r.tc)} → ${code(r.f + "." + r.fc)}</li>`).join("")}</ul>`
+      : `<p class="p-sm">ما فيه FK في هذا الجدول.</p>`}
+
+    <h3>6. العلاقات المباشرة <span class="tag-dir">مباشرة</span></h3>
+    ${parents.length ? `<p class="p-sm p-grp">هذا الجدول يرجع إلى (${parents.length}):</p><ul class="p-list">${parents.map(relItem).join("")}</ul>` : ""}
+    ${children.length ? `<p class="p-sm p-grp">جداول ترجع لهذا الجدول (${children.length}):</p><ul class="p-list">${children.map(relItem).join("")}</ul>` : ""}
+
+    <h3>7. العلاقات غير المباشرة</h3>
+    <p class="p-note">هذا المسار يوضح كيف نقدر نوصل من جدول إلى جدول آخر عن طريق جدول وسيط، وليس FK مباشر بين الجدولين.</p>
+    ${t.ind.map(i => `
+      <div class="ind-item">
+        <span class="tag-ind">علاقة غير مباشرة</span>
+        <span class="path">${i.p.map(esc).join(" → ")}</span>
+        <p>${esc(i.t)}</p>
+      </div>`).join("")}
+
+    <h3>8. السؤال اللي يجاوب عليه</h3>
+    <div class="note p-q">${esc(t.q)}</div>`;
+  openPanel();
+}
+
+function selectRel(id) {
+  selRel = id; selTable = null; hideTip(); applyState();
+  const r = RELS[id], v = relView(r);
+  panel.innerHTML = `
+    <div class="p-head"><h2>فهم العلاقة</h2><button class="btn-close" type="button">إغلاق</button></div>
+    <div class="p-sub">${esc(v.from)} → ${esc(v.to)}</div>
+    <h3>العلاقة:</h3><p>${arrow(v.from, v.to)}</p>
+    <h3>المعنى:</h3><p>${esc(r.m)}</p>
+    ${r.z ? `<div class="note">${esc(r.z)}</div>` : ""}
+    <h3>ليش نحتاجها؟</h3><p>${esc(r.w)}</p>
+    <h3>الأعمدة:</h3><p dir="ltr" style="text-align:right">${code(r.t + "." + r.tc)} <span class="kb fk">FK</span> → ${code(r.f + "." + r.fc)} <span class="kb pk">PK</span></p>
+    <h3>النوع:</h3><p><span class="en">${v.type}</span> — ${esc(v.typeAr)}</p>
+    <p class="p-note">في الرسم تظهر كذا: <span class="en">${esc(v.diagram)}</span></p>
+    <h3>السؤال اللي تجاوب عليه:</h3><p>${esc(r.q)}</p>
+    ${r.note ? `<div class="note">${esc(r.note)}</div>` : ""}
+    <h3>الجداول</h3>
+    <ul>
+      <li><span class="rel-link" data-t="${esc(r.t)}"><span class="en">${esc(r.t)}</span></span> — ${esc(TABLES[r.t].desc)}</li>
+      <li><span class="rel-link" data-t="${esc(r.f)}"><span class="en">${esc(r.f)}</span></span> — ${esc(TABLES[r.f].desc)}</li>
+    </ul>`;
+  openPanel();
+}
+
+function openPanel() {
+  panel.classList.add("show");
+  panel.scrollTop = 0;
+  $(".btn-close", panel).addEventListener("click", clearSel);
+  panel.querySelectorAll("[data-r]").forEach(el => el.addEventListener("click", () => selectRel(+el.dataset.r)));
+  panel.querySelectorAll("[data-t]").forEach(el => el.addEventListener("click", () => selectTable(el.dataset.t)));
+}
+function clearSel() {
+  selTable = null; selRel = null;
+  panel.classList.remove("show");
+  applyState();
+}
+panel.addEventListener("click", ev => ev.stopPropagation());
+document.addEventListener("click", clearSel);
+document.addEventListener("keydown", ev => { if (ev.key === "Escape") clearSel(); });
+
+/* =========================================================
+   SELF-CHECK (console only): compares the model with the
+   spec — 16 tables, exactly these 28 PK → FK relations,
+   valid FK references, indirect paths on existing edges only.
+   ========================================================= */
+const EXPECTED_RELS = [
+  "Brands.BrandID->Models.BrandID 1:N", "Models.ModelID->Products.ModelID 1:N",
+  "Products.ProductID->Vehicles.ProductID 1:N", "Products.ProductID->SaleItems.ProductID 1:N",
+  "Products.ProductID->InventoryTransactions.ProductID 1:N", "Branches.BranchID->Employees.BranchID 1:N",
+  "Branches.BranchID->Sales.BranchID 1:N", "Branches.BranchID->Leads.BranchID 1:N",
+  "Branches.BranchID->Vehicles.CurrentBranchID 1:N", "Branches.BranchID->InventoryTransactions.BranchID 1:N",
+  "Employees.EmployeeID->Sales.SalesEmployeeID 1:N", "Employees.EmployeeID->Leads.AssignedEmployeeID 1:N",
+  "Customers.CustomerID->Sales.CustomerID 1:N", "Customers.CustomerID->Leads.CustomerID 1:N",
+  "Channels.ChannelID->Sales.ChannelID 1:N", "Channels.ChannelID->Leads.ChannelID 1:N",
+  "Channels.ChannelID->Campaigns.ChannelID 1:N", "Campaigns.CampaignID->Sales.CampaignID 1:N",
+  "Campaigns.CampaignID->Leads.CampaignID 1:N", "Models.ModelID->Leads.InterestedModelID 1:N",
+  "Leads.LeadID->Sales.LeadID 1:N", "Sales.SaleID->SaleItems.SaleID 1:N",
+  "Sales.SaleID->Payments.SaleID 1:N", "Vehicles.VehicleID->SaleItems.VehicleID 1:0..1",
+  "PaymentMethods.PaymentMethodID->Payments.PaymentMethodID 1:N",
+  "Suppliers.SupplierID->InventoryTransactions.SupplierID 1:N",
+  "SaleItems.SaleItemID->InventoryTransactions.SaleItemID 1:0..1",
+  "Vehicles.VehicleID->InventoryTransactions.VehicleID 1:N"
+];
+const EXPECTED_TABLES = ["Brands","Models","Products","Vehicles","Customers","Branches","Employees","Suppliers",
+  "Channels","Campaigns","Sales","SaleItems","Payments","PaymentMethods","InventoryTransactions","Leads"];
+
+function selfCheck() {
+  const errors = [];
+  const check = (ok, msg) => { if (!ok) errors.push(msg); };
+  const names = Object.keys(TABLES);
+  const key = r => `${r.f}.${r.fc}->${r.t}.${r.tc} ${r.c}`;
+  const actual = RELS.map(key);
+
+  check(names.length === 16, `tables: ${names.length} (expected 16)`);
+  EXPECTED_TABLES.forEach(n => check(names.includes(n), `missing table ${n}`));
+  names.forEach(n => check(EXPECTED_TABLES.includes(n), `extra table ${n}`));
+
+  check(RELS.length === 28, `relationships: ${RELS.length} (expected 28)`);
+  EXPECTED_RELS.forEach(k => check(actual.includes(k), `missing relationship ${k}`));
+  actual.forEach(k => check(EXPECTED_RELS.includes(k), `extra relationship ${k}`));
+  check(new Set(actual).size === actual.length, "duplicate relationship");
+
+  RELS.forEach(r => ["m","w","q"].forEach(f => check(r[f], `relationship ${key(r)} missing text ${f}`)));
+  RELS.forEach(r => check(!!r.z === (r.c === "1:0..1"), `relationship ${key(r)}: "قد لا يوجد" note must exist only for 1:0..1`));
+  RELS.forEach(r => {
+    check(TABLES[r.f] && TABLES[r.t], `unknown table in ${key(r)}`);
+    check(TABLES[r.f] && TABLES[r.f].pk === r.fc, `from-column is not the PK in ${key(r)}`);
+    check(TABLES[r.t] && TABLES[r.t].fk.includes(r.tc), `to-column is not a listed FK in ${key(r)}`);
+  });
+  names.forEach(n => ["why","kind","q","desc","stores","ex"].forEach(f => check(TABLES[n][f], `table ${n} missing panel field ${f}`)));
+  names.forEach(n => {
+    TABLES[n].fk.forEach(fk => check(RELS.filter(r => r.t === n && r.tc === fk).length === 1, `FK ${n}.${fk} is not backed by exactly one relationship`));
+    TABLES[n].ind.forEach(i => {
+      check(i.p[0] === n, `indirect path of ${n} does not start at ${n}`);
+      check(i.p.length >= 3, `indirect path ${i.p.join(" → ")} has no middle table`);
+      check(!hasEdge(i.p[0], i.p[i.p.length - 1]), `indirect path ${i.p.join(" → ")} ends at a directly related table`);
+      for (let k = 0; k < i.p.length - 1; k++)
+        check(hasEdge(i.p[k], i.p[k + 1]), `indirect path ${i.p.join(" → ")} uses missing edge ${i.p[k]}–${i.p[k + 1]}`);
+    });
+  });
+
+  const indCount = names.reduce((s, n) => s + TABLES[n].ind.length, 0);
+  if (errors.length) console.error("ERD self-check FAILED:\n" + errors.join("\n"));
+  else console.log(`ERD self-check OK: ${names.length} tables, ${RELS.length} relationships, no extra/missing relationships, all FK references valid, ${indCount} indirect paths use existing relationships only.`);
+  return errors;
+}
+selfCheck();
+
+/* =========================================================
+   INIT + keep lines attached on resize / font load
+   ========================================================= */
+layout();
+let raf = 0;
+const relayout = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(layout); };
+addEventListener("resize", relayout);
+if ("ResizeObserver" in window) new ResizeObserver(relayout).observe($("#scroller"));
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
+</script>
+</body>
+</html>
