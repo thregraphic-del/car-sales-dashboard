@@ -268,6 +268,16 @@
     border-radius: 3px;
     padding: 0 6px;
   }
+  .p-list li { margin: 4px 0; }
+  .p-ltr { text-align: right; }
+  .p-rel { border-bottom: 1px solid var(--line); padding: 5px 0 6px; }
+  .p-rel:last-child { border-bottom: 0; }
+  .p-card { font-family: var(--mono); font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; margin-inline-start: 4px; }
+  .p-cols { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .p-use { font-size: 13px; margin-top: 2px; }
+  .p-ex { margin-top: 4px !important; font-size: 13px; }
+  .p-ex-k { color: var(--muted); font-size: 12px; }
+  .p-note { font-size: 12.5px; color: var(--muted); }
   .ind-item { margin: 8px 0 10px; }
   .ind-item p { font-size: 13px; margin-top: 4px; }
   .rel-link {
@@ -382,6 +392,9 @@ const TABLES = {
   Brands: {
     g: "master",
     desc: "يمثل الماركة، مثل Toyota أو Hyundai.",
+    why: "نحتاجه عشان نخزن كل ماركة مرة وحدة، وترجع لها الموديلات.",
+    kind: "جدول تعريفي يعرّف الماركات.",
+    q: "وش الماركات الموجودة، ووش الموديلات التابعة لكل ماركة؟",
     stores: "بيانات الماركة، مثل اسم الماركة.",
     pk: "BrandID", fk: [],
     ex: "Toyota سجل في Brands له BrandID خاص فيه، وكل Model تابع لـ Toyota يحفظ نفس الـ BrandID.",
@@ -393,6 +406,9 @@ const TABLES = {
   Models: {
     g: "master",
     desc: "يمثل موديل السيارة، مثل Camry.",
+    why: "نحتاجه عشان نعرّف الموديلات ونربط كل موديل بماركته.",
+    kind: "جدول تعريفي يعرّف الموديلات.",
+    q: "وش الموديلات التابعة لكل Brand، وأي موديل عليه اهتمام من الـ Leads؟",
     stores: "بيانات الموديل، مثل اسم الموديل، ومعه BrandID.",
     pk: "ModelID", fk: ["BrandID"],
     ex: "Camry سجل في Models، وفيه BrandID يشير إلى Toyota في Brands.",
@@ -404,6 +420,9 @@ const TABLES = {
   Products: {
     g: "master",
     desc: "يمثل المنتج اللي نبيعه، مثل موديل بفئة وسنة معينة.",
+    why: "نحتاجه عشان نفرق بين المنتجات اللي نبيعها لنفس الموديل.",
+    kind: "جدول تعريفي يعرّف المنتجات.",
+    q: "وش المنتجات الموجودة لكل Model، ووين ظهرت في المبيعات؟",
     stores: "بيانات المنتج، مثل الفئة والسنة والسعر، ومعه ModelID.",
     pk: "ProductID", fk: ["ModelID"],
     ex: "Camry GLE 2024 سجل في Products، وفيه ModelID يشير إلى Camry في Models.",
@@ -415,6 +434,9 @@ const TABLES = {
   Vehicles: {
     g: "master",
     desc: "يمثل السيارة الفعلية نفسها (سيارة وحدة محددة).",
+    why: "نحتاجه عشان نتابع كل سيارة فعلية لوحدها: وش منتجها ووين موجودة.",
+    kind: "جدول تعريفي يعرّف السيارات الفعلية.",
+    q: "وش السيارات الموجودة حاليًا في كل فرع، ولأي Product تتبع؟",
     stores: "بيانات السيارة، مثل رقم الهيكل واللون، ومعها ProductID و CurrentBranchID.",
     pk: "VehicleID", fk: ["ProductID","CurrentBranchID"],
     ex: "سيارة Camry GLE 2024 بيضاء: ProductID يشير إلى المنتج، و CurrentBranchID يشير إلى الفرع اللي هي فيه الآن.",
@@ -426,6 +448,9 @@ const TABLES = {
   Customers: {
     g: "master",
     desc: "يمثل العميل.",
+    why: "نحتاجه عشان نخزن بيانات العميل مرة وحدة ونربطها بمبيعاته والـ Leads الخاصة فيه.",
+    kind: "جدول تعريفي يعرّف العملاء.",
+    q: "مين العملاء، ووش المبيعات والـ Leads الخاصة بكل عميل؟",
     stores: "بيانات العميل، مثل الاسم ورقم الجوال.",
     pk: "CustomerID", fk: [],
     ex: "العميل أحمد له CustomerID، وهذا الرقم يظهر في Sales و Leads الخاصة فيه.",
@@ -437,6 +462,9 @@ const TABLES = {
   Branches: {
     g: "master",
     desc: "يمثل فرع المعرض.",
+    why: "نحتاجه عشان نربط الموظفين والمبيعات والـ Leads والسيارات وحركات المخزون بالفرع.",
+    kind: "جدول تعريفي يعرّف الفروع.",
+    q: "وش الموظفين والمبيعات والسيارات المرتبطة بكل فرع؟",
     stores: "بيانات الفرع، مثل اسم الفرع والمدينة.",
     pk: "BranchID", fk: [],
     ex: "فرع أبها له BranchID، وهذا الرقم يظهر في Employees و Sales و Leads و InventoryTransactions، ويظهر في Vehicles باسم CurrentBranchID.",
@@ -448,6 +476,9 @@ const TABLES = {
   Employees: {
     g: "master",
     desc: "يمثل الموظف.",
+    why: "نحتاجه عشان نعرف مين سجل البيع، ومين المسؤول عن كل Lead.",
+    kind: "جدول تعريفي يعرّف الموظفين.",
+    q: "مين الموظفين في كل فرع، ووش المبيعات والـ Leads المرتبطة بكل موظف؟",
     stores: "بيانات الموظف، مثل الاسم والوظيفة، ومعه BranchID.",
     pk: "EmployeeID", fk: ["BranchID"],
     ex: "الموظفة سارة لها EmployeeID، ويظهر في Sales باسم SalesEmployeeID، وفي Leads باسم AssignedEmployeeID.",
@@ -459,6 +490,9 @@ const TABLES = {
   Suppliers: {
     g: "master",
     desc: "يمثل المورد.",
+    why: "نحتاجه عشان نعرف المورد المرتبط بحركات المخزون.",
+    kind: "جدول تعريفي يعرّف الموردين.",
+    q: "وش حركات المخزون المرتبطة بكل مورد؟",
     stores: "بيانات المورد، مثل الاسم ورقم التواصل.",
     pk: "SupplierID", fk: [],
     ex: "المورد له SupplierID، وهذا الرقم يظهر في InventoryTransactions المرتبطة فيه.",
@@ -470,6 +504,9 @@ const TABLES = {
   Channels: {
     g: "master",
     desc: "يمثل القناة اللي جاء منها العميل أو البيع، مثل الموقع أو المعرض.",
+    why: "نحتاجه عشان نعرف القناة المرتبطة بالمبيعات والـ Leads والحملات.",
+    kind: "جدول تعريفي يعرّف القنوات.",
+    q: "وش المبيعات والـ Leads والحملات المرتبطة بكل قناة؟",
     stores: "بيانات القناة، مثل اسم القناة.",
     pk: "ChannelID", fk: [],
     ex: "قناة الموقع لها ChannelID، وهذا الرقم يظهر في Sales و Leads و Campaigns.",
@@ -481,6 +518,9 @@ const TABLES = {
   Campaigns: {
     g: "master",
     desc: "يمثل الحملة التسويقية.",
+    why: "نحتاجه عشان نربط المبيعات والـ Leads بالحملة التسويقية.",
+    kind: "جدول تعريفي يعرّف الحملات.",
+    q: "وش المبيعات والـ Leads المرتبطة بكل حملة؟",
     stores: "بيانات الحملة، مثل الاسم وتاريخ البداية والنهاية، ومعها ChannelID.",
     pk: "CampaignID", fk: ["ChannelID"],
     ex: "حملة رمضان لها CampaignID، وهذا الرقم يظهر في Sales و Leads المرتبطة فيها.",
@@ -492,6 +532,9 @@ const TABLES = {
   PaymentMethods: {
     g: "master",
     desc: "يمثل طريقة الدفع، مثل كاش أو تحويل.",
+    why: "نحتاجه عشان نخزن طرق الدفع مرة وحدة، وتستخدمها الدفعات.",
+    kind: "جدول تعريفي يعرّف طرق الدفع.",
+    q: "وش طرق الدفع المستخدمة في الدفعات؟",
     stores: "بيانات طريقة الدفع، مثل اسم الطريقة.",
     pk: "PaymentMethodID", fk: [],
     ex: "طريقة التحويل لها PaymentMethodID، وهذا الرقم يظهر في كل Payment تم بالتحويل.",
@@ -503,6 +546,9 @@ const TABLES = {
   Leads: {
     g: "tx",
     desc: "يمثل العميل المحتمل أو فرصة البيع.",
+    why: "نحتاجه عشان نسجل اهتمام العميل قبل البيع، ونربطه بالفرع والموظف والقناة والحملة والموديل.",
+    kind: "ينتج عند تسجيل عميل محتمل أو فرصة بيع.",
+    q: "مين العملاء المحتملين، ووش الموديل اللي مهتمين فيه، ومين الموظف المسؤول؟",
     stores: "بيانات الـ Lead، مثل التاريخ والحالة، ومعه FKs تربطه بالعميل والفرع والموظف والقناة والحملة والموديل.",
     pk: "LeadID", fk: ["CustomerID","BranchID","AssignedEmployeeID","ChannelID","CampaignID","InterestedModelID"],
     ex: "عميل مهتم بـ Tucson: يتسجل Lead فيه CustomerID للعميل، و InterestedModelID للموديل اللي مهتم فيه.",
@@ -514,6 +560,9 @@ const TABLES = {
   Sales: {
     g: "tx",
     desc: "يمثل عملية البيع أو الفاتورة.",
+    why: "نحتاجه عشان نسجل كل عملية بيع كفاتورة وحدة، ونربطها بالعميل والفرع والموظف.",
+    kind: "ينتج عند حدوث عملية بيع.",
+    q: "وش المبيعات اللي تمت، ومن العميل والفرع والموظف المرتبط فيها؟",
     stores: "بيانات الفاتورة، مثل التاريخ والإجمالي، ومعها FKs تربطها بالعميل والفرع والموظف والقناة والحملة والـ Lead.",
     pk: "SaleID", fk: ["CustomerID","BranchID","SalesEmployeeID","ChannelID","CampaignID","LeadID"],
     ex: "فاتورة رقم 1001 لها SaleID، وفيها CustomerID للعميل، و BranchID للفرع، و SalesEmployeeID للموظف.",
@@ -525,6 +574,9 @@ const TABLES = {
   SaleItems: {
     g: "tx",
     desc: "يمثل سطر داخل الفاتورة.",
+    why: "نحتاجه عشان نفصل تفاصيل الفاتورة عن بيانات الفاتورة نفسها.",
+    kind: "ينتج مع عملية البيع، كل سطر يمثل تفصيلة داخل الفاتورة.",
+    q: "وش المنتجات والسيارات الموجودة داخل كل فاتورة؟",
     stores: "تفاصيل السطر، مثل السعر والكمية، ومعه SaleID و ProductID و VehicleID.",
     pk: "SaleItemID", fk: ["SaleID","ProductID","VehicleID"],
     ex: "فاتورة 1001 فيها سطرين في SaleItems، والسطرين يحفظون نفس SaleID = 1001.",
@@ -536,6 +588,9 @@ const TABLES = {
   Payments: {
     g: "tx",
     desc: "يمثل دفعة على الفاتورة.",
+    why: "نحتاجه لأن الفاتورة الوحدة ممكن يكون لها أكثر من دفعة.",
+    kind: "ينتج عند تسجيل دفعة على فاتورة.",
+    q: "وش الدفعات اللي انسجلت على كل فاتورة، وبأي طريقة دفع؟",
     stores: "بيانات الدفعة، مثل المبلغ والتاريخ، ومعها SaleID و PaymentMethodID.",
     pk: "PaymentID", fk: ["SaleID","PaymentMethodID"],
     ex: "فاتورة 1001 ممكن يكون لها دفعتين في Payments، والثنتين يحفظون SaleID = 1001.",
@@ -547,6 +602,9 @@ const TABLES = {
   InventoryTransactions: {
     g: "tx",
     desc: "يمثل حركة في المخزون.",
+    why: "نحتاجه عشان نسجل كل حركة مخزون ونربطها بالمنتج والسيارة والفرع والمورد وسطر البيع.",
+    kind: "ينتج عند حدوث حركة في المخزون.",
+    q: "وش الحركات اللي صارت على كل منتج أو سيارة، وفي أي فرع؟",
     stores: "بيانات الحركة، مثل النوع والتاريخ، ومعها ProductID و VehicleID و BranchID و SupplierID و SaleItemID.",
     pk: "InventoryTransactionID", fk: ["ProductID","VehicleID","BranchID","SupplierID","SaleItemID"],
     ex: "حركة مخزون لسيارة معينة: VehicleID يشير إلى السيارة، و BranchID يشير إلى الفرع اللي صارت فيه الحركة.",
@@ -955,34 +1013,55 @@ Object.entries(cards).forEach(([name, el]) => {
    ========================================================= */
 const panel = $("#panel");
 
-function relLine(r, from) {
-  const other = r.f === from ? r.t : r.f;
-  const dir = r.f === from ? arrow(r.f, r.t) : arrow(r.f, r.t);
-  return `<li><span class="rel-link" data-r="${r.id}">${dir}</span>
-    <span class="en" style="color:var(--muted);font-size:12px"> (${esc(r.c)})</span></li>`;
-}
-
 function selectTable(name) {
   selTable = name; selRel = null; hideTip(); applyState();
   const t = TABLES[name];
   const direct = relsOf(name);
+  const fkRels = RELS.filter(r => r.t === name);
+  const typeLabel = t.g === "tx" ? "Transaction Data" : "Master Data";
   panel.innerHTML = `
     <div class="p-head"><h2>فهم الجدول</h2><button class="btn-close" type="button">إغلاق</button></div>
     <div class="p-sub">${esc(name)}</div>
-    <h3>وظيفته</h3><p>${esc(t.desc)} يخزن: ${esc(t.stores)}</p>
-    <h3>PK</h3><p>${code(t.pk)}</p>
-    <h3>FK</h3><p>${t.fk.length ? t.fk.map(code).join("، ") : "ما فيه FK في هذا الجدول. الجداول الثانية هي اللي تحفظ PK حقه كـ FK."}</p>
+
+    <h3>الدور</h3>
+    <p>${esc(t.desc)} ${esc(t.why)}</p>
+
+    <h3>النوع</h3>
+    <p><span class="en">${typeLabel}</span> — ${esc(t.kind)}</p>
+
+    <h3>المحتويات</h3>
+    <p>${esc(t.stores)}</p>
+    <p class="p-ex"><span class="p-ex-k">مثال:</span> ${esc(t.ex)}</p>
+
+    <h3>PK</h3>
+    <p>${code(t.pk)}</p>
+
+    <h3>FKs</h3>
+    ${fkRels.length
+      ? `<ul class="p-list">${fkRels.map(r => `<li dir="ltr" class="p-ltr">${code(r.tc)} → ${code(r.f + "." + r.fc)}</li>`).join("")}</ul>`
+      : `<p>ما فيه FK في هذا الجدول. الجداول الثانية هي اللي تحفظ ${code(t.pk)} كـ FK.</p>`}
+
     <h3>العلاقات المباشرة <span class="tag-dir">مباشرة</span></h3>
-    <ul>${direct.map(r => relLine(r, name)).join("")}</ul>
+    <ul class="p-list">${direct.map(r => `
+      <li class="p-rel">
+        <div dir="ltr" class="p-ltr"><span class="rel-link" data-r="${r.id}">${esc(r.f)} → ${esc(r.t)}</span>
+          <span class="p-card">${esc(r.c)}</span></div>
+        <div dir="ltr" class="p-ltr p-cols">${code(r.f + "." + r.fc)} → ${code(r.t + "." + r.tc)}</div>
+        <div class="p-use"><span class="p-ex-k">فائدتها:</span> ${esc(r.w)}</div>
+      </li>`).join("")}
+    </ul>
+
     <h3>العلاقات غير المباشرة</h3>
-    <p style="font-size:12.5px;color:var(--muted)">هذا المسار يوضح كيف نقدر نوصل من جدول إلى جدول آخر عن طريق جدول وسيط، وليس FK مباشر بين الجدولين.</p>
+    <p class="p-note">هذا المسار يوضح كيف نقدر نوصل من جدول إلى جدول آخر عن طريق جدول وسيط، وليس FK مباشر بين الجدولين.</p>
     ${t.ind.map(i => `
       <div class="ind-item">
         <span class="tag-ind">علاقة غير مباشرة</span>
         <span class="path">${i.p.map(esc).join(" → ")}</span>
         <p>${esc(i.t)}</p>
       </div>`).join("")}
-    <h3>مثال بسيط</h3><p>${esc(t.ex)}</p>`;
+
+    <h3>السؤال اللي يجاوب عليه</h3>
+    <p>${esc(t.q)}</p>`;
   openPanel();
 }
 
@@ -1070,6 +1149,7 @@ function selfCheck() {
     check(TABLES[r.f] && TABLES[r.f].pk === r.fc, `from-column is not the PK in ${key(r)}`);
     check(TABLES[r.t] && TABLES[r.t].fk.includes(r.tc), `to-column is not a listed FK in ${key(r)}`);
   });
+  names.forEach(n => ["why","kind","q","desc","stores","ex"].forEach(f => check(TABLES[n][f], `table ${n} missing panel field ${f}`)));
   names.forEach(n => {
     TABLES[n].fk.forEach(fk => check(RELS.filter(r => r.t === n && r.tc === fk).length === 1, `FK ${n}.${fk} is not backed by exactly one relationship`));
     TABLES[n].ind.forEach(i => {
