@@ -1,4 +1,4 @@
-# Vehicle Performance Center — Executive Dealership Intelligence
+# Vehicle Performance Center — Saudi Dealership Executive Intelligence
 
 Arabic RTL executive BI for a multi-branch dealership group. Open `showroom/index.html` directly in a browser (no build, no server). Libraries (Three.js, Chart.js, Lucide, Google Fonts) load from CDNs. Without them, the dashboard still works: charts show a notice and the 3D stage falls back to a labelled 2D view.
 
@@ -7,7 +7,8 @@ Arabic RTL executive BI for a multi-branch dealership group. Open `showroom/inde
 | File | Responsibility |
 |---|---|
 | `data/schema.js` | **Data contract**: every table, field and enum the dashboard consumes. Demo and production data must both match it. |
-| `data/catalog.js` | Vehicle catalog: Brand → Model → Generation/Year → Trim, including specs, MSRP and 3D-asset metadata. Add a vehicle by adding a row; no UI changes needed. |
+| `data/brands.js` | Brand registry (15 Saudi-market brands), embedded official logo marks where a verified vector source exists, and the manufacturer → distributor relationships with a confidence flag. |
+| `data/catalog.js` | Vehicle master catalog: Brand → Model → Model Year (generation) → Trim. Models list only the years they exist in; trims are model/generation-specific; body type, powertrain and price segment follow the taxonomies below. Add a vehicle by adding a row. |
 | `data/demo-generator.js` | Deterministic **demo** dataset: leads → test drives → offers → reservations → sales → deliveries → payment schedules, plus VIN-level vehicles, customers, salespeople, campaigns and marketing spend. |
 | `data/data-source.js` | The only data entry point. Validates against the schema, normalises dates, builds indexes and joins, and derives receivable/collection positions. |
 | `js/core.js` | Arabic labels, formatting, periods (each with its comparison period), the **filter store** (cross-filtering and vehicle hierarchy), the query engine, and the **metric registry** (definitions behind every ⓘ). |
@@ -40,3 +41,31 @@ Tables and fields are documented in `data/schema.js`. Validation problems are re
 - **Funnel:** stages are counted by the date each event happened within the period. The Sales stage therefore equals the Sales KPI.
 - **Marketing spend:** allocated to a branch or vehicle slice in proportion to that slice's share of the source's leads.
 - **Acquisition cost per sale:** spend of the lead's source in the lead's month ÷ sales from that source and month.
+
+## Saudi catalog & taxonomies
+
+- **Brands:** Toyota, Lexus, Nissan, Hyundai, Kia, Chevrolet, GMC, Ford, MG, Geely, Changan, Jetour, GAC, Haval, BYD. Model years 2024–2026, only where the model and generation exist (for example Camry XV70 → XV80 hybrid from MY2025, Prado J150 → J250, Patrol Y62 → Y63, LX 700h from MY2026).
+- **Body types:** Sedan, SUV, Crossover, Pickup, MPV, Hatchback, Sports Car.
+- **Powertrains:** Petrol, Hybrid, Plug-in Hybrid, Full Electric.
+- **Price segments** (derived from MSRP): Economy < SAR 90K, Mainstream < 180K, Premium < 350K, Luxury.
+- **Customer segments:** Individual, Family, Executive, Fleet, Corporate, Government.
+- **Vehicle status:** Available, Reserved, In Transit, Sold, Delivered. A sold unit is never counted as stock.
+- **Payment status:** Paid, Not Yet Due, Overdue, 90+ Days Overdue.
+- Prices and specs are realistic demo values. Verify them against official distributor price lists before production use.
+
+## Brand logos
+
+Official marks are embedded only where a verified vector source exists: Toyota, Nissan, Hyundai, Kia, Chevrolet, Ford and MG, from Simple Icons v16.33. Trademarks belong to their owners. The other brands (Lexus, GMC, Geely, Changan, Jetour, GAC, Haval, BYD) use a clean text wordmark. No other brand's mark or generic car icon is ever substituted.
+
+To add an official logo, place the licensed SVG at `assets/brands/<id>.svg` and set `logoFile` for that brand in `data/brands.js`.
+
+## Distributors
+
+Manufacturer → Saudi distributor relationships are modelled explicitly (`DISTRIBUTORS` in `data/brands.js`):
+
+- `confidence:'reported'` marks publicly reported relationships. They must be verified before production use.
+- MG, Geely, GAC, Haval and BYD are mapped to a neutral "Distributor / Dealer Entity" rather than an unverified name.
+
+## Vehicle imagery
+
+No licensed vehicle photos or 3D models are bundled. The 3D viewer shows a body-type studio representation (sedan, hatchback, crossover, SUV, large SUV, pickup, MPV, van or sports car) and says so in the UI. Set `asset.model3d` (GLB/GLTF) or `asset.image` per trim when licensed assets are available.

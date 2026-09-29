@@ -112,57 +112,8 @@ const Overview = {
       onClick:(e,els)=>{ if(!els.length) return; const k=cur[els[0].index]; if(!keys.includes(k)) return toast('لا توجد بيانات لهذا الشهر بعد');
         App.sel.monthly=k; setTimeout(()=>{ Overview.monthly(); Drill.slice({title:`أداء ${fmt.month(k)}`, crumb:fmt.month(k), P:Periods.month(k), tab:'overview'}); }); }
     }});
-  },
-
-  // Q: Where does revenue come from, and is it profitable? (area = revenue, shade = margin)
-  treemap(){
-    const {P,f} = ctx0(), ff={...f}; delete ff.brand; delete ff.model; delete ff.year; delete ff.trim; delete ff.vehicleId;
-    const rows = [...Q.group(Q.sales(ff,P), s=>s._t.brand)].map(([b,rs])=>({key:b, ...Q.summarize(rs)})).filter(x=>x.revenue>0).sort((a,b)=>b.revenue-a.revenue);
-    const host = $('#treemap');
-    const W = host.clientWidth||600, H = host.clientHeight||300;
-    const ms = rows.map(r=>r.margin), lo=Math.min(...ms), hi=Math.max(...ms);
-    const rects = squarify(rows.map(r=>({...r, value:r.revenue})), 0,0,W,H);
-    host.innerHTML = rects.map(r=>{
-      const t = hi>lo ? (r.margin-lo)/(hi-lo) : .5; const light = t<.45;
-      const bg = `color-mix(in srgb, #151515 ${Math.round(18+t*82)}%, #E9EBEF)`;
-      const selected = f.brand===r.key;
-      return `<button class="tm ${light?'light':''} ${selected?'sel':''}" style="right:${r.x}px;top:${r.y}px;width:${r.w}px;height:${r.h}px;background:${bg}" data-b="${esc(r.key)}" data-tip="${esc(r.key)} · ${fmt.sarC(r.revenue)} · هامش ${fmt.pct(r.margin)} · ${r.units} مركبة">
-        ${r.w>70&&r.h>40?`<b>${esc(r.key)}</b><span>${fmt.sarC(r.revenue)}</span>${r.h>64?`<em>هامش ${fmt.pct(r.margin)}</em>`:''}`:''}</button>`;
-    }).join('');
-    $('#treemap-sub').textContent = `المساحة = الإيرادات · اللون الأغمق = هامش أعلى · ${P.label}`;
-  },
-
-  // Q: What changed? biggest revenue movers vs comparison period
-  movers(){
-    const {P,f} = ctx0(), host=$('#movers');
-    if(!P.prev){ host.innerHTML = '<p class="muted">لا توجد فترة مقارنة لهذا النطاق الزمني.</p>'; return; }
-    const g = (rows)=>{ const m=new Map(); rows.forEach(s=>{ const k=s._t.brand+'|'+s._t.model; m.set(k,(m.get(k)||0)+s.sellingPrice); }); return m; };
-    const a = g(Q.sales(f,P)), b = g(Q.sales(prevF(f),P.prev));
-    const all = [...new Set([...a.keys(),...b.keys()])].map(k=>({k, cur:a.get(k)||0, prev:b.get(k)||0})).map(x=>({...x, d:x.cur-x.prev}));
-    const up = all.filter(x=>x.d>0).sort((x,y)=>y.d-x.d).slice(0,4), down = all.filter(x=>x.d<0).sort((x,y)=>x.d-y.d).slice(0,4);
-    const max = Math.max(...all.map(x=>Math.abs(x.d)),1);
-    const row = x=>`<button class="mv" data-m="${esc(x.k)}"><span>${esc(modelName(x.k))}</span><span class="mv-bar ${x.d>0?'up':'down'}"><i style="width:${Math.abs(x.d)/max*100}%"></i></span><b class="num ${x.d>0?'pos-t':'neg-t'}">${x.d>0?'+':'−'}${fmt.sarC(Math.abs(x.d))}</b></button>`;
-    host.innerHTML = `<h6>${ic('trending-up')} الأكثر نمواً</h6>${up.map(row).join('')||'<p class="muted">—</p>'}<h6>${ic('trending-down')} الأكثر تراجعاً</h6>${down.map(row).join('')||'<p class="muted">—</p>'}`;
-    $('#movers-sub').textContent = `تغير الإيرادات حسب الطراز: ${P.label} مقابل ${P.prev.label}`;
-    icons();
   }
 };
-// squarified treemap (x measured from the right edge for RTL)
-function squarify(items, x, y, w, h){
-  const out=[]; const total = items.reduce((a,i)=>a+i.value,0)||1; const scale = (w*h)/total;
-  let rest = items.map(i=>({...i, area:i.value*scale}));
-  const worst = (row, side)=>{ const s=row.reduce((a,r)=>a+r.area,0); const mx=Math.max(...row.map(r=>r.area)), mn=Math.min(...row.map(r=>r.area)); return Math.max(side*side*mx/(s*s), (s*s)/(side*side*mn)); };
-  while(rest.length){
-    const side = Math.min(w,h); let row=[rest[0]], i=1;
-    while(i<rest.length && worst([...row,rest[i]],side) <= worst(row,side)){ row.push(rest[i]); i++; }
-    const s = row.reduce((a,r)=>a+r.area,0);
-    if(w>=h){ const cw = s/h; let cy=y; row.forEach(r=>{ const rh=r.area/cw; out.push({...r, x, y:cy, w:cw, h:rh}); cy+=rh; }); x+=cw; w-=cw; }
-    else { const ch = s/w; let cx=x; row.forEach(r=>{ const rw=r.area/ch; out.push({...r, x:cx, y, w:rw, h:ch}); cx+=rw; }); y+=ch; h-=ch; }
-    rest = rest.slice(i);
-  }
-  return out;
-}
-
 /* =====================================================================
    SALES
    ===================================================================== */
@@ -180,7 +131,7 @@ const SalesViz = {
     const key = {units:'units',revenue:'revenue',gp:'gp'}[metric];
     g.sort((a,b)=>b[key]-a[key]); const top=g.slice(0,10), max=top[0]?.[key]||1;
     const fv = v=>metric==='units'?fmt.int(v):fmt.sarC(v);
-    $('#ranking').innerHTML = top.map((r,i)=>`<button class="rk" data-m="${esc(r.k)}"><span class="rk-i">${i+1}</span><span class="rk-n">${esc(modelName(r.k))}<small>${fmt.int(r.units)} مركبة · هامش ${fmt.pct(r.margin)}</small></span><span class="rk-bar"><i style="width:${r[key]/max*100}%;background:${r.margin<(Q.summarize(Q.sales(f,P)).margin||0)-.02?C.warn:C.dark}"></i></span><b class="num">${fv(r[key])}</b></button>`).join('') || '<p class="muted">لا توجد مبيعات مطابقة.</p>';
+    $('#ranking').innerHTML = top.map((r,i)=>`<button class="rk rk5" data-m="${esc(r.k)}"><span class="rk-i">${i+1}</span>${brandMark(r.k.split('|')[0],{size:'sm'})}<span class="rk-n">${esc(modelName(r.k))}<small>${fmt.int(r.units)} مركبة · هامش ${fmt.pct(r.margin)}</small></span><span class="rk-bar"><i style="width:${r[key]/max*100}%;background:${r.margin<(Q.summarize(Q.sales(f,P)).margin||0)-.02?C.warn:C.dark}"></i></span><b class="num">${fv(r[key])}</b></button>`).join('') || '<p class="muted">لا توجد مبيعات مطابقة.</p>';
   },
   // Q: Which vehicles are high-volume but low-margin?
   volumeMargin(){
@@ -209,7 +160,7 @@ const SalesViz = {
     const rows = [...new Set([...cur.keys(),...prev.keys()])].map(b=>{ const a=Q.summarize(cur.get(b)||[]), p=Q.summarize(prev.get(b)||[]);
       return {b, units:a.units, revenue:a.revenue, margin:a.margin, gU:change(a.units,p.units), gR:change(a.revenue,p.revenue), spark:keys.map(k=>(byBM.get(b+'|'+k)||[]).length)}; });
     DataTable(host, {rows, searchable:false, pageSize:12, exportName:'brand-growth', initialSort:{key:2,dir:-1}, onRow:r=>Drill.slice({title:r.b, add:{brand:r.b}, breakdown:'model'}), columns:[
-      {label:'العلامة', get:r=>r.b, render:r=>`<b>${esc(r.b)}</b>`},
+      {label:'العلامة', get:r=>r.b, render:r=>brandCell(r.b)},
       {label:'الوحدات', num:true, get:r=>r.units, render:r=>fmt.int(r.units)},
       {label:'الإيرادات', num:true, get:r=>r.revenue, render:r=>fmt.sarC(r.revenue)},
       {label:'نمو الوحدات', num:true, get:r=>r.gU??-999, render:r=>trendHTML(r.gU)},
@@ -221,26 +172,6 @@ const SalesViz = {
     const cm = Q.group(Q.sales(f,P), s=>s._t._modelKey), pm = P.prev?Q.group(Q.sales(prevF(f),P.prev), s=>s._t._modelKey):new Map();
     const dec = [...pm.keys()].map(k=>({k, c:(cm.get(k)||[]).length, p:pm.get(k).length})).filter(x=>x.p>=6 && x.c<x.p).map(x=>({...x, g:(x.c-x.p)/x.p})).sort((a,b)=>a.g-b.g).slice(0,5);
     $('#declining').innerHTML = dec.length ? dec.map(x=>`<button class="mv" data-m="${esc(x.k)}"><span>${esc(modelName(x.k))}</span><span class="muted num">${x.p} ← ${x.c}</span><b class="neg-t num">${(x.g*100).toFixed(0)}%</b></button>`).join('') : '<p class="muted">لا توجد طرازات متراجعة بشكل ملحوظ في هذه الفترة.</p>';
-  },
-  // Q: Which branch / salesperson sells the most — and at what margin?
-  people(){
-    const {P,f}=ctx0();
-    const fb={...f}; delete fb.branch; delete fb.salesperson;
-    const br=[...Q.group(Q.sales(fb,P), s=>s.branchId)].map(([k,rs])=>({k, ...Q.summarize(rs)})).sort((a,b)=>b.revenue-a.revenue);
-    const max=br[0]?.revenue||1;
-    $('#branches').innerHTML = br.map(r=>`<button class="rk ${f.branch===r.k?'sel':''}" data-branch="${r.k}"><span class="rk-n">${L.branch(r.k)}<small>${fmt.int(r.units)} مركبة · هامش ${fmt.pct(r.margin)} · ${fmt.days(r.avgDts)} للبيع</small></span><span class="rk-bar"><i style="width:${r.revenue/max*100}%;background:${f.branch===r.k?C.gold:C.dark}"></i></span><b class="num">${fmt.sarC(r.revenue)}</b></button>`).join('');
-    const fs={...f}; delete fs.salesperson;
-    const sal = Q.group(Q.sales(fs,P), s=>s.salespersonId), lds = Q.group(Q.leads(fs,P), l=>l.salespersonId);
-    const rows = DB.salespeople.filter(sp=>!f.branch||sp.branchId===f.branch).map(sp=>{ const S=Q.summarize(sal.get(sp.salespersonId)||[]); const n=(lds.get(sp.salespersonId)||[]).length; return {sp, ...S, leads:n, conv:n?S.units/n:null}; });
-    DataTable($('#salespeople'), {rows, searchable:false, pageSize:8, exportName:'salespeople', initialSort:{key:2,dir:-1}, onRow:r=>Drill.slice({title:r.sp.name, add:{salesperson:r.sp.salespersonId}, breakdown:'model'}), columns:[
-      {label:'المستشار', get:r=>r.sp.name, render:r=>`<b>${esc(r.sp.name)}</b><small>${L.branch(r.sp.branchId)}</small>`},
-      {label:'الوحدات', num:true, get:r=>r.units, render:r=>fmt.int(r.units)},
-      {label:'الإيرادات', num:true, get:r=>r.revenue, render:r=>fmt.sarC(r.revenue)},
-      {label:'الربح', num:true, get:r=>r.gp, render:r=>fmt.sarC(r.gp)},
-      {label:'الهامش', num:true, get:r=>r.margin, render:r=>fmt.pct(r.margin)},
-      {label:'متوسط الخصم', num:true, get:r=>r.avgDiscount, render:r=>fmt.sarC(r.avgDiscount)},
-      {label:'التحويل', num:true, get:r=>r.conv, render:r=>fmt.pct(r.conv)}
-    ]});
   }
 };
 
@@ -269,24 +200,9 @@ function sourceStats(f, P){
 }
 const Marketing = {
   // Q: Where does the pipeline leak?
-  funnel(){
-    const {P,f}=ctx0();
-    const stages = [
-      ['العملاء المحتملون', Q.leads(f,P).length, {tab:'leads', leadStage:'_d'}],
-      ['عملاء مؤهلون', Q.leads(f,P,'_q').length, {tab:'leads', leadStage:'_q'}],
-      ['تجارب القيادة', Q.leads(f,P,'_td').length, {tab:'leads', leadStage:'_td'}],
-      ['عروض الأسعار', Q.leads(f,P,'_of').length, {tab:'leads', leadStage:'_of'}],
-      ['الحجوزات', Q.leads(f,P,'_rs').length, {tab:'leads', leadStage:'_rs'}],
-      ['المبيعات', Q.sales(f,P).length, {tab:'sales'}],
-      ['المركبات المسلّمة', DB.sales.filter(s=>s.deliveryStatus==='Delivered' && Q.inP(s._delivered,P) && Q.saleMatch(s,f)).length, {tab:'sales', delivered:true}]
-    ];
-    const max = stages[0][1]||1;
-    $('#funnel').innerHTML = stages.map((s,i)=>`<button class="fs ${App.sel.funnel===i?'sel':''}" data-i="${i}">
-      <span class="fl">${s[0]}</span><span class="fb"><i style="width:${Math.max(3,s[1]/max*100)}%"></i><b class="num ${s[1]/max<.22?'out':''}" style="${s[1]/max<.22?`inset-inline-start:calc(${Math.max(3,s[1]/max*100)}% + 8px)`:''}">${fmt.int(s[1])}</b></span>
-      <span class="fr">${i?`<b>${fmt.pct(stages[i-1][1]?s[1]/stages[i-1][1]:null,0)}</b>من المرحلة السابقة`:'<b>100%</b>'}</span></button>`).join('');
-    $('#funnel').onclick = e=>{ const b=e.target.closest('.fs'); if(!b) return; const s=stages[+b.dataset.i]; App.sel.funnel=+b.dataset.i; Marketing.funnel(); Drill.slice({title:s[0], ...s[2]}); };
-    $('#funnel-foot').innerHTML = `<span>التحويل من عميل محتمل إلى بيع: <b>${fmt.pct(stages[0][1]?stages[5][1]/stages[0][1]:null)}</b> <button class="info-btn" data-info="leadConv">${ic('info')}</button></span><span class="muted">المراحل تُحسب بتاريخ حدوثها ضمن الفترة</span>`;
-    icons();
+  funnel(){ Exec.funnel('funnel', App.sel.funnel);
+    const {P,f}=ctx0(); const st=funnelStages(f,P);
+    $('#funnel-foot').innerHTML = `<span>التحويل من عميل محتمل إلى بيع: <b>${fmt.pct(st[0][1]?st[5][1]/st[0][1]:null)}</b> <button class="info-btn" data-info="leadConv">${ic('info')}</button></span><span class="muted">المراحل تُحسب بتاريخ حدوثها ضمن الفترة · العرض بمقياس الجذر لتوضيح المراحل المتأخرة، والأرقام فعلية</span>`; icons();
   },
   // Q: Which sources actually produce sales? (Sankey: source → outcome)
   sankey(){
@@ -396,9 +312,9 @@ const Inventory = {
     const {P,f}=ctx0(), d=Math.min(P.end,DB.meta.todayDay), S=Q.stockSummary(Q.stockAt(f,d),d);
     const sales = Q.summarize(Q.sales(f,P)); const days = P.end-P.start+1;
     const startV = Q.stockSummary(Q.stockAt(f,P.start),P.start).value; const turnover = (startV+S.value)/2 ? (sales.revenue-sales.gp)*(365/days)/((startV+S.value)/2) : null;
-    const items = [['available',S.available],['inventoryValue',S.value],['avgAge',S.avgAge],['aged90',S.aged90],['turnover',turnover]];
-    $('#inv-stats').innerHTML = items.map(([k,v])=>`<div class="stat"><span class="l">${METRICS[k].label} <button class="info-btn" data-info="${k}">${ic('info')}</button></span><b class="num">${unitFmt[METRICS[k].unit](v)}</b></div>`).join('')
-      + `<div class="stat"><span class="l">محجوز / قيد التجهيز</span><b class="num">${fmt.int(S.reserved)} / ${fmt.int(S.service)}</b></div>`;
+    const tr = Q.inTransit(f), vel = Q.sales(f,{start:d-89,end:d}).length/90, cov = vel ? S.units/vel : null;
+    const items = [['inventoryValue',S.value,`${fmt.int(S.units)} مركبة · ${fmt.int(S.reserved)} محجوزة`],['available',S.available],['inTransit',tr.length,fmt.sarC(tr.reduce((a,v)=>a+v.purchaseCost,0))],['avgAge',S.avgAge],['aged90',S.aged90,fmt.sarC(S.aged90Value)+' مجمدة'],['coverage',cov],['turnover',turnover]];
+    $('#inv-stats').innerHTML = items.map(([k,v,sub])=>`<div class="stat ${k==='aged90'&&v?'neg':''}"><span class="l">${METRICS[k].label} <button class="info-btn" data-info="${k}">${ic('info')}</button></span><b class="num">${unitFmt[METRICS[k].unit](v)}</b>${sub?`<span class="c">${sub}</span>`:''}</div>`).join('');
     icons();
   },
   // Q: How old is our stock and how much money is sitting in each age band?
@@ -437,11 +353,11 @@ const Inventory = {
   // Q: What is available where? branch × brand units (click → units)
   heatmap(){
     const {P,f}=ctx0(), d=Math.min(P.end,DB.meta.todayDay); const ff={...f}; delete ff.branch;
-    const units = Q.stockAt(ff,d).filter(v=>v.status!=='In Service');
+    const units = Q.stockAt(ff,d);
     const brands = [...new Set(units.map(v=>v._t.brand))].sort(), br = DB.branches.map(b=>b.branchId);
     const cnt = {}; units.forEach(v=>{ const k=v.branchId+'|'+v._t.brand; cnt[k]=(cnt[k]||0)+1; });
     const max = Math.max(...Object.values(cnt),1);
-    $('#heat').innerHTML = `<table class="heat"><thead><tr><th></th>${br.map(b=>`<th>${L.branch(b)}</th>`).join('')}<th>الإجمالي</th></tr></thead><tbody>${brands.map(b=>`<tr><th>${esc(b)}</th>${br.map(x=>{ const n=cnt[x+'|'+b]||0; const t=n/max;
+    $('#heat').innerHTML = `<table class="heat"><thead><tr><th></th>${br.map(b=>`<th>${L.branch(b)}</th>`).join('')}<th>الإجمالي</th></tr></thead><tbody>${brands.map(b=>`<tr><th>${brandCell(b)}</th>${br.map(x=>{ const n=cnt[x+'|'+b]||0; const t=n/max;
       return `<td data-b="${esc(b)}" data-br="${x}" class="${f.branch===x?'selcol':''}" style="background:rgba(21,21,21,${(t*.85).toFixed(2)});color:${t>.45?'#fff':'#111'}">${n||'·'}</td>`; }).join('')}<td class="tot">${br.reduce((a,x)=>a+(cnt[x+'|'+b]||0),0)}</td></tr>`).join('')}</tbody></table>`;
     $('#heat').onclick = e=>{ const td=e.target.closest('td[data-b]'); if(!td) return; Drill.slice({title:`${td.dataset.b} · ${L.branch(td.dataset.br)}`, add:{brand:td.dataset.b, branch:td.dataset.br}, tab:'stock'}); };
   }
@@ -483,7 +399,7 @@ const Payments = {
   // Q: How old are our unpaid receivables?
   receivablesAging(){
     const {P,f}=ctx0(), r=Q.receivables(f,P.end);
-    const od = DB.payments.filter(p=>p.status==='Overdue' && p._s._d<=P.end && Q.saleMatch(p._s,f));
+    const od = DB.payments.filter(p=>p._od && p._s._d<=P.end && Q.saleMatch(p._s,f));
     const buckets=[['غير مستحق بعد',null,null],['1–30 يوم',1,30],['31–60 يوم',31,60],['61–90 يوم',61,90],['أكثر من 90 يوم',91,99999]];
     const vals = buckets.map(([l,a,b],i)=> i===0 ? r.outstanding-r.overdue : od.filter(p=>p._daysOverdue>=a&&p._daysOverdue<=b).reduce((s,p)=>s+p.amount,0));
     const max=Math.max(...vals,1);
@@ -500,7 +416,7 @@ const Payments = {
     const bucket = k=>{ const [y,m]=k.split('-').map(Number); const s=DB.dayOf(`${k}-01`); const e=DB.dayOf(m===12?`${y+1}-01-01`:`${y}-${String(m+1).padStart(2,'0')}-01`)-1; return {s,e}; };
     const rows = keys.map(k=>{ const {s,e}=bucket(k); let sale=0, inst=0, exp=0, od=0;
       pays.forEach(p=>{ if(p._paid!=null && p._paid>=s && p._paid<=e){ if(p.type==='Installment') inst+=p.paidAmount; else sale+=p.paidAmount; }
-        if(p._due>=s && p._due<=e && p._paid==null){ if(p.status==='Overdue') od+=p.amount; else exp+=p.amount; } });
+        if(p._due>=s && p._due<=e && p._paid==null){ if(p._od) od+=p.amount; else exp+=p.amount; } });
       const stock = e<=T ? Q.stockSummary(Q.stockAt(f,Math.min(e,T)),e).value : s<=T ? Q.stockSummary(Q.stockAt(f,T),T).value : null;
       return {k,s,e,sale,inst,exp,od,stock}; });
     const sel = App.sel.cash;
@@ -562,7 +478,7 @@ const Profit = {
     const tot=Q.summarize(Q.sales(f,P)); const ms=g.map(x=>x.margin||0), lo=Math.min(...ms), hi=Math.max(...ms);
     const heat = m => { const t=hi>lo?((m||0)-lo)/(hi-lo):.5; return `background:rgba(184,155,94,${(t*.45).toFixed(2)})`; };
     DataTable($('#profitTable'), {rows:g, pageSize:12, exportName:'profitability-'+dim, initialSort:dim==='month'?{key:0,dir:1}:{key:4,dir:-1}, onRow:r=>Drill.slice({title:r.name, add:dim==='month'?{}:Drill.patchFor(dim,r.k), P:dim==='month'?Periods.month(r.k):undefined, breakdown:dim==='model'?'trim':'model'}), columns:[
-      {label:B.label, get:r=>dim==='month'?r.k:r.name, render:r=>`<b>${esc(r.name)}</b>`},
+      {label:B.label, get:r=>dim==='month'?r.k:r.name, render:r=>dim==='brand'?brandCell(r.k):dim==='model'?`<span class="bcell">${brandMark(r.k.split('|')[0],{size:'sm'})}<b>${esc(r.name)}</b></span>`:`<b>${esc(r.name)}</b>`},
       {label:'الوحدات', num:true, get:r=>r.units, render:r=>fmt.int(r.units)},
       {label:'الإيرادات', num:true, get:r=>r.revenue, render:r=>fmt.sarC(r.revenue)},
       {label:'الخصومات', num:true, get:r=>r.discount, render:r=>fmt.sarC(r.discount)},
@@ -578,12 +494,215 @@ const Profit = {
   heatmap(){
     const {P,f}=ctx0(); const ff={...f}; delete ff.branch; delete ff.brand; delete ff.model; delete ff.year; delete ff.trim; delete ff.vehicleId;
     const g=Q.group(Q.sales(ff,P), s=>s._t.brand+'|'+s.branchId);
-    const brands=[...new Set(DB.trims.map(t=>t.brand))], br=DB.branches.map(b=>b.branchId);
+    const brands=[...new Set(DB.trims.map(t=>t.brand))].filter(b=>[...g.keys()].some(k=>k.startsWith(b+'|'))), br=DB.branches.map(b=>b.branchId);
     const cells={}; g.forEach((rs,k)=>cells[k]=Q.summarize(rs));
     const ms=Object.values(cells).filter(x=>x.units>=3).map(x=>x.margin), lo=Math.min(...ms), hi=Math.max(...ms);
-    $('#marginHeat').innerHTML = `<table class="heat"><thead><tr><th></th>${br.map(b=>`<th>${L.branch(b)}</th>`).join('')}</tr></thead><tbody>${brands.map(b=>`<tr><th>${esc(b)}</th>${br.map(x=>{ const c=cells[b+'|'+x];
+    $('#marginHeat').innerHTML = `<table class="heat"><thead><tr><th></th>${br.map(b=>`<th>${L.branch(b)}</th>`).join('')}</tr></thead><tbody>${brands.map(b=>`<tr><th>${brandCell(b)}</th>${br.map(x=>{ const c=cells[b+'|'+x];
       if(!c||!c.units) return '<td class="empty">·</td>'; const t=hi>lo?(c.margin-lo)/(hi-lo):.5;
       return `<td data-b="${esc(b)}" data-br="${x}" class="${f.brand===b||f.branch===x?'selcol':''}" style="background:rgba(21,21,21,${(.08+t*.8).toFixed(2)});color:${t>.4?'#fff':'#111'}" data-tip="${esc(b)} · ${L.branch(x)} · ${c.units} مركبة · ${fmt.sarC(c.gp)} ربح">${fmt.pct(c.margin)}</td>`; }).join('')}</tr>`).join('')}</tbody></table>`;
     $('#marginHeat').onclick = e=>{ const td=e.target.closest('td[data-b]'); if(!td) return; Drill.slice({title:`${td.dataset.b} · ${L.branch(td.dataset.br)}`, add:{brand:td.dataset.b, branch:td.dataset.br}, breakdown:'model'}); };
+  }
+};
+
+/* =====================================================================
+   v3 — EXECUTIVE MODULES (Saudi multi-brand dealership)
+   ===================================================================== */
+const AGE_BANDS = [[0,30,'0–30',C.dark],[31,60,'31–60','#6B7280'],[61,90,'61–90',C.gold],[91,120,'91–120',C.warn],[121,9999,'+120',C.neg]];
+const tone = (v, good, bad, higherBetter=true)=> v==null ? 'flat' : higherBetter ? (v>=good?'up':v<=bad?'down':'flat') : (v<=good?'up':v>=bad?'down':'flat');
+
+/* ---- real funnel (trapezoids) ---- */
+function funnelStages(f, P){
+  return [
+    ['العملاء المحتملون', Q.leads(f,P).length, {tab:'leads', leadStage:'_d'}],
+    ['مؤهلون', Q.leads(f,P,'_q').length, {tab:'leads', leadStage:'_q'}],
+    ['تجارب القيادة', Q.leads(f,P,'_td').length, {tab:'leads', leadStage:'_td'}],
+    ['عروض الأسعار', Q.leads(f,P,'_of').length, {tab:'leads', leadStage:'_of'}],
+    ['الحجوزات', Q.leads(f,P,'_rs').length, {tab:'leads', leadStage:'_rs'}],
+    ['المبيعات', Q.sales(f,P).length, {tab:'sales'}],
+    ['تم التسليم', DB.sales.filter(s=>s.deliveryStatus==='Delivered' && Q.inP(s._delivered,P) && Q.saleMatch(s,f)).length, {tab:'sales', delivered:true}]
+  ];
+}
+function drawFunnel(host, stages, {h=360, selKey=null}={}){
+  const W = Math.max(320, host.clientWidth||600), n = stages.length, labelW = W<520?104:150, convW = W<520?64:96, fw = W-labelW-convW-16, rowH = h/n;
+  const max = stages[0][1]||1, cx = convW + 8 + fw/2;
+  const w = v => Math.max(.1, Math.sqrt(v/max)) * fw;            // sqrt keeps late stages readable; exact counts are printed
+  let g = '';
+  stages.forEach((s,i)=>{
+    const top = w(s[1]), bot = i<n-1 ? w(stages[i+1][1]) : top*.82, y = i*rowH+2, hh = rowH-5;
+    const fill = i>=n-2 ? `url(#fgGold)` : `url(#fgDark)`;
+    const conv = i ? (stages[i-1][1] ? s[1]/stages[i-1][1] : null) : null;
+    g += `<g class="fn ${selKey===i?'sel':''}" data-i="${i}"><rect x="0" y="${y}" width="${W}" height="${hh}" fill="transparent"/>
+      <path d="M${cx-top/2},${y} L${cx+top/2},${y} L${cx+bot/2},${y+hh} L${cx-bot/2},${y+hh} Z" fill="${fill}"/>
+      <text x="${cx}" y="${y+hh/2+4}" text-anchor="middle" class="fn-n ${Math.min(top,bot)<70?'out':''}">${fmt.int(s[1])}</text>
+      <text x="${W-6}" y="${y+hh/2+4}" text-anchor="end" class="fn-l">${esc(s[0])}</text>
+      <text x="6" y="${y+hh/2+4}" text-anchor="start" class="fn-c">${conv==null?'100%':fmt.pct(conv,0)}</text></g>`;
+  });
+  host.innerHTML = `<svg viewBox="0 0 ${W} ${h}" width="100%" height="${h}" style="direction:ltr"><defs>
+    <linearGradient id="fgDark" x1="0" x2="1"><stop offset="0" stop-color="#2b2b2b"/><stop offset=".5" stop-color="#151515"/><stop offset="1" stop-color="#2b2b2b"/></linearGradient>
+    <linearGradient id="fgGold" x1="0" x2="1"><stop offset="0" stop-color="#a88a4f"/><stop offset=".5" stop-color="#c7ab70"/><stop offset="1" stop-color="#a88a4f"/></linearGradient></defs>${g}
+    <text x="6" y="${h-2}" class="fn-cap" text-anchor="start">التحويل من المرحلة السابقة</text></svg>`;
+}
+
+const Exec = {
+  // Q: Is the dealership healthy? (one status per area, 30-second read)
+  health(){
+    const {P,f}=ctx0(), S=Q.summarize(Q.sales(f,P)), B=P.prev?Q.summarize(Q.sales(prevF(f),P.prev)):null;
+    const d=Math.min(P.end,DB.meta.todayDay), St=Q.stockSummary(Q.stockAt(f,d),d), rec=Q.receivables(f,P.end);
+    const due=Q.payments(f,P,'_due').filter(p=>p._due<=DB.meta.todayDay), dueAmt=due.reduce((a,p)=>a+p.amount,0), rate=dueAmt?due.reduce((a,p)=>a+p.paidAmount,0)/dueAmt:null;
+    const od90 = DB.payments.filter(p=>p._daysOverdue>90 && p._s._d<=P.end && Q.saleMatch(p._s,f)).reduce((a,p)=>a+p.amount,0);
+    const leads=Q.leads(f,P).length, conv=leads?S.units/leads:null, pl=P.prev?Q.leads(prevF(f),P.prev).length:0, pconv=pl&&B?B.units/pl:null;
+    const dRev=change(S.revenue,B?.revenue), dMar=B?change(S.margin,B.margin,'pts'):null, agedShare=St.units?St.aged90/St.units:null, dConv=change(conv,pconv,'pts');
+    const tiles = [
+      {k:'sales', label:'المبيعات', t:tone(dRev,3,-3), main:`${fmt.sarC(S.revenue)}`, sub:dRev==null?'بدون مقارنة':`${dRev>=0?'+':''}${dRev.toFixed(1)}% · ${fmt.int(S.units)} مركبة`},
+      {k:'profit', label:'الربحية', t:tone(dMar,0,-.5), main:`هامش ${fmt.pct(S.margin)}`, sub:dMar==null?'':`${dMar>=0?'+':''}${dMar.toFixed(1)} نقطة · مساهمة ${fmt.sarC(S.contribution)}`},
+      {k:'inventory', label:'المخزون', t:tone(agedShare,.08,.15,false), main:`${fmt.sarC(St.value)} محتجزة`, sub:`${fmt.int(St.aged90)} مركبة +90 يوماً (${fmt.pct(agedShare,0)})`},
+      {k:'payments', label:'التحصيل', t: rate==null?'flat': rate>=.95&&od90<rec.outstanding*.02?'up':rate<.9||od90>rec.outstanding*.05?'down':'flat', main:`نسبة التحصيل ${fmt.pct(rate,0)}`, sub:`متأخر +90 يوماً ${fmt.sarC(od90)}`},
+      {k:'marketing', label:'خط المبيعات', t:tone(dConv,0,-.5), main:`تحويل ${fmt.pct(conv)}`, sub:dConv==null?`${fmt.int(leads)} عميل محتمل`:`${dConv>=0?'+':''}${dConv.toFixed(1)} نقطة · ${fmt.int(leads)} عميل`}
+    ];
+    const word = {up:'جيد', flat:'مراقبة', down:'يحتاج تدخلاً'};
+    $('#health').innerHTML = tiles.map(x=>`<button class="hl ${x.t}" data-go="${x.k}"><span class="hl-h"><i></i>${x.label}<em>${word[x.t]}</em></span><b class="num">${x.main}</b><small>${x.sub}</small></button>`).join('');
+    $('#health').onclick = e=>{ const b=e.target.closest('[data-go]'); if(b) App.showTab(b.dataset.go==='profit'?'profit':b.dataset.go); };
+  },
+
+  // Q: Which brands make money, which tie up capital?
+  brandPerf(){
+    const {P,f}=ctx0(); const ff={...f}; ['brand','model','year','trim','vehicleId'].forEach(k=>delete ff[k]);
+    const d=Math.min(P.end,DB.meta.todayDay);
+    const cur=Q.group(Q.sales(ff,P),s=>s._t.brand), prev=P.prev?Q.group(Q.sales(prevF(ff),P.prev),s=>s._t.brand):new Map();
+    const stock=Q.group(Q.stockAt(ff,d),v=>v._t.brand), vel=Q.group(Q.sales(ff,{start:d-89,end:d}),s=>s._t.brand);
+    const tot=Q.summarize(Q.sales(ff,P));
+    const rows=DB.brands.map(b=>{ const S=Q.summarize(cur.get(b.name)||[]), Pp=Q.summarize(prev.get(b.name)||[]), St=Q.stockSummary(stock.get(b.name)||[],d), v=(vel.get(b.name)||[]).length/90;
+      return {b:b.name, ...S, growth:P.prev?change(S.revenue,Pp.revenue):null, stock:St.units, stockValue:St.value, aged:St.aged90, cover:v?St.units/v:null}; }).filter(r=>r.units||r.stock);
+    const maxR=Math.max(...rows.map(r=>r.revenue),1);
+    DataTable($('#brandPerf'), {rows, searchable:false, pageSize:15, exportName:'brand-performance', initialSort:{key:2,dir:-1},
+      onRow:r=>Drill.slice({title:r.b, add:{brand:r.b}, breakdown:'model'}), columns:[
+      {label:'العلامة', get:r=>r.b, render:r=>brandCell(r.b)},
+      {label:'الوحدات', num:true, get:r=>r.units, render:r=>fmt.int(r.units)},
+      {label:'الإيرادات', num:true, get:r=>r.revenue, render:r=>`${fmt.sarC(r.revenue)}${barCell(r.revenue,maxR, f.brand===r.b?C.gold:C.dark)}`},
+      {label:'الهامش', num:true, get:r=>r.margin??-1, render:r=>`<b class="${r.margin!=null&&r.margin<(tot.margin||0)-.01?'warn-t':''}">${fmt.pct(r.margin)}</b>`},
+      {label:'النمو', num:true, get:r=>r.growth??-999, render:r=>trendHTML(r.growth)},
+      {label:'بالمخزون', num:true, get:r=>r.stockValue, render:r=>`${fmt.int(r.stock)}<small>${fmt.sarC(r.stockValue)}</small>`},
+      {label:'التغطية', num:true, get:r=>r.cover??9999, render:r=>r.cover==null?'—':`<b class="${r.cover>90?'warn-t':r.cover<20?'pos-t':''}">${Math.round(r.cover)} يوم</b>`},
+      {label:'+90 يوماً', num:true, get:r=>r.aged, render:r=>r.aged?`<b class="neg-t">${r.aged}</b>`:'—'}
+    ]});
+  },
+
+  // Q: Which models carry the business — and which need attention?
+  modelPerf(){
+    const {P,f}=ctx0(), mode=App.ui.modelPerfMode||'top', d=Math.min(P.end,DB.meta.todayDay);
+    const g=[...Q.group(Q.sales(f,P),s=>s._t._modelKey)].map(([k,rs])=>({k, t:rs[0]._t, ...Q.summarize(rs)}));
+    const pm=P.prev?Q.group(Q.sales(prevF(f),P.prev),s=>s._t._modelKey):new Map();
+    const inv=Object.fromEntries(modelInventory(f,d).map(x=>[x.k.replace('|','|'),x]));
+    const tot=Q.summarize(Q.sales(f,P)), medU=median(g.map(x=>x.units));
+    let list;
+    if(mode==='top'){ list=g.sort((a,b)=>b.contribution-a.contribution).slice(0,8).map(x=>({...x, why:[`${fmt.int(x.units)} مركبة`,`هامش ${fmt.pct(x.margin)}`]})); }
+    else {
+      list=g.map(x=>{ const why=[]; const p=(pm.get(x.k)||[]).length; const iv=inv[x.k];
+        if(x.margin<(tot.margin||0)-.015 && x.units>=medU) why.push(`هامش منخفض ${fmt.pct(x.margin)} رغم حجم مرتفع`);
+        if(p>=6 && x.units<p*.75) why.push(`تراجع ${Math.round((1-x.units/p)*100)}% عن الفترة السابقة`);
+        if(iv && iv.dos>120 && iv.stock>=3) why.push(`تغطية ${iv.dos>=999?'∞':Math.round(iv.dos)} يوماً`);
+        if(iv && iv.aged90>=2) why.push(`${iv.aged90} مركبة +90 يوماً`);
+        return {...x, why, score:why.length*10+(x.revenue/1e7)}; }).filter(x=>x.why.length).sort((a,b)=>b.score-a.score).slice(0,8);
+    }
+    const max=Math.max(...list.map(x=>Math.abs(x.contribution)),1);
+    $('#modelperf-sub').textContent = mode==='top' ? 'الطرازات الأعلى مساهمة (الربح + التمويل − تكلفة الاستحواذ)' : 'هامش ضعيف بحجم كبير، تراجع، تغطية مرتفعة أو مخزون متقادم';
+    $('#modelPerf').innerHTML = list.length ? list.map(x=>`<button class="rk mp" data-m="${esc(x.k)}">${brandMark(x.t.brand,{size:'sm'})}<span class="rk-n"><bdi>${esc(x.t.model)}</bdi><small>${x.why.map(esc).join(' · ')}</small></span><span class="rk-bar"><i style="width:${Math.abs(x.contribution)/max*100}%;background:${mode==='top'?C.dark:C.warn}"></i></span><b class="num">${fmt.sarC(x.contribution)}</b></button>`).join('') : '<p class="muted">لا توجد طرازات تستدعي الانتباه ضمن الفلاتر الحالية.</p>';
+  },
+
+  // Q: Where is capital trapped in stock?
+  invRisk(){
+    const {P,f}=ctx0(), d=Math.min(P.end,DB.meta.todayDay), units=Q.stockAt(f,d), tr=Q.inTransit(f);
+    const bands=AGE_BANDS.map(([lo,hi,l,c])=>{ const u=units.filter(v=>{const a=d-v._arr; return a>=lo&&a<=hi;}); return {lo,hi,l,c,n:u.length,v:u.reduce((s,x)=>s+x.purchaseCost,0)}; });
+    const tot=bands.reduce((s,b)=>s+b.v,0)||1;
+    const byBrand=[...Q.group(units.filter(v=>d-v._arr>60),v=>v._t.brand)].map(([b,us])=>({b,n:us.length,v:us.reduce((s,x)=>s+x.purchaseCost,0)})).sort((a,b)=>b.v-a.v).slice(0,5);
+    const mx=byBrand[0]?.v||1;
+    $('#invRisk').innerHTML = `<div class="ir-top"><div><b class="num">${fmt.sarC(tot)}</b><small>قيمة المخزون (${fmt.int(units.length)} مركبة)</small></div><div><b class="num">${fmt.int(tr.length)}</b><small>في الطريق · ${fmt.sarC(tr.reduce((s,x)=>s+x.purchaseCost,0))}</small></div></div>
+      <div class="ir-bar">${bands.map((b,i)=>`<button data-i="${i}" style="width:${b.v/tot*100}%;background:${b.c}" data-tip="${b.l} يوماً · ${b.n} مركبة · ${fmt.sarC(b.v)}"></button>`).join('')}</div>
+      <div class="ir-leg">${bands.map((b,i)=>`<button data-i="${i}"><i style="background:${b.c}"></i>${b.l}<b class="num">${fmt.sarC(b.v)}</b></button>`).join('')}</div>
+      <h6 class="ir-h">أكبر رأس مال في مخزون تجاوز 60 يوماً</h6>
+      ${byBrand.map(x=>`<button class="rk mp" data-agebrand="${esc(x.b)}">${brandMark(x.b,{size:'sm'})}<span class="rk-n">${esc(x.b)}<small>${x.n} مركبة</small></span><span class="rk-bar"><i style="width:${x.v/mx*100}%;background:${C.warn}"></i></span><b class="num">${fmt.sarC(x.v)}</b></button>`).join('') || '<p class="muted">لا يوجد مخزون تجاوز 60 يوماً.</p>'}`;
+    $('#invRisk').onclick = e=>{
+      const b=e.target.closest('[data-i]'); if(b){ const x=bands[+b.dataset.i]; return Drill.slice({title:`مخزون ${x.l} يوماً`, tab:'stock', stock:{ageMin:x.lo, ageMax:x.hi, label:`${x.l} يوماً`}}); }
+      const br=e.target.closest('[data-agebrand]'); if(br) Drill.slice({title:`مخزون ${br.dataset.agebrand} +60 يوماً`, add:{brand:br.dataset.agebrand}, tab:'stock', stock:{ageMin:61, label:'أكثر من 60 يوماً'}});
+    };
+  },
+  funnel(hostId, sel){
+    const {P,f}=ctx0(), st=funnelStages(f,P), host=$('#'+hostId);
+    drawFunnel(host, st, {h: hostId==='funnelMini'?330:380, selKey:sel});
+    host.onclick = e=>{ const g=e.target.closest('.fn'); if(!g) return; const s=st[+g.dataset.i]; App.sel[hostId]=+g.dataset.i; Drill.slice({title:s[0], ...s[2]}); };
+  },
+
+  // Q: Which branches need attention? (scorecard vs group average)
+  branchScorecard(){
+    const {P,f}=ctx0(); const fb={...f}; delete fb.branch; delete fb.salesperson;
+    const d=Math.min(P.end,DB.meta.todayDay);
+    const G=Q.summarize(Q.sales(fb,P)), gLeads=Q.leads(fb,P).length, gConv=gLeads?G.units/gLeads:null;
+    const rows=DB.branches.map(b=>{ const bf={...fb,branch:b.branchId}; const S=Q.summarize(Q.sales(bf,P)), B=P.prev?Q.summarize(Q.sales(prevF(bf),P.prev)):null;
+      const L=Q.leads(bf,P).length, St=Q.stockSummary(Q.stockAt(bf,d),d), rec=Q.receivables(bf,P.end);
+      return {b, ...S, growth:B?change(S.revenue,B.revenue):null, conv:L?S.units/L:null, aged:St.aged90, stock:St.units, overdue:rec.overdue}; });
+    const flag=(v,ref,worseIfLower=true,tol=.15)=> v==null||ref==null ? '' : (worseIfLower ? v<ref*(1-tol) : v>ref*(1+tol)) ? 'bad' : (worseIfLower ? v>ref*(1+tol) : v<ref*(1-tol)) ? 'good' : '';
+    const gDisc=G.discountPct, gAged=rows.reduce((a,r)=>a+r.aged,0)/rows.length, gDts=G.avgDts;
+    DataTable($('#branches'), {rows, searchable:false, pageSize:10, exportName:'branch-scorecard', initialSort:{key:1,dir:-1}, onRow:r=>Drill.slice({title:`فرع ${L.branch(r.b.branchId)}`, add:{branch:r.b.branchId}, breakdown:'brand'}), columns:[
+      {label:'الفرع', get:r=>L.branch(r.b.branchId), render:r=>`<b>${L.branch(r.b.branchId)}</b><small>${L.region(r.b.region)}</small>`},
+      {label:'الإيرادات', num:true, get:r=>r.revenue, render:r=>fmt.sarC(r.revenue)},
+      {label:'النمو', num:true, get:r=>r.growth??-999, render:r=>trendHTML(r.growth)},
+      {label:'الوحدات', num:true, get:r=>r.units, render:r=>fmt.int(r.units)},
+      {label:'الهامش', num:true, get:r=>r.margin??-1, render:r=>`<span class="sc ${flag(r.margin,G.margin,true,.1)}">${fmt.pct(r.margin)}</span>`},
+      {label:'متوسط الخصم', num:true, get:r=>r.discountPct??-1, render:r=>`<span class="sc ${flag(r.discountPct,gDisc,false,.15)}">${fmt.pct(r.discountPct)}</span>`},
+      {label:'التحويل', num:true, get:r=>r.conv??-1, render:r=>`<span class="sc ${flag(r.conv,gConv,true,.12)}">${fmt.pct(r.conv)}</span>`},
+      {label:'أيام البيع', num:true, get:r=>r.avgDts??-1, render:r=>`<span class="sc ${flag(r.avgDts,gDts,false,.15)}">${fmt.days(r.avgDts)}</span>`},
+      {label:'مخزون +90', num:true, get:r=>r.aged, render:r=>`<span class="sc ${flag(r.aged,gAged,false,.4)}">${r.aged}</span>`},
+      {label:'متأخرات', num:true, get:r=>r.overdue, render:r=>fmt.sarC(r.overdue)}
+    ]});
+  },
+  // Q: Which salespeople need coaching or discount control?
+  salesTeam(){
+    const {P,f}=ctx0(); const fs={...f}; delete fs.salesperson;
+    const sal=Q.group(Q.sales(fs,P),s=>s.salespersonId), lds=Q.group(Q.leads(fs,P),l=>l.salespersonId);
+    const rows=DB.salespeople.filter(sp=>!f.branch||sp.branchId===f.branch).map(sp=>{ const S=Q.summarize(sal.get(sp.salespersonId)||[]); const n=(lds.get(sp.salespersonId)||[]).length; return {sp, ...S, leads:n, conv:n?S.units/n:null}; });
+    const act=rows.filter(r=>r.units>0), tDisc=act.reduce((a,r)=>a+r.discount,0)/Math.max(1,act.reduce((a,r)=>a+r.listValue,0)), tConv=act.reduce((a,r)=>a+r.units,0)/Math.max(1,act.reduce((a,r)=>a+r.leads,0));
+    rows.forEach(r=>{ r.flags=[]; if(r.discountPct!=null && r.discountPct>tDisc*1.5 && r.units>=5) r.flags.push('خصم مرتفع'); if(r.conv!=null && r.conv<tConv*.75 && r.leads>=30) r.flags.push('تحويل منخفض'); if(r.margin!=null && r.units>=5 && r.margin<(Q.summarize(Q.sales(fs,P)).margin||0)-.02) r.flags.push('هامش ضعيف'); });
+    const shown = (App.ui.spMode||'flag')==='flag' ? rows.filter(r=>r.flags.length) : rows;
+    DataTable($('#salespeople'), {rows:shown, searchable:true, pageSize:10, exportName:'sales-team', initialSort:{key:2,dir:-1}, empty:'لا يوجد مستشارون بإشارات تستدعي الانتباه ضمن الفلاتر الحالية', onRow:r=>Drill.slice({title:r.sp.name, add:{salesperson:r.sp.salespersonId}, breakdown:'model'}), columns:[
+      {label:'المستشار', get:r=>r.sp.name, render:r=>`<b>${esc(r.sp.name)}</b><small>${L.branch(r.sp.branchId)}</small>`},
+      {label:'الإشارات', get:r=>r.flags.length, render:r=>r.flags.map(x=>statusPill(x,'warn')).join(' ')||'<span class="muted">—</span>'},
+      {label:'الإيرادات', num:true, get:r=>r.revenue, render:r=>fmt.sarC(r.revenue)},
+      {label:'الوحدات', num:true, get:r=>r.units, render:r=>fmt.int(r.units)},
+      {label:'العملاء', num:true, get:r=>r.leads, render:r=>fmt.int(r.leads)},
+      {label:'التحويل', num:true, get:r=>r.conv??-1, render:r=>fmt.pct(r.conv)},
+      {label:'متوسط الخصم', num:true, get:r=>r.discountPct??-1, render:r=>fmt.pct(r.discountPct)},
+      {label:'الهامش', num:true, get:r=>r.margin??-1, render:r=>fmt.pct(r.margin)},
+      {label:'الربح', num:true, get:r=>r.gp, render:r=>fmt.sarC(r.gp)}
+    ]});
+    $('#spMode').querySelectorAll('button').forEach(b=>b.classList.toggle('active', b.dataset.v===(App.ui.spMode||'flag')));
+  },
+
+  // Q: Where is capital trapped, by brand and age?
+  capitalByBrand(){
+    const {P,f}=ctx0(), d=Math.min(P.end,DB.meta.todayDay); const ff={...f}; ['brand','model','year','trim','vehicleId'].forEach(k=>delete ff[k]);
+    const units=Q.stockAt(ff,d), tr=Q.group(Q.inTransit(ff),v=>v._t.brand);
+    const rows=[...Q.group(units,v=>v._t.brand)].map(([b,us])=>{ const bands=AGE_BANDS.map(([lo,hi])=>us.filter(v=>{const a=d-v._arr;return a>=lo&&a<=hi;}).reduce((s,x)=>s+x.purchaseCost,0)); return {b, n:us.length, v:bands.reduce((s,x)=>s+x,0), bands, tr:(tr.get(b)||[]).length}; }).sort((a,b)=>b.v-a.v);
+    const mx=rows[0]?.v||1;
+    $('#capBrand').innerHTML = rows.map(r=>`<div class="cb ${f.brand===r.b?'sel':''}"><button class="cb-n" data-brand="${esc(r.b)}">${brandMark(r.b,{size:'sm'})}<span><b>${esc(r.b)}</b><small>${r.n} مركبة${r.tr?` · ${r.tr} في الطريق`:''}</small></span></button>
+      <span class="cb-bar" style="width:${Math.max(4,r.v/mx*100)}%">${r.bands.map((v,i)=>v?`<button data-brand="${esc(r.b)}" data-band="${i}" style="flex:${v};background:${AGE_BANDS[i][3]}" data-tip="${esc(r.b)} · ${AGE_BANDS[i][2]} يوماً · ${fmt.sarC(v)}"></button>`:'').join('')}</span>
+      <b class="num cb-v">${fmt.sarC(r.v)}</b></div>`).join('');
+    $('#capBrand').onclick = e=>{ const b=e.target.closest('[data-brand]'); if(!b) return; const band=b.dataset.band!=null?AGE_BANDS[+b.dataset.band]:null;
+      Drill.slice({title:`مخزون ${b.dataset.brand}${band?` · ${band[2]} يوماً`:''}`, add:{brand:b.dataset.brand}, tab:'stock', stock: band?{ageMin:band[0], ageMax:band[1], label:`${band[2]} يوماً`}:undefined}); };
+  },
+  // Q: How exposed are we to each distributor?
+  distributors(){
+    const {P,f}=ctx0(), d=Math.min(P.end,DB.meta.todayDay); const ff={...f}; delete ff.distributor;
+    const st=Q.group(Q.stockAt(ff,d),v=>v.distributorId), tr=Q.group(Q.inTransit(ff),v=>v.distributorId), sa=Q.group(Q.sales(ff,P),s=>s._t.distributorId);
+    const rows=DB.distributors.map(x=>{ const S=Q.stockSummary(st.get(x.id)||[],d), T=tr.get(x.id)||[], Sl=Q.summarize(sa.get(x.id)||[]); return {x, stock:S.units, value:S.value, aged:S.aged90, tr:T.length, trValue:T.reduce((a,v)=>a+v.purchaseCost,0), units:Sl.units, cogs:Sl.cost, margin:Sl.margin}; }).filter(r=>r.stock||r.units||r.tr);
+    DataTable($('#distTable'), {rows, searchable:false, pageSize:10, exportName:'distributor-exposure', initialSort:{key:2,dir:-1}, onRow:r=>Drill.slice({title:r.x.ar, add:{distributor:r.x.id}, tab:'stock'}), columns:[
+      {label:'جهة التوزيع', get:r=>r.x.name, render:r=>`<b>${esc(r.x.ar)}</b><small><bdi>${esc(r.x.name)}</bdi></small>`},
+      {label:'العلامات', get:r=>r.x.brands.join(' '), render:r=>`<span class="bmrow">${r.x.brands.map(b=>brandMark(b,{size:'sm'})).join('')}</span>`},
+      {label:'قيمة المخزون', num:true, get:r=>r.value, render:r=>`${fmt.sarC(r.value)}<small>${r.stock} مركبة</small>`},
+      {label:'في الطريق', num:true, get:r=>r.trValue, render:r=>r.tr?`${fmt.sarC(r.trValue)}<small>${r.tr} مركبة</small>`:'—'},
+      {label:'+90 يوماً', num:true, get:r=>r.aged, render:r=>r.aged?`<b class="neg-t">${r.aged}</b>`:'—'},
+      {label:'مشتريات مباعة (تكلفة)', num:true, get:r=>r.cogs, render:r=>fmt.sarC(r.cogs)},
+      {label:'الهامش', num:true, get:r=>r.margin??-1, render:r=>fmt.pct(r.margin)},
+      {label:'العلاقة', get:r=>r.x.confidence, render:r=>r.x.confidence==='unassigned'?statusPill('غير محددة','muted'):statusPill('مُبلّغ عنها — تحقق','gold')}
+    ]});
   }
 };

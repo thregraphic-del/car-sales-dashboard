@@ -36,12 +36,12 @@ const Explorer = (function(){
     q = q.trim().toLowerCase(); if(q.length<1) return [];
     const res = [], seen = new Set();
     DB.trims.forEach(t=>{
-      const hay = `${t.brand} ${t.model} ${t.trim} ${t.year} ${t.segment} ${L.segment(t.segment)} ${t.bodyType}`.toLowerCase();
+      const hay = `${t.brand} ${L.brandAr(t.brand)} ${t.model} ${t.trim} ${t.year} ${t.bodyType} ${L.body(t.bodyType)} ${t.powertrain} ${L.pt(t.powertrain)}`.toLowerCase();
       if(!q.split(/\s+/).every(w=>hay.includes(w))) return;
       const kB=t.brand, kM=t.brand+'|'+t.model;
-      if(!seen.has(kB) && t.brand.toLowerCase().includes(q)){ seen.add(kB); res.push({type:'brand', label:t.brand, patch:{brand:t.brand}}); }
-      if(!seen.has(kM) && `${t.brand} ${t.model}`.toLowerCase().includes(q.split(/\s+/)[0])){ seen.add(kM); res.push({type:'model', label:`${t.brand} ${t.model}`, sub:L.segment(t.segment), patch:{brand:t.brand, model:t.model}}); }
-      res.push({type:'trim', label:`${t.brand} ${t.model} ${t.trim}`, sub:`${t.year} · ${fmt.sar(t.msrp)}`, patch:{brand:t.brand, model:t.model, year:t.year, trim:t.trim}});
+      if(!seen.has(kB) && (t.brand.toLowerCase().includes(q)||L.brandAr(t.brand).includes(q))){ seen.add(kB); res.push({type:'brand', brand:t.brand, label:t.brand, patch:{brand:t.brand}}); }
+      if(!seen.has(kM) && `${t.brand} ${t.model}`.toLowerCase().includes(q.split(/\s+/)[0])){ seen.add(kM); res.push({type:'model', label:`${t.brand} ${t.model}`, brand:t.brand, sub:L.body(t.bodyType), patch:{brand:t.brand, model:t.model}}); }
+      res.push({type:'trim', brand:t.brand, label:`${t.brand} ${t.model} ${t.trim}`, sub:`${t.year} · ${fmt.sar(t.msrp)}`, patch:{brand:t.brand, model:t.model, year:t.year, trim:t.trim}});
     });
     return res.slice(0,14);
   }
@@ -50,7 +50,7 @@ const Explorer = (function(){
     const show = ()=>{
       const r = searchResults(inp.value);
       if(!inp.value.trim()){ Pop.close(); return; }
-      const html = r.length ? r.map((x,i)=>`<button class="opt" data-i="${i}"><span>${ic(x.type==='brand'?'award':x.type==='model'?'car':'tag')}<bdi>${esc(x.label)}</bdi></span><small>${esc(x.sub||({brand:'علامة',model:'طراز'}[x.type]||''))}</small></button>`).join('') : '<p class="muted pad">لا توجد نتائج</p>';
+      const html = r.length ? r.map((x,i)=>`<button class="opt" data-i="${i}"><span>${brandMark(x.brand,{size:'sm'})}<bdi>${esc(x.label)}</bdi></span><small>${esc(x.sub||({brand:'علامة',model:'طراز'}[x.type]||''))}</small></button>`).join('') : '<p class="muted pad">لا توجد نتائج</p>';
       if(Pop.owner!=='vsearch'){ Pop.open(inp.parentElement, html, 'vsearch','search-pop'); }
       else { Pop.el.innerHTML = html; icons(); }
       Pop.el.onclick = e=>{ const b=e.target.closest('.opt'); if(!b) return; Store.set(r[+b.dataset.i].patch,'search'); inp.value=''; Pop.close(); };
@@ -71,14 +71,14 @@ const Explorer = (function(){
   function tile(o){
     return `<button class="vt ${o.sel?'sel':''}" data-patch='${esc(JSON.stringify(o.patch))}'>
       <div class="vt-h"><span class="vt-eyebrow">${esc(o.eyebrow||'')}</span>${o.compare?`<label class="cmp-ck" data-tip="أضف للمقارنة"><input type="checkbox" data-cmp="${o.compare}" ${compare.has(o.compare)?'checked':''}>${ic('git-compare')}</label>`:''}</div>
-      <b class="vt-t"><bdi>${esc(o.title)}</bdi></b><span class="vt-s">${esc(o.sub||'')}</span>
+      ${o.logo?`<span class="vt-logo">${brandMark(o.logo,{size:'lg'})}</span>`:''}<b class="vt-t"><bdi>${esc(o.title)}</bdi></b><span class="vt-s">${esc(o.sub||'')}</span>
       <div class="vt-m">${o.metrics.map(m=>`<span><em>${m[0]}</em><b class="num">${m[1]}</b></span>`).join('')}</div>
       ${o.share!=null?`<span class="vt-share"><i style="width:${clamp(o.share,0,1)*100}%"></i></span>`:''}</button>`;
   }
   function renderCatalog(){
     const s = Store.state, lv = Store.level(), host = $('#catalog');
     let head='', tiles='', sub='';
-    const bodyChips = `<div class="chips-row">${['SUV','Sedan','Coupe','Wagon'].map(b=>`<button class="chip-f ${bodyFilter===b?'on':''}" data-body="${b}">${AR.body[b]}</button>`).join('')}</div>`;
+    const bodyChips = `<div class="chips-row">${CATALOG_REFERENCE.bodyTypes.map(b=>`<button class="chip-f ${bodyFilter===b?'on':''}" data-body="${b}">${AR.body[b]}</button>`).join('')}</div>`;
     if(lv==='all'){
       const st = statsBy(t=>t.brand); const brands=[...new Set(DB.trims.map(t=>t.brand))];
       const rows = brands.map(b=>({b, ...st.get(b), models:new Set(DB.trims.filter(t=>t.brand===b).map(t=>t.model)).size}))
@@ -86,28 +86,28 @@ const Explorer = (function(){
       const tot = rows.reduce((a,r)=>a+r.revenue,0)||1;
       head = `<h2>محفظة المركبات</h2><p>${brands.length} علامات · ${new Set(DB.trims.map(t=>t._modelKey)).size} طرازاً · ${DB.trims.length} فئة · اختر علامة للبدء، أو ابحث مباشرة عن مركبة.</p>`;
       sub = bodyChips;
-      tiles = rows.map(r=>tile({eyebrow:`${r.models} طرازات`, title:r.b, sub:`حصة الإيرادات ${fmt.pct(r.revenue/tot,0)}`, patch:{brand:r.b}, share:r.revenue/tot,
+      tiles = rows.map(r=>tile({logo:r.b, eyebrow:`${L.brandAr(r.b)} · ${r.models} طرازات`, title:r.b, sub:`حصة الإيرادات ${fmt.pct(r.revenue/tot,0)}`, patch:{brand:r.b}, share:r.revenue/tot,
         metrics:[['مباع',fmt.int(r.units)],['الإيرادات',fmt.money(r.revenue)],['الهامش',fmt.pct(r.margin)],['بالمخزون',fmt.int(r.stock)]]})).join('');
     } else if(lv==='brand'){
       const st = statsBy(t=>t.model,{brand:s.brand}); const models=[...new Set(DB.trims.filter(t=>t.brand===s.brand && (!bodyFilter||t.bodyType===bodyFilter)).map(t=>t.model))];
-      const rows = models.map(m=>{ const ts=DB.trims.filter(t=>t.brand===s.brand&&t.model===m); return {m, t:ts[0], lo:Math.min(...ts.map(t=>t.msrp)), hi:Math.max(...ts.map(t=>t.msrp)), ...st.get(m)}; }).sort((a,b)=>b.revenue-a.revenue);
+      const rows = models.map(m=>{ const ts=DB.trims.filter(t=>t.brand===s.brand&&t.model===m); return {m, t:ts[0], years:[...new Set(ts.map(x=>x.year))].sort().join('، '), lo:Math.min(...ts.map(t=>t.msrp)), hi:Math.max(...ts.map(t=>t.msrp)), ...st.get(m)}; }).sort((a,b)=>b.revenue-a.revenue);
       const tot = rows.reduce((a,r)=>a+r.units,0)||1;
       head = `<h2>${esc(s.brand)}</h2><p>${models.length} طرازات — اختر طرازاً لعرض سنوات الطراز والفئات.</p>`; sub = bodyChips;
-      tiles = rows.map(r=>tile({eyebrow:`${r.t.generation} · ${L.segment(r.t.segment)}`, title:r.m, sub:`${fmt.money(r.lo)} – ${fmt.money(r.hi)} ر.س`, patch:{brand:s.brand, model:r.m}, share:r.units/tot,
+      tiles = rows.map(r=>tile({logo:s.brand, eyebrow:`${L.body(r.t.bodyType)} · ${r.years}`, title:r.m, sub:`${fmt.money(r.lo)} – ${fmt.money(r.hi)} ر.س`, patch:{brand:s.brand, model:r.m}, share:r.units/tot,
         metrics:[['مباع',fmt.int(r.units)],['الهامش',fmt.pct(r.margin)],['بالمخزون',fmt.int(r.stock)],['أيام البيع',r.avgDts?Math.round(r.avgDts):'—']]})).join('');
     } else if(lv==='model'){
       const st = statsBy(t=>t.year,{brand:s.brand, model:s.model}); const years=[...new Set(DB.trims.filter(t=>t.brand===s.brand&&t.model===s.model).map(t=>t.year))].sort((a,b)=>b-a);
       const t0 = DB.trims.find(t=>t.brand===s.brand&&t.model===s.model);
-      head = `<h2>${esc(s.brand)} ${esc(s.model)}</h2><p>الجيل ${esc(t0.generation)} · ${L.segment(t0.segment)} — اختر سنة الطراز.</p>`;
+      head = `<div class="cat-id">${brandMark(s.brand,{size:'lg'})}<div><h2>${esc(s.brand)} ${esc(s.model)}</h2><p>${L.body(t0.bodyType)} — اختر سنة الطراز (تظهر فقط السنوات المتوفرة لهذا الطراز).</p></div></div>`;
       tiles = years.map(y=>{ const r=st.get(y); const ts=DB.trims.filter(t=>t.brand===s.brand&&t.model===s.model&&t.year===y);
-        return tile({eyebrow:`${ts.length} فئات`, title:String(y), sub:ts.map(t=>t.trim).join(' · '), patch:{brand:s.brand, model:s.model, year:y},
+        return tile({logo:s.brand, eyebrow:`الجيل ${ts[0].generation} · ${ts.length} فئات`, title:String(y), sub:ts.map(t=>t.trim).join(' · '), patch:{brand:s.brand, model:s.model, year:y},
           metrics:[['مباع',fmt.int(r.units)],['الإيرادات',fmt.money(r.revenue)],['بالمخزون',fmt.int(r.stock)],['متوسط العمر',r.avgAge?Math.round(r.avgAge)+' يوم':'—']]}); }).join('');
     } else if(lv==='year'){
       const st = statsBy(t=>t.trim,{brand:s.brand, model:s.model, year:s.year});
       const ts = DB.trims.filter(t=>t.brand===s.brand&&t.model===s.model&&t.year===s.year);
       head = `<h2>${esc(s.brand)} ${esc(s.model)} ${s.year}</h2><p>اختر الفئة لعرض المركبة في صالة العرض. يمكنك تحديد فئات للمقارنة.</p>`;
       tiles = ts.map(t=>{ const r=st.get(t.trim);
-        return tile({eyebrow:`${t.engine} · ${t.hp} حصان`, title:t.trim, sub:fmt.sar(t.msrp), patch:{brand:t.brand, model:t.model, year:t.year, trim:t.trim}, compare:t.trimId,
+        return tile({logo:t.brand, eyebrow:`${L.pt(t.powertrain)} · ${t.engine} · ${t.hp} حصان`, title:t.trim, sub:fmt.sar(t.msrp), patch:{brand:t.brand, model:t.model, year:t.year, trim:t.trim}, compare:t.trimId,
           metrics:[['مباع',fmt.int(r.units)],['الهامش',fmt.pct(r.margin)],['متاح',fmt.int(r.available)],['أيام البيع',r.avgDts?Math.round(r.avgDts):'—']]}); }).join('');
     }
     host.innerHTML = `<div class="cat-h">${head}</div>${sub}<div class="vt-grid">${tiles||'<p class="muted">لا توجد مركبات مطابقة.</p>'}</div>
@@ -138,8 +138,8 @@ const Explorer = (function(){
       const S=Q.summarize(Q.sales(f,P)), St=Q.stockSummary(Q.stockAt(f,T),T), dem=Q.leads({brand:t.brand,model:t.model,trim:t.trim},{start:T-89,end:T}).length;
       return {t, S, St, dem}; });
     const rows = [
-      ['السعر الرسمي', c=>c.t.msrp, fmt.sar, 'min'], ['المحرك', c=>c.t.engine], ['القوة (حصان)', c=>c.t.hp, fmt.int, 'max'], ['العزم (نيوتن.م)', c=>c.t.torque, fmt.int, 'max'],
-      ['0–100 كم/س (ث)', c=>c.t.accel, v=>v.toFixed(1), 'min'], ['نوع الوقود', c=>L.fuel(c.t.fuelType)], ['الاستهلاك', c=>c.t.efficiency], ['ناقل الحركة', c=>c.t.transmission], ['الدفع', c=>c.t.drivetrain],
+      ['السعر الرسمي', c=>c.t.msrp, fmt.sar, 'min'], ['الشريحة السعرية', c=>L.priceSeg(c.t.priceSegment)], ['نوع الهيكل', c=>L.body(c.t.bodyType)], ['نوع المحرك', c=>L.pt(c.t.powertrain)], ['المحرك', c=>c.t.engine], ['القوة (حصان)', c=>c.t.hp, fmt.int, 'max'],
+      ['ناقل الحركة', c=>c.t.transmission], ['الدفع', c=>c.t.drivetrain], ['الجيل', c=>c.t.generation], ['الموزع', c=>L.dist(c.t.distributorId)],
       ['— الأداء التجاري ('+P.label+')', null], ['المبيعات', c=>c.S.units, fmt.int, 'max'], ['الإيرادات', c=>c.S.revenue, fmt.sarC, 'max'], ['هامش الربح', c=>c.S.margin, v=>fmt.pct(v), 'max'],
       ['متوسط الخصم', c=>c.S.avgDiscount, fmt.sarC, 'min'], ['متوسط أيام البيع', c=>c.S.avgDts, fmt.days, 'min'], ['بالمخزون اليوم', c=>c.St.units, fmt.int], ['متوسط عمر المخزون', c=>c.St.avgAge, fmt.days, 'min'], ['الطلب (عملاء آخر 90 يوماً)', c=>c.dem, fmt.int, 'max']
     ];
@@ -169,17 +169,17 @@ const Explorer = (function(){
     const stock = s.branch ? stockAll.filter(v=>v.branchId===s.branch) : stockAll;
     const St = Q.stockSummary(stock, d);
     const dem = Q.leads({brand:t.brand, model:t.model, trim:t.trim, ...(s.branch?{branch:s.branch}:{})},{start:T-89,end:T}).length/3;
-    const segDem = (()=>{ const ms=DB.trims.filter(x=>x.segment===t.segment && x.year===2026); return ms.length ? Q.leads({...(s.branch?{branch:s.branch}:{})},{start:T-89,end:T}).filter(l=>l._t.segment===t.segment).length/3/new Set(ms.map(x=>x.trimId)).size : dem; })();
+    const segDem = (()=>{ const peer = x=>x.bodyType===t.bodyType && x.priceSegment===t.priceSegment; const n=new Set(DB.trims.filter(peer).map(x=>x.modelKey+'|'+x.trim)).size; return n ? Q.leads({...(s.branch?{branch:s.branch}:{})},{start:T-89,end:T}).filter(l=>peer(l._t)).length/3/n : dem; })();
     const idx = segDem ? dem/segDem : 1; const lvl = idx>1.25?5:idx>1.05?4:idx>.85?3:idx>.6?2:1;
     // hero identity
-    $('#heroBrand').textContent = t.brand.toUpperCase();
+    $('#heroBrand').innerHTML = `${brandMark(t.brand,{size:'md'})}<span>${esc(t.brand.toUpperCase())}</span>`;
     $('#heroModel').textContent = `${t.model} ${t.trim}`;
     const col = DB.idx.color.get(vehicleColor());
-    $('#heroSub').innerHTML = `<span>${t.year}</span><span class="sep"></span><span>${esc(t.generation)}</span><span class="sep"></span><span>${esc(L.segment(t.segment))}</span><span class="sep"></span><span><span class="sw" style="background:${col.hex}"></span>${col.ar}</span>`;
+    $('#heroSub').innerHTML = `<span>${t.year}</span><span class="sep"></span><span>${esc(t.generation)}</span><span class="sep"></span><span>${L.body(t.bodyType)} · ${L.pt(t.powertrain)}</span><span class="sep"></span><span><span class="sw" style="background:${col.hex}"></span>${col.ar}</span>`;
     // intelligence panel (left)
     const v = s.vehicleId ? DB.idx.vehicle.get(s.vehicleId) : null;
     const rows = v ? unitRows(v, t, d) : [
-      {ic:'circle-dollar-sign', l:'السعر الرسمي', v:fmt.sar(t.msrp), m:`<span class="muted">${fmt.sarC(S.avgPrice)} متوسط البيع</span>`, go:{title:`مبيعات ${L.vehicleY(t)}`, add:fT, tab:'sales'}},
+      {ic:'circle-dollar-sign', l:'السعر الرسمي', v:fmt.sar(t.msrp), m:`<span class="muted">متوسط البيع ${fmt.money(S.avgPrice)}</span>`, go:{title:`مبيعات ${L.vehicleY(t)}`, add:fT, tab:'sales'}},
       {ic:'warehouse', l:'المخزون', v:`${fmt.int(St.available)}<small> متاح</small>`, m:`<span class="muted">${St.reserved} محجوز · ${St.service} تجهيز</span>`, go:{title:`مخزون ${L.vehicleY(t)}`, add:fT, tab:'stock'}},
       {ic:'receipt', l:`المبيعات · ${P.label}`, v:fmt.int(S.units), m:Sp?trendHTML(change(S.units,Sp.units)):'', go:{title:`مبيعات ${L.vehicleY(t)}`, add:fT, tab:'sales'}},
       {ic:'gem', l:'إجمالي الربح / الهامش', v:`${fmt.sarC(S.gp)}`, m:`<b>${fmt.pct(S.margin)}</b>`, go:{title:`ربحية ${L.vehicleY(t)}`, add:fT, breakdown:'branch'}},
@@ -190,7 +190,7 @@ const Explorer = (function(){
     $('#intel').onclick = e=>{ const li=e.target.closest('li.click'); if(!li) return; const r=rows[+li.dataset.i]; r.fn ? r.fn() : Drill.slice(r.go); };
     $('#intelScope').textContent = `${s.branch?L.branch(s.branch):'كل الفروع'} · ${P.label}`;
     // branch availability
-    const byBr = Q.group(stockAll.filter(x=>x.status!=='In Service'), x=>x.branchId), mx = Math.max(...DB.branches.map(b=>(byBr.get(b.branchId)||[]).length),1);
+    const byBr = Q.group(stockAll, x=>x.branchId), mx = Math.max(...DB.branches.map(b=>(byBr.get(b.branchId)||[]).length),1);
     $('#intelFoot').innerHTML = `<div class="avail-h">${ic('map-pin')} التوفر حسب الفرع</div>${DB.branches.map(b=>{ const n=(byBr.get(b.branchId)||[]).length; return `<button class="avail ${s.branch===b.branchId?'sel':''}" data-br="${b.branchId}"><span>${L.branch(b.branchId)}</span><span class="bar"><i style="width:${n/mx*100}%"></i></span><b class="num">${n}</b></button>`; }).join('')}`;
     $('#intelFoot').onclick = e=>{ const b=e.target.closest('.avail'); if(b) Drill.slice({title:`${L.vehicleY(t)} · ${L.branch(b.dataset.br)}`, add:{...fT, branch:b.dataset.br}, tab:'stock'}); };
     renderSpec(t);
@@ -211,15 +211,21 @@ const Explorer = (function(){
   }
   function renderSpec(t){
     const tab = App.ui.specTab;
-    const tabs = [['specs','المواصفات'],['perf','الأداء'],['asset','أصل 3D']];
+    const tabs = [['specs','المواصفات'],['perf','السعر والهامش'],['asset','أصل 3D']];
     const T = DB.meta.todayDay;
     let html='';
     if(tab==='specs'){
-      const rows=[['المحرك',t.engine],['القوة',t.hp+' حصان'],['العزم',t.torque+' نيوتن.م'],['ناقل الحركة',t.transmission],['نظام الدفع',t.drivetrain],['0–100 كم/س',t.accel.toFixed(1)+' ث'],['الوقود',L.fuel(t.fuelType)],['الاستهلاك',t.efficiency],['الهيكل',AR.body[t.bodyType]||t.bodyType],['الجيل',t.generation]];
+      const rows=[['نوع الهيكل',L.body(t.bodyType)],['نوع المحرك',L.pt(t.powertrain)],['المحرك',t.engine],['القوة',t.hp+' حصان'],['ناقل الحركة',t.transmission],['نظام الدفع',t.drivetrain],['الجيل',t.generation],['الشريحة السعرية',L.priceSeg(t.priceSegment)],['الموزع',L.dist(t.distributorId)]];
       html = `<ul class="spec">${rows.map(r=>`<li><span class="l">${r[0]}</span><span class="v"><bdi>${esc(r[1])}</bdi></span></li>`).join('')}</ul>`;
     } else if(tab==='perf'){
-      const items=[[t.hp,'حصان','القوة',t.hp/850],[t.torque,'نيوتن.م','العزم',t.torque/1050],[t.accel.toFixed(1),'ث','0–100 كم/س',(8-t.accel)/5.5],[t.topSpeed,'كم/س','السرعة القصوى',t.topSpeed/330]];
-      html = `<div class="perf">${items.map(i=>`<div><b class="num">${i[0]}<small>${i[1]}</small></b><span>${i[2]}</span><em><i style="width:${clamp(i[3],.06,1)*100}%"></i></em></div>`).join('')}</div>`;
+      const P0 = Periods.get(Store.state.period), sl = Q.sales({brand:t.brand,model:t.model,year:t.year,trim:t.trim},P0), S0 = Q.summarize(sl);
+      const cost = sl.length ? sl.reduce((x,y)=>x+y.cost,0)/sl.length : null;
+      const peer = Q.summarize(Q.sales({bodyType:t.bodyType, priceSegment:t.priceSegment},P0));
+      html = `<ul class="spec"><li><span class="l">السعر الرسمي</span><span class="v">${fmt.sar(t.msrp)}</span></li><li><span class="l">متوسط سعر البيع</span><span class="v">${fmt.sar(S0.avgPrice)}</span></li>
+        <li><span class="l">متوسط الخصم</span><span class="v">${fmt.sar(S0.avgDiscount)} (${fmt.pct(S0.discountPct)})</span></li><li><span class="l">متوسط تكلفة الوكيل</span><span class="v">${fmt.sar(cost)}</span></li>
+        <li><span class="l">هامش الربح</span><span class="v"><b>${fmt.pct(S0.margin)}</b></span></li><li><span class="l">هامش الفئة المماثلة</span><span class="v">${fmt.pct(peer.margin)}</span></li>
+        <li><span class="l">الربح لكل مركبة</span><span class="v">${fmt.sar(S0.gpPerUnit)}</span></li><li><span class="l">المساهمة لكل مركبة</span><span class="v">${fmt.sar(S0.units?S0.contribution/S0.units:null)}</span></li></ul>
+        <p class="asset-note">${ic('info')} الفئة المماثلة = نفس نوع الهيكل والشريحة السعرية (${L.body(t.bodyType)} · ${L.priceSeg(t.priceSegment)}) خلال ${esc(P0.label)}.</p>`;
     } else {
       const a = t.asset;
       html = `<ul class="spec"><li><span class="l">النموذج ثلاثي الأبعاد</span><span class="v">${a.model3d?'<span class="pos-t">GLB مرخّص</span>':'غير متوفر'}</span></li>
@@ -283,7 +289,7 @@ const Explorer = (function(){
     $('#searchBtn').addEventListener('click', ()=>$('#vsearch').focus());
     bindSearch();
     $('#viewMode').addEventListener('click', e=>{ const b=e.target.closest('[data-vm]'); if(!b) return; viewMode=b.dataset.vm; render(); });
-    window.addEventListener('showroom:ready', ()=>{ render(); });
+    window.addEventListener('showroom:ready', ()=>{ if(App.ui.tab==='vehicles') render(); else Showroom.setActive(false); });
   }
   return {render, bind, crumbs, openCompare, get compare(){ return compare; }};
 })();

@@ -5,7 +5,7 @@
    ===================================================================== */
 let DB = null;
 const App = {
-  ui: {tab:'overview', monthlyMetric:'revenue', rankMetric:'revenue', profitDim:'brand', specTab:'specs', viewColor:null},
+  ui: {tab:'overview', monthlyMetric:'revenue', rankMetric:'revenue', profitDim:'brand', specTab:'specs', viewColor:null, alertMode:'recs', modelPerfMode:'top', spMode:'flag'},
   sel: {},             // selected marks (month, funnel stage, aging bucket…) while their drawer is open
   clearChartSelection(){ if(Object.keys(App.sel).length){ App.sel={}; App.renderTab(); } },
 
@@ -13,13 +13,16 @@ const App = {
   FILTERS: [
     {key:'period', label:'الفترة', icon:'calendar', opts:()=>Periods.all().map(p=>({v:p.id, l:p.label, s:p.prev?`مقابل ${p.prev.label}`:''})), group:p=>p.kind==='month'?'أشهر':'فترات'},
     {key:'branch', label:'الفرع', icon:'map-pin', opts:()=>[{v:null,l:'كل الفروع'},...DB.branches.map(b=>({v:b.branchId,l:L.branch(b.branchId)}))]},
-    {key:'brand', label:'العلامة', icon:'award', opts:()=>[{v:null,l:'كل المركبات'},...[...new Set(DB.trims.map(t=>t.brand))].map(b=>({v:b,l:b}))]},
+    {key:'brand', label:'العلامة', icon:'award', opts:()=>[{v:null,l:'كل العلامات'},...DB.brands.map(b=>({v:b.name,l:b.name,s:b.ar,brand:b.name}))]},
     {key:'model', label:'الطراز', icon:'car', dep:'brand', opts:()=>[{v:null,l:'كل الطرازات'},...[...new Set(DB.trims.filter(t=>t.brand===Store.state.brand).map(t=>t.model))].map(m=>({v:m,l:m}))]},
     {key:'year', label:'السنة', icon:'calendar-range', dep:'model', opts:()=>[{v:null,l:'كل السنوات'},...[...new Set(DB.trims.filter(t=>t.brand===Store.state.brand&&t.model===Store.state.model).map(t=>t.year))].sort((a,b)=>b-a).map(y=>({v:y,l:String(y)}))]},
     {key:'trim', label:'الفئة', icon:'layers', dep:'year', opts:()=>[{v:null,l:'كل الفئات'},...DB.trims.filter(t=>t.brand===Store.state.brand&&t.model===Store.state.model&&t.year===Store.state.year).map(t=>({v:t.trim,l:t.trim,s:fmt.sar(t.msrp)}))]},
+    {key:'bodyType', label:'نوع الهيكل', icon:'car-front', opts:()=>[{v:null,l:'كل الأنواع'},...CATALOG_REFERENCE.bodyTypes.map(x=>({v:x,l:L.body(x)}))]},
+    {key:'powertrain', label:'نوع المحرك', icon:'fuel', opts:()=>[{v:null,l:'الكل'},...CATALOG_REFERENCE.powertrains.map(x=>({v:x,l:L.pt(x)}))]},
+    {key:'priceSegment', label:'الشريحة السعرية', icon:'tag', opts:()=>[{v:null,l:'كل الشرائح'},...CATALOG_REFERENCE.priceSegments.map(x=>({v:x,l:L.priceSeg(x)}))]},
     {key:'source', label:'مصدر العميل', icon:'megaphone', opts:()=>[{v:null,l:'كل المصادر'},...DATA_SCHEMA.enums.leadSource.filter(s=>DB.leads.some(l=>l.source===s)).map(s=>({v:s,l:L.source(s)}))]},
     {key:'payment', label:'طريقة الدفع', icon:'wallet', opts:()=>[{v:null,l:'كل الطرق'},...DATA_SCHEMA.enums.paymentMethod.map(s=>({v:s,l:L.payment(s)}))]},
-    {key:'custType', label:'نوع العميل', icon:'users', opts:()=>[{v:null,l:'كل العملاء'},...DATA_SCHEMA.enums.customerType.map(s=>({v:s,l:L.custType(s)}))]}
+    {key:'custType', label:'شريحة العميل', icon:'users', opts:()=>[{v:null,l:'كل الشرائح'},...DATA_SCHEMA.enums.customerType.map(s=>({v:s,l:L.custType(s)}))]}
   ],
   renderFilters(changed=[]){
     const s = Store.state;
@@ -28,7 +31,7 @@ const App = {
       const v = s[f.key], o = f.opts().find(x=>x.v===v);
       const label = f.key==='period' ? Periods.get(v).label : o ? o.l : (v??'');
       return `<button class="filter ${v!=null&&f.key!=='period'?'active':''} ${changed.includes(f.key)?'flash':''}" data-key="${f.key}" data-pop ${disabled?'disabled':''}>
-        <span><span class="f-l">${f.label}</span><span class="f-v">${v!=null&&f.key!=='period'?'<i></i>':''}<bdi>${esc(disabled?'—':label)}</bdi></span></span>${ic('chevron-down')}</button>`;
+        <span><span class="f-l">${f.label}</span><span class="f-v">${f.key==='brand'&&v?brandMark(v,{size:'sm'}):v!=null&&f.key!=='period'?'<i></i>':''}<bdi>${esc(disabled?'—':label)}</bdi></span></span>${ic('chevron-down')}</button>`;
     }).join('');
     icons();
   },
@@ -39,7 +42,7 @@ const App = {
       let lastGroup = null;
       const html = f.opts().map(o=>{ const g = f.key==='period' ? (Periods.get(o.v).kind==='month'?'أشهر':'فترات') : null;
         const gh = g && g!==lastGroup ? `<div class="grp">${g}</div>` : ''; lastGroup = g;
-        return `${gh}<button class="opt ${o.v===cur?'sel':''}" data-v='${esc(JSON.stringify(o.v))}'><span><bdi>${esc(o.l)}</bdi></span>${o.v===cur?ic('check'):o.s?`<small>${esc(o.s)}</small>`:''}</button>`; }).join('');
+        return `${gh}<button class="opt ${o.v===cur?'sel':''}" data-v='${esc(JSON.stringify(o.v))}'><span>${o.brand?brandMark(o.brand,{size:'sm'}):''}<bdi>${esc(o.l)}</bdi></span>${o.v===cur?ic('check'):o.s?`<small>${esc(o.s)}</small>`:''}</button>`; }).join('');
       Pop.open(b, html, 'f-'+f.key);
       Pop.el.onclick = ev=>{ const o=ev.target.closest('.opt'); if(!o) return; Store.set({[f.key]:JSON.parse(o.dataset.v)},'filter'); Pop.close(); };
     });
@@ -65,7 +68,7 @@ const App = {
   },
 
   /* ---------------- section tabs ---------------- */
-  TABS: [['overview','نظرة عامة','layout-dashboard'],['sales','المبيعات','receipt'],['marketing','العملاء والتسويق','megaphone'],['inventory','المخزون','warehouse'],['payments','المدفوعات والتدفق النقدي','wallet'],['profit','الربحية','gem']],
+  TABS: [['overview','نظرة عامة','layout-dashboard'],['sales','المبيعات والفريق','receipt'],['marketing','العملاء والتسويق','megaphone'],['inventory','المخزون ورأس المال','warehouse'],['payments','التحصيل والتدفق النقدي','wallet'],['profit','الربحية','gem'],['vehicles','مستكشف المركبات','car-front']],
   bindTabs(){
     $('#tabs').innerHTML = App.TABS.map(([k,l,i])=>`<button data-tab="${k}" class="${k===App.ui.tab?'active':''}">${ic(i)}<span>${l}</span></button>`).join('');
     $('#tabs').addEventListener('click', e=>{ const b=e.target.closest('[data-tab]'); if(!b) return; App.showTab(b.dataset.tab); });
@@ -82,10 +85,12 @@ const App = {
   renderTab(){
     const k = App.ui.tab;
     const run = fn=>{ try{ fn(); }catch(err){ console.error('[render]', err); } };
-    if(k==='overview'){ run(Overview.pulse); run(Explorer.render); run(()=>Insights.render($('#insights'))); run(Overview.monthly); run(Overview.treemap); run(Overview.movers); }
-    if(k==='sales'){ run(SalesViz.stats); run(SalesViz.ranking); run(SalesViz.volumeMargin); run(SalesViz.growth); run(SalesViz.people); }
+    if(k==='overview'){ run(Exec.health); run(Overview.pulse); run(Overview.monthly); run(()=>Insights.render($('#insights'))); run(Exec.brandPerf); run(Exec.modelPerf); run(Exec.invRisk); run(()=>Exec.funnel('funnelMini', App.sel.funnelMini)); }
+    if(k==='vehicles'){ run(Explorer.render); }
+    else { window.Showroom && Showroom.setActive(false); }
+    if(k==='sales'){ run(SalesViz.stats); run(SalesViz.ranking); run(SalesViz.volumeMargin); run(SalesViz.growth); run(Exec.branchScorecard); run(Exec.salesTeam); }
     if(k==='marketing'){ run(Marketing.funnel); run(Marketing.sourceTable); run(Marketing.sankey); run(Marketing.sourceBubble); run(Marketing.campaigns); run(Marketing.customers); }
-    if(k==='inventory'){ run(Inventory.stats); run(Inventory.aging); run(Inventory.matrix); run(Inventory.heatmap); }
+    if(k==='inventory'){ run(Inventory.stats); run(Exec.capitalByBrand); run(Inventory.aging); run(Inventory.matrix); run(Exec.distributors); run(Inventory.heatmap); }
     if(k==='payments'){ run(Payments.stats); run(Payments.mix); run(Payments.collectedVsOutstanding); run(Payments.receivablesAging); run(Payments.cashflow); run(Payments.contracts); }
     if(k==='profit'){ run(Profit.waterfall); run(Profit.table); run(Profit.heatmap); }
     App.renderScopeLine();
@@ -115,8 +120,13 @@ const App = {
     });
     $('#monthlyMetric').addEventListener('click', e=>{ const b=e.target.closest('[data-v]'); if(!b) return; App.ui.monthlyMetric=b.dataset.v; $$('#monthlyMetric button').forEach(x=>x.classList.toggle('active',x===b)); Overview.monthly(); });
     $('#rankMetric').addEventListener('click', e=>{ const b=e.target.closest('[data-v]'); if(!b) return; App.ui.rankMetric=b.dataset.v; $$('#rankMetric button').forEach(x=>x.classList.toggle('active',x===b)); SalesViz.ranking(); });
-    $('#profitDim').innerHTML = ['brand','model','trim','branch','salesperson','source','month','custType'].map(k=>`<button data-v="${k}" class="${k===App.ui.profitDim?'active':''}">${Drill.BREAKDOWNS[k].label}</button>`).join('');
+    $('#profitDim').innerHTML = ['brand','model','trim','bodyType','powertrain','priceSegment','branch','salesperson','source','custType','distributor','month'].map(k=>`<button data-v="${k}" class="${k===App.ui.profitDim?'active':''}">${Drill.BREAKDOWNS[k].label}</button>`).join('');
     $('#profitDim').addEventListener('click', e=>{ const b=e.target.closest('[data-v]'); if(!b) return; App.ui.profitDim=b.dataset.v; $$('#profitDim button').forEach(x=>x.classList.toggle('active',x===b)); Profit.table(); });
+    const toggle = (id, key, fn)=>$(id).addEventListener('click', e=>{ const b=e.target.closest('[data-v]'); if(!b) return; App.ui[key]=b.dataset.v; $$(id+' button').forEach(x=>x.classList.toggle('active',x===b)); fn(); });
+    toggle('#alertMode','alertMode',()=>Insights.render($('#insights')));
+    toggle('#modelPerfMode','modelPerfMode',Exec.modelPerf);
+    toggle('#spMode','spMode',Exec.salesTeam);
+    document.addEventListener('click', e=>{ const tr=e.target.closest('.explore-link'); if(tr){ App.showTab('vehicles'); } });
     // viewer dock
     $('#views').addEventListener('click', e=>{
       const b = e.target.closest('.view-btn'); if(!b) return; const v = b.dataset.view;

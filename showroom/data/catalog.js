@@ -1,160 +1,358 @@
 /* =====================================================================
-   VEHICLE CATALOG — reference data (Brand → Model → Generation/Year → Trim)
+   VEHICLE MASTER CATALOG — Saudi-market brands
+   Brand → Model → Model Year (generation) → Trim / Grade
    ---------------------------------------------------------------------
-   Pure data. No UI code reads this file directly; everything goes through
-   DataSource → DB.trims. To add a vehicle, add a trim (or a model) here:
-   no dashboard code needs to change.
-
-   Specifications and prices are REALISTIC DEMO VALUES (SAR, incl. VAT)
-   for illustration only. Replace with the production catalog feed.
-
-   Model-level demand parameters (vol, dts, conv) are used ONLY by the
-   demo generator and are ignored in production mode.
+   • Each model lists ONLY the model years it is offered in this dataset,
+     grouped by generation. Trims are model- and generation-specific.
+   • Prices are REALISTIC DEMO VALUES in SAR (incl. VAT), listed for the
+     latest year of each generation; earlier years are derived (−3%/yr).
+     Specs are indicative. Verify against the official distributor price
+     lists before production use.
+   • Demand parameters (vol = group units/month, dts = base days-to-sell,
+     conv = conversion factor, mg = base gross margin) drive the demo
+     generator only and are ignored in production mode.
+   Trim row: [grade, msrp, powertrain(P|H|PH|E), engine, hp, transmission, drivetrain]
    ===================================================================== */
 (function(){
-  // trim row: [trim, msrp2026, engine, fuelType, hp, torqueNm, transmission, drivetrain, accel0to100, topSpeed, efficiency, baseMargin, mixShare]
-  const CATALOG = [
-    {brand:'Range Rover', origin:'UK', wmi:'SAL', models:[
-      {model:'Range Rover', generation:'L460', bodyType:'SUV', segment:'Luxury SUV', style:'luxurySUV', vol:9, dts:34, conv:1.0, trims:[
-        ['SE', 575000,'3.0L Turbo I6 MHEV','Petrol MHEV',395,550,'8-Speed Automatic','AWD',5.9,234,'9.4 km/L',.235,.45],
-        ['Autobiography', 685000,'4.4L Twin Turbo V8','Petrol',615,750,'8-Speed Automatic','AWD',4.6,250,'8.5 km/L',.252,.40],
-        ['SV', 895000,'4.4L Twin Turbo V8','Petrol',606,750,'8-Speed Automatic','AWD',4.5,250,'8.3 km/L',.27,.15]]},
-      {model:'Range Rover Sport', generation:'L461', bodyType:'SUV', segment:'Performance SUV', style:'sportSUV', vol:15, dts:29, conv:1.05, trims:[
-        ['Dynamic SE', 480000,'3.0L Turbo I6 MHEV','Petrol MHEV',395,550,'8-Speed Automatic','AWD',5.9,242,'9.8 km/L',.22,.6],
-        ['Autobiography', 585000,'4.4L Twin Turbo V8','Petrol',523,750,'8-Speed Automatic','AWD',4.5,250,'8.6 km/L',.235,.4]]},
-      {model:'Velar', generation:'L560', bodyType:'SUV', segment:'Mid-size Luxury SUV', style:'sportSUV', vol:11, dts:42, conv:.85, trims:[
-        ['S', 330000,'2.0L Turbo I4','Petrol',247,365,'8-Speed Automatic','AWD',7.5,217,'11.6 km/L',.19,.6],
-        ['Dynamic HSE', 395000,'2.0L Turbo I4','Petrol',297,400,'8-Speed Automatic','AWD',6.6,234,'11.2 km/L',.205,.4]]},
-      {model:'Evoque', generation:'L551', bodyType:'SUV', segment:'Compact Luxury SUV', style:'compactSUV', vol:13, dts:27, conv:1.1, trims:[
-        ['S', 225000,'2.0L Turbo I4','Petrol',247,365,'9-Speed Automatic','AWD',7.6,230,'12.0 km/L',.17,.55],
-        ['Dynamic SE', 255000,'2.0L Turbo I4','Petrol',247,365,'9-Speed Automatic','AWD',7.6,230,'11.8 km/L',.18,.45]]}
-    ]},
-    {brand:'Defender', origin:'UK', wmi:'SAL', models:[
-      {model:'Defender 110', generation:'L663', bodyType:'SUV', segment:'Off-Road SUV', style:'boxy', vol:17, dts:24, conv:1.15, trims:[
-        ['S', 360000,'2.0L Turbo I4','Petrol',296,400,'8-Speed Automatic','4WD',7.4,191,'10.4 km/L',.2,.35],
-        ['X-Dynamic HSE', 425000,'3.0L Turbo I6 MHEV','Petrol MHEV',395,550,'8-Speed Automatic','4WD',6.1,209,'9.6 km/L',.215,.45],
-        ['V8', 545000,'5.0L Supercharged V8','Petrol',518,625,'8-Speed Automatic','4WD',5.2,240,'6.9 km/L',.23,.2]]},
-      {model:'Defender 130', generation:'L663', bodyType:'SUV', segment:'8-Seat Off-Road SUV', style:'boxyLong', vol:7, dts:31, conv:1.0, trims:[
-        ['SE', 445000,'3.0L Turbo I6 MHEV','Petrol MHEV',395,550,'8-Speed Automatic','4WD',6.6,191,'9.3 km/L',.205,.6],
-        ['Outbound', 495000,'3.0L Turbo I6 MHEV','Petrol MHEV',395,550,'8-Speed Automatic','4WD',6.6,191,'9.3 km/L',.21,.4]]}
-    ]},
-    {brand:'Mercedes-Benz', origin:'Germany', wmi:'W1N', models:[
-      {model:'G-Class', generation:'W465', bodyType:'SUV', segment:'Luxury Off-Roader', style:'gclass', vol:9, dts:36, conv:.95, trims:[
-        ['G 500', 690000,'3.0L Turbo I6 MHEV','Petrol MHEV',443,560,'9-Speed Automatic','AWD',5.4,210,'8.4 km/L',.235,.45],
-        ['AMG G 63', 890000,'4.0L Twin Turbo V8','Petrol',577,850,'9-Speed Automatic','AWD',4.4,220,'6.9 km/L',.25,.55]]},
-      {model:'S-Class', generation:'W223', bodyType:'Sedan', segment:'Flagship Sedan', style:'sedan', vol:9, dts:38, conv:.9, trims:[
-        ['S 450 4MATIC', 520000,'3.0L Turbo I6 MHEV','Petrol MHEV',362,500,'9-Speed Automatic','AWD',5.1,250,'10.2 km/L',.2,.5],
-        ['S 580 4MATIC', 640000,'4.0L Twin Turbo V8 MHEV','Petrol MHEV',496,700,'9-Speed Automatic','AWD',4.4,250,'9.1 km/L',.215,.5]]},
-      {model:'GLE', generation:'V167', bodyType:'SUV', segment:'Luxury SUV', style:'sportSUV', vol:12, dts:30, conv:1.0, trims:[
-        ['GLE 450 4MATIC', 395000,'3.0L Turbo I6 MHEV','Petrol MHEV',375,500,'9-Speed Automatic','AWD',5.6,250,'10.0 km/L',.175,.65],
-        ['AMG GLE 53', 485000,'3.0L Turbo I6 MHEV','Petrol MHEV',429,560,'9-Speed Automatic','AWD',5.3,250,'9.3 km/L',.19,.35]]},
-      {model:'EQS', generation:'V297', bodyType:'Sedan', segment:'Electric Sedan', style:'gt', vol:4, dts:55, conv:.7, trims:[
-        ['EQS 580 4MATIC', 545000,'Dual Electric Motors','Electric',516,855,'Single-Speed','AWD',4.3,210,'19.6 kWh/100km',.125,1]]}
-    ]},
-    {brand:'BMW', origin:'Germany', wmi:'WBA', models:[
-      {model:'X5', generation:'G05 LCI', bodyType:'SUV', segment:'Luxury SUV', style:'sportSUV', vol:16, dts:27, conv:1.05, trims:[
-        ['xDrive40i', 375000,'3.0L Turbo I6 MHEV','Petrol MHEV',375,520,'8-Speed Steptronic','AWD',5.4,250,'10.9 km/L',.165,.7],
-        ['M60i', 470000,'4.4L Twin Turbo V8 MHEV','Petrol MHEV',523,750,'8-Speed Steptronic','AWD',4.3,250,'8.7 km/L',.18,.3]]},
-      {model:'X7', generation:'G07 LCI', bodyType:'SUV', segment:'Full-size Luxury SUV', style:'luxurySUV', vol:11, dts:31, conv:1.0, trims:[
-        ['xDrive40i', 435000,'3.0L Turbo I6 MHEV','Petrol MHEV',375,520,'8-Speed Steptronic','AWD',5.8,250,'10.2 km/L',.16,.6],
-        ['M60i', 545000,'4.4L Twin Turbo V8 MHEV','Petrol MHEV',523,750,'8-Speed Steptronic','AWD',4.7,250,'8.3 km/L',.175,.4]]},
-      {model:'7 Series', generation:'G70', bodyType:'Sedan', segment:'Luxury Sedan', style:'sedan', vol:7, dts:37, conv:.9, trims:[
-        ['740i', 480000,'3.0L Turbo I6 MHEV','Petrol MHEV',375,520,'8-Speed Steptronic','RWD',5.4,250,'11.2 km/L',.16,.7],
-        ['760i xDrive', 610000,'4.4L Twin Turbo V8 MHEV','Petrol MHEV',536,750,'8-Speed Steptronic','AWD',4.2,250,'9.0 km/L',.17,.3]]},
-      {model:'i7', generation:'G70', bodyType:'Sedan', segment:'Electric Luxury Sedan', style:'sedan', vol:3, dts:55, conv:.7, trims:[
-        ['xDrive60', 580000,'Dual Electric Motors','Electric',536,745,'Single-Speed','AWD',4.7,240,'19.5 kWh/100km',.12,1]]}
-    ]},
-    {brand:'Audi', origin:'Germany', wmi:'WAU', models:[
-      {model:'Q8', generation:'4M LCI', bodyType:'SUV', segment:'Luxury Coupé SUV', style:'sportSUV', vol:10, dts:44, conv:.82, trims:[
-        ['55 TFSI quattro', 355000,'3.0L Turbo V6 MHEV','Petrol MHEV',335,500,'8-Speed Tiptronic','AWD',5.9,250,'9.4 km/L',.15,.7],
-        ['SQ8', 465000,'4.0L Twin Turbo V8','Petrol',500,770,'8-Speed Tiptronic','AWD',4.1,250,'8.1 km/L',.165,.3]]},
-      {model:'RS 6 Avant', generation:'C8', bodyType:'Wagon', segment:'Performance Avant', style:'wagon', vol:4, dts:33, conv:1.0, trims:[
-        ['performance', 560000,'4.0L Twin Turbo V8','Petrol MHEV',621,850,'8-Speed Tiptronic','AWD',3.4,305,'8.0 km/L',.19,1]]},
-      {model:'e-tron GT', generation:'J1', bodyType:'Sedan', segment:'Electric Gran Turismo', style:'gt', vol:3, dts:49, conv:.75, trims:[
-        ['quattro', 470000,'Dual Electric Motors','Electric',469,630,'2-Speed Automatic','AWD',4.1,245,'21.1 kWh/100km',.13,.6],
-        ['RS', 590000,'Dual Electric Motors','Electric',845,1027,'2-Speed Automatic','AWD',2.8,250,'21.8 kWh/100km',.135,.4]]}
-    ]},
-    {brand:'Porsche', origin:'Germany', wmi:'WP1', models:[
-      {model:'Cayenne', generation:'E3 II', bodyType:'SUV', segment:'Performance SUV', style:'sportSUV', vol:13, dts:28, conv:1.08, trims:[
-        ['Cayenne', 425000,'3.0L Turbo V6','Petrol',348,500,'8-Speed Tiptronic S','AWD',6.0,248,'9.2 km/L',.19,.5],
-        ['Cayenne S', 520000,'4.0L Twin Turbo V8','Petrol',474,600,'8-Speed Tiptronic S','AWD',4.7,273,'8.4 km/L',.2,.35],
-        ['Turbo E-Hybrid', 780000,'4.0L Twin Turbo V8 PHEV','Plug-in Hybrid',739,950,'8-Speed Tiptronic S','AWD',3.7,295,'11.2 km/L',.205,.15]]},
-      {model:'911', generation:'992.2', bodyType:'Coupe', segment:'Sports Coupé', style:'coupe', vol:6, dts:25, conv:1.1, trims:[
-        ['Carrera', 510000,'3.0L Twin Turbo Flat-6','Petrol',388,450,'8-Speed PDK','RWD',4.1,294,'9.6 km/L',.2,.35],
-        ['Carrera GTS', 690000,'3.6L T-Hybrid Flat-6','Hybrid',532,610,'8-Speed PDK','RWD',3.0,312,'9.4 km/L',.215,.35],
-        ['Turbo S', 1050000,'3.7L Twin Turbo Flat-6','Petrol',641,800,'8-Speed PDK','AWD',2.7,330,'8.3 km/L',.23,.3]]},
-      {model:'Taycan', generation:'J1 II', bodyType:'Sedan', segment:'Electric Sports Sedan', style:'gt', vol:4, dts:46, conv:.8, trims:[
-        ['4S', 495000,'Dual Electric Motors','Electric',536,710,'2-Speed Automatic','AWD',3.7,250,'20.4 kWh/100km',.135,1]]}
-    ]},
-    {brand:'Lexus', origin:'Japan', wmi:'JTJ', models:[
-      {model:'LX', generation:'J310', bodyType:'SUV', segment:'Full-size Luxury SUV', style:'luxurySUV', vol:19, dts:22, conv:1.2, trims:[
-        ['LX 600 Premier', 470000,'3.5L Twin Turbo V6','Petrol',409,650,'10-Speed Automatic','4WD',6.9,210,'7.9 km/L',.14,.6],
-        ['LX 600 F Sport', 495000,'3.5L Twin Turbo V6','Petrol',409,650,'10-Speed Automatic','4WD',6.9,210,'7.9 km/L',.145,.4]]},
-      {model:'LS', generation:'XF50', bodyType:'Sedan', segment:'Luxury Sedan', style:'sedan', vol:5, dts:40, conv:.85, trims:[
-        ['LS 500 Luxury', 395000,'3.5L Twin Turbo V6','Petrol',416,600,'10-Speed Automatic','AWD',4.8,250,'10.0 km/L',.135,1]]}
-    ]},
-    {brand:'Toyota', origin:'Japan', wmi:'JTM', models:[
-      {model:'Land Cruiser', generation:'J300', bodyType:'SUV', segment:'Full-size SUV', style:'luxurySUV', vol:30, dts:16, conv:1.35, trims:[
-        ['GXR', 295000,'3.5L Twin Turbo V6','Petrol',409,650,'10-Speed Automatic','4WD',6.7,210,'8.2 km/L',.085,.55],
-        ['VXR', 345000,'3.5L Twin Turbo V6','Petrol',409,650,'10-Speed Automatic','4WD',6.7,210,'8.2 km/L',.09,.45]]}
-    ]},
-    {brand:'Nissan', origin:'Japan', wmi:'JN8', models:[
-      {model:'Patrol', generation:'Y63', bodyType:'SUV', segment:'Full-size SUV', style:'luxurySUV', vol:24, dts:19, conv:1.3, trims:[
-        ['LE Platinum', 330000,'3.5L Twin Turbo V6','Petrol',425,700,'9-Speed Automatic','4WD',6.6,210,'8.0 km/L',.095,.7],
-        ['Nismo', 420000,'3.5L Twin Turbo V6','Petrol',495,700,'9-Speed Automatic','4WD',5.9,210,'7.6 km/L',.11,.3]]}
-    ]},
-    {brand:'Genesis', origin:'South Korea', wmi:'KMU', models:[
-      {model:'GV80', generation:'JX1', bodyType:'SUV', segment:'Luxury SUV', style:'sportSUV', vol:7, dts:39, conv:.9, trims:[
-        ['3.5T Royal', 330000,'3.5L Twin Turbo V6','Petrol',375,530,'8-Speed Automatic','AWD',5.5,240,'9.0 km/L',.145,1]]},
-      {model:'G90', generation:'RS4', bodyType:'Sedan', segment:'Flagship Sedan', style:'sedan', vol:3, dts:58, conv:.7, trims:[
-        ['3.5T Royal', 415000,'3.5L Twin Turbo V6 MHEV','Petrol MHEV',409,550,'8-Speed Automatic','AWD',5.3,250,'9.2 km/L',.14,1]]}
-    ]},
-    {brand:'Cadillac', origin:'USA', wmi:'1GY', models:[
-      {model:'Escalade', generation:'GMT1XX', bodyType:'SUV', segment:'Full-size Luxury SUV', style:'luxurySUV', vol:6, dts:47, conv:.8, trims:[
-        ['Premium Luxury', 450000,'6.2L V8','Petrol',420,624,'10-Speed Automatic','4WD',6.1,180,'6.4 km/L',.15,.6],
-        ['Sport Platinum', 545000,'6.2L V8','Petrol',420,624,'10-Speed Automatic','4WD',6.1,180,'6.4 km/L',.16,.4]]}
-    ]}
-  ];
+  const C = {
+  Toyota: [
+    {m:'Yaris', body:'Sedan', style:'compactSedan', vol:30, dts:16, conv:1.3, mg:.065, gens:[
+      {y:[2024,2025,2026], g:'AC100', t:[['Y',69900,'P','1.5L I4',106,'CVT','FWD'],['YX',76900,'P','1.5L I4',106,'CVT','FWD']]}]},
+    {m:'Corolla', body:'Sedan', style:'sedan', vol:26, dts:18, conv:1.25, mg:.07, gens:[
+      {y:[2024,2025,2026], g:'E210', t:[['XLI 1.6',89900,'P','1.6L I4',121,'CVT','FWD'],['XLI Executive 2.0',99900,'P','2.0L I4',169,'CVT','FWD'],['Hybrid',112900,'H','1.8L I4 Hybrid',138,'e-CVT','FWD']]}]},
+    {m:'Camry', body:'Sedan', style:'sedan', vol:24, dts:20, conv:1.2, mg:.075, gens:[
+      {y:[2024], g:'XV70', t:[['LE',119900,'P','2.5L I4',203,'8AT','FWD'],['GLE',132900,'P','2.5L I4',203,'8AT','FWD'],['Grande',159900,'P','3.5L V6',301,'8AT','FWD']]},
+      {y:[2025,2026], g:'XV80', t:[['LE Hybrid',139900,'H','2.5L I4 Hybrid',225,'e-CVT','FWD'],['SE Hybrid',149900,'H','2.5L I4 Hybrid',225,'e-CVT','FWD'],['Grande Hybrid',169900,'H','2.5L I4 Hybrid',232,'e-CVT','AWD']]}]},
+    {m:'Raize', body:'Crossover', style:'crossover', vol:8, dts:24, conv:1.05, mg:.065, gens:[
+      {y:[2024,2025,2026], g:'A200', t:[['E',79900,'P','1.2L I3',87,'CVT','FWD'],['G Turbo',89900,'P','1.0L Turbo I3',98,'CVT','FWD']]}]},
+    {m:'Corolla Cross', body:'Crossover', style:'crossover', vol:10, dts:22, conv:1.1, mg:.075, gens:[
+      {y:[2024,2025,2026], g:'XG10', t:[['GLI 2.0',112900,'P','2.0L I4',169,'CVT','FWD'],['Hybrid Limited',134900,'H','1.8L I4 Hybrid',138,'e-CVT','FWD']]}]},
+    {m:'RAV4', body:'SUV', style:'suv', vol:12, dts:21, conv:1.15, mg:.08, gens:[
+      {y:[2024,2025,2026], g:'XA50', t:[['LE',124900,'P','2.5L I4',203,'8AT','FWD'],['XLE AWD',139900,'P','2.5L I4',203,'8AT','AWD'],['Hybrid Adventure',159900,'H','2.5L I4 Hybrid',219,'e-CVT','AWD']]}]},
+    {m:'Fortuner', body:'SUV', style:'boxy', vol:9, dts:25, conv:1.05, mg:.08, gens:[
+      {y:[2024,2025,2026], g:'AN160', t:[['GX',142900,'P','2.7L I4',164,'6AT','4WD'],['VX',168900,'P','4.0L V6',235,'6AT','4WD'],['GR Sport',189900,'P','4.0L V6',235,'6AT','4WD']]}]},
+    {m:'Highlander', body:'SUV', style:'largeSUV', vol:5, dts:32, conv:.95, mg:.09, gens:[
+      {y:[2024,2025,2026], g:'XU70', t:[['GXR Hybrid',199900,'H','2.5L I4 Hybrid',243,'e-CVT','AWD'],['Limited Hybrid',229900,'H','2.5L I4 Hybrid',243,'e-CVT','AWD']]}]},
+    {m:'Land Cruiser Prado', body:'SUV', style:'boxy', vol:11, dts:19, conv:1.2, mg:.085, gens:[
+      {y:[2024], g:'J150', t:[['TX',199900,'P','2.7L I4',161,'6AT','4WD'],['VX',239900,'P','4.0L V6',271,'6AT','4WD']]},
+      {y:[2025,2026], g:'J250', t:[['TX-L',239900,'P','2.4L Turbo I4',278,'8AT','4WD'],['VX',269900,'P','2.4L Turbo I4',278,'8AT','4WD']]}]},
+    {m:'Land Cruiser', body:'SUV', style:'largeSUV', vol:16, dts:14, conv:1.35, mg:.08, gens:[
+      {y:[2024,2025,2026], g:'J300', t:[['GXR',289900,'P','3.5L Twin Turbo V6',409,'10AT','4WD'],['VXR',339900,'P','3.5L Twin Turbo V6',409,'10AT','4WD'],['GR Sport',389900,'P','3.5L Twin Turbo V6',409,'10AT','4WD']]}]},
+    {m:'Sequoia', body:'SUV', style:'largeSUV', vol:2, dts:45, conv:.8, mg:.1, gens:[
+      {y:[2024,2025,2026], g:'XK80', t:[['Platinum Hybrid',339900,'H','3.4L Twin Turbo V6 Hybrid',437,'10AT','4WD'],['Capstone',389900,'H','3.4L Twin Turbo V6 Hybrid',437,'10AT','4WD']]}]},
+    {m:'Hilux', body:'Pickup', style:'pickup', vol:22, dts:15, conv:1.35, mg:.07, gens:[
+      {y:[2024,2025,2026], g:'AN120', t:[['Single Cab 2.7',84900,'P','2.7L I4',164,'5MT','RWD'],['Double Cab GLX',109900,'P','2.7L I4',164,'6AT','4WD'],['Double Cab Adventure',149900,'P','4.0L V6',235,'6AT','4WD']]}]},
+    {m:'Hiace', body:'MPV', style:'van', vol:7, dts:22, conv:1.2, mg:.07, gens:[
+      {y:[2024,2025,2026], g:'H300', t:[['Standard Roof 13-Seat',139900,'P','3.5L V6',277,'6AT','RWD'],['High Roof Cargo',129900,'P','3.5L V6',277,'6AT','RWD']]}]}
+  ],
+  Lexus: [
+    {m:'ES', body:'Sedan', style:'sedan', vol:5, dts:30, conv:.95, mg:.11, gens:[
+      {y:[2024,2025], g:'XZ10', t:[['ES 250',209900,'P','2.5L I4',203,'8AT','FWD'],['ES 300h',229900,'H','2.5L I4 Hybrid',215,'e-CVT','FWD'],['ES 350',239900,'P','3.5L V6',302,'8AT','FWD']]}]},
+    {m:'LS', body:'Sedan', style:'sedan', vol:1, dts:55, conv:.7, mg:.13, gens:[
+      {y:[2024,2025,2026], g:'XF50', t:[['LS 500',449900,'P','3.5L Twin Turbo V6',416,'10AT','AWD'],['LS 500h',469900,'H','3.5L V6 Hybrid',354,'e-CVT','AWD']]}]},
+    {m:'IS', body:'Sedan', style:'sedan', vol:1.5, dts:40, conv:.85, mg:.11, gens:[
+      {y:[2024,2025,2026], g:'XE30', t:[['IS 300',189900,'P','2.0L Turbo I4',241,'8AT','RWD'],['IS 350 F Sport',219900,'P','3.5L V6',311,'8AT','RWD']]}]},
+    {m:'UX', body:'Crossover', style:'crossover', vol:2, dts:36, conv:.9, mg:.1, gens:[
+      {y:[2024,2025,2026], g:'ZA10', t:[['UX 300h',169900,'H','2.0L I4 Hybrid',196,'e-CVT','FWD']]}]},
+    {m:'NX', body:'SUV', style:'suv', vol:4, dts:30, conv:.95, mg:.11, gens:[
+      {y:[2024,2025,2026], g:'AZ20', t:[['NX 250',179900,'P','2.5L I4',203,'8AT','FWD'],['NX 350',209900,'P','2.4L Turbo I4',275,'8AT','AWD'],['NX 350h',214900,'H','2.5L I4 Hybrid',240,'e-CVT','AWD'],['NX 450h+',259900,'PH','2.5L I4 Plug-in Hybrid',304,'e-CVT','AWD']]}]},
+    {m:'RX', body:'SUV', style:'suv', vol:4, dts:28, conv:1.0, mg:.115, gens:[
+      {y:[2024,2025,2026], g:'AL30', t:[['RX 350',249900,'P','2.4L Turbo I4',275,'8AT','AWD'],['RX 350h',264900,'H','2.5L I4 Hybrid',246,'e-CVT','AWD'],['RX 500h',319900,'H','2.4L Turbo Hybrid',366,'6AT','AWD']]}]},
+    {m:'GX', body:'SUV', style:'boxy', vol:2.5, dts:26, conv:1.05, mg:.12, gens:[
+      {y:[2024], g:'J150', t:[['GX 460',299900,'P','4.6L V8',301,'6AT','4WD']]},
+      {y:[2025,2026], g:'J250', t:[['GX 550 Premium',369900,'P','3.4L Twin Turbo V6',349,'10AT','4WD'],['GX 550 Overtrail',389900,'P','3.4L Twin Turbo V6',349,'10AT','4WD']]}]},
+    {m:'LX', body:'SUV', style:'largeSUV', vol:6, dts:20, conv:1.2, mg:.12, gens:[
+      {y:[2024,2025], g:'J310', t:[['LX 600 Premier',469900,'P','3.5L Twin Turbo V6',409,'10AT','4WD'],['LX 600 F Sport',494900,'P','3.5L Twin Turbo V6',409,'10AT','4WD']]},
+      {y:[2026], g:'J310', t:[['LX 600 Premier',469900,'P','3.5L Twin Turbo V6',409,'10AT','4WD'],['LX 600 F Sport',494900,'P','3.5L Twin Turbo V6',409,'10AT','4WD'],['LX 700h',529900,'H','3.5L Twin Turbo V6 Hybrid',457,'10AT','4WD']]}]},
+    {m:'LC', body:'Sports Car', style:'coupe', vol:.5, dts:60, conv:.7, mg:.13, gens:[
+      {y:[2024,2025,2026], g:'Z100', t:[['LC 500',529900,'P','5.0L V8',471,'10AT','RWD']]}]}
+  ],
+  Nissan: [
+    {m:'Sunny', body:'Sedan', style:'compactSedan', vol:22, dts:17, conv:1.25, mg:.06, gens:[
+      {y:[2024,2025,2026], g:'N18', t:[['S',64900,'P','1.6L I4',118,'CVT','FWD'],['SV',71900,'P','1.6L I4',118,'CVT','FWD'],['SL',77900,'P','1.6L I4',118,'CVT','FWD']]}]},
+    {m:'Sentra', body:'Sedan', style:'sedan', vol:6, dts:26, conv:1.0, mg:.07, gens:[
+      {y:[2024,2025], g:'B18', t:[['S',84900,'P','2.0L I4',149,'CVT','FWD'],['SV',94900,'P','2.0L I4',149,'CVT','FWD'],['SR',104900,'P','2.0L I4',149,'CVT','FWD']]},
+      {y:[2026], g:'B19', t:[['SV',99900,'P','2.0L I4',149,'CVT','FWD'],['SR',109900,'P','2.0L I4',149,'CVT','FWD']]}]},
+    {m:'Altima', body:'Sedan', style:'sedan', vol:6, dts:28, conv:.95, mg:.075, gens:[
+      {y:[2024,2025,2026], g:'L34', t:[['S',109900,'P','2.5L I4',182,'CVT','FWD'],['SV',119900,'P','2.5L I4',182,'CVT','FWD'],['SL',134900,'P','2.5L I4',182,'CVT','FWD']]}]},
+    {m:'Kicks', body:'Crossover', style:'crossover', vol:7, dts:24, conv:1.05, mg:.065, gens:[
+      {y:[2024], g:'P15', t:[['S',79900,'P','1.6L I4',118,'CVT','FWD'],['SV',86900,'P','1.6L I4',118,'CVT','FWD']]},
+      {y:[2025,2026], g:'P16', t:[['S',84900,'P','2.0L I4',141,'CVT','FWD'],['SV',92900,'P','2.0L I4',141,'CVT','FWD'],['SR',99900,'P','2.0L I4',141,'CVT','FWD']]}]},
+    {m:'X-Trail', body:'SUV', style:'suv', vol:6, dts:27, conv:1.0, mg:.075, gens:[
+      {y:[2024,2025,2026], g:'T33', t:[['S',114900,'P','2.5L I4',181,'CVT','FWD'],['SV',129900,'P','2.5L I4',181,'CVT','AWD'],['SL 4WD',149900,'P','2.5L I4',181,'CVT','AWD']]}]},
+    {m:'Pathfinder', body:'SUV', style:'largeSUV', vol:4, dts:33, conv:.9, mg:.08, gens:[
+      {y:[2024,2025,2026], g:'R53', t:[['SV',164900,'P','3.5L V6',284,'9AT','4WD'],['Platinum',199900,'P','3.5L V6',284,'9AT','4WD']]}]},
+    {m:'Patrol', body:'SUV', style:'largeSUV', vol:15, dts:17, conv:1.3, mg:.09, gens:[
+      {y:[2024], g:'Y62', t:[['LE Titanium',309900,'P','5.6L V8',400,'7AT','4WD'],['Nismo',399900,'P','5.6L V8',428,'7AT','4WD']]},
+      {y:[2025], g:'Y63', t:[['XE',239900,'P','3.5L Twin Turbo V6',425,'9AT','4WD'],['LE Platinum',329900,'P','3.5L Twin Turbo V6',425,'9AT','4WD']]},
+      {y:[2026], g:'Y63', t:[['XE',239900,'P','3.5L Twin Turbo V6',425,'9AT','4WD'],['LE Platinum',329900,'P','3.5L Twin Turbo V6',425,'9AT','4WD'],['Nismo',419900,'P','3.5L Twin Turbo V6',495,'9AT','4WD']]}]},
+    {m:'Navara', body:'Pickup', style:'pickup', vol:5, dts:24, conv:1.1, mg:.065, gens:[
+      {y:[2024,2025,2026], g:'D23', t:[['SE',94900,'P','2.5L I4',158,'6MT','4WD'],['LE Double Cab',119900,'P','2.5L I4',158,'7AT','4WD']]}]}
+  ],
+  Hyundai: [
+    {m:'Accent', body:'Sedan', style:'compactSedan', vol:20, dts:17, conv:1.25, mg:.06, gens:[
+      {y:[2024], g:'HC', t:[['Smart',62900,'P','1.6L I4',121,'6AT','FWD']]},
+      {y:[2025,2026], g:'BN7', t:[['Smart',69900,'P','1.5L I4',113,'CVT','FWD'],['Comfort',76900,'P','1.5L I4',113,'CVT','FWD']]}]},
+    {m:'Elantra', body:'Sedan', style:'sedan', vol:15, dts:20, conv:1.15, mg:.065, gens:[
+      {y:[2024,2025,2026], g:'CN7', t:[['Smart',79900,'P','2.0L I4',147,'CVT','FWD'],['Comfort',89900,'P','2.0L I4',147,'CVT','FWD'],['N Line',104900,'P','1.6L Turbo I4',201,'7DCT','FWD']]}]},
+    {m:'Sonata', body:'Sedan', style:'sedan', vol:5, dts:30, conv:.95, mg:.07, gens:[
+      {y:[2024,2025,2026], g:'DN8', t:[['Smart',109900,'P','2.5L I4',191,'8AT','FWD'],['Premium',129900,'P','2.5L I4',191,'8AT','FWD'],['Hybrid Premium',139900,'H','2.0L I4 Hybrid',192,'6AT','FWD']]}]},
+    {m:'Venue', body:'Crossover', style:'crossover', vol:6, dts:24, conv:1.05, mg:.06, gens:[
+      {y:[2024,2025,2026], g:'QX', t:[['Smart',69900,'P','1.6L I4',121,'CVT','FWD'],['Comfort',76900,'P','1.6L I4',121,'CVT','FWD']]}]},
+    {m:'Creta', body:'Crossover', style:'crossover', vol:10, dts:20, conv:1.15, mg:.065, gens:[
+      {y:[2024], g:'SU2', t:[['Smart',79900,'P','1.5L I4',113,'CVT','FWD']]},
+      {y:[2025,2026], g:'SU2 FL', t:[['Smart',84900,'P','1.5L I4',113,'CVT','FWD'],['Comfort',94900,'P','1.5L I4',113,'CVT','FWD']]}]},
+    {m:'Tucson', body:'SUV', style:'suv', vol:12, dts:21, conv:1.15, mg:.075, gens:[
+      {y:[2024,2025,2026], g:'NX4', t:[['Smart',104900,'P','2.0L I4',154,'6AT','FWD'],['Comfort',119900,'P','2.0L I4',154,'6AT','FWD'],['Hybrid Premium',139900,'H','1.6L Turbo Hybrid',226,'6AT','AWD']]}]},
+    {m:'Santa Fe', body:'SUV', style:'boxy', vol:7, dts:26, conv:1.0, mg:.08, gens:[
+      {y:[2024], g:'TM', t:[['Smart',129900,'P','2.5L I4',178,'8AT','FWD']]},
+      {y:[2025,2026], g:'MX5', t:[['Smart',144900,'P','2.5L I4',191,'8AT','FWD'],['Premium AWD',169900,'P','2.5L Turbo I4',277,'8DCT','AWD'],['Hybrid Calligraphy',189900,'H','1.6L Turbo Hybrid',231,'6AT','AWD']]}]},
+    {m:'Palisade', body:'SUV', style:'largeSUV', vol:5, dts:29, conv:.95, mg:.085, gens:[
+      {y:[2024,2025], g:'LX2', t:[['Smart',169900,'P','3.8L V6',291,'8AT','FWD'],['Calligraphy',209900,'P','3.8L V6',291,'8AT','AWD']]},
+      {y:[2026], g:'LX3', t:[['Premium',189900,'P','3.5L V6',287,'8AT','AWD'],['Calligraphy Hybrid',239900,'H','2.5L Turbo Hybrid',329,'6AT','AWD']]}]},
+    {m:'Staria', body:'MPV', style:'mpv', vol:5, dts:26, conv:1.0, mg:.07, gens:[
+      {y:[2024,2025,2026], g:'US4', t:[['Standard 11-Seat',129900,'P','3.5L V6',272,'8AT','RWD'],['Premium 9-Seat',159900,'P','3.5L V6',272,'8AT','RWD']]}]}
+  ],
+  Kia: [
+    {m:'Pegas', body:'Sedan', style:'compactSedan', vol:12, dts:18, conv:1.2, mg:.055, gens:[
+      {y:[2024,2025,2026], g:'AB', t:[['LX',57900,'P','1.4L I4',94,'4AT','FWD'],['EX',63900,'P','1.4L I4',94,'4AT','FWD']]}]},
+    {m:'K3', body:'Sedan', style:'sedan', vol:8, dts:22, conv:1.1, mg:.065, gens:[
+      {y:[2024], g:'BD', t:[['LX',72900,'P','1.6L I4',121,'CVT','FWD'],['GT-Line',86900,'P','1.6L I4',121,'CVT','FWD']]},
+      {y:[2025,2026], g:'BL7', t:[['LX',74900,'P','1.5L I4',113,'CVT','FWD'],['EX',82900,'P','1.5L I4',113,'CVT','FWD']]}]},
+    {m:'K5', body:'Sedan', style:'sedan', vol:5, dts:28, conv:.95, mg:.07, gens:[
+      {y:[2024], g:'DL3', t:[['LX',99900,'P','2.5L I4',191,'8AT','FWD'],['GT-Line',119900,'P','2.5L I4',191,'8AT','FWD']]},
+      {y:[2025,2026], g:'DL3 FL', t:[['LX',104900,'P','2.5L I4',191,'8AT','FWD'],['GT-Line',124900,'P','2.5L I4',191,'8AT','FWD']]}]},
+    {m:'Seltos', body:'Crossover', style:'crossover', vol:6, dts:23, conv:1.05, mg:.065, gens:[
+      {y:[2024,2025,2026], g:'SP2', t:[['LX',79900,'P','2.0L I4',147,'CVT','FWD'],['EX',89900,'P','2.0L I4',147,'CVT','FWD']]}]},
+    {m:'Sportage', body:'SUV', style:'suv', vol:9, dts:22, conv:1.1, mg:.075, gens:[
+      {y:[2024,2025,2026], g:'NQ5', t:[['LX',104900,'P','2.0L I4',154,'6AT','FWD'],['EX',119900,'P','2.0L I4',154,'6AT','FWD'],['GT-Line AWD',139900,'P','1.6L Turbo I4',178,'7DCT','AWD']]}]},
+    {m:'Sorento', body:'SUV', style:'suv', vol:6, dts:26, conv:1.0, mg:.08, gens:[
+      {y:[2024,2025,2026], g:'MQ4', t:[['LX',139900,'P','2.5L I4',191,'8AT','FWD'],['EX',159900,'P','3.5L V6',272,'8AT','AWD'],['Hybrid SX',179900,'H','1.6L Turbo Hybrid',227,'6AT','AWD']]}]},
+    {m:'Telluride', body:'SUV', style:'largeSUV', vol:3, dts:31, conv:.95, mg:.085, gens:[
+      {y:[2024,2025,2026], g:'ON', t:[['EX',189900,'P','3.8L V6',291,'8AT','AWD'],['SX',219900,'P','3.8L V6',291,'8AT','AWD']]}]},
+    {m:'Carnival', body:'MPV', style:'mpv', vol:5, dts:25, conv:1.05, mg:.075, gens:[
+      {y:[2024], g:'KA4', t:[['LX',149900,'P','3.5L V6',290,'8AT','FWD'],['EX',174900,'P','3.5L V6',290,'8AT','FWD']]},
+      {y:[2025,2026], g:'KA4 FL', t:[['LX',154900,'P','3.5L V6',287,'8AT','FWD'],['EX',179900,'P','3.5L V6',287,'8AT','FWD'],['Hybrid SX',199900,'H','1.6L Turbo Hybrid',242,'6AT','FWD']]}]}
+  ],
+  Chevrolet: [
+    {m:'Groove', body:'Crossover', style:'crossover', vol:5, dts:26, conv:1.0, mg:.07, gens:[
+      {y:[2024,2025,2026], g:'CN202S', t:[['LS',64900,'P','1.5L I4',107,'CVT','FWD'],['Premier',74900,'P','1.5L I4',107,'CVT','FWD']]}]},
+    {m:'Captiva', body:'Crossover', style:'crossover', vol:4, dts:30, conv:.95, mg:.07, gens:[
+      {y:[2024,2025,2026], g:'CN202M', t:[['LS',84900,'P','1.5L Turbo I4',145,'CVT','FWD'],['Premier',94900,'P','1.5L Turbo I4',145,'CVT','FWD']]}]},
+    {m:'Trax', body:'Crossover', style:'crossover', vol:3, dts:28, conv:.95, mg:.07, gens:[
+      {y:[2024,2025,2026], g:'VSS-F', t:[['LS',84900,'P','1.2L Turbo I3',137,'6AT','FWD'],['RS',94900,'P','1.2L Turbo I3',137,'6AT','FWD']]}]},
+    {m:'Equinox', body:'SUV', style:'suv', vol:3, dts:31, conv:.9, mg:.075, gens:[
+      {y:[2024], g:'Gen 3', t:[['LT',109900,'P','1.5L Turbo I4',170,'6AT','FWD']]},
+      {y:[2025,2026], g:'Gen 4', t:[['LT',119900,'P','1.5L Turbo I4',175,'8AT','FWD'],['RS AWD',134900,'P','1.5L Turbo I4',175,'8AT','AWD']]}]},
+    {m:'Traverse', body:'SUV', style:'largeSUV', vol:3, dts:32, conv:.9, mg:.08, gens:[
+      {y:[2024], g:'Gen 2', t:[['LT',164900,'P','3.6L V6',310,'9AT','FWD']]},
+      {y:[2025,2026], g:'Gen 3', t:[['LT',179900,'P','2.5L Turbo I4',328,'8AT','FWD'],['Z71',199900,'P','2.5L Turbo I4',328,'8AT','AWD']]}]},
+    {m:'Tahoe', body:'SUV', style:'boxy', vol:6, dts:24, conv:1.05, mg:.09, gens:[
+      {y:[2024,2025,2026], g:'GMT T1', t:[['LT',239900,'P','5.3L V8',355,'10AT','4WD'],['Z71',269900,'P','5.3L V8',355,'10AT','4WD'],['High Country',309900,'P','6.2L V8',420,'10AT','4WD']]}]},
+    {m:'Suburban', body:'SUV', style:'boxy', vol:2.5, dts:30, conv:.95, mg:.09, gens:[
+      {y:[2024,2025,2026], g:'GMT T1', t:[['LT',259900,'P','5.3L V8',355,'10AT','4WD'],['High Country',329900,'P','6.2L V8',420,'10AT','4WD']]}]},
+    {m:'Corvette', body:'Sports Car', style:'coupe', vol:.6, dts:52, conv:.75, mg:.12, gens:[
+      {y:[2024,2025,2026], g:'C8', t:[['Stingray',399900,'P','6.2L V8',495,'8DCT','RWD'],['Z06',579900,'P','5.5L V8',670,'8DCT','RWD']]}]}
+  ],
+  GMC: [
+    {m:'Terrain', body:'SUV', style:'suv', vol:2.5, dts:32, conv:.9, mg:.075, gens:[
+      {y:[2024], g:'Gen 2', t:[['SLE',109900,'P','1.5L Turbo I4',170,'9AT','FWD']]},
+      {y:[2025,2026], g:'Gen 3', t:[['Elevation',129900,'P','1.5L Turbo I4',175,'8AT','FWD'],['AT4',144900,'P','1.5L Turbo I4',175,'8AT','AWD']]}]},
+    {m:'Acadia', body:'SUV', style:'largeSUV', vol:2.5, dts:33, conv:.9, mg:.08, gens:[
+      {y:[2024], g:'Gen 2', t:[['SLE',144900,'P','2.0L Turbo I4',228,'9AT','FWD']]},
+      {y:[2025,2026], g:'Gen 3', t:[['Elevation',179900,'P','2.5L Turbo I4',328,'8AT','FWD'],['AT4',204900,'P','2.5L Turbo I4',328,'8AT','AWD'],['Denali',229900,'P','2.5L Turbo I4',328,'8AT','AWD']]}]},
+    {m:'Yukon', body:'SUV', style:'boxy', vol:5, dts:25, conv:1.0, mg:.095, gens:[
+      {y:[2024,2025,2026], g:'GMT T1', t:[['SLE',249900,'P','5.3L V8',355,'10AT','4WD'],['AT4',299900,'P','6.2L V8',420,'10AT','4WD'],['Denali',339900,'P','6.2L V8',420,'10AT','4WD']]}]},
+    {m:'Yukon XL', body:'SUV', style:'boxy', vol:2, dts:31, conv:.95, mg:.095, gens:[
+      {y:[2024,2025,2026], g:'GMT T1', t:[['SLT',279900,'P','5.3L V8',355,'10AT','4WD'],['Denali',359900,'P','6.2L V8',420,'10AT','4WD']]}]},
+    {m:'Sierra', body:'Pickup', style:'pickup', vol:3.5, dts:27, conv:1.0, mg:.085, gens:[
+      {y:[2024,2025,2026], g:'GMT T1', t:[['Pro',139900,'P','5.3L V8',355,'10AT','4WD'],['Elevation',179900,'P','5.3L V8',355,'10AT','4WD'],['AT4',239900,'P','6.2L V8',420,'10AT','4WD'],['Denali',279900,'P','6.2L V8',420,'10AT','4WD']]}]}
+  ],
+  Ford: [
+    {m:'Territory', body:'SUV', style:'suv', vol:5, dts:26, conv:1.0, mg:.075, gens:[
+      {y:[2024,2025,2026], g:'CX743', t:[['Trend',94900,'P','1.5L Turbo I4',168,'7DCT','FWD'],['Titanium',109900,'P','1.5L Turbo I4',168,'7DCT','FWD']]}]},
+    {m:'Explorer', body:'SUV', style:'largeSUV', vol:4, dts:30, conv:.95, mg:.08, gens:[
+      {y:[2024,2025,2026], g:'U625', t:[['XLT',169900,'P','2.3L Turbo I4',300,'10AT','4WD'],['ST-Line',189900,'P','2.3L Turbo I4',300,'10AT','4WD'],['Platinum',219900,'P','3.0L Twin Turbo V6',400,'10AT','4WD']]}]},
+    {m:'Everest', body:'SUV', style:'boxy', vol:4, dts:27, conv:1.0, mg:.08, gens:[
+      {y:[2024,2025,2026], g:'U704', t:[['Trend',159900,'P','2.3L Turbo I4',296,'10AT','4WD'],['Titanium 4WD',189900,'P','2.3L Turbo I4',296,'10AT','4WD'],['Platinum',209900,'P','2.3L Turbo I4',296,'10AT','4WD']]}]},
+    {m:'Expedition', body:'SUV', style:'boxy', vol:3, dts:30, conv:.95, mg:.09, gens:[
+      {y:[2024], g:'U553', t:[['XLT',229900,'P','3.5L Twin Turbo V6',375,'10AT','4WD'],['Platinum',299900,'P','3.5L Twin Turbo V6',400,'10AT','4WD']]},
+      {y:[2025,2026], g:'U554', t:[['XLT',249900,'P','3.5L Twin Turbo V6',400,'10AT','4WD'],['Tremor',299900,'P','3.5L Twin Turbo V6',440,'10AT','4WD'],['Platinum',319900,'P','3.5L Twin Turbo V6',440,'10AT','4WD']]}]},
+    {m:'Mustang', body:'Sports Car', style:'coupe', vol:1.5, dts:40, conv:.85, mg:.1, gens:[
+      {y:[2024,2025,2026], g:'S650', t:[['EcoBoost',179900,'P','2.3L Turbo I4',315,'10AT','RWD'],['GT',239900,'P','5.0L V8',480,'10AT','RWD'],['Dark Horse',289900,'P','5.0L V8',500,'10AT','RWD']]}]},
+    {m:'Bronco', body:'SUV', style:'boxy', vol:2, dts:34, conv:.9, mg:.09, gens:[
+      {y:[2024,2025,2026], g:'U725', t:[['Big Bend',189900,'P','2.7L Twin Turbo V6',330,'10AT','4WD'],['Badlands',229900,'P','2.7L Twin Turbo V6',330,'10AT','4WD'],['Raptor',349900,'P','3.0L Twin Turbo V6',418,'10AT','4WD']]}]},
+    {m:'Ranger', body:'Pickup', style:'pickup', vol:5, dts:24, conv:1.05, mg:.07, gens:[
+      {y:[2024,2025,2026], g:'P703', t:[['XL Single Cab',89900,'P','2.5L I4',164,'6MT','RWD'],['XLT Double Cab',114900,'P','2.3L Turbo I4',270,'10AT','4WD'],['Wildtrak',144900,'P','2.3L Turbo I4',270,'10AT','4WD'],['Raptor',219900,'P','3.0L Twin Turbo V6',392,'10AT','4WD']]}]},
+    {m:'F-150', body:'Pickup', style:'pickup', vol:3, dts:28, conv:1.0, mg:.085, gens:[
+      {y:[2024,2025,2026], g:'P702', t:[['XLT',179900,'P','3.5L Twin Turbo V6',400,'10AT','4WD'],['Lariat',229900,'P','3.5L Twin Turbo V6',400,'10AT','4WD'],['Raptor',339900,'P','3.5L Twin Turbo V6',450,'10AT','4WD']]}]}
+  ],
+  MG: [
+    {m:'MG 3', body:'Hatchback', style:'hatch', vol:5, dts:24, conv:1.05, mg:.075, gens:[
+      {y:[2024], g:'Gen 2', t:[['STD',49900,'P','1.5L I4',112,'4AT','FWD']]},
+      {y:[2025,2026], g:'Gen 3', t:[['STD',54900,'P','1.5L I4',108,'CVT','FWD'],['Hybrid+',74900,'H','1.5L I4 Hybrid',192,'e-DHT','FWD']]}]},
+    {m:'MG 5', body:'Sedan', style:'compactSedan', vol:9, dts:20, conv:1.15, mg:.08, gens:[
+      {y:[2024,2025,2026], g:'Gen 2', t:[['STD',57900,'P','1.5L I4',112,'CVT','FWD'],['LUX',64900,'P','1.5L I4',112,'CVT','FWD']]}]},
+    {m:'MG GT', body:'Sedan', style:'sedan', vol:4, dts:26, conv:1.0, mg:.08, gens:[
+      {y:[2024,2025,2026], g:'Gen 2', t:[['STD',64900,'P','1.5L I4',112,'CVT','FWD'],['LUX',72900,'P','1.5L Turbo I4',170,'7DCT','FWD']]}]},
+    {m:'MG ZS', body:'Crossover', style:'crossover', vol:6, dts:22, conv:1.1, mg:.08, gens:[
+      {y:[2024], g:'Gen 1', t:[['STD',62900,'P','1.5L I4',112,'CVT','FWD']]},
+      {y:[2025,2026], g:'Gen 2', t:[['LUX',79900,'P','1.5L I4',108,'CVT','FWD'],['Hybrid+',89900,'H','1.5L I4 Hybrid',194,'e-DHT','FWD']]}]},
+    {m:'MG ZS EV', body:'Crossover', style:'crossover', vol:.8, dts:48, conv:.75, mg:.07, gens:[
+      {y:[2024,2025], g:'Gen 1', t:[['LUX',109900,'E','Electric motor 51 kWh',174,'1-speed','FWD']]}]},
+    {m:'MG RX5', body:'SUV', style:'suv', vol:4, dts:26, conv:1.0, mg:.085, gens:[
+      {y:[2024,2025,2026], g:'Gen 2', t:[['STD',74900,'P','1.5L Turbo I4',170,'7DCT','FWD'],['LUX',84900,'P','1.5L Turbo I4',170,'7DCT','FWD']]}]},
+    {m:'MG HS', body:'SUV', style:'suv', vol:4, dts:25, conv:1.0, mg:.085, gens:[
+      {y:[2024], g:'Gen 1', t:[['STD',84900,'P','1.5L Turbo I4',160,'7DCT','FWD']]},
+      {y:[2025,2026], g:'Gen 2', t:[['LUX',99900,'P','1.5L Turbo I4',170,'7DCT','FWD'],['Trophy',109900,'P','2.0L Turbo I4',231,'7DCT','FWD']]}]},
+    {m:'MG 7', body:'Sedan', style:'sedan', vol:2.5, dts:30, conv:.95, mg:.09, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['LUX',104900,'P','2.0L Turbo I4',231,'9AT','FWD'],['Trophy',119900,'P','2.0L Turbo I4',261,'9AT','FWD']]}]},
+    {m:'MG Whale', body:'Crossover', style:'crossover', vol:2, dts:32, conv:.9, mg:.085, gens:[
+      {y:[2025,2026], g:'Gen 1', t:[['LUX',94900,'P','1.5L Turbo I4',181,'7DCT','FWD']]}]}
+  ],
+  Geely: [
+    {m:'Emgrand', body:'Sedan', style:'compactSedan', vol:7, dts:22, conv:1.1, mg:.085, gens:[
+      {y:[2024,2025,2026], g:'SS11', t:[['GS',59900,'P','1.5L I4',121,'CVT','FWD'],['GL',66900,'P','1.5L I4',121,'CVT','FWD']]}]},
+    {m:'Coolray', body:'Crossover', style:'crossover', vol:6, dts:23, conv:1.05, mg:.09, gens:[
+      {y:[2024], g:'SX11', t:[['Sport',79900,'P','1.5L Turbo I3',174,'7DCT','FWD']]},
+      {y:[2025,2026], g:'SX11 Gen 2', t:[['Flagship',89900,'P','1.5L Turbo I4',181,'7DCT','FWD']]}]},
+    {m:'Monjaro', body:'SUV', style:'suv', vol:4, dts:26, conv:1.0, mg:.095, gens:[
+      {y:[2024,2025,2026], g:'KX11', t:[['Flagship',139900,'P','2.0L Turbo I4',238,'8AT','AWD'],['Ultimate',154900,'P','2.0L Turbo I4',238,'8AT','AWD']]}]},
+    {m:'Okavango', body:'SUV', style:'suv', vol:3, dts:28, conv:.95, mg:.09, gens:[
+      {y:[2024,2025,2026], g:'VX11', t:[['GF',99900,'P','1.5L Turbo I3',177,'7DCT','FWD'],['GS',109900,'P','1.5L Turbo I3',177,'7DCT','FWD']]}]},
+    {m:'Starray', body:'SUV', style:'suv', vol:3, dts:27, conv:1.0, mg:.09, gens:[
+      {y:[2025,2026], g:'FX11', t:[['Flagship',109900,'P','2.0L Turbo I4',218,'7DCT','FWD'],['Ultimate',119900,'P','2.0L Turbo I4',218,'7DCT','AWD']]}]},
+    {m:'Preface', body:'Sedan', style:'sedan', vol:2.5, dts:30, conv:.95, mg:.09, gens:[
+      {y:[2024,2025,2026], g:'FS11', t:[['GF',84900,'P','2.0L Turbo I4',218,'7DCT','FWD'],['Flagship',94900,'P','2.0L Turbo I4',218,'7DCT','FWD']]}]}
+  ],
+  Changan: [
+    {m:'Alsvin', body:'Sedan', style:'compactSedan', vol:8, dts:21, conv:1.1, mg:.085, gens:[
+      {y:[2024,2025,2026], g:'Gen 2', t:[['Comfort',49900,'P','1.5L I4',107,'7DCT','FWD'],['Luxury',55900,'P','1.5L I4',107,'7DCT','FWD']]}]},
+    {m:'Eado Plus', body:'Sedan', style:'sedan', vol:3, dts:27, conv:1.0, mg:.085, gens:[
+      {y:[2024,2025,2026], g:'Gen 2', t:[['Comfort',64900,'P','1.4L Turbo I4',158,'7DCT','FWD'],['Luxury',71900,'P','1.4L Turbo I4',158,'7DCT','FWD']]}]},
+    {m:'CS35 Plus', body:'Crossover', style:'crossover', vol:5, dts:24, conv:1.05, mg:.09, gens:[
+      {y:[2024,2025,2026], g:'Gen 2', t:[['Comfort',69900,'P','1.4L Turbo I4',158,'7DCT','FWD'],['Luxury',76900,'P','1.4L Turbo I4',158,'7DCT','FWD']]}]},
+    {m:'CS55 Plus', body:'Crossover', style:'crossover', vol:4, dts:25, conv:1.0, mg:.09, gens:[
+      {y:[2024,2025,2026], g:'Gen 2', t:[['Luxury',84900,'P','1.5L Turbo I4',178,'7DCT','FWD'],['Flagship',92900,'P','1.5L Turbo I4',178,'7DCT','FWD']]}]},
+    {m:'CS75 Plus', body:'SUV', style:'suv', vol:4, dts:26, conv:1.0, mg:.095, gens:[
+      {y:[2024,2025,2026], g:'Gen 3', t:[['Luxury',99900,'P','1.5L Turbo I4',178,'8AT','FWD'],['Flagship',109900,'P','2.0L Turbo I4',233,'8AT','FWD']]}]},
+    {m:'UNI-T', body:'Crossover', style:'crossover', vol:3, dts:27, conv:.95, mg:.095, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['Luxury',99900,'P','1.5L Turbo I4',178,'7DCT','FWD'],['Flagship',109900,'P','1.5L Turbo I4',178,'7DCT','FWD']]}]},
+    {m:'UNI-K', body:'SUV', style:'suv', vol:2.5, dts:30, conv:.95, mg:.1, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['Luxury',124900,'P','2.0L Turbo I4',233,'8AT','FWD'],['Flagship',139900,'P','2.0L Turbo I4',233,'8AT','AWD']]}]},
+    {m:'UNI-V', body:'Sedan', style:'sedan', vol:2, dts:31, conv:.9, mg:.095, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['Luxury',99900,'P','1.5L Turbo I4',178,'7DCT','FWD'],['Flagship',109900,'P','1.5L Turbo I4',178,'7DCT','FWD']]}]},
+    {m:'Hunter', body:'Pickup', style:'pickup', vol:2, dts:30, conv:.95, mg:.085, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['Double Cab 2.0T',89900,'P','2.0L Turbo I4',231,'8AT','RWD'],['Double Cab 4WD',99900,'P','2.0L Turbo I4',231,'8AT','4WD']]}]}
+  ],
+  Jetour: [
+    {m:'X50', body:'Crossover', style:'crossover', vol:4, dts:24, conv:1.05, mg:.095, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['Luxury',69900,'P','1.5L Turbo I4',154,'7DCT','FWD']]}]},
+    {m:'X70', body:'SUV', style:'suv', vol:4, dts:24, conv:1.05, mg:.095, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['Luxury',79900,'P','1.5L Turbo I4',154,'6DCT','FWD']]}]},
+    {m:'X70 Plus', body:'SUV', style:'suv', vol:4, dts:25, conv:1.0, mg:.095, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['Luxury',89900,'P','1.6L Turbo I4',194,'7DCT','FWD'],['Flagship',96900,'P','1.6L Turbo I4',194,'7DCT','FWD']]}]},
+    {m:'X90', body:'SUV', style:'largeSUV', vol:2, dts:30, conv:.95, mg:.095, gens:[
+      {y:[2024,2025], g:'Gen 1', t:[['Luxury',99900,'P','1.6L Turbo I4',194,'7DCT','FWD']]}]},
+    {m:'X90 Plus', body:'SUV', style:'largeSUV', vol:2.5, dts:29, conv:.95, mg:.1, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['Flagship',114900,'P','2.0L Turbo I4',251,'7DCT','FWD']]}]},
+    {m:'Dashing', body:'Crossover', style:'crossover', vol:3, dts:27, conv:1.0, mg:.095, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['Luxury',89900,'P','1.6L Turbo I4',194,'7DCT','FWD'],['Flagship',99900,'P','1.6L Turbo I4',194,'7DCT','FWD']]}]},
+    {m:'T2', body:'SUV', style:'boxy', vol:3, dts:22, conv:1.1, mg:.1, gens:[
+      {y:[2025,2026], g:'Gen 1', t:[['Luxury',129900,'P','2.0L Turbo I4',251,'7DCT','4WD'],['Flagship',144900,'P','2.0L Turbo I4',251,'7DCT','4WD']]}]}
+  ],
+  GAC: [
+    {m:'GS3', body:'Crossover', style:'crossover', vol:3, dts:26, conv:1.0, mg:.09, gens:[
+      {y:[2024,2025,2026], g:'Gen 2', t:[['GL',69900,'P','1.5L Turbo I4',168,'7DCT','FWD'],['GE',76900,'P','1.5L Turbo I4',168,'7DCT','FWD']]}]},
+    {m:'GS4', body:'SUV', style:'suv', vol:3, dts:27, conv:1.0, mg:.09, gens:[
+      {y:[2024,2025,2026], g:'Gen 2', t:[['GL',84900,'P','1.5L Turbo I4',175,'7DCT','FWD'],['GE',94900,'P','1.5L Turbo I4',175,'7DCT','FWD']]}]},
+    {m:'GS8', body:'SUV', style:'largeSUV', vol:2, dts:30, conv:.95, mg:.095, gens:[
+      {y:[2024,2025,2026], g:'Gen 2', t:[['GL',139900,'P','2.0L Turbo I4',248,'8AT','FWD'],['GT',159900,'P','2.0L Turbo I4',248,'8AT','AWD']]}]},
+    {m:'Empow', body:'Sedan', style:'sedan', vol:1.5, dts:32, conv:.9, mg:.095, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['R-Style',99900,'P','2.0L Turbo I4',248,'7DCT','FWD']]}]},
+    {m:'Emkoo', body:'SUV', style:'suv', vol:2, dts:29, conv:.95, mg:.095, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['GL',109900,'P','2.0L Turbo I4',248,'7DCT','FWD'],['GT',119900,'P','2.0L Turbo I4',248,'7DCT','FWD']]}]},
+    {m:'M8', body:'MPV', style:'mpv', vol:1.5, dts:34, conv:.9, mg:.095, gens:[
+      {y:[2024,2025,2026], g:'Gen 2', t:[['GL',149900,'P','2.0L Turbo I4',248,'8AT','FWD'],['Master',189900,'H','2.0L Turbo Hybrid',365,'e-CVT','FWD']]}]}
+  ],
+  Haval: [
+    {m:'Jolion', body:'Crossover', style:'crossover', vol:5, dts:24, conv:1.05, mg:.09, gens:[
+      {y:[2024,2025,2026], g:'A01', t:[['Active',69900,'P','1.5L Turbo I4',148,'7DCT','FWD'],['Supreme',79900,'P','1.5L Turbo I4',148,'7DCT','FWD']]}]},
+    {m:'H6', body:'SUV', style:'suv', vol:5, dts:24, conv:1.05, mg:.09, gens:[
+      {y:[2024,2025,2026], g:'Gen 3', t:[['Active',89900,'P','1.5L Turbo I4',181,'7DCT','FWD'],['Supreme',99900,'P','2.0L Turbo I4',208,'7DCT','AWD']]}]},
+    {m:'H6 HEV', body:'SUV', style:'suv', vol:2, dts:28, conv:.95, mg:.09, gens:[
+      {y:[2024,2025,2026], g:'Gen 3', t:[['Supreme',114900,'H','1.5L Turbo Hybrid',240,'DHT','FWD']]}]},
+    {m:'H9', body:'SUV', style:'boxy', vol:2, dts:28, conv:.95, mg:.095, gens:[
+      {y:[2024], g:'Gen 1', t:[['Supreme',139900,'P','2.0L Turbo I4',224,'8AT','4WD']]},
+      {y:[2025,2026], g:'Gen 2', t:[['Supreme',149900,'P','2.0L Turbo I4',218,'8AT','4WD']]}]},
+    {m:'Dargo', body:'SUV', style:'boxy', vol:2.5, dts:26, conv:1.0, mg:.095, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['Active',99900,'P','2.0L Turbo I4',208,'7DCT','FWD'],['Supreme',109900,'P','2.0L Turbo I4',208,'7DCT','AWD']]}]}
+  ],
+  BYD: [
+    {m:'Atto 3', body:'Crossover', style:'crossover', vol:1.5, dts:38, conv:.85, mg:.08, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['Standard',139900,'E','Electric motor 50 kWh',201,'1-speed','FWD'],['Extended',149900,'E','Electric motor 60 kWh',201,'1-speed','FWD']]}]},
+    {m:'Seal', body:'Sedan', style:'sedan', vol:1, dts:42, conv:.8, mg:.085, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['Premium',179900,'E','Electric motor 82 kWh',308,'1-speed','RWD'],['Performance AWD',199900,'E','Dual electric motors 82 kWh',523,'1-speed','AWD']]}]},
+    {m:'Song Plus', body:'SUV', style:'suv', vol:1.2, dts:36, conv:.85, mg:.08, gens:[
+      {y:[2025,2026], g:'DM-i', t:[['Flagship',129900,'PH','1.5L Plug-in Hybrid',215,'e-CVT','FWD']]}]},
+    {m:'Han', body:'Sedan', style:'sedan', vol:.6, dts:46, conv:.75, mg:.085, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['EV',199900,'E','Dual electric motors 85 kWh',510,'1-speed','AWD']]}]},
+    {m:'Tang', body:'SUV', style:'largeSUV', vol:.6, dts:48, conv:.75, mg:.085, gens:[
+      {y:[2024,2025,2026], g:'Gen 2', t:[['EV AWD',229900,'E','Dual electric motors 108 kWh',509,'1-speed','AWD']]}]},
+    {m:'Dolphin', body:'Hatchback', style:'hatch', vol:1, dts:40, conv:.8, mg:.08, gens:[
+      {y:[2024,2025,2026], g:'Gen 1', t:[['Standard',99900,'E','Electric motor 44.9 kWh',94,'1-speed','FWD']]}]},
+    {m:'Qin Plus', body:'Sedan', style:'sedan', vol:1.2, dts:34, conv:.9, mg:.08, gens:[
+      {y:[2025,2026], g:'DM-i', t:[['Flagship',89900,'PH','1.5L Plug-in Hybrid',178,'e-CVT','FWD']]}]}
+  ]};
 
-  const MODEL_YEARS = [2025, 2026];   // generations on sale in the demo window
-  const PREV_YEAR_PRICE_FACTOR = 0.97; // MY2025 list price relative to MY2026
-
-  const COLORS = [
-    {id:'black',  name:'Obsidian Black',  ar:'أسود أوبسيديان', hex:'#0E0F11', paint:'#0b0c0e', prem:0,    w:.29},
-    {id:'white',  name:'Pearl White',     ar:'أبيض لؤلؤي',     hex:'#ECEAE4', paint:'#e9e7e1', prem:5600, w:.34},
-    {id:'silver', name:'Silver',          ar:'فضي',            hex:'#B9BCC1', paint:'#a9adb3', prem:0,    w:.12},
-    {id:'grey',   name:'Graphite Grey',   ar:'رمادي جرافيت',   hex:'#4A4D52', paint:'#3d4045', prem:3200, w:.09},
-    {id:'blue',   name:'Deep Blue',       ar:'أزرق داكن',      hex:'#1C2A44', paint:'#14223d', prem:4200, w:.07},
-    {id:'green',  name:'British Racing Green', ar:'أخضر بريطاني', hex:'#1F3A2C', paint:'#15301f', prem:9800, w:.04},
-    {id:'sand',   name:'Desert Sand',     ar:'بيج صحراوي',     hex:'#C8B79A', paint:'#bda985', prem:3600, w:.05}
-  ];
-  const INTERIORS = [
-    {id:'black', name:'Ebony', ar:'أسود', hex:'#1b1b1c', prem:0},
-    {id:'tan',   name:'Tan',   ar:'بني', hex:'#A8744A', prem:6200},
-    {id:'ivory', name:'Ivory', ar:'عاجي', hex:'#E6DCC6', prem:8400}
-  ];
-
+  const PT = {P:'Petrol', H:'Hybrid', PH:'Plug-in Hybrid', E:'Full Electric'};
+  const priceSegment = p => p < 90000 ? 'Economy' : p < 180000 ? 'Mainstream' : p < 350000 ? 'Premium' : 'Luxury';
   const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 
-  // Flatten to one row per Brand/Model/Year/Trim — the unit the dashboard selects.
   const TRIMS = [];
-  for(const b of CATALOG) for(const m of b.models) for(const y of MODEL_YEARS) for(const t of m.trims){
-    const [trim,msrp,engine,fuelType,hp,torque,transmission,drivetrain,accel,topSpeed,efficiency,baseMargin,mix] = t;
-    TRIMS.push({
-      trimId: slug(`${b.brand}-${m.model}-${y}-${trim}`),
-      modelKey: slug(`${b.brand}-${m.model}`),
-      brand:b.brand, model:m.model, generation:m.generation, year:y, trim,
-      bodyType:m.bodyType, segment:m.segment, fuelType, engine, transmission, drivetrain,
-      hp, torque, accel, topSpeed, efficiency,
-      msrp: y===2026 ? msrp : Math.round(msrp*PREV_YEAR_PRICE_FACTOR/500)*500,
-      // 3D / media asset metadata. `model3d` may point at a licensed GLB/GLTF file.
-      asset:{ image:null, model3d:null, studioStyle:m.style, sourceUrl:null, license:null,
-              note:'No licensed 3D asset — procedural studio representation' },
-      // demo-only generator parameters
-      _demo:{ baseMargin, mix, vol:m.vol, dts:m.dts, conv:m.conv, wmi:b.wmi }
-    });
+  for(const [brand, models] of Object.entries(C)){
+    const B = window.BRANDS.find(b=>b.name===brand);
+    for(const md of models){
+      for(const gen of md.gens){
+        const latest = Math.max(...gen.y);
+        for(const y of gen.y){
+          const f = Math.pow(0.97, latest - y);
+          for(const [trim,msrp,pt,engine,hp,transmission,drivetrain] of gen.t){
+            const price = Math.round(msrp*f/100)*100;
+            TRIMS.push({
+              trimId: slug(`${brand}-${md.m}-${y}-${trim}`), modelKey: slug(`${brand}-${md.m}`),
+              brand, brandId:B.id, distributorId:B.distributor,
+              model:md.m, generation:gen.g, year:y, trim,
+              bodyType:md.body, powertrain:PT[pt], fuelType:PT[pt], engine, hp, transmission, drivetrain,
+              msrp:price, priceSegment:priceSegment(price),
+              asset:{ image:null, model3d:null, studioStyle:md.style, sourceUrl:null, license:null,
+                      note:'No licensed image or 3D asset — body-type studio representation only' },
+              _demo:{ baseMargin:md.mg, mix:1/gen.t.length, vol:md.vol, dts:md.dts, conv:md.conv }
+            });
+          }
+        }
+      }
+    }
   }
 
-  window.CATALOG_REFERENCE = { brands:CATALOG, trims:TRIMS, colors:COLORS, interiors:INTERIORS, modelYears:MODEL_YEARS,
-    dataClass:'demo', note:'Demo catalog — realistic, fictional pricing. Replace with production catalog feed.' };
+  const COLORS = [
+    {id:'white',  name:'Pearl White',    ar:'أبيض لؤلؤي',   hex:'#ECEAE4', paint:'#e9e7e1', prem:0,    w:.38},
+    {id:'silver', name:'Silver Metallic',ar:'فضي',          hex:'#B9BCC1', paint:'#a9adb3', prem:0,    w:.16},
+    {id:'black',  name:'Black',          ar:'أسود',         hex:'#0E0F11', paint:'#0b0c0e', prem:1500, w:.14},
+    {id:'grey',   name:'Graphite Grey',  ar:'رمادي',        hex:'#4A4D52', paint:'#3d4045', prem:1500, w:.12},
+    {id:'sand',   name:'Desert Beige',   ar:'بيج',          hex:'#C8B79A', paint:'#bda985', prem:1500, w:.10},
+    {id:'blue',   name:'Deep Blue',      ar:'أزرق داكن',    hex:'#1C2A44', paint:'#14223d', prem:1500, w:.05},
+    {id:'red',    name:'Red',            ar:'أحمر',         hex:'#8E1B1E', paint:'#7d1417', prem:1500, w:.05}
+  ];
+  const INTERIORS = [
+    {id:'black', name:'Black', ar:'أسود', hex:'#1b1b1c', prem:0},
+    {id:'beige', name:'Beige', ar:'بيج',  hex:'#D9C7A7', prem:0},
+    {id:'brown', name:'Brown', ar:'بني',  hex:'#7A4E2F', prem:2500}
+  ];
+
+  window.CATALOG_REFERENCE = { trims:TRIMS, colors:COLORS, interiors:INTERIORS, modelYears:[2024,2025,2026],
+    bodyTypes:['Sedan','SUV','Crossover','Pickup','MPV','Hatchback','Sports Car'],
+    powertrains:['Petrol','Hybrid','Plug-in Hybrid','Full Electric'],
+    priceSegments:['Economy','Mainstream','Premium','Luxury'],
+    dataClass:'demo', note:'Demo catalog — realistic Saudi-market structure; prices/specs indicative, verify before production.' };
 })();

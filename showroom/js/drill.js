@@ -18,7 +18,11 @@ const Drill = (function(){
     salesperson:{label:'مستشار المبيعات', key:s=>s.salespersonId, name:L.sp, dim:'salesperson'},
     source:     {label:'مصدر العميل', key:s=>s.source, name:L.source, dim:'source'},
     payment:    {label:'طريقة الدفع', key:s=>s.paymentMethod, name:L.payment, dim:'payment'},
-    custType:   {label:'نوع العميل', key:s=>s.customerType, name:L.custType, dim:'custType'},
+    custType:   {label:'شريحة العميل', key:s=>s.customerType, name:L.custType, dim:'custType'},
+    bodyType:   {label:'نوع الهيكل', key:s=>s._t.bodyType, name:L.body, dim:'bodyType'},
+    powertrain: {label:'نوع المحرك', key:s=>s._t.powertrain, name:L.pt, dim:'powertrain'},
+    priceSegment:{label:'الشريحة السعرية', key:s=>s._t.priceSegment, name:L.priceSeg, dim:'priceSegment'},
+    distributor:{label:'الموزع', key:s=>s._t.distributorId, name:L.dist, dim:'distributor'},
     month:      {label:'الشهر', key:s=>DB.isoOf(s._d).slice(0,7), name:fmt.month, dim:'month'}
   };
   // translate a breakdown key into a filter patch
@@ -106,7 +110,7 @@ const Drill = (function(){
     pane.querySelector('.d-tops').innerHTML = tops.map(([k,label])=>{
       const B = BREAKDOWNS[k]; const g=[...Q.group(rows,B.key)].map(([key,rs])=>({key, rev:rs.reduce((a,s)=>a+s.sellingPrice,0), n:rs.length})).sort((a,b)=>b.rev-a.rev).slice(0,5);
       const max = g[0]?.rev||1;
-      return `<div class="d-top"><h6>${label}</h6>${g.map(x=>`<button class="d-top-row" data-dim="${k}" data-key="${esc(x.key)}"><span>${esc(B.name(x.key))}</span><em class="num">${fmt.sarC(x.rev)}</em>${barCell(x.rev,max)}</button>`).join('')||'<p class="muted">—</p>'}</div>`;
+      return `<div class="d-top"><h6>${label}</h6>${g.map(x=>`<button class="d-top-row" data-dim="${k}" data-key="${esc(x.key)}"><span>${k==='brand'?brandMark(x.key,{size:'sm'}):k==='model'?brandMark(x.key.split('|')[0],{size:'sm'}):''}${esc(B.name(x.key))}</span><em class="num">${fmt.sarC(x.rev)}</em>${barCell(x.rev,max)}</button>`).join('')||'<p class="muted">—</p>'}</div>`;
     }).join('');
     pane.querySelector('.d-tops').addEventListener('click',e=>{ const b=e.target.closest('.d-top-row'); if(!b) return; drillTo(spec, patchFor(b.dataset.dim,b.dataset.key), BREAKDOWNS[b.dataset.dim].name(b.dataset.key)); });
 
@@ -122,7 +126,7 @@ const Drill = (function(){
       DataTable(host.querySelector('.d-table'), {rows:g, pageSize:15, exportName:'breakdown-'+dim, searchable:false,
         initialSort: dim==='month'?{key:0,dir:1}:{key:2,dir:-1},
         columns:[
-          {label:B.label, get:r=>dim==='month'?r.key:r.name, render:r=>`<b>${esc(r.name)}</b>`},
+          {label:B.label, get:r=>dim==='month'?r.key:r.name, render:r=>dim==='brand'?brandCell(r.key):dim==='model'?`<span class="bcell">${brandMark(r.key.split('|')[0],{size:'sm'})}<b>${esc(r.name)}</b></span>`:`<b>${esc(r.name)}</b>`},
           {label:'الوحدات', num:true, get:r=>r.units, render:r=>fmt.int(r.units)},
           {label:'الإيرادات', num:true, get:r=>r.revenue, render:r=>`${fmt.sarC(r.revenue)}${barCell(r.revenue,maxRev)}`},
           {label:'إجمالي الربح', num:true, get:r=>r.gp, render:r=>fmt.sarC(r.gp)},
@@ -139,7 +143,7 @@ const Drill = (function(){
   /* ---------- records: sales ---------- */
   const saleCols = [
     {label:'التاريخ', get:s=>s._d, render:s=>fmt.date(s.date), csv:s=>s.date},
-    {label:'المركبة', get:s=>L.vehicleY(s._t), render:s=>`<b>${esc(L.vehicle(s._t))}</b><small>${s._t.year} · ${esc(s._v?.vin||'')}</small>`},
+    {label:'المركبة', get:s=>L.vehicleY(s._t), render:s=>`<span class="bcell">${brandMark(s._t.brand,{size:'sm'})}<span><b>${esc(s._t.model)} ${esc(s._t.trim)}</b><small>${s._t.year} · ${esc(s._v?.vin||'')}</small></span></span>`},
     {label:'الفرع', get:s=>L.branch(s.branchId)},
     {label:'المستشار', get:s=>L.sp(s.salespersonId)},
     {label:'العميل', get:s=>s._cust?.name, render:s=>`${esc(s._cust?.name)}<small>${L.custType(s.customerType)}</small>`},
@@ -149,7 +153,7 @@ const Drill = (function(){
     {label:'الخصم', num:true, get:s=>s.discount, render:s=>fmt.sar(s.discount)},
     {label:'الربح', num:true, get:s=>s.grossProfit, render:s=>fmt.sar(s.grossProfit)},
     {label:'الهامش', num:true, get:s=>s.margin, render:s=>fmt.pct(s.margin)},
-    {label:'التحصيل', get:s=>s.collectionStatus, render:s=>statusPill(AR.collection[s.collectionStatus], s.collectionStatus==='Overdue'?'neg':s.collectionStatus==='Collected'?'pos':'')}
+    {label:'التحصيل', get:s=>s.collectionStatus, render:s=>statusPill(AR.collection[s.collectionStatus], s.overdueAmount>0?'neg':s.collectionStatus==='Collected'?'pos':'')}
   ];
   function paneSales(pane, spec, P, f){
     let rows = Q.sales(f, P);
@@ -210,7 +214,7 @@ const Drill = (function(){
     pane.querySelector('.widen')?.addEventListener('click',()=>{ const none={}; FILTER_DIMS.forEach(k=>none[k]=null); slice({...spec, title:spec.title+' · كل المجموعة', crumb:'كل المجموعة', add:none}, true); });
     DataTable(pane.querySelector('.d-table'), {rows, exportName:'inventory', initialSort:{key:6,dir:-1}, onRow:v=>Records.vehicle(v.vehicleId), columns:[
       {label:'رقم الهيكل (VIN)', get:v=>v.vin, render:v=>`<code>${v.vin}</code><small>${v.vehicleId}</small>`},
-      {label:'المركبة', get:v=>L.vehicleY(v._t), render:v=>`<b>${esc(L.vehicle(v._t))}</b><small>${v._t.year}</small>`},
+      {label:'المركبة', get:v=>L.vehicleY(v._t), render:v=>`<span class="bcell">${brandMark(v._t.brand,{size:'sm'})}<span><b>${esc(v._t.model)} ${esc(v._t.trim)}</b><small>${v._t.year} · ${L.dist(v.distributorId)}</small></span></span>`},
       {label:'الفرع', get:v=>L.branch(v.branchId)},
       {label:'اللون', get:v=>L.color(v.exteriorColor)},
       {label:'تكلفة الشراء', num:true, get:v=>v.purchaseCost, render:v=>fmt.sar(v.purchaseCost)},
@@ -227,10 +231,10 @@ const Drill = (function(){
   function panePayments(pane, spec, P, f){
     const o = spec.pay||{};
     let rows;
-    if(o.status==='Overdue') rows = DB.payments.filter(p=>p.status==='Overdue' && p._s._d<=P.end && Q.saleMatch(p._s,f) && (o.odMin==null||p._daysOverdue>=o.odMin) && (o.odMax==null||p._daysOverdue<=o.odMax));
+    if(o.status==='Overdue') rows = DB.payments.filter(p=>p._od && p._s._d<=P.end && Q.saleMatch(p._s,f) && (o.odMin==null||p._daysOverdue>=o.odMin) && (o.odMax==null||p._daysOverdue<=o.odMax));
     else if(o.field==='_due') rows = Q.payments(f, P, '_due');
     else rows = Q.payments(f, P, '_paid');
-    const paid = rows.reduce((a,p)=>a+p.paidAmount,0), due = rows.reduce((a,p)=>a+p.amount,0), od = rows.filter(p=>p.status==='Overdue').reduce((a,p)=>a+p.amount,0);
+    const paid = rows.reduce((a,p)=>a+p.paidAmount,0), due = rows.reduce((a,p)=>a+p.amount,0), od = rows.filter(p=>p._od).reduce((a,p)=>a+p.amount,0);
     pane.innerHTML = kpiGrid([
       {label:'عدد الدفعات', value:fmt.int(rows.length)}, {label:'المبلغ المستحق', value:fmt.sarC(due)},
       {label:'المحصّل', value:fmt.sarC(paid), info:'collected'}, {label:'المتأخر', value:fmt.sarC(od), info:'overdue'}
@@ -243,7 +247,7 @@ const Drill = (function(){
       {label:'نوع الدفعة', get:p=>AR.payType[p.type]+(p.type==='Installment'?` ${p.seq}/${p._s.installments}`:'')},
       {label:'المبلغ', num:true, get:p=>p.amount, render:p=>fmt.sar(p.amount)},
       {label:'الاستحقاق', get:p=>p._due, render:p=>fmt.date(p.dueDate)},
-      {label:'الحالة', get:p=>p.status, render:p=>statusPill(AR.payStatus[p.status], p.status==='Overdue'?'neg':p.status==='Paid'?'pos':p.status==='Paid Late'?'warn':'')},
+      {label:'الحالة', get:p=>p.status, render:p=>statusPill(AR.payStatus[p.status], p._od?'neg':p.late?'warn':p.status==='Paid'?'pos':'')},
       {label:'أيام التأخير', num:true, get:p=>p._daysOverdue, render:p=>p._daysOverdue?`<b class="neg-t">${p._daysOverdue}</b>`:'—'}
     ]});
   }
@@ -294,7 +298,7 @@ const Records = (function(){
         const wf = [['سعر القائمة (السعر الرسمي + الإضافات)', s.listPrice],['− الخصم', -s.discount],['= سعر البيع', s.sellingPrice],['− تكلفة المركبة', -s.cost],['= إجمالي الربح', s.grossProfit],
                     ['+ إيراد التمويل', s.financeIncome],['+ إيرادات أخرى (إكسسوارات/ضمان)', s.otherIncome],['− تكلفة الاستحواذ التسويقية', -s.acquisitionCost],['= المساهمة التقديرية', s.contribution]];
         const steps = [['عميل محتمل', l?.date],['تأهيل', l?.qualifiedDate],['تجربة قيادة', l?.testDriveDate],['عرض سعر', l?.offerDate],['حجز', l?.reservationDate],['بيع', s.date],['تسليم', s.deliveryStatus==='Delivered'?s.deliveryDate:null]];
-        body.innerHTML = `<div class="rec-grid">
+        body.innerHTML = `<div class="rec-id">${vehicleIdentity(t,{unit:v})}</div><div class="rec-grid">
           ${sec('ملخص الصفقة', kv([['المركبة', `<b>${esc(L.vehicleY(t))}</b>`],['رقم الهيكل', `<code>${v?.vin}</code>`],['اللون', `${L.color(v?.exteriorColor)} / ${L.interior(v?.interiorColor)}`],
             ['الفرع', L.branch(s.branchId)],['مستشار المبيعات', esc(L.sp(s.salespersonId))],['العميل', `${esc(s._cust.name)} · ${L.custType(s.customerType)}`],
             ['مصدر العميل', L.source(s.source)],['الحملة', esc(L.campaign(s.campaignId))],['أيام في المخزون قبل البيع', fmt.days(s.daysInInventory)],['حالة التسليم', `${AR.delivery[s.deliveryStatus]} · ${fmt.date(s.deliveryDate)}`]]),'receipt')}
@@ -304,14 +308,14 @@ const Records = (function(){
             s.paymentMethod==='Finance'&&['الدفعة الأولى', fmt.sar(s.downPayment)], s.paymentMethod==='Finance'&&['المبلغ الممول', fmt.sar(s.financedAmount)],
             s.paymentMethod==='Finance'&&['القسط الشهري', `${fmt.sar(s.installmentAmount)} × ${s.installments}`], s.paymentMethod==='Finance'&&['حالة العقد', statusPill(AR.contract[s.contractStatus],{Default:'neg',Late:'warn',Settled:'pos'}[s.contractStatus])],
             ['إجمالي قيمة العقد', fmt.sar(s.contractTotal)],['المحصّل', fmt.sar(s.collected)],['المتبقي', fmt.sar(s.outstanding)],['المتأخر', s.overdueAmount?`<b class="neg-t">${fmt.sar(s.overdueAmount)}</b> · ${s.maxDaysOverdue} يوم`:'—'],
-            ['الدفعة القادمة', fmt.date(s.nextDueDate)],['حالة التحصيل', statusPill(AR.collection[s.collectionStatus], s.collectionStatus==='Overdue'?'neg':s.collectionStatus==='Collected'?'pos':'')]]),'wallet')}
+            ['الدفعة القادمة', fmt.date(s.nextDueDate)],['حالة التحصيل', statusPill(AR.collection[s.collectionStatus], s.overdueAmount>0?'neg':s.collectionStatus==='Collected'?'pos':'')]]),'wallet')}
         </div><h5 class="rec-h">جدول الدفعات</h5><div class="d-table"></div>`;
         DataTable(body.querySelector('.d-table'), {rows:pays, pageSize:12, searchable:false, exportName:'schedule-'+s.saleId, columns:[
           {label:'الدفعة', get:p=>p.seq, render:p=>AR.payType[p.type]+(p.type==='Installment'?` ${p.seq}`:'')},
           {label:'الاستحقاق', get:p=>p._due, render:p=>fmt.date(p.dueDate)},
           {label:'المبلغ', num:true, get:p=>p.amount, render:p=>fmt.sar(p.amount)},
           {label:'تاريخ الدفع', get:p=>p._paid??Infinity, render:p=>fmt.date(p.paidDate)},
-          {label:'الحالة', get:p=>p.status, render:p=>statusPill(AR.payStatus[p.status], p.status==='Overdue'?'neg':p.status==='Paid'?'pos':p.status==='Paid Late'?'warn':'')}
+          {label:'الحالة', get:p=>p.status, render:p=>statusPill(AR.payStatus[p.status], p._od?'neg':p.late?'warn':p.status==='Paid'?'pos':'')}
         ]});
       }});
   }
@@ -319,14 +323,17 @@ const Records = (function(){
   function vehicle(vehicleId){
     const v = DB.idx.vehicle.get(vehicleId); if(!v) return;
     const rec = DB.vehicleRecord(vehicleId), t=v._t, T=DB.meta.todayDay;
-    const AR_F = {'Vehicle ID':'معرّف المركبة','VIN':'رقم الهيكل','Brand':'العلامة','Model':'الطراز','Generation':'الجيل','Year':'سنة الطراز','Trim':'الفئة','Body Type':'نوع الهيكل','Segment':'الفئة السوقية',
-      'Fuel Type':'نوع الوقود','Engine':'المحرك','Transmission':'ناقل الحركة','Exterior Color':'اللون الخارجي','Interior Color':'اللون الداخلي','MSRP':'السعر الرسمي','Selling Price':'سعر البيع','Discount':'الخصم',
-      'Cost':'التكلفة','Gross Profit':'إجمالي الربح','Margin':'الهامش','Stock':'متاح (نفس الفئة)','Reserved':'محجوز (نفس الفئة)','Sold':'مباع (نفس الفئة)','Days in Inventory':'الأيام في المخزون',
+    const AR_F = {'Vehicle ID':'معرّف المركبة','VIN':'رقم الهيكل','Brand':'العلامة','Model':'الطراز','Generation':'الجيل','Year':'سنة الطراز','Trim':'الفئة','Body Type':'نوع الهيكل','Price Segment':'الشريحة السعرية',
+      'Powertrain':'نوع المحرك','Engine':'المحرك','Transmission':'ناقل الحركة','Drive Type':'نظام الدفع','Distributor':'الموزع','Exterior Color':'اللون الخارجي','Interior Color':'اللون الداخلي','MSRP':'السعر الرسمي',
+      'Dealer Cost':'تكلفة الوكيل','Current Price':'السعر الحالي','Selling Price':'سعر البيع','Discount':'الخصم','Status':'الحالة','Transferred From':'منقولة من فرع',
+      'Gross Profit':'إجمالي الربح','Margin':'الهامش','Stock':'متاح (نفس الفئة)','Reserved':'محجوز (نفس الفئة)','Sold':'مباع (نفس الفئة)','Days in Inventory':'الأيام في المخزون',
       'Average Days to Sell':'متوسط أيام البيع (نفس الفئة)','Branch':'الفرع','Salesperson':'مستشار المبيعات','Lead Source':'مصدر العميل','Campaign':'الحملة','Customer Type':'نوع العميل','Payment Method':'طريقة الدفع',
       'Cash Amount':'المبلغ النقدي','Financed Amount':'المبلغ الممول','Down Payment':'الدفعة الأولى','Installment Amount':'القسط','Outstanding Amount':'المتبقي','Collection Status':'حالة التحصيل',
       'Delivery Status':'حالة التسليم','Image':'الصورة','3D Asset':'النموذج ثلاثي الأبعاد','Source URL':'رابط المصدر','Asset License / Source Metadata':'ترخيص/مصدر الأصل'};
     const val = (k,x)=>{ if(x==null) return '—';
-      if(['MSRP','Selling Price','Discount','Cost','Gross Profit','Cash Amount','Financed Amount','Down Payment','Installment Amount','Outstanding Amount'].includes(k)) return fmt.sar(x);
+      if(['MSRP','Dealer Cost','Current Price','Selling Price','Discount','Gross Profit','Cash Amount','Financed Amount','Down Payment','Installment Amount','Outstanding Amount'].includes(k)) return fmt.sar(x);
+      if(k==='Brand') return `<span class="bcell">${brandMark(x,{size:'sm'})}<b>${esc(x)}</b></span>`; if(k==='Body Type') return L.body(x); if(k==='Powertrain') return L.pt(x); if(k==='Price Segment') return L.priceSeg(x);
+      if(k==='Status') return AR.vStatus[x]||x; if(k==='Transferred From') return L.branch(x);
       if(k==='Margin') return fmt.pct(x); if(k==='Branch') return L.branch(x); if(k==='Exterior Color') return L.color(x); if(k==='Interior Color') return L.interior(x);
       if(k==='Lead Source') return L.source(x); if(k==='Customer Type') return L.custType(x); if(k==='Payment Method') return L.payment(x);
       if(k==='Collection Status') return AR.collection[x]; if(k==='Delivery Status') return AR.delivery[x]; if(k==='Fuel Type') return L.fuel(x); if(k==='Segment') return L.segment(x);
@@ -335,9 +342,9 @@ const Records = (function(){
     const r = v.saleId ? null : Drill.recommend(v, T-v._arr);
     Drawer.push({title:L.vehicleY(t), crumb:v.vin.slice(-8), subtitle:`<code>${v.vin}</code> · ${statusPill(AR.vStatus[v.status], v.status==='Sold'?'pos':v.status==='Reserved'?'gold':'')}`,
       actions:[...(v.saleId?[{label:'عرض صفقة البيع', icon:'receipt', fn:()=>sale(v.saleId)}]:[]),
-               {label:'عرضها في صالة العرض', icon:'box', primary:true, fn:()=>{ Store.set({vehicleId:v.vehicleId},'drawer'); Drawer.close(); document.getElementById('stage')?.scrollIntoView({behavior:'smooth',block:'center'}); }}],
+               {label:'عرضها في صالة العرض', icon:'box', primary:true, fn:()=>{ Store.set({vehicleId:v.vehicleId},'drawer'); Drawer.close(); App.showTab('vehicles'); }}],
       render(body){
-        body.innerHTML = `${r?`<div class="d-note ${r.tone}">${ic('lightbulb')} الإجراء المقترح: <b>${r.t}</b> — ${T-v._arr} يوماً في المخزون، تكلفة ${fmt.sar(v.purchaseCost)}.</div>`:''}
+        body.innerHTML = `<div class="rec-id">${vehicleIdentity(t,{unit:v})}</div>${r?`<div class="d-note ${r.tone}">${ic('lightbulb')} الإجراء المقترح: <b>${r.t}</b> — ${T-v._arr} يوماً في المخزون، تكلفة ${fmt.sar(v.purchaseCost)}.</div>`:''}
           ${sec('سجل المركبة الموحد', kv(DATA_SCHEMA.vehicleRecordFields.map(k=>[AR_F[k]||k, val(k, rec[k])])),'clipboard-list')}
           <p class="muted sm">${ic('info')} الحقول الفارغة تعني أن البيانات غير متوفرة لهذه المركبة (مثل تفاصيل البيع لمركبة غير مباعة، أو عدم توفر نموذج ثلاثي الأبعاد مرخّص).</p>`;
       }});

@@ -37,7 +37,7 @@ window.DataSource = (function(){
     const today = raw.meta?.today || new Date().toISOString().slice(0,10);
     const T = day(today);
     const DB = {
-      branches: raw.branches, salespeople: raw.salespeople, trims: raw.trims, vehicles: raw.vehicles,
+      branches: raw.branches, salespeople: raw.salespeople, brands: raw.brands || window.BRANDS || [], distributors: raw.distributors || window.DISTRIBUTORS || [], trims: raw.trims, vehicles: raw.vehicles,
       customers: raw.customers, leads: raw.leads, sales: raw.sales, payments: raw.payments,
       campaigns: raw.campaigns, marketingSpend: raw.marketingSpend,
       colors: raw.colors || CATALOG_REFERENCE.colors, interiors: raw.interiors || CATALOG_REFERENCE.interiors,
@@ -51,14 +51,17 @@ window.DataSource = (function(){
     I.trim = byId(DB.trims,'trimId'); I.vehicle = byId(DB.vehicles,'vehicleId'); I.customer = byId(DB.customers,'customerId');
     I.lead = byId(DB.leads,'leadId'); I.sale = byId(DB.sales,'saleId'); I.campaign = byId(DB.campaigns,'campaignId');
     I.color = byId(DB.colors,'id'); I.interior = byId(DB.interiors,'id');
+    I.brand = byId(DB.brands,'name'); I.distributor = byId(DB.distributors,'id');
 
     // ---- trims: add model key for hierarchy navigation
-    DB.trims.forEach(t=>{ t._modelKey = t.brand+'|'+t.model; });
+    DB.trims.forEach(t=>{ t._modelKey = t.brand+'|'+t.model; t.priceSegment ??= (t.msrp<90000?'Economy':t.msrp<180000?'Mainstream':t.msrp<350000?'Premium':'Luxury'); t.powertrain ??= t.fuelType; });
 
     // ---- vehicles
     DB.vehicles.forEach(v=>{
-      v._t = I.trim.get(v.trimId); v._arr = day(v.arrivalDate); v._sold = day(v.soldDate);
-      v._ageToday = v._sold==null ? T - v._arr : null;
+      v._t = I.trim.get(v.trimId); v._arr = day(v.arrivalDate); v._sold = day(v.soldDate); v._res = day(v.reservationDate);
+      v.distributorId ??= v._t?.distributorId;
+      v._inTransit = v.status==='In Transit' || (v._sold==null && v._arr > T);
+      v._ageToday = v._sold==null && !v._inTransit ? T - v._arr : null;
     });
 
     // ---- leads
@@ -72,8 +75,10 @@ window.DataSource = (function(){
     const paysBySale = new Map();
     DB.payments.forEach(p=>{
       p._due = day(p.dueDate); p._paid = day(p.paidDate);
-      p.status = p._paid!=null ? (p._paid > p._due+3 ? 'Paid Late' : 'Paid') : (p._due < T ? 'Overdue' : 'Scheduled');
-      p._daysOverdue = p.status==='Overdue' ? T-p._due : 0;
+      p._daysOverdue = p._paid==null && p._due < T ? T-p._due : 0;
+      p.late = p._paid!=null && p._paid > p._due+3;
+      p.status = p._paid!=null ? 'Paid' : p._daysOverdue>90 ? '90+ Days Overdue' : p._daysOverdue>0 ? 'Overdue' : 'Not Yet Due';
+      p._od = p._daysOverdue>0;
       (paysBySale.get(p.saleId) || paysBySale.set(p.saleId,[]).get(p.saleId)).push(p);
     });
     I.paymentsBySale = paysBySale;
@@ -91,19 +96,19 @@ window.DataSource = (function(){
       pays.forEach(p=>p._s=s);
       const contractTotal = s.paymentMethod==='Finance' ? s.downPayment + s.installmentAmount*s.installments : s.sellingPrice;
       const paid = pays.reduce((a,p)=>a+p.paidAmount,0);
-      const overdue = pays.filter(p=>p.status==='Overdue');
+      const overdue = pays.filter(p=>p._od);
       s.contractTotal = contractTotal;
       s.collected = paid;
       s.outstanding = Math.max(0, contractTotal - paid);
       s.overdueAmount = overdue.reduce((a,p)=>a+p.amount,0);
       s.maxDaysOverdue = overdue.reduce((a,p)=>Math.max(a,p._daysOverdue),0);
-      const next = pays.filter(p=>p.status==='Scheduled').sort((a,b)=>a._due-b._due)[0];
+      const next = pays.filter(p=>p.status==='Not Yet Due').sort((a,b)=>a._due-b._due)[0];
       s.nextDueDate = next ? next.dueDate : null;
-      s.collectionStatus = s.outstanding<=0 ? 'Collected' : s.overdueAmount>0 ? 'Overdue' : 'On Schedule';
+      s.collectionStatus = s.outstanding<=0 ? 'Collected' : s.maxDaysOverdue>90 ? '90+ Days Overdue' : s.overdueAmount>0 ? 'Overdue' : 'Not Yet Due';
       if(s.paymentMethod==='Finance'){
         const inst = pays.filter(p=>p.type==='Installment');
         s.installmentsPaid = inst.filter(p=>p._paid!=null).length;
-        const missed = inst.filter(p=>p.status==='Overdue').length;
+        const missed = inst.filter(p=>p._od).length;
         s.contractStatus = s.outstanding<=0 ? 'Settled' : (s.maxDaysOverdue>60 || missed>=3) ? 'Default' : s.maxDaysOverdue>0 ? 'Late' : 'Current';
       }
     });
@@ -127,16 +132,18 @@ window.DataSource = (function(){
     const soldSib = DB.sales.filter(x=>x.trimId===v.trimId);
     const sp = s && DB.idx.salesperson.get(s.salespersonId);
     const camp = s && s.campaignId && DB.idx.campaign.get(s.campaignId);
+    const dist = DB.idx.distributor.get(v.distributorId);
     return {
       'Vehicle ID':v.vehicleId, 'VIN':v.vin, 'Brand':t.brand, 'Model':t.model, 'Generation':t.generation, 'Year':t.year, 'Trim':t.trim,
-      'Body Type':t.bodyType, 'Segment':t.segment, 'Fuel Type':t.fuelType, 'Engine':t.engine, 'Transmission':t.transmission,
-      'Exterior Color':v.exteriorColor, 'Interior Color':v.interiorColor, 'MSRP':t.msrp,
-      'Selling Price':s?s.sellingPrice:null, 'Discount':s?s.discount:null, 'Cost':v.purchaseCost,
-      'Gross Profit':s?s.grossProfit:null, 'Margin':s?s.margin:null,
+      'Body Type':t.bodyType, 'Price Segment':t.priceSegment, 'Powertrain':t.powertrain, 'Engine':t.engine, 'Transmission':t.transmission, 'Drive Type':t.drivetrain,
+      'Distributor':dist ? dist.name : null,
+      'Exterior Color':v.exteriorColor, 'Interior Color':v.interiorColor, 'MSRP':t.msrp, 'Dealer Cost':v.purchaseCost, 'Current Price':v.listPrice,
+      'Selling Price':s?s.sellingPrice:null, 'Discount':s?s.discount:null,
+      'Gross Profit':s?s.grossProfit:null, 'Margin':s?s.margin:null, 'Status':v.status,
       'Stock':sib.filter(x=>x.status==='Available').length, 'Reserved':sib.filter(x=>x.status==='Reserved').length, 'Sold':soldSib.length,
       'Days in Inventory': s ? s.daysInInventory : v._ageToday,
       'Average Days to Sell': soldSib.length ? Math.round(soldSib.reduce((a,x)=>a+x.daysInInventory,0)/soldSib.length) : null,
-      'Branch':v.branchId, 'Salesperson':sp?sp.name:null, 'Lead Source':s?s.source:null, 'Campaign':camp?camp.name:null,
+      'Branch':v.branchId, 'Transferred From':v.transferFrom, 'Salesperson':sp?sp.name:null, 'Lead Source':s?s.source:null, 'Campaign':camp?camp.name:null,
       'Customer Type':s?s.customerType:null, 'Payment Method':s?s.paymentMethod:null,
       'Cash Amount':s?s.cashAmount:null, 'Financed Amount':s?s.financedAmount:null, 'Down Payment':s?s.downPayment:null,
       'Installment Amount':s?s.installmentAmount:null, 'Outstanding Amount':s?s.outstanding:null,

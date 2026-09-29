@@ -631,3 +631,104 @@ footer{padding:36px 0 44px;font-size:11.5px;color:var(--faint);display:flex;just
   .stat{border-inline-start:0;border-top:1px solid var(--line)}
 }
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ---------- brand marks & vehicle identity ---------- */
+.bm{display:inline-grid;place-items:center;flex:none;background:#fff;border-radius:10px;box-shadow:inset 0 0 0 1px var(--line);overflow:hidden}
+.bm svg{width:70%;height:70%}
+.bm img{max-width:78%;max-height:70%}
+.bm-sm{width:28px;height:28px;border-radius:8px}
+.bm-md{width:38px;height:38px}
+.bm-lg{width:56px;height:56px;border-radius:14px}
+.bm-text b{font-family:Inter,sans-serif;font-weight:700;letter-spacing:.06em;color:#1f2937;direction:ltr;line-height:1}
+.bm-sm.bm-text b{font-size:6.5px}.bm-md.bm-text b{font-size:8.5px}.bm-lg.bm-text b{font-size:11px}
+.bcell{display:inline-flex;align-items:center;gap:10px}
+.bcell b{display:block;font-weight:500;font-family:Inter,var(--font)}
+.bcell small{display:block;font-size:10.5px;color:var(--muted)}
+.vid{display:flex;align-items:center;gap:14px}
+.vid-t{display:flex;flex-direction:column;min-width:0}
+.vid-b{font-size:11.5px;color:var(--muted)}
+.vid-m{font-family:Inter,var(--font);font-size:26px;font-weight:300;line-height:1.15;direction:ltr;text-align:right}
+.vid-y{font-size:13px;color:var(--ink)}
+.vid-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.vid-tags em{font-style:normal;font-size:10.5px;padding:2px 8px;border-radius:999px;background:#F3F4F6;color:#374151}
+
+/* ---------- v3: health strip ---------- */
+.health{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px}
+.hl{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border-radius:18px;background:var(--surface);box-shadow:var(--shadow);border-top:3px solid var(--faint);transition:transform .25s var(--ease)}
+.hl:hover{transform:translateY(-2px)}
+.hl.up{border-top-color:var(--pos)} .hl.flat{border-top-color:var(--warn)} .hl.down{border-top-color:var(--neg)}
+.hl-h{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);font-weight:500}
+.hl-h i{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.hl.up .hl-h i{background:var(--pos)} .hl.flat .hl-h i{background:var(--warn)} .hl.down .hl-h i{background:var(--neg)}
+.hl-h em{font-style:normal;margin-inline-start:auto;font-size:11px;padding:1px 8px;border-radius:999px;background:#F3F4F6}
+.hl.up .hl-h em{color:var(--pos);background:rgba(22,163,74,.08)} .hl.flat .hl-h em{color:#B45309;background:rgba(245,158,11,.1)} .hl.down .hl-h em{color:var(--neg);background:rgba(220,38,38,.08)}
+.hl b{font-size:18px;font-weight:400;white-space:nowrap}
+.hl small{font-size:11.5px;color:var(--muted)}
+
+/* ---------- v3: SVG funnel ---------- */
+.funnel-svg svg{display:block;overflow:visible}
+.fn{cursor:pointer}
+.fn path{transition:opacity .2s, filter .2s}
+.fn:hover path{filter:brightness(1.25)}
+.fn.sel path{stroke:var(--gold);stroke-width:2}
+.fn-n{fill:#fff;font:600 12.5px Inter,sans-serif}
+.fn-n.out{fill:#fff;paint-order:stroke;stroke:#151515;stroke-width:3px}
+.fn-l{fill:#111;font:500 12.5px 'IBM Plex Sans Arabic',sans-serif}
+.fn-c{fill:#6B7280;font:500 11.5px Inter,sans-serif}
+.fn-cap{fill:#9CA3AF;font:10px 'IBM Plex Sans Arabic',sans-serif}
+
+/* ---------- v3: inventory risk & capital by brand ---------- */
+.ir-top{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.ir-top div{padding:12px 14px;border-radius:14px;background:#F7F7F9}
+.ir-top b{display:block;font-size:20px;font-weight:400}
+.ir-top small{font-size:11.5px;color:var(--muted)}
+.ir-bar{display:flex;height:16px;border-radius:8px;overflow:hidden;gap:2px;background:#F3F4F6}
+.ir-bar button{height:100%;transition:filter .2s}
+.ir-bar button:hover{filter:brightness(1.2)}
+.ir-leg{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:8px}
+.ir-leg button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:6px;border-radius:8px;font-size:11px;color:var(--muted)}
+.ir-leg button:hover{background:#F7F7F9}
+.ir-leg i{width:8px;height:8px;border-radius:2px;display:inline-block;margin-inline-end:4px}
+.ir-leg b{font-size:12px;color:var(--ink);font-weight:500}
+.ir-h{font-size:12px;font-weight:500;margin:14px 0 6px;color:var(--muted)}
+.cb{display:grid;grid-template-columns:190px 1fr 110px;align-items:center;gap:12px;padding:6px 4px;border-radius:12px}
+.cb.sel{background:#FBF9F4}
+.cb-n{display:flex;align-items:center;gap:10px;text-align:start}
+.cb-n b{display:block;font-size:13px;font-weight:500;font-family:Inter,var(--font)}
+.cb-n small{display:block;font-size:11px;color:var(--muted)}
+.cb-bar{display:flex;height:14px;border-radius:7px;overflow:hidden;gap:1px}
+.cb-bar button{height:100%;min-width:2px;transition:filter .2s}
+.cb-bar button:hover{filter:brightness(1.2)}
+.cb-v{font-size:13px;text-align:end}
+.bmrow{display:inline-flex;gap:4px}
+
+/* ---------- v3: scorecards ---------- */
+.sc{display:inline-block;padding:2px 8px;border-radius:7px}
+.sc.bad{background:rgba(220,38,38,.09);color:var(--neg);font-weight:500}
+.sc.good{background:rgba(22,163,74,.08);color:var(--pos)}
+
+/* ---------- v3: logos in lists / catalog / hero ---------- */
+.rk .bm{margin-inline-end:-2px}
+.rk.mp{grid-template-columns:auto minmax(0,1.5fr) .8fr auto}
+.vt-logo{margin:4px 0 6px}
+.cat-id{display:flex;align-items:center;gap:14px}
+.eyebrow{display:flex;align-items:center;justify-content:center;gap:10px}
+.eyebrow .bm{box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.rec-id{background:var(--surface);border-radius:16px;padding:16px;margin-bottom:12px;box-shadow:0 1px 0 var(--line)}
+.filter .f-v .bm{vertical-align:middle;margin-inline-end:6px;width:20px;height:20px;border-radius:6px}
+.popover .opt .bm{width:24px;height:24px;border-radius:7px}
+table.heat tbody th .bcell{gap:8px}
+.ins.action .ic{color:var(--gold)}
+.ins.action .tag{color:var(--gold)}
+@media (max-width:1280px){ .health{grid-template-columns:repeat(3,1fr)} }
+@media (max-width:760px){ .health{grid-template-columns:1fr 1fr} .cb{grid-template-columns:1fr;gap:4px} .cb-v{text-align:start} .ir-leg{grid-template-columns:repeat(3,1fr)} }
+
+.rk.rk5{grid-template-columns:auto auto minmax(0,1.4fr) 1fr auto}
+.hl,.kpi,.dt,.card{min-width:0}
+@media (max-width:760px){
+  .hl{padding:12px}
+  .hl b{white-space:normal;font-size:15px;line-height:1.3}
+  .hl-h em{display:none}
+  .kpi .k-v{font-size:19px;white-space:normal;line-height:1.25}
+  .kpi.hero-kpi .k-v{font-size:26px}
+}

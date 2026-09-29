@@ -66,9 +66,43 @@
 
   <!-- ============================ OVERVIEW ============================ -->
   <section class="tab-pane" data-pane="overview">
-    <div class="sec-h"><h2><small>كيف نؤدي؟ وما الذي تغيّر؟</small>النبض التنفيذي</h2><p class="scope-line"></p></div>
+    <div class="sec-h"><h2><small>كيف تؤدي الوكالة الآن؟ وما الذي يتطلب قراراً؟</small>النبض التنفيذي</h2><p class="scope-line"></p></div>
+    <div class="health" id="health"></div>
     <div class="kpis pulse" id="pulse"></div>
+    <div class="grid">
+      <div class="card c7 flexcol">
+        <div class="card-h"><div><h3>اتجاه الأداء</h3><p id="monthly-sub"></p></div>
+          <div class="seg sm" id="monthlyMetric"><button data-v="revenue" class="active">الإيرادات</button><button data-v="units">الوحدات</button><button data-v="gp">الربح</button><button data-v="margin">الهامش</button></div></div>
+        <div class="chart-box tall"><canvas id="monthlyChart"></canvas></div>
+      </div>
+      <div class="card c5 insights-card">
+        <div class="card-h"><div><h3>ما الذي يتطلب قراراً؟</h3><p>تنبيهات وتوصيات مولّدة من البيانات فقط — لكل منها دليل وسجلات</p></div>
+          <div class="seg sm dark" id="alertMode"><button data-v="recs" class="active">التوصيات</button><button data-v="alerts">التنبيهات</button></div></div>
+        <ul class="ins-list" id="insights"></ul>
+      </div>
+      <div class="card c7">
+        <div class="card-h"><div><h3>أداء العلامات</h3><p id="brandperf-sub">المبيعات والربحية والمخزون لكل علامة — اضغط أي علامة للتفاصيل</p></div><button class="info-btn" data-info="margin"><i data-lucide="info"></i></button></div>
+        <div id="brandPerf"></div>
+      </div>
+      <div class="card c5">
+        <div class="card-h"><div><h3>أداء الطرازات</h3><p id="modelperf-sub"></p></div>
+          <div class="seg sm" id="modelPerfMode"><button data-v="top" class="active">الأعلى مساهمة</button><button data-v="weak">تحتاج انتباه</button></div></div>
+        <div class="ranking" id="modelPerf"></div>
+      </div>
+      <div class="card c6">
+        <div class="card-h"><div><h3>مخاطر المخزون</h3><p id="invrisk-sub">أين يتجمد رأس المال؟</p></div><button class="info-btn" data-info="aged90"><i data-lucide="info"></i></button></div>
+        <div id="invRisk"></div>
+      </div>
+      <div class="card c6">
+        <div class="card-h"><div><h3>قمع المبيعات</h3><p>من العميل المحتمل حتى التسليم — اضغط أي مرحلة لعرض سجلاتها</p></div><button class="info-btn" data-info="leadConv"><i data-lucide="info"></i></button></div>
+        <div class="funnel-svg" id="funnelMini"></div>
+      </div>
+    </div>
+  </section>
 
+  <!-- ============================ VEHICLES (explorer + 3D) ============================ -->
+  <section class="tab-pane" data-pane="vehicles" hidden>
+    <div class="sec-h"><h2><small>العلامة ← الطراز ← سنة الطراز ← الفئة ← الوحدة ← رقم الهيكل</small>مستكشف المركبات</h2><p class="scope-line"></p></div>
     <div class="hero">
       <div class="stage mode-catalog" id="stage">
         <canvas id="car-canvas" aria-label="عرض ثلاثي الأبعاد للمركبة: اسحب للتدوير، مرر للتكبير، انقر مرتين لإعادة الضبط"></canvas>
@@ -112,26 +146,6 @@
         </aside>
       </div>
     </div>
-
-    <div class="grid">
-      <div class="card c5 insights-card">
-        <div class="card-h"><div><h3>رؤى تنفيذية</h3><p>تُولَّد من البيانات الفعلية فقط — لكل رؤية سببها ودليلها وسجلاتها</p></div><span class="badge"><i data-lucide="sparkles"></i>تلقائية</span></div>
-        <ul class="ins-list" id="insights"></ul>
-      </div>
-      <div class="card c7 flexcol">
-        <div class="card-h"><div><h3>الأداء الشهري</h3><p id="monthly-sub"></p></div>
-          <div class="seg sm" id="monthlyMetric"><button data-v="revenue" class="active">الإيرادات</button><button data-v="units">الوحدات</button><button data-v="gp">الربح</button><button data-v="margin">الهامش</button></div></div>
-        <div class="chart-box tall"><canvas id="monthlyChart"></canvas></div>
-      </div>
-      <div class="card c7">
-        <div class="card-h"><div><h3>أين تتركز الإيرادات؟</h3><p id="treemap-sub"></p></div><button class="info-btn" data-info="revenue"><i data-lucide="info"></i></button></div>
-        <div class="treemap" id="treemap"></div>
-      </div>
-      <div class="card c5">
-        <div class="card-h"><div><h3>ما الذي تغيّر؟</h3><p id="movers-sub"></p></div></div>
-        <div class="movers" id="movers"></div>
-      </div>
-    </div>
   </section>
 
   <!-- ============================ SALES ============================ -->
@@ -157,12 +171,13 @@
         <div class="card-h"><div><h3>طرازات متراجعة</h3><p>انخفاض الوحدات مقارنة بالفترة السابقة (6 وحدات فأكثر)</p></div></div>
         <div class="movers" id="declining"></div>
       </div>
-      <div class="card c5">
-        <div class="card-h"><div><h3>أداء الفروع</h3><p>الإيرادات · الهامش · سرعة البيع</p></div></div>
-        <div class="ranking" id="branches"></div>
+      <div class="card c12">
+        <div class="card-h"><div><h3>أي الفروع تحتاج انتباهاً؟</h3><p>بطاقة أداء الفروع مقارنة بمتوسط المجموعة — الأحمر: أسوأ من المتوسط بشكل ملحوظ · اضغط الفرع للتفاصيل</p></div></div>
+        <div id="branches"></div>
       </div>
-      <div class="card c7">
-        <div class="card-h"><div><h3>مستشارو المبيعات</h3><p>التحويل = المبيعات ÷ العملاء المحتملين المسندين</p></div></div>
+      <div class="card c12">
+        <div class="card-h"><div><h3>أي المستشارين يحتاجون انتباهاً؟</h3><p>التحويل = المبيعات ÷ العملاء المسندين · الإشارات: خصم أعلى من الفريق بـ50% أو تحويل أقل بـ25%</p></div>
+          <div class="seg sm" id="spMode"><button data-v="flag" class="active">يحتاجون انتباه</button><button data-v="all">الجميع</button></div></div>
         <div id="salespeople"></div>
       </div>
     </div>
@@ -175,7 +190,7 @@
     <div class="grid">
       <div class="card c5">
         <div class="card-h"><div><h3>قمع المبيعات</h3><p>اضغط أي مرحلة لعرض السجلات المكوّنة لها</p></div></div>
-        <div class="funnel" id="funnel"></div>
+        <div class="funnel-svg" id="funnel"></div>
         <div class="funnel-foot" id="funnel-foot"></div>
       </div>
       <div class="card c7">
@@ -191,7 +206,7 @@
         <div class="chart-box tall"><canvas id="srcChart"></canvas></div>
       </div>
       <div class="card c5">
-        <div class="card-h"><div><h3>شرائح العملاء</h3><p>حصة الإيرادات، الهامش والخصم لكل شريحة</p></div></div>
+        <div class="card-h"><div><h3>شرائح العملاء</h3><p>فرد · عائلة · تنفيذي · أسطول · شركة · جهة حكومية — حصة الإيرادات والهامش والخصم</p></div></div>
         <div class="ranking" id="custTypes"></div>
       </div>
       <div class="card c12">
@@ -203,9 +218,14 @@
 
   <!-- ============================ INVENTORY ============================ -->
   <section class="tab-pane" data-pane="inventory" hidden>
-    <div class="sec-h"><h2><small>ماذا لدينا؟ وما الذي يتقادم أو ينقص؟</small>المخزون</h2><p class="scope-line"></p></div>
+    <div class="sec-h"><h2><small>أين يتجمد رأس المال؟ وما الذي يتقادم أو ينقص؟</small>المخزون</h2><p class="scope-line"></p></div>
     <div class="card stats" id="inv-stats"></div>
     <div class="grid">
+      <div class="card c12">
+        <div class="card-h"><div><h3>رأس المال المحتجز حسب العلامة</h3><p>قيمة المخزون (تكلفة الوكيل) موزعة على أعمار المخزون — الأطول = رأس مال أكبر · اضغط أي علامة أو فئة عمرية</p></div>
+          <div class="legend"><span><i style="background:#151515"></i>0–30</span><span><i style="background:#6B7280"></i>31–60</span><span><i style="background:#B89B5E"></i>61–90</span><span><i style="background:#F59E0B"></i>91–120</span><span><i style="background:#DC2626"></i>+120 يوماً</span></div></div>
+        <div id="capBrand"></div>
+      </div>
       <div class="card c5">
         <div class="card-h"><div><h3>أعمار المخزون</h3><p>اضغط أي فئة عمرية لعرض المركبات والإجراء المقترح</p></div><button class="info-btn" data-info="aged90"><i data-lucide="info"></i></button></div>
         <div class="aging" id="aging"></div>
@@ -217,6 +237,10 @@
       <div class="card c4"><div class="card-h"><div><h3>طلب مرتفع · مخزون منخفض</h3><p>تغطية أقل من 30 يوماً</p></div></div><div class="movers" id="under"></div></div>
       <div class="card c4"><div class="card-h"><div><h3>طلب منخفض · مخزون مرتفع</h3><p>تغطية أكثر من 90 يوماً</p></div></div><div class="movers" id="over"></div></div>
       <div class="card c4"><div class="card-h"><div><h3>معرّض لخطر الخصم</h3><p>مركبات تجاوزت 90 يوماً</p></div></div><div class="movers" id="discountRisk"></div></div>
+      <div class="card c12">
+        <div class="card-h"><div><h3>التعرض حسب الموزع</h3><p>المخزون والمركبات في الطريق والمشتريات حسب جهة التوزيع — علاقات الموزعين المُبلّغ عنها تحتاج تحققاً قبل الإنتاج</p></div></div>
+        <div id="distTable"></div>
+      </div>
       <div class="card c12">
         <div class="card-h"><div><h3>التوفر حسب الفرع والعلامة</h3><p>عدد المركبات القابلة للبيع (متاحة ومحجوزة) — اضغط أي خلية لعرض الوحدات</p></div></div>
         <div class="heat-wrap" id="heat"></div>
@@ -282,6 +306,7 @@
 
 <!-- Data layer (swap demo for production in data/data-source.js) -->
 <script src="data/schema.js"></script>
+<script src="data/brands.js"></script>
 <script src="data/catalog.js"></script>
 <script src="data/demo-generator.js"></script>
 <script src="data/data-source.js"></script>

@@ -181,3 +181,19 @@ function animateValue(el, to, format, dur=800){
 }
 function barCell(v, max, color='var(--dark)'){ const w = max? clamp(v/max,0,1)*100 : 0; return `<span class="barcell"><i style="width:${w}%;background:${color}"></i></span>`; }
 function statusPill(text, tone){ return `<span class="pill ${tone||''}">${esc(text)}</span>`; }
+
+/* ---------- brand identity (never substitutes another brand's mark) ---------- */
+function brandMark(name, {size='md', mono=false}={}){
+  const b = (typeof DB!=='undefined' && DB && DB.idx.brand && DB.idx.brand.get(name)) || (window.BRANDS||[]).find(x=>x.name===name);
+  if(!b) return `<span class="bm bm-${size} bm-text" title="${esc(name)}"><b>${esc(name)}</b></span>`;
+  if(b.logoFile) return `<span class="bm bm-${size}" title="${esc(b.name)}"><img src="${esc(b.logoFile)}" alt="${esc(b.name)}" onerror="this.parentNode.classList.add('bm-text');this.replaceWith(Object.assign(document.createElement('b'),{textContent:'${esc(b.word||b.name.toUpperCase())}'}))"></span>`;
+  const L = b.logo && window.BRAND_LOGOS && BRAND_LOGOS[b.logo];
+  if(L) return `<span class="bm bm-${size}" title="${esc(b.name)}"><svg viewBox="0 0 24 24" role="img" aria-label="${esc(b.name)}"><path fill="${mono?'currentColor':L.hex}" d="${L.path}"/></svg></span>`;
+  return `<span class="bm bm-${size} bm-text" title="${esc(b.name)} — لا يتوفر شعار رسمي معتمد في هذا الإصدار"><b>${esc(b.word||b.name.toUpperCase())}</b></span>`;
+}
+function brandCell(name){ return `<span class="bcell">${brandMark(name,{size:'sm'})}<span><b>${esc(name)}</b><small>${esc(L.brandAr(name))}</small></span></span>`; }
+function vehicleIdentity(t, {unit=null}={}){
+  return `<div class="vid">${brandMark(t.brand,{size:'lg'})}<div class="vid-t"><span class="vid-b">${esc(t.brand)} · ${esc(L.brandAr(t.brand))}</span>
+    <b class="vid-m"><bdi>${esc(t.model)}</bdi></b><span class="vid-y">${t.year} · <bdi>${esc(t.trim)}</bdi>${unit?` · <code>${unit.vin}</code>`:''}</span>
+    <span class="vid-tags"><em>${L.body(t.bodyType)}</em><em>${L.pt(t.powertrain)}</em><em>${L.priceSeg(t.priceSegment)}</em><em>${esc(t.generation)}</em></span></div></div>`;
+}

@@ -72,7 +72,7 @@ const Insights = {
     }
 
     // 6 — overdue concentrated in one customer type
-    const od = DB.payments.filter(p=>p.status==='Overdue' && p._s._d<=P.end && Q.saleMatch(p._s,f));
+    const od = DB.payments.filter(p=>p._od && p._s._d<=P.end && Q.saleMatch(p._s,f));
     const odTot = od.reduce((a,p)=>a+p.amount,0);
     if(odTot>0 && !f.custType){
       const byT = [...Q.group(od,p=>p._s.customerType)].map(([k,ps])=>({k, v:ps.reduce((a,p)=>a+p.amount,0), n:new Set(ps.map(p=>p.saleId)).size})).sort((a,b)=>b.v-a.v)[0];
@@ -102,14 +102,106 @@ const Insights = {
     const order = {risk:0, watch:1, opp:2, trend:3};
     return out.sort((a,b)=>order[a.tone]-order[b.tone]).slice(0,6);
   },
+  /* ---- RECOMMENDATIONS: what management should do next (each with impact + records) ---- */
+  recommendations(){
+    const P = Periods.get(Store.state.period), f = filtersOf(), T = DB.meta.todayDay, d = Math.min(P.end,T), out = [];
+    const W90 = {start:d-89, end:d};
+    const avgPrice = Q.summarize(Q.sales(f,P)).avgPrice || 0;
+
+    // 1 — transfer aged units to the branch where the model actually sells
+    const units = Q.stockAt(f,d);
+    const aged = units.filter(v=>d-v._arr>60 && v.status==='Available');
+    const leads90 = Q.group(Q.leads({...f, branch:undefined},W90), l=>l._t._modelKey+'|'+l.branchId);
+    const stockBy = Q.group(Q.stockAt({...f, branch:undefined},d), v=>v._t._modelKey+'|'+v.branchId);
+    const moves = {};
+    aged.forEach(v=>{
+      const k=v._t._modelKey, here=(leads90.get(k+'|'+v.branchId)||[]).length/Math.max(1,(stockBy.get(k+'|'+v.branchId)||[]).length);
+      let best=null; DB.branches.forEach(b=>{ if(b.branchId===v.branchId) return; const r=(leads90.get(k+'|'+b.branchId)||[]).length/Math.max(1,(stockBy.get(k+'|'+b.branchId)||[]).length); if(r>=Math.max(2*here,3) && (!best||r>best.r)) best={b:b.branchId,r}; });
+      if(best){ const key=k+'|'+v.branchId+'|'+best.b; (moves[key] ??= {k, from:v.branchId, to:best.b, units:[]}).units.push(v); }
+    });
+    const mv = Object.values(moves).sort((a,b)=>b.units.reduce((s,x)=>s+x.purchaseCost,0)-a.units.reduce((s,x)=>s+x.purchaseCost,0))[0];
+    if(mv){ const val=mv.units.reduce((s,x)=>s+x.purchaseCost,0);
+      out.push({tone:'action', tag:'نقل مخزون', icon:'truck', impact:val,
+        title:`انقل ${mv.units.length} مركبة ${modelName(mv.k)} من ${L.branch(mv.from)} إلى ${L.branch(mv.to)}.`,
+        why:`تجاوزت 60 يوماً في ${L.branch(mv.from)}، بينما الطلب عليها في ${L.branch(mv.to)} أعلى بوضوح لكل وحدة متاحة.`,
+        metric:`رأس مال قابل للتحرير ${fmt.sarC(val)}`,
+        drill:{title:`مخزون ${modelName(mv.k)} · ${L.branch(mv.from)}`, add:{...modelPatch(mv.k), branch:mv.from}, tab:'stock', stock:{ageMin:61, label:'أكثر من 60 يوماً'}}}); }
+
+    // 2 — reorder fast movers before they run out
+    const inv = modelInventory(f,d), medDem = median(inv.map(x=>x.dem));
+    const tr = Q.group(Q.inTransit(f), v=>v._t._modelKey);
+    const re = inv.map(x=>({...x, tr:(tr.get(x.k)||[]).length})).map(x=>({...x, need:Math.ceil(x.vel*1.5 - x.stock - x.tr)})).filter(x=>x.dem>=medDem && x.dos<25 && x.vel>=2 && x.need>0).sort((a,b)=>b.vel-a.vel)[0];
+    if(re){ const t0=DB.trims.find(t=>t._modelKey===re.k); const price=Q.summarize(Q.sales({...f,...modelPatch(re.k)},W90)).avgPrice||t0.msrp;
+      out.push({tone:'action', tag:'إعادة طلب', icon:'package-plus', impact:re.need*price,
+        title:`اطلب ${re.need} مركبة ${modelName(re.k)} من ${L.dist(t0.distributorId)}.`,
+        why:`المخزون الحالي (${re.stock}) و${re.tr} في الطريق يغطيان ${Math.round(re.dos)} يوماً فقط، بينما يُباع ${re.vel.toFixed(1)} مركبة شهرياً والطلب فوق الوسيط.`,
+        metric:`إيرادات محمية تقديرياً ${fmt.sarC(re.need*price)}`,
+        drill:{title:`مخزون ${modelName(re.k)}`, add:modelPatch(re.k), tab:'stock'}}); }
+
+    // 3 — targeted clearance of 120+ day stock
+    const old = units.filter(v=>d-v._arr>120 && v.status==='Available');
+    if(old.length){ const val=old.reduce((s,x)=>s+x.purchaseCost,0);
+      out.push({tone:'action', tag:'تصفية', icon:'badge-percent', impact:val,
+        title:`أطلق عرض تصفية مستهدفاً على ${old.length} مركبة تجاوزت 120 يوماً.`,
+        why:'كل شهر إضافي يرفع تكلفة الاحتفاظ ويزيد الخصم المطلوب لاحقاً؛ التصفية المبكرة تحرر النقد بخصم أقل.',
+        metric:`نقد قابل للتحرير ${fmt.sarC(val)} · تكلفة خصم تقديرية 4% ≈ ${fmt.sarC(val*.04)}`,
+        drill:{title:'مخزون تجاوز 120 يوماً', tab:'stock', stock:{ageMin:121, label:'أكثر من 120 يوماً'}}}); }
+
+    // 4 — shift marketing spend from high-CAC to high-ROAS sources
+    if(!f.source){
+      const st = sourceStats(f,P).filter(x=>x.spend>0 && x.sales>=3);
+      if(st.length>=3){
+        const medCac = median(st.map(x=>x.cac)), worst=[...st].sort((a,b)=>b.cac-a.cac)[0], best=[...st].sort((a,b)=>b.roas-a.roas)[0];
+        if(worst.cac>=1.6*medCac && best.s!==worst.s){ const shift=worst.spend*.3, extra=shift/best.cac;
+          out.push({tone:'action', tag:'تسويق', icon:'megaphone', impact:extra*(best.revenue/Math.max(1,best.sales)),
+            title:`حوّل 30% من إنفاق «${L.source(worst.s)}» إلى «${L.source(best.s)}».`,
+            why:`تكلفة الاستحواذ في ${L.source(worst.s)} ${fmt.sar(worst.cac)} لكل بيعة مقابل ${fmt.sar(best.cac)} في ${L.source(best.s)} (عائد ${fmt.x(best.roas)}).`,
+            metric:`مبيعات إضافية تقديرية ≈ ${Math.round(extra)} مركبة بنفس الميزانية`,
+            drill:{title:L.source(worst.s), add:{source:worst.s}, breakdown:'model'}}); }
+      }
+    }
+
+    // 5 — escalate 90+ day receivables
+    const od90 = DB.payments.filter(p=>p._daysOverdue>90 && p._s._d<=P.end && Q.saleMatch(p._s,f));
+    if(od90.length){ const v=od90.reduce((s,p)=>s+p.amount,0), n=new Set(od90.map(p=>p.saleId)).size;
+      out.push({tone:'action', tag:'تحصيل', icon:'landmark', impact:v,
+        title:`صعّد تحصيل ${n} صفقة متأخرة أكثر من 90 يوماً.`,
+        why:'الذمم المتأخرة +90 يوماً هي الأعلى خطراً في التعثر؛ متابعة مباشرة من الإدارة المالية أو الشؤون القانونية.',
+        metric:`مبالغ متأخرة +90 يوماً ${fmt.sarC(v)}`,
+        drill:{title:'متأخرات أكثر من 90 يوماً', tab:'payments', pay:{status:'Overdue', odMin:91, label:'أكثر من 90 يوماً'}}}); }
+
+    // 6 — discount control
+    const fs={...f}; delete fs.salesperson;
+    const bySp = [...Q.group(Q.sales(fs,P), s=>s.salespersonId)].map(([k,rs])=>({k, ...Q.summarize(rs)})).filter(x=>x.units>=5);
+    const team = bySp.reduce((a,x)=>a+x.discount,0)/Math.max(1,bySp.reduce((a,x)=>a+x.listValue,0));
+    const hi = bySp.filter(x=>x.discountPct>team*1.5);
+    if(hi.length){ const excess=hi.reduce((a,x)=>a+x.discount-team*x.listValue,0);
+      out.push({tone:'action', tag:'ضبط الخصومات', icon:'user-check', impact:excess,
+        title:`راجع صلاحيات الخصم لدى ${hi.length} ${hi.length>2?'مستشارين':'مستشار'} يتجاوز خصمهم متوسط الفريق بـ50%.`,
+        why:`متوسط خصم الفريق ${fmt.pct(team)} من سعر القائمة؛ الخصم الزائد يُقتطع مباشرة من هامش الربح.`,
+        metric:`خصومات زائدة عن متوسط الفريق ${fmt.sarC(excess)}`,
+        drill:{title:'الخصومات حسب المستشار', tab:'overview', breakdown:'salesperson'}}); }
+
+    // 7 — close stale reservations
+    const stale = Q.leads(f,null).filter(l=>l.status==='Open' && l._rs!=null && l._rs<=T-10);
+    if(stale.length) out.push({tone:'action', tag:'حجوزات', icon:'calendar-check', impact:stale.length*avgPrice,
+      title:`أكمل ${stale.length} حجزاً مفتوحاً منذ أكثر من 10 أيام.`,
+      why:'الحجز المتأخر يحتجز مركبة عن البيع ويرفع احتمال خسارة العميل؛ غالباً ينتظر موافقة تمويل أو مستندات.',
+      metric:`إيرادات معلّقة تقديرياً ${fmt.sarC(stale.length*avgPrice)}`,
+      drill:{title:'حجوزات مفتوحة', tab:'leads', leadStage:'_rs', P:{id:null, label:'كل الحجوزات المفتوحة', start:T-120, end:T, prev:null}}});
+
+    return out.sort((a,b)=>b.impact-a.impact).slice(0,6);
+  },
   render(host){
-    const list = Insights.generate();
+    const recs = (App.ui.alertMode||'recs')==='recs';
+    const list = recs ? Insights.recommendations() : Insights.generate();
+    if(!recs) App._insights = list; else App._insights = Insights.generate();
     App._insights = list;
     host.innerHTML = list.length ? list.map((x,i)=>`<li class="ins ${x.tone}" style="animation-delay:${i*60}ms">
       <div class="ic">${ic(x.icon)}</div>
-      <div><span class="tag">${x.tag}</span><p class="t">${esc(x.title)}</p><p class="why"><b>لماذا يهم؟</b> ${esc(x.why)}</p>
-      <p class="metric">${ic('bar-chart-3')}${esc(x.metric)}</p><button class="link ins-go" data-i="${i}">عرض التفاصيل ${ic('arrow-left')}</button></div></li>`).join('')
-      : '<li class="ins-empty">لا توجد إشارات تستدعي الانتباه ضمن الفلاتر الحالية — لا تُعرض رؤى دون دليل من البيانات.</li>';
+      <div><span class="tag">${x.tag}</span><p class="t">${esc(x.title)}</p><p class="why"><b>${x.tone==='action'?'السبب:':'لماذا يهم؟'}</b> ${esc(x.why)}</p>
+      <p class="metric">${ic(x.tone==='action'?'target':'chart-column')}${x.tone==='action'?'<b>الأثر المتوقع:</b> ':''}${esc(x.metric)}</p><button class="link ins-go" data-i="${i}">عرض السجلات ${ic('arrow-left')}</button></div></li>`).join('')
+      : `<li class="ins-empty">${recs?'لا توجد توصيات تنفيذية ضمن الفلاتر الحالية':'لا توجد إشارات تستدعي الانتباه ضمن الفلاتر الحالية'} — لا تُعرض رؤى دون دليل من البيانات.</li>`;
     host.onclick = e=>{ const b=e.target.closest('.ins-go'); if(b) Drill.slice(JSON.parse(JSON.stringify(list[+b.dataset.i].drill))); };
     icons();
   }

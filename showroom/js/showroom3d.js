@@ -87,13 +87,22 @@
       luxurySUV:{L:5.05,W:2.0,clr:.30,R:.41,wb:3.0,off:.02,hood:1.13,belt:1.18,tail:1.14,roof:1.86,A:.98,B:.24,C:-2.12,D:-2.36},
       sportSUV: {L:4.92,W:1.98,clr:.28,R:.40,wb:2.98,off:.02,hood:1.05,belt:1.1,tail:1.05,roof:1.72,A:.86,B:.02,C:-1.6,D:-2.3},
       compactSUV:{L:4.40,W:1.92,clr:.26,R:.38,wb:2.68,off:.02,hood:1.0,belt:1.07,tail:1.02,roof:1.63,A:.78,B:.02,C:-1.45,D:-2.02},
-      boxy:     {L:4.95,W:2.0,clr:.34,R:.42,wb:3.02,off:.04,hood:1.18,belt:1.22,tail:1.22,roof:1.97,A:1.05,B:.72,C:-2.3,D:-2.38,spare:true},
-      boxyLong: {L:5.35,W:2.0,clr:.34,R:.42,wb:3.02,off:.22,hood:1.18,belt:1.22,tail:1.22,roof:1.97,A:1.25,B:.92,C:-2.5,D:-2.58,spare:true},
+      boxy:     {L:4.95,W:2.0,clr:.34,R:.42,wb:3.02,off:.04,hood:1.18,belt:1.22,tail:1.22,roof:1.97,A:1.05,B:.72,C:-2.3,D:-2.38},
+      boxyLong: {L:5.35,W:2.0,clr:.34,R:.42,wb:3.02,off:.22,hood:1.18,belt:1.22,tail:1.22,roof:1.97,A:1.25,B:.92,C:-2.5,D:-2.58},
       gclass:   {L:4.82,W:1.98,clr:.32,R:.42,wb:2.9,off:.02,hood:1.2,belt:1.25,tail:1.25,roof:1.98,A:.95,B:.82,C:-2.3,D:-2.33,spare:true},
       sedan:    {L:5.2,W:1.95,clr:.18,R:.36,wb:3.1,off:.05,hood:.92,belt:.99,tail:.99,roof:1.49,A:.66,B:-.3,C:-1.35,D:-1.96},
       gt:       {L:4.98,W:1.96,clr:.15,R:.36,wb:2.96,off:.02,hood:.78,belt:.9,tail:.94,roof:1.39,A:.58,B:-.38,C:-1.15,D:-2.2},
       coupe:    {L:4.52,W:1.86,clr:.14,R:.35,wb:2.45,off:-.12,hood:.74,belt:.88,tail:.96,roof:1.30,A:.5,B:-.32,C:-.78,D:-2.08},
-      wagon:    {L:5.0,W:1.95,clr:.16,R:.37,wb:2.93,off:.02,hood:.88,belt:.95,tail:.99,roof:1.46,A:.62,B:-.3,C:-2.1,D:-2.36}
+      wagon:    {L:5.0,W:1.95,clr:.16,R:.37,wb:2.93,off:.02,hood:.88,belt:.95,tail:.99,roof:1.46,A:.62,B:-.3,C:-2.1,D:-2.36},
+      // v3 body types
+      compactSedan:{L:4.45,W:1.75,clr:.16,R:.33,wb:2.6,off:.02,hood:.86,belt:.96,tail:.98,roof:1.47,A:.62,B:-.18,C:-1.12,D:-1.66},
+      hatch:    {L:4.05,W:1.76,clr:.15,R:.33,wb:2.55,off:.02,hood:.84,belt:.94,tail:1.0,roof:1.5,A:.62,B:-.12,C:-1.58,D:-1.9},
+      crossover:{L:4.45,W:1.82,clr:.22,R:.36,wb:2.64,off:.02,hood:.98,belt:1.04,tail:1.02,roof:1.6,A:.76,B:.02,C:-1.48,D:-1.98},
+      suv:      {L:4.72,W:1.88,clr:.24,R:.38,wb:2.75,off:.02,hood:1.02,belt:1.08,tail:1.05,roof:1.7,A:.84,B:.06,C:-1.72,D:-2.2},
+      largeSUV: {L:5.1,W:2.0,clr:.27,R:.41,wb:2.95,off:.02,hood:1.12,belt:1.16,tail:1.13,roof:1.88,A:.98,B:.22,C:-2.16,D:-2.4},
+      pickup:   {L:5.35,W:1.9,clr:.3,R:.4,wb:3.1,off:.1,hood:1.1,belt:1.14,tail:1.14,roof:1.82,A:1.02,B:.46,C:-.32,D:-.44,bed:true},
+      mpv:      {L:5.15,W:1.99,clr:.19,R:.37,wb:3.08,off:.06,hood:1.02,belt:1.1,tail:1.12,roof:1.92,A:1.35,B:.62,C:-2.3,D:-2.46},
+      van:      {L:5.3,W:1.95,clr:.2,R:.37,wb:3.2,off:.25,hood:1.08,belt:1.14,tail:1.2,roof:2.2,A:1.7,B:1.2,C:-2.48,D:-2.55}
     };
     const TRIM = {
       top:{trim:{color:0xd8dadd, metalness:1, roughness:.12}, rim:{color:0xd2d4d8, metalness:1, roughness:.18}},
@@ -147,7 +156,7 @@
     }
 
     function buildCar(s){
-      const p = STYLES[s.style] || STYLES.luxurySUV;
+      const p = STYLES[s.style] || STYLES.suv;
       const m = makeMats(s); Object.assign(m.paint, paintProps(s.colorId));
       const group = new THREE.Group(); group.userData.p = p;
       const L2 = p.L/2, W = p.W, bt = .06, bs = .05, yb = p.clr, AR = p.R + .06;
@@ -204,6 +213,8 @@
       box(.032, (p.hood-yb)*.24, W*.40, m.dark, fx, p.hood-.34, 0);
       [-1,1].forEach(sd=>{ box(.04,.055,.46,m.head,fx-.01,p.hood-.13,sd*(W/2-.36)); box(.035,.014,.4,m.head,fx-.005,p.hood-.2,sd*(W/2-.38)); });
       box(.03,.07,W*.72,m.dark,fx-.01,yb+.16,0);
+      // Pickup: open cargo bed (dark recessed floor + bulkhead behind the cab)
+      if(p.bed){ const bedL = (p.D-.06) - (-L2+.1); box(bedL,.03,W-.22,m.dark,(p.D-.06-L2+.1)/2,p.tail+.035,0); box(.05,.16,W-.2,m.paint,p.D-.03,p.tail+.08,0); }
       // Rear: full-width tail light, corners, diffuser
       const rx = -L2-bs;
       box(.03,.04,W*.86,m.tail,rx+.01,p.tail-.16,0);

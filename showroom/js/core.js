@@ -4,29 +4,32 @@
    Code/data are English; everything the user reads goes through AR/fmt.
    ===================================================================== */
 const AR = {
-  branch: {RUH:'الرياض', JED:'جدة', DMM:'الدمام', KBR:'الخبر', AHB:'أبها'},
+  branch: {RUH:'الرياض', JED:'جدة', DMM:'الدمام', KBR:'الخبر', MAK:'مكة المكرمة', MED:'المدينة المنورة', AHB:'أبها'},
+  region: {Central:'الوسطى', Western:'الغربية', Eastern:'الشرقية', Southern:'الجنوبية'},
   source: {'Website':'الموقع الإلكتروني','Google':'جوجل','Instagram':'إنستغرام','TikTok':'تيك توك','Snapchat':'سناب شات','WhatsApp':'واتساب',
            'Facebook':'فيسبوك','Marketplace':'منصات السيارات','Walk-in':'زيارة المعرض','Phone':'الهاتف','Referral':'الإحالة','Campaign':'الفعاليات والحملات','Other':'أخرى'},
   payment: {'Cash':'نقدي','Bank Transfer':'تحويل بنكي','Finance':'تمويل بالأقساط','Mixed':'دفع مختلط'},
   payType: {'Cash':'دفعة نقدية','Transfer':'تحويل بنكي','Down Payment':'دفعة أولى','Installment':'قسط','Balance':'رصيد متبقٍ'},
-  payStatus: {'Paid':'مدفوع','Paid Late':'مدفوع متأخراً','Overdue':'متأخر','Scheduled':'مجدول'},
-  custType: {'Individual':'فرد','Corporate':'شركة','Fleet':'أسطول','Government':'جهة حكومية'},
-  vStatus: {'Available':'متاح','Reserved':'محجوز','Sold':'مباع','In Service':'قيد التجهيز'},
+  payStatus: {'Paid':'مدفوع','Not Yet Due':'غير مستحق بعد','Overdue':'متأخر','90+ Days Overdue':'متأخر +90 يوماً'},
+  custType: {'Individual':'فرد','Family':'عائلة','Executive':'تنفيذي','Fleet':'أسطول','Corporate':'شركة','Government':'جهة حكومية'},
+  vStatus: {'Available':'متاح','Reserved':'محجوز','In Transit':'في الطريق','Sold':'مباع','Delivered':'تم التسليم'},
   leadStatus: {'Won':'تم البيع','Open':'قيد المتابعة','Lost':'مفقود'},
-  nextAction: {'Qualification call':'مكالمة تأهيل','Schedule test drive':'جدولة تجربة قيادة','Send offer':'إرسال عرض سعر','Follow up offer':'متابعة العرض','Complete paperwork':'استكمال إجراءات البيع'},
+  nextAction: {'Qualification call':'مكالمة تأهيل','Schedule test drive':'جدولة تجربة قيادة','Send quote':'إرسال عرض سعر','Follow up quote':'متابعة عرض السعر','Complete paperwork':'استكمال إجراءات البيع'},
   lostReason: {'Price':'السعر','Chose competitor':'اختار منافساً','Financing declined':'رفض التمويل','No response':'عدم الرد','Vehicle unavailable':'المركبة غير متوفرة','Postponed':'تأجيل الشراء'},
-  collection: {'Collected':'محصّل بالكامل','On Schedule':'منتظم','Overdue':'متأخر'},
+  collection: {'Collected':'محصّل بالكامل','Not Yet Due':'غير مستحق بعد','Overdue':'متأخر','90+ Days Overdue':'متأخر +90 يوماً'},
   contract: {'Settled':'مسدد','Current':'منتظم','Late':'متأخر','Default':'متعثر'},
   delivery: {'Delivered':'تم التسليم','Scheduled':'بانتظار التسليم'},
-  body: {'SUV':'دفع رباعي','Sedan':'سيدان','Coupe':'كوبيه','Wagon':'ستيشن'},
+  body: {'Sedan':'سيدان','SUV':'SUV','Crossover':'كروس أوفر','Pickup':'بيك أب','MPV':'ميني فان (MPV)','Hatchback':'هاتشباك','Sports Car':'سيارة رياضية'},
+  powertrain: {'Petrol':'بنزين','Hybrid':'هجين','Plug-in Hybrid':'هجين قابل للشحن','Full Electric':'كهربائي بالكامل'},
+  priceSeg: {'Economy':'اقتصادية','Mainstream':'متوسطة','Premium':'فاخرة','Luxury':'فاخرة جداً'},
   fuel: {'Petrol':'بنزين','Petrol MHEV':'بنزين – هجين خفيف','Electric':'كهربائي','Plug-in Hybrid':'هجين قابل للشحن','Hybrid':'هجين'},
   segment: {'Luxury SUV':'دفع رباعي فاخر','Performance SUV':'دفع رباعي رياضي','Mid-size Luxury SUV':'دفع رباعي فاخر متوسط','Compact Luxury SUV':'دفع رباعي فاخر مدمج',
     'Off-Road SUV':'دفع رباعي للطرق الوعرة','8-Seat Off-Road SUV':'دفع رباعي 8 مقاعد','Luxury Off-Roader':'دفع رباعي فاخر للطرق الوعرة','Flagship Sedan':'سيدان رائدة',
     'Electric Sedan':'سيدان كهربائية','Full-size Luxury SUV':'دفع رباعي فاخر كبير','Luxury Sedan':'سيدان فاخرة','Electric Luxury Sedan':'سيدان فاخرة كهربائية',
     'Luxury Coupé SUV':'دفع رباعي كوبيه فاخر','Performance Avant':'ستيشن عالية الأداء','Electric Gran Turismo':'جران توريزمو كهربائية','Sports Coupé':'كوبيه رياضية',
     'Electric Sports Sedan':'سيدان رياضية كهربائية','Full-size SUV':'دفع رباعي كبير'},
-  campaign: {'CMP-RMD25':'حملة رمضان 2025','CMP-ND25':'اليوم الوطني 2025','CMP-EOY25':'عروض نهاية العام 2025','CMP-RMD26':'حملة رمضان 2026',
-    'CMP-PTR26':'إطلاق باترول الجديدة','CMP-SUM26':'عروض الصيف 2026','CMP-ND26':'اليوم الوطني 2026','EVT-SHOW':'فعاليات المعرض'},
+  campaign: {'CMP-FD25':'يوم التأسيس 2025','CMP-RMD25':'رمضان والعيد 2025','CMP-ND25':'اليوم الوطني 2025','CMP-EOY25':'تصفية نهاية العام 2025','CMP-FD26':'يوم التأسيس 2026','CMP-RMD26':'رمضان والعيد 2026',
+    'CMP-PTR26':'إطلاق باترول الجديدة','CMP-SUM26':'عروض تمويل الصيف 2026','CMP-ND26':'اليوم الوطني 2026','EVT-SHOW':'فعاليات المعارض والمولات'},
   months: ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر']
 };
 const L = {
@@ -41,7 +44,13 @@ const L = {
   vehicle: t => t ? `${t.brand} ${t.model} ${t.trim}` : '—',
   vehicleY: t => t ? `${t.brand} ${t.model} ${t.year} ${t.trim}` : '—',
   segment: s => AR.segment[s] || s,
-  fuel: s => AR.fuel[s] || s
+  fuel: s => AR.powertrain[s] || AR.fuel[s] || s,
+  body: s => AR.body[s] || s,
+  pt: s => AR.powertrain[s] || s,
+  priceSeg: s => AR.priceSeg[s] || s,
+  brandAr: n => DB.idx.brand.get(n)?.ar || n,
+  dist: id => { const d=DB.idx.distributor.get(id); return d ? d.ar : id; },
+  region: r => AR.region[r] || r
 };
 
 /* ---------- formatting ---------- */
@@ -106,11 +115,11 @@ const monthRange = key => { const [y,m]=key.split('-').map(Number); const s=DB.d
    FILTER STORE — single source of truth for cross-filtering
    Vehicle hierarchy: brand → model → year → trim → vehicleId
    ===================================================================== */
-const FILTER_DIMS = ['branch','brand','model','year','trim','vehicleId','source','campaign','payment','custType','salesperson'];
+const FILTER_DIMS = ['branch','brand','model','year','trim','vehicleId','bodyType','powertrain','priceSegment','distributor','source','campaign','payment','custType','salesperson'];
 const HIER = ['brand','model','year','trim','vehicleId'];
 const Store = (function(){
   const state = {period:'ytd', branch:null, brand:null, model:null, year:null, trim:null, vehicleId:null,
-                 source:null, campaign:null, payment:null, custType:null, salesperson:null};
+                 bodyType:null, powertrain:null, priceSegment:null, distributor:null, source:null, campaign:null, payment:null, custType:null, salesperson:null};
   const subs = [];
   function set(patch, origin){
     const next = {...state};
@@ -137,10 +146,10 @@ const Store = (function(){
     level(){ return state.vehicleId?'vehicle':state.trim?'trim':state.year?'year':state.model?'model':state.brand?'brand':'all'; }
   };
 })();
-const DIM_LABEL = {branch:'الفرع', brand:'العلامة', model:'الطراز', year:'سنة الطراز', trim:'الفئة', vehicleId:'المركبة', source:'مصدر العميل', campaign:'الحملة', payment:'طريقة الدفع', custType:'نوع العميل', salesperson:'مستشار المبيعات', period:'الفترة'};
+const DIM_LABEL = {branch:'الفرع', brand:'العلامة', model:'الطراز', year:'سنة الطراز', trim:'الفئة', vehicleId:'المركبة', bodyType:'نوع الهيكل', powertrain:'نوع المحرك', priceSegment:'الشريحة السعرية', distributor:'الموزع', source:'مصدر العميل', campaign:'الحملة', payment:'طريقة الدفع', custType:'شريحة العميل', salesperson:'مستشار المبيعات', period:'الفترة'};
 function dimValueLabel(k, v){
   if(v==null) return '';
-  return {branch:L.branch, source:L.source, campaign:L.campaign, payment:L.payment, custType:L.custType, salesperson:L.sp,
+  return {branch:L.branch, source:L.source, campaign:L.campaign, payment:L.payment, custType:L.custType, salesperson:L.sp, bodyType:L.body, powertrain:L.pt, priceSegment:L.priceSeg, distributor:L.dist,
           vehicleId:id=>{ const x=DB.idx.vehicle.get(id); return x?x.vin.slice(-8):id; }}[k]?.(v) ?? String(v);
 }
 
@@ -150,13 +159,14 @@ function dimValueLabel(k, v){
 const Q = (function(){
   // which filter dims apply to which record type
   const APPLIES = {
-    sales:   ['branch','brand','model','year','trim','vehicleId','source','campaign','payment','custType','salesperson'],
-    leads:   ['branch','brand','model','year','trim','source','campaign','custType','salesperson'],
-    stock:   ['branch','brand','model','year','trim','vehicleId'],
-    payments:['branch','brand','model','year','trim','vehicleId','source','campaign','payment','custType','salesperson'],
+    sales:   ['branch','brand','model','year','trim','vehicleId','bodyType','powertrain','priceSegment','distributor','source','campaign','payment','custType','salesperson'],
+    leads:   ['branch','brand','model','year','trim','bodyType','powertrain','priceSegment','distributor','source','campaign','custType','salesperson'],
+    stock:   ['branch','brand','model','year','trim','vehicleId','bodyType','powertrain','priceSegment','distributor'],
+    payments:['branch','brand','model','year','trim','vehicleId','bodyType','powertrain','priceSegment','distributor','source','campaign','payment','custType','salesperson'],
     spend:   ['source','campaign']
   };
-  const vMatch = (t,f)=> (!f.brand||t.brand===f.brand) && (!f.model||t.model===f.model) && (!f.year||t.year===f.year) && (!f.trim||t.trim===f.trim);
+  const vMatch = (t,f)=> (!f.brand||t.brand===f.brand) && (!f.model||t.model===f.model) && (!f.year||t.year===f.year) && (!f.trim||t.trim===f.trim)
+      && (!f.bodyType||t.bodyType===f.bodyType) && (!f.powertrain||t.powertrain===f.powertrain) && (!f.priceSegment||t.priceSegment===f.priceSegment) && (!f.distributor||t.distributorId===f.distributor);
   const saleMatch = (s,f)=> (!f.branch||s.branchId===f.branch) && vMatch(s._t,f) && (!f.vehicleId||s.vehicleId===f.vehicleId)
       && (!f.source||s.source===f.source) && (!f.campaign||s.campaignId===f.campaign) && (!f.payment||s.paymentMethod===f.payment)
       && (!f.custType||s.customerType===f.custType) && (!f.salesperson||s.salespersonId===f.salesperson);
@@ -170,12 +180,13 @@ const Q = (function(){
   // units physically in stock at the END of a day (historic reconstruction from arrival/sold dates)
   function stockAt(f, d){
     const T = DB.meta.todayDay;
-    return DB.vehicles.filter(v=>v._arr<=d && (v._sold==null || v._sold>d) && stockMatch(v,f)).map(v=>{
+    return DB.vehicles.filter(v=>!v._inTransit && v._arr<=d && (v._sold==null || v._sold>d) && stockMatch(v,f)).map(v=>{
       if(d>=T) return v;
       return Object.assign(Object.create(v), {status: v._sold!=null ? 'Available' : v.status, _ageAt: d-v._arr});
     });
   }
   const age = (v,d)=> d - v._arr;
+  function inTransit(f){ return DB.vehicles.filter(v=>v._inTransit && stockMatch(v,f)); }
   function payments(f, P, field='_paid'){ return DB.payments.filter(p=>(!P||inP(p[field],P)) && saleMatch(p._s,f)); }
   function spend(f, P){
     return DB.marketingSpend.filter(r=>(!P||(r._start<=P.end && r._start+27>=P.start)) && (!f.source||r.source===f.source) && (!f.campaign||r.campaignId===f.campaign))
@@ -203,10 +214,11 @@ const Q = (function(){
   }
   function group(rows, keyFn){ const m=new Map(); for(const r of rows){ const k=keyFn(r); if(k==null) continue; (m.get(k)||m.set(k,[]).get(k)).push(r); } return m; }
   function stockSummary(units, d){
-    const o = {units:units.length, value:0, available:0, reserved:0, service:0, ageSum:0, aged90:0, aged90Value:0};
+    const o = {units:units.length, value:0, available:0, reserved:0, service:0, ageSum:0, aged60:0, aged90:0, aged90Value:0};
     for(const v of units){
       o.value += v.purchaseCost; const a = d - v._arr; o.ageSum += a;
-      if(v.status==='Reserved') o.reserved++; else if(v.status==='In Service') o.service++; else o.available++;
+      if(v.status==='Reserved') o.reserved++; else o.available++;
+      if(a>60) o.aged60++;
       if(a>90){ o.aged90++; o.aged90Value += v.purchaseCost; }
     }
     o.avgAge = o.units? o.ageSum/o.units : null;
@@ -219,7 +231,7 @@ const Q = (function(){
     rows.forEach(s=>{ o.outstanding+=s.outstanding; o.overdue+=s.overdueAmount; if(s.outstanding>0) o.contracts++; });
     return o;
   }
-  return {APPLIES, sales, leads, stockAt, payments, spend, summarize, group, stockSummary, receivables, saleMatch, leadMatch, stockMatch, age, inP};
+  return {APPLIES, sales, leads, stockAt, inTransit, payments, spend, summarize, group, stockSummary, receivables, saleMatch, leadMatch, stockMatch, age, inP};
 })();
 
 /* ---------- common derived bundles ---------- */
@@ -255,6 +267,8 @@ const METRICS = {
   aged90:      {label:'مخزون تجاوز 90 يوماً', unit:'int', better:'down', src:'stock', snapshot:true, what:'مركبات مضى على وجودها في المخزون أكثر من 90 يوماً.', how:'عدد المركبات في المخزون التي (تاريخ نهاية الفترة − تاريخ الوصول) > 90.', data:'سجل المركبات.'},
   avgAge:      {label:'متوسط عمر المخزون', unit:'days', better:'down', src:'stock', snapshot:true, what:'متوسط عدد الأيام منذ وصول المركبات الموجودة حالياً.', how:'متوسط (نهاية الفترة − تاريخ الوصول) للمركبات في المخزون.', data:'سجل المركبات.'},
   turnover:    {label:'دوران المخزون', unit:'x', better:'up', src:'stock', what:'عدد مرات تجدد المخزون سنوياً.', how:'تكلفة المبيعات السنوية (محسوبة للفترة) ÷ متوسط قيمة المخزون في بداية ونهاية الفترة.', data:'المبيعات + سجل المركبات.'},
+  inTransit:   {label:'مركبات في الطريق', unit:'int', better:'neutral', src:'stock', snapshot:true, what:'مركبات تم طلبها من الموزع ولم تصل الفرع بعد.', how:'عدد المركبات بحالة «في الطريق» (تاريخ الوصول المتوقع بعد اليوم).', data:'سجل المركبات.'},
+  coverage:    {label:'تغطية المخزون', unit:'days', better:'neutral', src:'stock', snapshot:true, what:'عدد الأيام التي يكفيها المخزون الحالي بمعدل البيع الأخير.', how:'المخزون الحالي ÷ (مبيعات آخر 90 يوماً ÷ 90).', data:'سجل المركبات + المبيعات.'},
   avgDts:      {label:'متوسط أيام البيع', unit:'days', better:'down', src:'sales', what:'متوسط الأيام بين وصول المركبة وبيعها.', how:'متوسط (تاريخ البيع − تاريخ الوصول) للمركبات المباعة في الفترة.', data:'المبيعات + سجل المركبات.'},
   leads:       {label:'العملاء المحتملون', unit:'int', better:'up', src:'leads', what:'عدد العملاء المحتملين الجدد المسجلين.', how:'عدد سجلات العملاء المحتملين التي تاريخ إنشائها ضمن الفترة.', data:'جدول العملاء المحتملين (Leads).'},
   leadConv:    {label:'تحويل العميل إلى بيع', unit:'pct', kind:'pts', better:'up', src:'leads', what:'نسبة المبيعات إلى العملاء المحتملين في الفترة.', how:'عدد المبيعات ضمن الفترة ÷ عدد العملاء المحتملين الجدد ضمن الفترة (قياس نشاط الفترة).', data:'العملاء المحتملون + المبيعات.'},
