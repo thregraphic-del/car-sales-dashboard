@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="منصة تعليمية تفاعلية لإدارة معرض سيارات سعودي — بيانات تجريبية وهمية لأغراض التدريب">
+  <meta name="theme-color" content="#060b16">
+  <title>ذكاء المعرض — لوحة إدارة معرض السيارات (Demo)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+  <div class="shell">
+    <!-- Sidebar navigation -->
+    <aside class="side" aria-label="التنقل">
+      <div class="brand">
+        <div class="brand-mark"><svg viewBox="0 0 24 24"><path d="M4 16v-3l2-5h12l2 5v3"/><path d="M3 16h18v2H3z"/><circle cx="7.5" cy="16.5" r="1.4"/><circle cx="16.5" cy="16.5" r="1.4"/></svg></div>
+        <div><b>ذكاء المعرض</b><span>Dealership Intelligence</span></div>
+        <div id="custom-brand-logo"></div>
+      </div>
+      <nav class="nav">
+        <a href="#" data-nav="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9H3z"/><path d="M9 20v-6h6v6"/></svg>الرئيسية<span class="n-i">01</span></a>
+        <a href="#" data-nav="vehicles"><svg viewBox="0 0 24 24"><path d="M4 16v-3l2-5h12l2 5v3"/><path d="M3 16h18v2H3z"/><circle cx="7.5" cy="16.5" r="1.5"/><circle cx="16.5" cy="16.5" r="1.5"/></svg>السيارات<span class="n-i">02</span></a>
+        <a href="#" data-nav="sales"><svg viewBox="0 0 24 24"><path d="M4 20V4M4 20h16"/><path d="M7 15l4-4 3 3 5-6"/></svg>المبيعات<span class="n-i">03</span></a>
+        <a href="#" data-nav="customers"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 19c0-3.3 2.7-5 6-5s6 1.7 6 5"/><path d="M16 5.5a3 3 0 010 5.5M18 14c2 .6 3 2.2 3 5"/></svg>العملاء ومصادرهم<span class="n-i">04</span></a>
+        <a href="#" data-nav="finance"><svg viewBox="0 0 24 24"><path d="M3 10l9-6 9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8M3 20h18"/></svg>التمويل والكاش<span class="n-i">05</span></a>
+        <a href="#" data-nav="collection"><svg viewBox="0 0 24 24"><path d="M3 7h15a3 3 0 013 3v8H3z"/><path d="M3 7l12-3v3"/><circle cx="16.5" cy="13" r="1.2"/></svg>التحصيل<span class="n-i">06</span></a>
+        <a href="#" data-nav="inventory"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg>المخزون<span class="n-i">07</span></a>
+        <a href="#" data-nav="profit"><svg viewBox="0 0 24 24"><path d="M19 5L5 19"/><circle cx="7" cy="7" r="2.5"/><circle cx="17" cy="17" r="2.5"/></svg>الربحية<span class="n-i">08</span></a>
+        <a href="#" data-nav="parts"><svg viewBox="0 0 24 24"><path d="M14.5 5.5a4 4 0 00-5 5L4 16l4 4 5.5-5.5a4 4 0 005-5l-2.5 2.5-2.5-.5-.5-2.5z"/></svg>قطع الغيار وما بعد البيع<span class="n-i">09</span></a>
+        <a href="#" data-nav="dictionary"><svg viewBox="0 0 24 24"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 19V5M8 7h8"/></svg>قاموس السيارات<span class="n-i">10</span></a>
+      </nav>
+      <div class="side-foot">
+        <span class="demo-tag">بيانات تجريبية / Demo Data</span>
+        <p style="margin-top:10px">هذا النموذج تعليمي ويستخدم بيانات وهمية لأغراض التدريب فقط. أرقام المبيعات والطلبات والأرباح لا تمثل السوق السعودي الحقيقي.</p>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <div class="tb-row">
+          <button class="x-btn menu-btn" data-act="menu" aria-label="القائمة"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+          <div class="tb-title"><b>منصة إدارة معرض السيارات</b><span id="period-label"></span></div>
+          <div class="tb-actions">
+            <span id="sync"><i class="live"></i> جارٍ التحميل…</span>
+            <button class="btn sm" data-act="refresh"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 10-2.3 5.7"/><path d="M20 5v6h-6"/></svg>تحديث البيانات</button>
+            <button class="btn ghost sm" data-act="reset">إعادة تعيين</button>
+          </div>
+        </div>
+        <div class="filters" id="filters"></div>
+        <div class="chips" id="chips"></div>
+        <div class="disclaimer"><span class="demo-tag">DEMO · بيانات وهمية</span><span><b>تنبيه:</b> هذا النموذج تعليمي ويستخدم بيانات وهمية لأغراض التدريب فقط. أرقام المبيعات والطلبات والأرباح لا تمثل السوق السعودي الحقيقي.</span></div>
+      </header>
+      <main id="page" aria-live="polite"></main>
+    </div>
+  </div>
+
+  <div id="scrim"></div>
+  <aside id="drawer" aria-label="التفاصيل والشرح">
+    <div class="drawer-top"><span>اشرح لي · التفاصيل</span><button class="x-btn" data-close aria-label="إغلاق"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="drawer-body"></div>
+  </aside>
+  <div id="tip" role="tooltip"></div>
+  <div id="toast" role="status"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/content.js"></script>
+  <script src="js/images.js"></script>
+  <script src="js/explain.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/pages.js"></script>
+  <script src="js/views.js"></script>
+</body>
+</html>
