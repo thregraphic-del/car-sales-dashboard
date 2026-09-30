@@ -14,7 +14,7 @@ if(hasChart()){
 }
 function chart(id, cfg){
   const el = document.getElementById(id); if(!el) return null;
-  if(!hasChart()){ const box=el.parentElement; if(!box.querySelector('.no-chart')) box.insertAdjacentHTML('beforeend','<div class="no-chart">تعذر تحميل مكتبة الرسوم (Chart.js) — الجداول والمؤشرات تعمل بشكل طبيعي.</div>'); return null; }
+  if(!hasChart()){ const box=el.parentElement; if(!box.querySelector('.no-chart')) box.insertAdjacentHTML('beforeend','<div class="no-chart">تعذّر تحميل مكتبة الرسوم البيانية، وتعمل الجداول والمؤشرات على نحو طبيعي.</div>'); return null; }
   Charts[id]?.destroy(); Charts[id] = new Chart(el, cfg); return Charts[id];
 }
 const pointer = (e,els)=>{ e.native.target.style.cursor = els.length?'pointer':'default'; };
@@ -71,12 +71,12 @@ const Overview = {
       const el = host.querySelector(`[data-k="${k.id}"]`), m = METRICS[k.id];
       animateValue(el.querySelector('.val'), cur[k.id], unitFmt[m.unit]);
       el.querySelector('.tr').innerHTML = m.snapshot && k.id!=='inventoryValue' && k.id!=='aged90' ? '' : trendHTML(change(cur[k.id],prev[k.id],m.kind||'pct'), m.better, m.kind||'pct');
-      el.querySelector('.vs').textContent = m.snapshot ? (k.id==='overdue'?'كما في اليوم':'في نهاية الفترة') + (P.prev&&(k.id==='inventoryValue'||k.id==='aged90')?` · مقابل ${P.prev.label}`:'') : (P.prev?`مقابل ${P.prev.label}`:'');
+      el.querySelector('.vs').textContent = m.snapshot ? (k.id==='overdue'?'حتى تاريخه':'في نهاية الفترة') + (P.prev&&(k.id==='inventoryValue'||k.id==='aged90')?` · مقابل ${P.prev.label}`:'') : (P.prev?`مقابل ${P.prev.label}`:'');
       const viz = el.querySelector('.k-viz');
       if(['revenue','units','gp','margin'].includes(k.id)) viz.innerHTML = sparkSVG(series(k.id), {h:k.cls?44:30, stroke:k.cls?C.gold:C.dark, fill:k.cls?'rgba(184,155,94,.16)':C.faint});
       else if(k.id==='overdue'){ const r = Q.receivables(f,P.end); viz.innerHTML = `<div class="prog"><i style="width:${r.outstanding?clamp(r.overdue/r.outstanding,0,1)*100:0}%;background:${C.neg}"></i></div><div class="prog-l"><span>${fmt.pct(r.outstanding?r.overdue/r.outstanding:0,0)} من الذمم القائمة</span><span>${fmt.sarC(r.outstanding)}</span></div>`; }
       else if(k.id==='collected'){ const due = Q.payments(f,P,'_due').filter(p=>p._due<=DB.meta.todayDay); const rate = due.reduce((a,p)=>a+p.amount,0) ? due.reduce((a,p)=>a+p.paidAmount,0)/due.reduce((a,p)=>a+p.amount,0) : null; viz.innerHTML = `<div class="prog"><i style="width:${(rate||0)*100}%"></i></div><div class="prog-l"><span>نسبة التحصيل ${fmt.pct(rate,0)}</span><span data-info="collectionRate" class="link">ⓘ</span></div>`; }
-      else if(k.id==='inventoryValue'){ const d=Math.min(P.end,DB.meta.todayDay); const St=Q.stockSummary(Q.stockAt(f,d),d); viz.innerHTML = `<div class="prog-l"><span>${fmt.int(St.units)} مركبة · ${fmt.int(St.available)} متاحة</span><span>متوسط العمر ${fmt.days(St.avgAge)}</span></div>`; }
+      else if(k.id==='inventoryValue'){ const d=Math.min(P.end,DB.meta.todayDay); const St=Q.stockSummary(Q.stockAt(f,d),d); viz.innerHTML = `<div class="prog-l"><span>${fmt.count(St.units,NOUN.veh)} · ${fmt.int(St.available)} متاحة</span><span>متوسط العمر ${fmt.days(St.avgAge)}</span></div>`; }
       else if(k.id==='aged90'){ const d=Math.min(P.end,DB.meta.todayDay); const St=Q.stockSummary(Q.stockAt(f,d),d); viz.innerHTML = `<div class="prog"><i style="width:${St.units?St.aged90/St.units*100:0}%;background:${C.warn}"></i></div><div class="prog-l"><span>${fmt.sarC(St.aged90Value)} مجمدة</span><span>${fmt.pct(St.units?St.aged90/St.units:0,0)} من المخزون</span></div>`; }
     });
     icons();
@@ -99,8 +99,8 @@ const Overview = {
     const val = (k, prior) => { if(!keys.includes(k)) return null; const S=Q.summarize((prior?byMp:byM).get(k)||[]); return metric==='units'?S.units:metric==='gp'?S.gp:metric==='margin'?(S.margin==null?null:S.margin*100):S.revenue; };
     const inPeriod = k => { const r=monthRange(k); return r.start<=P.end && r.end>=P.start; };
     const sel = App.sel.monthly;
-    const fmtV = v => metric==='units'?fmt.int(v)+' مركبة':metric==='margin'?v.toFixed(1)+'%':fmt.sarC(v);
-    $('#monthly-sub').textContent = `${{revenue:'الإيرادات',units:'الوحدات المباعة',gp:'إجمالي الربح',margin:'هامش الربح'}[metric]} الشهرية ${ty} مقابل ${ty-1} — اضغط أي شهر لعرض تفاصيله`;
+    const fmtV = v => metric==='units'?fmt.count(v,NOUN.veh):metric==='margin'?v.toFixed(1)+'%':fmt.sarC(v);
+    $('#monthly-sub').textContent = `${{revenue:'الإيرادات',units:'الوحدات المباعة',gp:'إجمالي الربح',margin:'هامش الربح'}[metric]} الشهرية ${ty} مقابل ${ty-1} — انقر على أي شهر لعرض تفاصيله`;
     chart('monthlyChart', {data:{labels:AR.months, datasets:[
       {type:'bar', label:String(ty), data:cur.map(k=>val(k)), order:2, borderRadius:6, borderSkipped:false, barPercentage:.62,
         backgroundColor:cur.map(k=>k===sel?C.gold:inPeriod(k)?C.dark:C.grey), hoverBackgroundColor:cur.map(k=>k===sel?C.gold:'#000')},
@@ -109,7 +109,7 @@ const Overview = {
       scales:{x:{grid:{display:false},border:{display:false}}, y:{grid:{color:C.faint},border:{display:false},ticks:{maxTicksLimit:5,callback:v=>metric==='units'?v:metric==='margin'?v+'%':fmt.money(v)}}},
       plugins:{tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw==null?'—':fmtV(c.raw)}`, footer:items=>{ const a=items.find(i=>i.datasetIndex===0)?.raw, b=items.find(i=>i.datasetIndex===1)?.raw; return a!=null&&b?`التغير السنوي: ${((a-b)/b*100).toFixed(1)}%`:''; }}}},
       onHover:pointer,
-      onClick:(e,els)=>{ if(!els.length) return; const k=cur[els[0].index]; if(!keys.includes(k)) return toast('لا توجد بيانات لهذا الشهر بعد');
+      onClick:(e,els)=>{ if(!els.length) return; const k=cur[els[0].index]; if(!keys.includes(k)) return toast('لا تتوفر بيانات لهذا الشهر بعد');
         App.sel.monthly=k; setTimeout(()=>{ Overview.monthly(); Drill.slice({title:`أداء ${fmt.month(k)}`, crumb:fmt.month(k), P:Periods.month(k), tab:'overview'}); }); }
     }});
   }
@@ -131,7 +131,7 @@ const SalesViz = {
     const key = {units:'units',revenue:'revenue',gp:'gp'}[metric];
     g.sort((a,b)=>b[key]-a[key]); const top=g.slice(0,10), max=top[0]?.[key]||1;
     const fv = v=>metric==='units'?fmt.int(v):fmt.sarC(v);
-    $('#ranking').innerHTML = top.map((r,i)=>`<button class="rk rk5" data-m="${esc(r.k)}"><span class="rk-i">${i+1}</span>${brandMark(r.k.split('|')[0],{size:'sm'})}<span class="rk-n">${esc(modelName(r.k))}<small>${fmt.int(r.units)} مركبة · هامش ${fmt.pct(r.margin)}</small></span><span class="rk-bar"><i style="width:${r[key]/max*100}%;background:${r.margin<(Q.summarize(Q.sales(f,P)).margin||0)-.02?C.warn:C.dark}"></i></span><b class="num">${fv(r[key])}</b></button>`).join('') || '<p class="muted">لا توجد مبيعات مطابقة.</p>';
+    $('#ranking').innerHTML = top.map((r,i)=>`<button class="rk rk5" data-m="${esc(r.k)}"><span class="rk-i">${i+1}</span>${brandMark(r.k.split('|')[0],{size:'sm'})}<span class="rk-n">${esc(modelName(r.k))}<small>${fmt.count(r.units,NOUN.veh)} · هامش ${fmt.pct(r.margin)}</small></span><span class="rk-bar"><i style="width:${r[key]/max*100}%;background:${r.margin<(Q.summarize(Q.sales(f,P)).margin||0)-.02?C.warn:C.dark}"></i></span><b class="num">${fv(r[key])}</b></button>`).join('') || '<p class="muted">لا توجد مبيعات مطابقة.</p>';
   },
   // Q: Which vehicles are high-volume but low-margin?
   volumeMargin(){
@@ -240,7 +240,7 @@ const Marketing = {
       options:{maintainAspectRatio:false, layout:{padding:{top:18,left:8,right:8}},
         scales:{x:{type:'logarithmic', title:{display:true,text:'عدد العملاء المحتملين (مقياس لوغاريتمي)'},grid:{color:C.faint},border:{display:false},ticks:{callback:v=>[100,300,1000,3000,10000].includes(v)?fmt.int(v):''}},
                 y:{title:{display:true,text:'التحويل إلى بيع %'},grid:{color:C.faint},border:{display:false},ticks:{callback:v=>v+'%'}}},
-        plugins:{quadrants:{x:mx,y:my,labels:['حجم قليل · تحويل مرتفع','حجم كبير · تحويل مرتفع','حجم قليل · تحويل ضعيف','حجم كبير · تحويل ضعيف']},
+        plugins:{quadrants:{x:mx,y:my,labels:['حجم منخفض · تحويل مرتفع','حجم كبير · تحويل مرتفع','حجم منخفض · تحويل منخفض','حجم كبير · تحويل منخفض']},
           tooltip:{callbacks:{title:i=>L.source(i[0].raw.s), label:c=>[` العملاء المحتملون: ${fmt.int(c.raw.x)}`,` التحويل: ${c.raw.y.toFixed(1)}%`,` الإيرادات: ${fmt.sarC(c.raw.rev)}`,` العائد على الإنفاق: ${fmt.x(c.raw.roas)}`]}}},
         onHover:pointer, onClick:(e,els)=>{ if(!els.length) return; const s=Charts.srcChart.data.datasets[0].data[els[0].index].s; Drill.slice({title:L.source(s), add:{source:s}, breakdown:'model'}); }}});
   },
@@ -289,14 +289,14 @@ const Marketing = {
     const {P,f}=ctx0(); const fc={...f}; delete fc.custType;
     const g=[...Q.group(Q.sales(fc,P), s=>s.customerType)].map(([k,rs])=>({k,...Q.summarize(rs)})).sort((a,b)=>b.revenue-a.revenue);
     const tot=g.reduce((a,x)=>a+x.revenue,0)||1;
-    $('#custTypes').innerHTML = g.map(x=>`<button class="rk" data-ct="${x.k}"><span class="rk-n">${L.custType(x.k)}<small>${fmt.int(x.units)} مركبة · هامش ${fmt.pct(x.margin)} · خصم ${fmt.pct(x.discountPct)}</small></span><span class="rk-bar"><i style="width:${x.revenue/tot*100}%"></i></span><b class="num">${fmt.pct(x.revenue/tot,0)}</b></button>`).join('');
+    $('#custTypes').innerHTML = g.map(x=>`<button class="rk" data-ct="${x.k}"><span class="rk-n">${L.custType(x.k)}<small>${fmt.count(x.units,NOUN.veh)} · هامش ${fmt.pct(x.margin)} · خصم ${fmt.pct(x.discountPct)}</small></span><span class="rk-bar"><i style="width:${x.revenue/tot*100}%"></i></span><b class="num">${fmt.pct(x.revenue/tot,0)}</b></button>`).join('');
   }
 };
 
 /* =====================================================================
    INVENTORY
    ===================================================================== */
-const AGING = [[0,30,'0–30 يوم'],[31,60,'31–60 يوم'],[61,90,'61–90 يوم'],[91,120,'91–120 يوم'],[121,9999,'أكثر من 120 يوم']];
+const AGING = [[0,30,'0–30 يوماً'],[31,60,'31–60 يوماً'],[61,90,'61–90 يوماً'],[91,120,'91–120 يوماً'],[121,9999,'أكثر من 120 يوماً']];
 function modelInventory(f, d){
   // velocity & demand over the 90 days before `d`; stock at `d`
   const W = {start:d-89, end:d};
@@ -313,7 +313,7 @@ const Inventory = {
     const sales = Q.summarize(Q.sales(f,P)); const days = P.end-P.start+1;
     const startV = Q.stockSummary(Q.stockAt(f,P.start),P.start).value; const turnover = (startV+S.value)/2 ? (sales.revenue-sales.gp)*(365/days)/((startV+S.value)/2) : null;
     const tr = Q.inTransit(f), vel = Q.sales(f,{start:d-89,end:d}).length/90, cov = vel ? S.units/vel : null;
-    const items = [['inventoryValue',S.value,`${fmt.int(S.units)} مركبة · ${fmt.int(S.reserved)} محجوزة`],['available',S.available],['inTransit',tr.length,fmt.sarC(tr.reduce((a,v)=>a+v.purchaseCost,0))],['avgAge',S.avgAge],['aged90',S.aged90,fmt.sarC(S.aged90Value)+' مجمدة'],['coverage',cov],['turnover',turnover]];
+    const items = [['inventoryValue',S.value,`${fmt.count(S.units,NOUN.veh)} · ${fmt.int(S.reserved)} محجوزة`],['available',S.available],['inTransit',tr.length,fmt.sarC(tr.reduce((a,v)=>a+v.purchaseCost,0))],['avgAge',S.avgAge],['aged90',S.aged90,fmt.sarC(S.aged90Value)+' مجمدة'],['coverage',cov],['turnover',turnover]];
     $('#inv-stats').innerHTML = items.map(([k,v,sub])=>`<div class="stat ${k==='aged90'&&v?'neg':''}"><span class="l">${METRICS[k].label} <button class="info-btn" data-info="${k}">${ic('info')}</button></span><b class="num">${unitFmt[METRICS[k].unit](v)}</b>${sub?`<span class="c">${sub}</span>`:''}</div>`).join('');
     icons();
   },
@@ -346,9 +346,9 @@ const Inventory = {
     const over = rows.filter(x=>x.dem<my && x.dos>90 && x.stock>=2).sort((a,b)=>b.value-a.value).slice(0,6);
     const risk = rows.filter(x=>x.aged90>0).sort((a,b)=>b.aged90-a.aged90).slice(0,6);
     const li = (x,meta)=>`<button class="mv" data-inv="${esc(x.k)}"><span>${esc(modelName(x.k))}</span><span class="muted num">${meta}</span></button>`;
-    $('#under').innerHTML = under.map(x=>li(x,`${x.stock} بالمخزون · ${x.dem.toFixed(0)} طلب/شهر · تغطية ${Math.round(x.dos)} يوم`)).join('') || '<p class="muted">لا توجد حالات نقص واضحة.</p>';
-    $('#over').innerHTML = over.map(x=>li(x,`${x.stock} بالمخزون · ${fmt.sarC(x.value)} · تغطية ${x.dos>=999?'∞':Math.round(x.dos)} يوم`)).join('') || '<p class="muted">لا يوجد فائض واضح.</p>';
-    $('#discountRisk').innerHTML = risk.map(x=>li(x,`${x.aged90} مركبة > 90 يوماً · متوسط العمر ${Math.round(x.avgAge)} يوم`)).join('') || '<p class="muted">لا توجد مركبات معرضة لخطر الخصم.</p>';
+    $('#under').innerHTML = under.map(x=>li(x,`${x.stock} في المخزون · ${x.dem.toFixed(0)} طلب/شهر · تغطية ${Math.round(x.dos)} يوم`)).join('') || '<p class="muted">لا توجد حالات نقص واضحة.</p>';
+    $('#over').innerHTML = over.map(x=>li(x,`${x.stock} في المخزون · ${fmt.sarC(x.value)} · تغطية ${x.dos>=999?'∞':Math.round(x.dos)} يوم`)).join('') || '<p class="muted">لا يوجد فائض واضح.</p>';
+    $('#discountRisk').innerHTML = risk.map(x=>li(x,`${fmt.count(x.aged90,NOUN.veh)} تجاوزت 90 يوماً · متوسط العمر ${fmt.days(x.avgAge)}`)).join('') || '<p class="muted">لا توجد مركبات معرضة لخطر الخصم.</p>';
   },
   // Q: What is available where? branch × brand units (click → units)
   heatmap(){
@@ -400,7 +400,7 @@ const Payments = {
   receivablesAging(){
     const {P,f}=ctx0(), r=Q.receivables(f,P.end);
     const od = DB.payments.filter(p=>p._od && p._s._d<=P.end && Q.saleMatch(p._s,f));
-    const buckets=[['غير مستحق بعد',null,null],['1–30 يوم',1,30],['31–60 يوم',31,60],['61–90 يوم',61,90],['أكثر من 90 يوم',91,99999]];
+    const buckets=[['غير مستحق بعد',null,null],['1–30 يوماً',1,30],['31–60 يوماً',31,60],['61–90 يوماً',61,90],['أكثر من 90 يوماً',91,99999]];
     const vals = buckets.map(([l,a,b],i)=> i===0 ? r.outstanding-r.overdue : od.filter(p=>p._daysOverdue>=a&&p._daysOverdue<=b).reduce((s,p)=>s+p.amount,0));
     const max=Math.max(...vals,1);
     $('#recAging').innerHTML = buckets.map(([l,a,b],i)=>`<button class="ra ${i?'late':''} ${i>=3?'risk':''}" data-i="${i}"><span class="n">${l}</span><span class="bar"><i style="width:${vals[i]/max*100}%"></i></span><b class="num">${fmt.sarC(vals[i])}</b></button>`).join('');
@@ -442,7 +442,7 @@ const Payments = {
     const st = ['Current','Late','Default'].map(k=>({k, n:all.filter(s=>s.contractStatus===k).length, out:all.filter(s=>s.contractStatus===k).reduce((a,s)=>a+s.outstanding,0)}));
     $('#contractStatus').innerHTML = st.map(x=>`<button class="cs ${x.k.toLowerCase()}" data-cs="${x.k}"><span>${AR.contract[x.k]}</span><b class="num">${fmt.int(x.n)}</b><em class="num">${fmt.sarC(x.out)}</em></button>`).join('');
     const top = all.filter(s=>s.overdueAmount>0).sort((a,b)=>b.overdueAmount-a.overdueAmount);
-    DataTable($('#contractsTable'), {rows:top, searchable:true, pageSize:8, exportName:'overdue-contracts', onRow:s=>Records.sale(s.saleId), empty:'لا توجد عقود متأخرة ضمن الفلاتر الحالية', columns:[
+    DataTable($('#contractsTable'), {rows:top, searchable:true, pageSize:8, exportName:'overdue-contracts', onRow:s=>Records.sale(s.saleId), empty:'لا توجد عقود متأخرة ضمن عوامل التصفية الحالية', columns:[
       {label:'العميل', get:s=>s._cust.name, render:s=>`<b>${esc(s._cust.name)}</b><small>${L.branch(s.branchId)}</small>`},
       {label:'المركبة', get:s=>L.vehicle(s._t)},
       {label:'القسط', num:true, get:s=>s.installmentAmount, render:s=>fmt.sar(s.installmentAmount)},
@@ -499,7 +499,7 @@ const Profit = {
     const ms=Object.values(cells).filter(x=>x.units>=3).map(x=>x.margin), lo=Math.min(...ms), hi=Math.max(...ms);
     $('#marginHeat').innerHTML = `<table class="heat"><thead><tr><th></th>${br.map(b=>`<th>${L.branch(b)}</th>`).join('')}</tr></thead><tbody>${brands.map(b=>`<tr><th>${brandCell(b)}</th>${br.map(x=>{ const c=cells[b+'|'+x];
       if(!c||!c.units) return '<td class="empty">·</td>'; const t=hi>lo?(c.margin-lo)/(hi-lo):.5;
-      return `<td data-b="${esc(b)}" data-br="${x}" class="${f.brand===b||f.branch===x?'selcol':''}" style="background:rgba(21,21,21,${(.08+t*.8).toFixed(2)});color:${t>.4?'#fff':'#111'}" data-tip="${esc(b)} · ${L.branch(x)} · ${c.units} مركبة · ${fmt.sarC(c.gp)} ربح">${fmt.pct(c.margin)}</td>`; }).join('')}</tr>`).join('')}</tbody></table>`;
+      return `<td data-b="${esc(b)}" data-br="${x}" class="${f.brand===b||f.branch===x?'selcol':''}" style="background:rgba(21,21,21,${(.08+t*.8).toFixed(2)});color:${t>.4?'#fff':'#111'}" data-tip="${esc(b)} · ${L.branch(x)} · ${fmt.count(c.units,NOUN.veh)} · ${fmt.sarC(c.gp)} ربح">${fmt.pct(c.margin)}</td>`; }).join('')}</tr>`).join('')}</tbody></table>`;
     $('#marginHeat').onclick = e=>{ const td=e.target.closest('td[data-b]'); if(!td) return; Drill.slice({title:`${td.dataset.b} · ${L.branch(td.dataset.br)}`, add:{brand:td.dataset.b, branch:td.dataset.br}, breakdown:'model'}); };
   }
 };
@@ -553,13 +553,13 @@ const Exec = {
     const leads=Q.leads(f,P).length, conv=leads?S.units/leads:null, pl=P.prev?Q.leads(prevF(f),P.prev).length:0, pconv=pl&&B?B.units/pl:null;
     const dRev=change(S.revenue,B?.revenue), dMar=B?change(S.margin,B.margin,'pts'):null, agedShare=St.units?St.aged90/St.units:null, dConv=change(conv,pconv,'pts');
     const tiles = [
-      {k:'sales', label:'المبيعات', t:tone(dRev,3,-3), main:`${fmt.sarC(S.revenue)}`, sub:dRev==null?'بدون مقارنة':`${dRev>=0?'+':''}${dRev.toFixed(1)}% · ${fmt.int(S.units)} مركبة`},
+      {k:'sales', label:'المبيعات', t:tone(dRev,3,-3), main:`${fmt.sarC(S.revenue)}`, sub:dRev==null?'دون مقارنة':`${dRev>=0?'+':''}${dRev.toFixed(1)}% · ${fmt.count(S.units,NOUN.veh)}`},
       {k:'profit', label:'الربحية', t:tone(dMar,0,-.5), main:`هامش ${fmt.pct(S.margin)}`, sub:dMar==null?'':`${dMar>=0?'+':''}${dMar.toFixed(1)} نقطة · مساهمة ${fmt.sarC(S.contribution)}`},
-      {k:'inventory', label:'المخزون', t:tone(agedShare,.08,.15,false), main:`${fmt.sarC(St.value)} محتجزة`, sub:`${fmt.int(St.aged90)} مركبة +90 يوماً (${fmt.pct(agedShare,0)})`},
-      {k:'payments', label:'التحصيل', t: rate==null?'flat': rate>=.95&&od90<rec.outstanding*.02?'up':rate<.9||od90>rec.outstanding*.05?'down':'flat', main:`نسبة التحصيل ${fmt.pct(rate,0)}`, sub:`متأخر +90 يوماً ${fmt.sarC(od90)}`},
-      {k:'marketing', label:'خط المبيعات', t:tone(dConv,0,-.5), main:`تحويل ${fmt.pct(conv)}`, sub:dConv==null?`${fmt.int(leads)} عميل محتمل`:`${dConv>=0?'+':''}${dConv.toFixed(1)} نقطة · ${fmt.int(leads)} عميل`}
+      {k:'inventory', label:'المخزون', t:tone(agedShare,.08,.15,false), main:`${fmt.sarC(St.value)} رأس مال محتجز`, sub:`${fmt.count(St.aged90,NOUN.veh)} تجاوزت 90 يوماً (${fmt.pct(agedShare,0)})`},
+      {k:'payments', label:'التحصيل', t: rate==null?'flat': rate>=.95&&od90<rec.outstanding*.02?'up':rate<.9||od90>rec.outstanding*.05?'down':'flat', main:`نسبة التحصيل ${fmt.pct(rate,0)}`, sub:`متأخرات تتجاوز 90 يوماً: ${fmt.sarC(od90)}`},
+      {k:'marketing', label:'مسار المبيعات', t:tone(dConv,0,-.5), main:`تحويل ${fmt.pct(conv)}`, sub:dConv==null?`${fmt.int(leads)} من العملاء المحتملين`:`${dConv>=0?'+':''}${dConv.toFixed(1)} نقطة · ${fmt.int(leads)} من العملاء المحتملين`}
     ];
-    const word = {up:'جيد', flat:'مراقبة', down:'يحتاج تدخلاً'};
+    const word = {up:'جيد', flat:'قيد المراقبة', down:'يستدعي التدخل'};
     $('#health').innerHTML = tiles.map(x=>`<button class="hl ${x.t}" data-go="${x.k}"><span class="hl-h"><i></i>${x.label}<em>${word[x.t]}</em></span><b class="num">${x.main}</b><small>${x.sub}</small></button>`).join('');
     $('#health').onclick = e=>{ const b=e.target.closest('[data-go]'); if(b) App.showTab(b.dataset.go==='profit'?'profit':b.dataset.go); };
   },
@@ -581,7 +581,7 @@ const Exec = {
       {label:'الإيرادات', num:true, get:r=>r.revenue, render:r=>`${fmt.sarC(r.revenue)}${barCell(r.revenue,maxR, f.brand===r.b?C.gold:C.dark)}`},
       {label:'الهامش', num:true, get:r=>r.margin??-1, render:r=>`<b class="${r.margin!=null&&r.margin<(tot.margin||0)-.01?'warn-t':''}">${fmt.pct(r.margin)}</b>`},
       {label:'النمو', num:true, get:r=>r.growth??-999, render:r=>trendHTML(r.growth)},
-      {label:'بالمخزون', num:true, get:r=>r.stockValue, render:r=>`${fmt.int(r.stock)}<small>${fmt.sarC(r.stockValue)}</small>`},
+      {label:'في المخزون', num:true, get:r=>r.stockValue, render:r=>`${fmt.int(r.stock)}<small>${fmt.sarC(r.stockValue)}</small>`},
       {label:'التغطية', num:true, get:r=>r.cover??9999, render:r=>r.cover==null?'—':`<b class="${r.cover>90?'warn-t':r.cover<20?'pos-t':''}">${Math.round(r.cover)} يوم</b>`},
       {label:'+90 يوماً', num:true, get:r=>r.aged, render:r=>r.aged?`<b class="neg-t">${r.aged}</b>`:'—'}
     ]});
@@ -595,18 +595,18 @@ const Exec = {
     const inv=Object.fromEntries(modelInventory(f,d).map(x=>[x.k.replace('|','|'),x]));
     const tot=Q.summarize(Q.sales(f,P)), medU=median(g.map(x=>x.units));
     let list;
-    if(mode==='top'){ list=g.sort((a,b)=>b.contribution-a.contribution).slice(0,8).map(x=>({...x, why:[`${fmt.int(x.units)} مركبة`,`هامش ${fmt.pct(x.margin)}`]})); }
+    if(mode==='top'){ list=g.sort((a,b)=>b.contribution-a.contribution).slice(0,8).map(x=>({...x, why:[`${fmt.count(x.units,NOUN.veh)}`,`هامش ${fmt.pct(x.margin)}`]})); }
     else {
       list=g.map(x=>{ const why=[]; const p=(pm.get(x.k)||[]).length; const iv=inv[x.k];
         if(x.margin<(tot.margin||0)-.015 && x.units>=medU) why.push(`هامش منخفض ${fmt.pct(x.margin)} رغم حجم مرتفع`);
         if(p>=6 && x.units<p*.75) why.push(`تراجع ${Math.round((1-x.units/p)*100)}% عن الفترة السابقة`);
         if(iv && iv.dos>120 && iv.stock>=3) why.push(`تغطية ${iv.dos>=999?'∞':Math.round(iv.dos)} يوماً`);
-        if(iv && iv.aged90>=2) why.push(`${iv.aged90} مركبة +90 يوماً`);
+        if(iv && iv.aged90>=2) why.push(`${fmt.count(iv.aged90,NOUN.veh)} +90 يوماً`);
         return {...x, why, score:why.length*10+(x.revenue/1e7)}; }).filter(x=>x.why.length).sort((a,b)=>b.score-a.score).slice(0,8);
     }
     const max=Math.max(...list.map(x=>Math.abs(x.contribution)),1);
     $('#modelperf-sub').textContent = mode==='top' ? 'الطرازات الأعلى مساهمة (الربح + التمويل − تكلفة الاستحواذ)' : 'هامش ضعيف بحجم كبير، تراجع، تغطية مرتفعة أو مخزون متقادم';
-    $('#modelPerf').innerHTML = list.length ? list.map(x=>`<button class="rk mp" data-m="${esc(x.k)}">${brandMark(x.t.brand,{size:'sm'})}<span class="rk-n"><bdi>${esc(x.t.model)}</bdi><small>${x.why.map(esc).join(' · ')}</small></span><span class="rk-bar"><i style="width:${Math.abs(x.contribution)/max*100}%;background:${mode==='top'?C.dark:C.warn}"></i></span><b class="num">${fmt.sarC(x.contribution)}</b></button>`).join('') : '<p class="muted">لا توجد طرازات تستدعي الانتباه ضمن الفلاتر الحالية.</p>';
+    $('#modelPerf').innerHTML = list.length ? list.map(x=>`<button class="rk mp" data-m="${esc(x.k)}">${brandMark(x.t.brand,{size:'sm'})}<span class="rk-n"><bdi>${esc(x.t.model)}</bdi><small>${x.why.map(esc).join(' · ')}</small></span><span class="rk-bar"><i style="width:${Math.abs(x.contribution)/max*100}%;background:${mode==='top'?C.dark:C.warn}"></i></span><b class="num">${fmt.sarC(x.contribution)}</b></button>`).join('') : '<p class="muted">لا توجد طرازات تستدعي المتابعة ضمن عوامل التصفية الحالية.</p>';
   },
 
   // Q: Where is capital trapped in stock?
@@ -616,11 +616,11 @@ const Exec = {
     const tot=bands.reduce((s,b)=>s+b.v,0)||1;
     const byBrand=[...Q.group(units.filter(v=>d-v._arr>60),v=>v._t.brand)].map(([b,us])=>({b,n:us.length,v:us.reduce((s,x)=>s+x.purchaseCost,0)})).sort((a,b)=>b.v-a.v).slice(0,5);
     const mx=byBrand[0]?.v||1;
-    $('#invRisk').innerHTML = `<div class="ir-top"><div><b class="num">${fmt.sarC(tot)}</b><small>قيمة المخزون (${fmt.int(units.length)} مركبة)</small></div><div><b class="num">${fmt.int(tr.length)}</b><small>في الطريق · ${fmt.sarC(tr.reduce((s,x)=>s+x.purchaseCost,0))}</small></div></div>
-      <div class="ir-bar">${bands.map((b,i)=>`<button data-i="${i}" style="width:${b.v/tot*100}%;background:${b.c}" data-tip="${b.l} يوماً · ${b.n} مركبة · ${fmt.sarC(b.v)}"></button>`).join('')}</div>
+    $('#invRisk').innerHTML = `<div class="ir-top"><div><b class="num">${fmt.sarC(tot)}</b><small>قيمة المخزون (${fmt.count(units.length,NOUN.veh)})</small></div><div><b class="num">${fmt.int(tr.length)}</b><small>في الطريق · ${fmt.sarC(tr.reduce((s,x)=>s+x.purchaseCost,0))}</small></div></div>
+      <div class="ir-bar">${bands.map((b,i)=>`<button data-i="${i}" style="width:${b.v/tot*100}%;background:${b.c}" data-tip="${b.l} يوماً · ${fmt.count(b.n,NOUN.veh)} · ${fmt.sarC(b.v)}"></button>`).join('')}</div>
       <div class="ir-leg">${bands.map((b,i)=>`<button data-i="${i}"><i style="background:${b.c}"></i>${b.l}<b class="num">${fmt.sarC(b.v)}</b></button>`).join('')}</div>
       <h6 class="ir-h">أكبر رأس مال في مخزون تجاوز 60 يوماً</h6>
-      ${byBrand.map(x=>`<button class="rk mp" data-agebrand="${esc(x.b)}">${brandMark(x.b,{size:'sm'})}<span class="rk-n">${esc(x.b)}<small>${x.n} مركبة</small></span><span class="rk-bar"><i style="width:${x.v/mx*100}%;background:${C.warn}"></i></span><b class="num">${fmt.sarC(x.v)}</b></button>`).join('') || '<p class="muted">لا يوجد مخزون تجاوز 60 يوماً.</p>'}`;
+      ${byBrand.map(x=>`<button class="rk mp" data-agebrand="${esc(x.b)}">${brandMark(x.b,{size:'sm'})}<span class="rk-n">${esc(x.b)}<small>${fmt.count(x.n,NOUN.veh)}</small></span><span class="rk-bar"><i style="width:${x.v/mx*100}%;background:${C.warn}"></i></span><b class="num">${fmt.sarC(x.v)}</b></button>`).join('') || '<p class="muted">لا يوجد مخزون تجاوز 60 يوماً.</p>'}`;
     $('#invRisk').onclick = e=>{
       const b=e.target.closest('[data-i]'); if(b){ const x=bands[+b.dataset.i]; return Drill.slice({title:`مخزون ${x.l} يوماً`, tab:'stock', stock:{ageMin:x.lo, ageMax:x.hi, label:`${x.l} يوماً`}}); }
       const br=e.target.closest('[data-agebrand]'); if(br) Drill.slice({title:`مخزون ${br.dataset.agebrand} +60 يوماً`, add:{brand:br.dataset.agebrand}, tab:'stock', stock:{ageMin:61, label:'أكثر من 60 يوماً'}});
@@ -663,7 +663,7 @@ const Exec = {
     const act=rows.filter(r=>r.units>0), tDisc=act.reduce((a,r)=>a+r.discount,0)/Math.max(1,act.reduce((a,r)=>a+r.listValue,0)), tConv=act.reduce((a,r)=>a+r.units,0)/Math.max(1,act.reduce((a,r)=>a+r.leads,0));
     rows.forEach(r=>{ r.flags=[]; if(r.discountPct!=null && r.discountPct>tDisc*1.5 && r.units>=5) r.flags.push('خصم مرتفع'); if(r.conv!=null && r.conv<tConv*.75 && r.leads>=30) r.flags.push('تحويل منخفض'); if(r.margin!=null && r.units>=5 && r.margin<(Q.summarize(Q.sales(fs,P)).margin||0)-.02) r.flags.push('هامش ضعيف'); });
     const shown = (App.ui.spMode||'flag')==='flag' ? rows.filter(r=>r.flags.length) : rows;
-    DataTable($('#salespeople'), {rows:shown, searchable:true, pageSize:10, exportName:'sales-team', initialSort:{key:2,dir:-1}, empty:'لا يوجد مستشارون بإشارات تستدعي الانتباه ضمن الفلاتر الحالية', onRow:r=>Drill.slice({title:r.sp.name, add:{salesperson:r.sp.salespersonId}, breakdown:'model'}), columns:[
+    DataTable($('#salespeople'), {rows:shown, searchable:true, pageSize:10, exportName:'sales-team', initialSort:{key:2,dir:-1}, empty:'لا يوجد مستشارون تستدعي مؤشراتهم المتابعة ضمن عوامل التصفية الحالية', onRow:r=>Drill.slice({title:r.sp.name, add:{salesperson:r.sp.salespersonId}, breakdown:'model'}), columns:[
       {label:'المستشار', get:r=>r.sp.name, render:r=>`<b>${esc(r.sp.name)}</b><small>${L.branch(r.sp.branchId)}</small>`},
       {label:'الإشارات', get:r=>r.flags.length, render:r=>r.flags.map(x=>statusPill(x,'warn')).join(' ')||'<span class="muted">—</span>'},
       {label:'الإيرادات', num:true, get:r=>r.revenue, render:r=>fmt.sarC(r.revenue)},
@@ -683,7 +683,7 @@ const Exec = {
     const units=Q.stockAt(ff,d), tr=Q.group(Q.inTransit(ff),v=>v._t.brand);
     const rows=[...Q.group(units,v=>v._t.brand)].map(([b,us])=>{ const bands=AGE_BANDS.map(([lo,hi])=>us.filter(v=>{const a=d-v._arr;return a>=lo&&a<=hi;}).reduce((s,x)=>s+x.purchaseCost,0)); return {b, n:us.length, v:bands.reduce((s,x)=>s+x,0), bands, tr:(tr.get(b)||[]).length}; }).sort((a,b)=>b.v-a.v);
     const mx=rows[0]?.v||1;
-    $('#capBrand').innerHTML = rows.map(r=>`<div class="cb ${f.brand===r.b?'sel':''}"><button class="cb-n" data-brand="${esc(r.b)}">${brandMark(r.b,{size:'sm'})}<span><b>${esc(r.b)}</b><small>${r.n} مركبة${r.tr?` · ${r.tr} في الطريق`:''}</small></span></button>
+    $('#capBrand').innerHTML = rows.map(r=>`<div class="cb ${f.brand===r.b?'sel':''}"><button class="cb-n" data-brand="${esc(r.b)}">${brandMark(r.b,{size:'sm'})}<span><b>${esc(r.b)}</b><small>${fmt.count(r.n,NOUN.veh)}${r.tr?` · ${r.tr} في الطريق`:''}</small></span></button>
       <span class="cb-bar" style="width:${Math.max(4,r.v/mx*100)}%">${r.bands.map((v,i)=>v?`<button data-brand="${esc(r.b)}" data-band="${i}" style="flex:${v};background:${AGE_BANDS[i][3]}" data-tip="${esc(r.b)} · ${AGE_BANDS[i][2]} يوماً · ${fmt.sarC(v)}"></button>`:'').join('')}</span>
       <b class="num cb-v">${fmt.sarC(r.v)}</b></div>`).join('');
     $('#capBrand').onclick = e=>{ const b=e.target.closest('[data-brand]'); if(!b) return; const band=b.dataset.band!=null?AGE_BANDS[+b.dataset.band]:null;
@@ -697,12 +697,12 @@ const Exec = {
     DataTable($('#distTable'), {rows, searchable:false, pageSize:10, exportName:'distributor-exposure', initialSort:{key:2,dir:-1}, onRow:r=>Drill.slice({title:r.x.ar, add:{distributor:r.x.id}, tab:'stock'}), columns:[
       {label:'جهة التوزيع', get:r=>r.x.name, render:r=>`<b>${esc(r.x.ar)}</b><small><bdi>${esc(r.x.name)}</bdi></small>`},
       {label:'العلامات', get:r=>r.x.brands.join(' '), render:r=>`<span class="bmrow">${r.x.brands.map(b=>brandMark(b,{size:'sm'})).join('')}</span>`},
-      {label:'قيمة المخزون', num:true, get:r=>r.value, render:r=>`${fmt.sarC(r.value)}<small>${r.stock} مركبة</small>`},
-      {label:'في الطريق', num:true, get:r=>r.trValue, render:r=>r.tr?`${fmt.sarC(r.trValue)}<small>${r.tr} مركبة</small>`:'—'},
+      {label:'قيمة المخزون', num:true, get:r=>r.value, render:r=>`${fmt.sarC(r.value)}<small>${fmt.count(r.stock,NOUN.veh)}</small>`},
+      {label:'في الطريق', num:true, get:r=>r.trValue, render:r=>r.tr?`${fmt.sarC(r.trValue)}<small>${fmt.count(r.tr,NOUN.veh)}</small>`:'—'},
       {label:'+90 يوماً', num:true, get:r=>r.aged, render:r=>r.aged?`<b class="neg-t">${r.aged}</b>`:'—'},
       {label:'مشتريات مباعة (تكلفة)', num:true, get:r=>r.cogs, render:r=>fmt.sarC(r.cogs)},
       {label:'الهامش', num:true, get:r=>r.margin??-1, render:r=>fmt.pct(r.margin)},
-      {label:'العلاقة', get:r=>r.x.confidence, render:r=>r.x.confidence==='unassigned'?statusPill('غير محددة','muted'):statusPill('مُبلّغ عنها — تحقق','gold')}
+      {label:'العلاقة', get:r=>r.x.confidence, render:r=>r.x.confidence==='unassigned'?statusPill('غير محددة','muted'):statusPill('منشورة — تستلزم التحقق','gold')}
     ]});
   }
 };

@@ -13,9 +13,9 @@ const AR = {
   payStatus: {'Paid':'مدفوع','Not Yet Due':'غير مستحق بعد','Overdue':'متأخر','90+ Days Overdue':'متأخر +90 يوماً'},
   custType: {'Individual':'فرد','Family':'عائلة','Executive':'تنفيذي','Fleet':'أسطول','Corporate':'شركة','Government':'جهة حكومية'},
   vStatus: {'Available':'متاح','Reserved':'محجوز','In Transit':'في الطريق','Sold':'مباع','Delivered':'تم التسليم'},
-  leadStatus: {'Won':'تم البيع','Open':'قيد المتابعة','Lost':'مفقود'},
+  leadStatus: {'Won':'تم البيع','Open':'قيد المتابعة','Lost':'فرصة ضائعة'},
   nextAction: {'Qualification call':'مكالمة تأهيل','Schedule test drive':'جدولة تجربة قيادة','Send quote':'إرسال عرض سعر','Follow up quote':'متابعة عرض السعر','Complete paperwork':'استكمال إجراءات البيع'},
-  lostReason: {'Price':'السعر','Chose competitor':'اختار منافساً','Financing declined':'رفض التمويل','No response':'عدم الرد','Vehicle unavailable':'المركبة غير متوفرة','Postponed':'تأجيل الشراء'},
+  lostReason: {'Price':'السعر','Chose competitor':'التوجه إلى منافس','Financing declined':'رفض التمويل','No response':'عدم الاستجابة','Vehicle unavailable':'المركبة غير متوفرة','Postponed':'تأجيل الشراء'},
   collection: {'Collected':'محصّل بالكامل','Not Yet Due':'غير مستحق بعد','Overdue':'متأخر','90+ Days Overdue':'متأخر +90 يوماً'},
   contract: {'Settled':'مسدد','Current':'منتظم','Late':'متأخر','Default':'متعثر'},
   delivery: {'Delivered':'تم التسليم','Scheduled':'بانتظار التسليم'},
@@ -37,7 +37,7 @@ const L = {
   source: s => AR.source[s] || s || '—',
   payment: s => AR.payment[s] || s || '—',
   custType: s => AR.custType[s] || s || '—',
-  campaign: id => { if(!id) return '—'; if(AR.campaign[id]) return AR.campaign[id]; if(id.startsWith('AO-')){ const c=DB.idx.campaign.get(id); return 'دائم – '+L.source(c?c.sources[0]:id.slice(3)); } const c=DB.idx.campaign.get(id); return c?c.name:id; },
+  campaign: id => { if(!id) return '—'; if(AR.campaign[id]) return AR.campaign[id]; if(id.startsWith('AO-')){ const c=DB.idx.campaign.get(id); return 'حملة دائمة – '+L.source(c?c.sources[0]:id.slice(3)); } const c=DB.idx.campaign.get(id); return c?c.name:id; },
   color: id => { const c=DB.idx.color.get(id); return c?c.ar:id; },
   interior: id => { const c=DB.idx.interior.get(id); return c?c.ar:id; },
   sp: id => { const s=DB.idx.salesperson.get(id); return s?s.name:id; },
@@ -54,6 +54,11 @@ const L = {
 };
 
 /* ---------- formatting ---------- */
+const NOUN = {
+  day:['يوم واحد','يومان','أيام','يوماً','يوم'], veh:['مركبة واحدة','مركبتان','مركبات','مركبة','مركبة'],
+  deal:['صفقة واحدة','صفقتان','صفقات','صفقة','صفقة'], res:['حجز واحد','حجزان','حجوزات','حجزاً','حجز'],
+  adv:['مستشار واحد','مستشاران','مستشارين','مستشاراً','مستشار']
+};
 const fmt = {
   n: (v,d=0)=> v==null||isNaN(v) ? '—' : Number(v).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d}),
   int: v => fmt.n(v,0),
@@ -61,8 +66,11 @@ const fmt = {
   sar: v => v==null||isNaN(v) ? '—' : fmt.int(v)+' ر.س',
   sarC: v => v==null||isNaN(v) ? '—' : fmt.money(v)+' ر.س',
   pct: (v,d=1) => v==null||isNaN(v)||!isFinite(v) ? '—' : (v*100).toFixed(d)+'%',
-  x: v => v==null||!isFinite(v) ? '—' : v.toFixed(1)+'x',
-  days: v => v==null||isNaN(v) ? '—' : Math.round(v)+' يوم',
+  x: v => v==null||!isFinite(v) ? '—' : v.toFixed(1)+'×',
+  days: v => v==null||isNaN(v) ? '—' : fmt.count(v, NOUN.day),
+  /* Arabic number–noun agreement: forms = [one, two, 3–10, 11–99 (accusative), 100+ (genitive)] */
+  count: (v,f) => { const n=Math.round(v), m=n%100; if(n===1) return f[0]; if(n===2) return f[1];
+    return fmt.int(n)+' '+(m>=3&&m<=10 ? f[2] : m>=11 ? f[3] : f[4]); },
   date: iso => { if(!iso) return '—'; const [y,m,d]=iso.split('-').map(Number); return `${d} ${AR.months[m-1]} ${y}`; },
   month: key => { const [y,m]=key.split('-').map(Number); return `${AR.months[m-1]} ${y}`; },
   monthShort: key => { const [y,m]=key.split('-').map(Number); return `${AR.months[m-1]} ${String(y).slice(2)}`; }
@@ -84,17 +92,17 @@ const Periods = (function(){
       const pend = Math.min(pfull, pstart+(end-start));
       const partial = end<full;
       return {id:`m-${y}-${m+1}`, kind:'month', label:`${AR.months[m]} ${y}`+(partial?' (حتى تاريخه)':''), start, end,
-              prev:{start:pstart, end:pend, label:`${AR.months[pm]} ${py}`+(partial?' (نفس الأيام)':'')}, monthKey:`${y}-${String(m+1).padStart(2,'0')}`};
+              prev:{start:pstart, end:pend, label:`${AR.months[pm]} ${py}`+(partial?' (الأيام المقابلة)':'')}, monthKey:`${y}-${String(m+1).padStart(2,'0')}`};
     };
     list = [];
     const ytdS=dayOfYMD(ty,0,1), ytdPrevS=dayOfYMD(ty-1,0,1);
-    list.push({id:'ytd', kind:'range', label:`منذ بداية ${ty}`, start:ytdS, end:T, prev:{start:ytdPrevS, end:ytdPrevS+(T-ytdS), label:`نفس الفترة ${ty-1}`}});
+    list.push({id:'ytd', kind:'range', label:`منذ بداية ${ty}`, start:ytdS, end:T, prev:{start:ytdPrevS, end:ytdPrevS+(T-ytdS), label:`الفترة المقابلة ${ty-1}`}});
     list.push({id:'l12m', kind:'range', label:'آخر 12 شهراً', start:T-364, end:T, prev:{start:T-729, end:T-365, label:'الـ12 شهراً السابقة'}});
     const q = Math.floor((tm-1)/3), qs = dayOfYMD(ty,q*3,1), pqs = q? dayOfYMD(ty,(q-1)*3,1) : dayOfYMD(ty-1,9,1);
-    list.push({id:'qtd', kind:'range', label:`الربع ${q+1} ${ty}`, start:qs, end:T, prev:{start:pqs, end:Math.min(qs-1, pqs+(T-qs)), label:`الربع ${q?q:4} (نفس الأيام)`}});
+    list.push({id:'qtd', kind:'range', label:`الربع ${q+1} ${ty}`, start:qs, end:T, prev:{start:pqs, end:Math.min(qs-1, pqs+(T-qs)), label:`الربع ${q?q:4} (الأيام المقابلة)`}});
     for(let y=ty; y>=2025; y--) for(let m=(y===ty?tm-1:11); m>=0; m--) list.push(monthP(y,m));
     list.push({id:'fy2025', kind:'range', label:'عام 2025 كاملاً', start:dayOfYMD(2025,0,1), end:dayOfYMD(2025,11,31), prev:null});
-    list.push({id:'all', kind:'range', label:'كل الفترة (منذ يناير 2025)', start:dayOfYMD(2025,0,1), end:T, prev:null});
+    list.push({id:'all', kind:'range', label:'الفترة كاملة (منذ يناير 2025)', start:dayOfYMD(2025,0,1), end:T, prev:null});
   }
   return {
     build, all:()=>list,
@@ -259,7 +267,7 @@ const METRICS = {
   gpPerUnit:   {label:'الربح لكل مركبة', unit:'money', better:'up', src:'sales', what:'متوسط الربح الإجمالي لكل مركبة مباعة.', how:'إجمالي الربح ÷ عدد المركبات المباعة.', data:'المبيعات.'},
   contribution:{label:'المساهمة التقديرية', unit:'money', better:'up', src:'sales', what:'الربح بعد إيرادات التمويل والإيرادات الأخرى وتكلفة الاستحواذ التسويقية.', how:'إجمالي الربح + إيراد التمويل + الإيرادات الأخرى − تكلفة الاستحواذ الموزعة.', data:'المبيعات + الإنفاق التسويقي موزعاً على الصفقات حسب المصدر والشهر.'},
   collected:   {label:'النقد المحصّل', unit:'money', better:'up', src:'payments', what:'المبالغ التي استلمتها الشركة فعلياً خلال الفترة (نقد، تحويلات، دفعات أولى، أقساط).', how:'Σ المبالغ المدفوعة التي يقع تاريخ دفعها ضمن الفترة.', data:'جدول المدفوعات (Payments).'},
-  outstanding: {label:'الذمم القائمة', unit:'money', better:'down', src:'payments', snapshot:true, what:'المبالغ المستحقة على العملاء ولم تُحصّل بعد (حالية ومستقبلية).', how:'Σ (قيمة العقد − المحصّل) لكل صفقة حتى نهاية الفترة، محسوبة كما في تاريخ اليوم.', data:'المبيعات + المدفوعات.'},
+  outstanding: {label:'الذمم القائمة', unit:'money', better:'down', src:'payments', snapshot:true, what:'المبالغ المستحقة على العملاء ولم تُحصّل بعد (حالية ومستقبلية).', how:'Σ (قيمة العقد − المحصّل) لكل صفقة حتى نهاية الفترة، محسوبة حتى تاريخ اليوم.', data:'المبيعات + المدفوعات.'},
   overdue:     {label:'المبالغ المتأخرة', unit:'money', better:'down', src:'payments', snapshot:true, what:'دفعات تجاوزت تاريخ استحقاقها ولم تُسدد.', how:'Σ الدفعات غير المسددة التي تاريخ استحقاقها قبل اليوم.', data:'جدول المدفوعات.'},
   collectionRate:{label:'نسبة التحصيل', unit:'pct', kind:'pts', better:'up', src:'payments', what:'نسبة ما حُصّل من المبالغ المستحقة خلال الفترة.', how:'المحصّل من الدفعات المستحقة خلال الفترة ÷ إجمالي المستحق خلال الفترة.', data:'جدول المدفوعات.'},
   inventoryValue:{label:'قيمة المخزون', unit:'money', better:'neutral', src:'stock', snapshot:true, what:'تكلفة شراء المركبات الموجودة في المخزون في نهاية الفترة.', how:'Σ تكلفة الشراء للمركبات التي وصلت ولم تُبع حتى نهاية الفترة.', data:'سجل المركبات (Vehicles) — تاريخ الوصول وتاريخ البيع.'},

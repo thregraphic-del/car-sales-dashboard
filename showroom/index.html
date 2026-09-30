@@ -43,7 +43,7 @@
 <main class="wrap" id="top">
   <!-- Filter bar -->
   <div class="filterbar">
-    <div class="filters" id="filters" role="toolbar" aria-label="الفلاتر"></div>
+    <div class="filters" id="filters" role="toolbar" aria-label="عوامل التصفية"></div>
   </div>
   <div class="chips" id="chips" aria-live="polite"></div>
 
@@ -66,7 +66,7 @@
 
   <!-- ============================ OVERVIEW ============================ -->
   <section class="tab-pane" data-pane="overview">
-    <div class="sec-h"><h2><small>كيف تؤدي الوكالة الآن؟ وما الذي يتطلب قراراً؟</small>النبض التنفيذي</h2><p class="scope-line"></p></div>
+    <div class="sec-h"><h2><small>ما مستوى أداء الوكالة حالياً؟ وما القرارات المطلوبة؟</small>النبض التنفيذي</h2><p class="scope-line"></p></div>
     <div class="health" id="health"></div>
     <div class="kpis pulse" id="pulse"></div>
     <div class="grid">
@@ -76,25 +76,25 @@
         <div class="chart-box tall"><canvas id="monthlyChart"></canvas></div>
       </div>
       <div class="card c5 insights-card">
-        <div class="card-h"><div><h3>ما الذي يتطلب قراراً؟</h3><p>تنبيهات وتوصيات مولّدة من البيانات فقط — لكل منها دليل وسجلات</p></div>
+        <div class="card-h"><div><h3>القرارات المطلوبة</h3><p>تنبيهات وتوصيات مستخلَصة من البيانات حصراً، ولكلٍّ منها شواهد وسجلات داعمة</p></div>
           <div class="seg sm dark" id="alertMode"><button data-v="recs" class="active">التوصيات</button><button data-v="alerts">التنبيهات</button></div></div>
         <ul class="ins-list" id="insights"></ul>
       </div>
       <div class="card c7">
-        <div class="card-h"><div><h3>أداء العلامات</h3><p id="brandperf-sub">المبيعات والربحية والمخزون لكل علامة — اضغط أي علامة للتفاصيل</p></div><button class="info-btn" data-info="margin"><i data-lucide="info"></i></button></div>
+        <div class="card-h"><div><h3>أداء العلامات</h3><p id="brandperf-sub">المبيعات والربحية والمخزون لكل علامة — انقر على أي علامة لعرض التفاصيل</p></div><button class="info-btn" data-info="margin"><i data-lucide="info"></i></button></div>
         <div id="brandPerf"></div>
       </div>
       <div class="card c5">
         <div class="card-h"><div><h3>أداء الطرازات</h3><p id="modelperf-sub"></p></div>
-          <div class="seg sm" id="modelPerfMode"><button data-v="top" class="active">الأعلى مساهمة</button><button data-v="weak">تحتاج انتباه</button></div></div>
+          <div class="seg sm" id="modelPerfMode"><button data-v="top" class="active">الأعلى مساهمة</button><button data-v="weak">تستدعي المتابعة</button></div></div>
         <div class="ranking" id="modelPerf"></div>
       </div>
       <div class="card c6">
-        <div class="card-h"><div><h3>مخاطر المخزون</h3><p id="invrisk-sub">أين يتجمد رأس المال؟</p></div><button class="info-btn" data-info="aged90"><i data-lucide="info"></i></button></div>
+        <div class="card-h"><div><h3>مخاطر المخزون</h3><p id="invrisk-sub">أين يتركّز رأس المال المجمَّد؟</p></div><button class="info-btn" data-info="aged90"><i data-lucide="info"></i></button></div>
         <div id="invRisk"></div>
       </div>
       <div class="card c6">
-        <div class="card-h"><div><h3>قمع المبيعات</h3><p>من العميل المحتمل حتى التسليم — اضغط أي مرحلة لعرض سجلاتها</p></div><button class="info-btn" data-info="leadConv"><i data-lucide="info"></i></button></div>
+        <div class="card-h"><div><h3>قمع المبيعات</h3><p>من العميل المحتمل حتى التسليم — انقر على أي مرحلة لعرض سجلاتها</p></div><button class="info-btn" data-info="leadConv"><i data-lucide="info"></i></button></div>
         <div class="funnel-svg" id="funnelMini"></div>
       </div>
     </div>
@@ -150,21 +150,21 @@
 
   <!-- ============================ SALES ============================ -->
   <section class="tab-pane" data-pane="sales" hidden>
-    <div class="sec-h"><h2><small>ماذا بعنا؟ وبأي سعر وربح؟</small>المبيعات</h2><p class="scope-line"></p></div>
+    <div class="sec-h"><h2><small>ما حجم المبيعات؟ وبأي أسعار وهوامش ربح؟</small>المبيعات</h2><p class="scope-line"></p></div>
     <div class="card stats" id="sales-stats"></div>
     <div class="grid">
       <div class="card c5">
-        <div class="card-h"><div><h3>أعلى المركبات</h3><p>الطرازات الأعلى حسب المقياس المختار — البرتقالي: هامش أقل من المتوسط</p></div>
+        <div class="card-h"><div><h3>أعلى المركبات</h3><p>الطرازات الأعلى حسب المقياس المختار — اللون البرتقالي: هامش دون المتوسط</p></div>
           <div class="seg sm" id="rankMetric"><button data-v="units">الوحدات</button><button data-v="revenue" class="active">الإيرادات</button><button data-v="gp">الربح</button></div></div>
         <div class="ranking" id="ranking"></div>
       </div>
       <div class="card c7">
-        <div class="card-h"><div><h3>الحجم مقابل الهامش</h3><p>كل فقاعة طراز · الحجم = الإيرادات · الخطوط = الوسيط</p></div></div>
+        <div class="card-h"><div><h3>الحجم مقابل الهامش</h3><p>تمثل كل فقاعة طرازاً · الحجم = الإيرادات · الخطوط = الوسيط</p></div></div>
         <div class="chart-box tall"><canvas id="vmChart"></canvas></div>
         <p class="flag" id="vm-flag"></p>
       </div>
       <div class="card c8">
-        <div class="card-h"><div><h3>أي العلامات تنمو؟</h3><p>مقارنة بالفترة السابقة المكافئة</p></div></div>
+        <div class="card-h"><div><h3>ما العلامات التي تحقق نمواً؟</h3><p>مقارنة بالفترة السابقة المكافئة</p></div></div>
         <div id="growth"></div>
       </div>
       <div class="card c4">
@@ -172,12 +172,12 @@
         <div class="movers" id="declining"></div>
       </div>
       <div class="card c12">
-        <div class="card-h"><div><h3>أي الفروع تحتاج انتباهاً؟</h3><p>بطاقة أداء الفروع مقارنة بمتوسط المجموعة — الأحمر: أسوأ من المتوسط بشكل ملحوظ · اضغط الفرع للتفاصيل</p></div></div>
+        <div class="card-h"><div><h3>ما الفروع التي تستدعي المتابعة؟</h3><p>بطاقة أداء الفروع مقارنة بمتوسط المجموعة — اللون الأحمر: أداء دون المتوسط بفارق ملحوظ · انقر على الفرع لعرض التفاصيل</p></div></div>
         <div id="branches"></div>
       </div>
       <div class="card c12">
-        <div class="card-h"><div><h3>أي المستشارين يحتاجون انتباهاً؟</h3><p>التحويل = المبيعات ÷ العملاء المسندين · الإشارات: خصم أعلى من الفريق بـ50% أو تحويل أقل بـ25%</p></div>
-          <div class="seg sm" id="spMode"><button data-v="flag" class="active">يحتاجون انتباه</button><button data-v="all">الجميع</button></div></div>
+        <div class="card-h"><div><h3>ما المستشارون الذين يستدعي أداؤهم المتابعة؟</h3><p>التحويل = المبيعات ÷ العملاء المسندين · مؤشرات التنبيه: خصم يزيد على متوسط الفريق بنسبة 50%، أو تحويل يقل عنه بنسبة 25%</p></div>
+          <div class="seg sm" id="spMode"><button data-v="flag" class="active">يستدعون المتابعة</button><button data-v="all">الجميع</button></div></div>
         <div id="salespeople"></div>
       </div>
     </div>
@@ -185,11 +185,11 @@
 
   <!-- ============================ MARKETING ============================ -->
   <section class="tab-pane" data-pane="marketing" hidden>
-    <div class="sec-h"><h2><small>من أين يأتي عملاؤنا؟ وأي المصادر تبيع فعلاً؟</small>العملاء والتسويق</h2><p class="scope-line"></p></div>
+    <div class="sec-h"><h2><small>ما مصادر العملاء؟ وأيّها يحقق مبيعات فعلية؟</small>العملاء والتسويق</h2><p class="scope-line"></p></div>
     <div class="card stats" id="mkt-stats"></div>
     <div class="grid">
       <div class="card c5">
-        <div class="card-h"><div><h3>قمع المبيعات</h3><p>اضغط أي مرحلة لعرض السجلات المكوّنة لها</p></div></div>
+        <div class="card-h"><div><h3>قمع المبيعات</h3><p>انقر على أي مرحلة لعرض السجلات المكوّنة لها</p></div></div>
         <div class="funnel-svg" id="funnel"></div>
         <div class="funnel-foot" id="funnel-foot"></div>
       </div>
@@ -198,11 +198,11 @@
         <div class="sankey" id="sankey"></div>
       </div>
       <div class="card c12">
-        <div class="card-h"><div><h3>اقتصاديات مصادر العملاء</h3><p>الحجم، التحويل، الإيرادات، الربح، التكلفة، تكلفة الاستحواذ والعائد على الإنفاق — المصادر العضوية بلا إنفاق</p></div><button class="info-btn" data-info="roas"><i data-lucide="info"></i></button></div>
+        <div class="card-h"><div><h3>اقتصاديات مصادر العملاء</h3><p>الحجم، التحويل، الإيرادات، الربح، التكلفة، تكلفة الاستحواذ والعائد على الإنفاق — المصادر العضوية لا يترتب عليها إنفاق</p></div><button class="info-btn" data-info="roas"><i data-lucide="info"></i></button></div>
         <div id="srcTable"></div>
       </div>
       <div class="card c7">
-        <div class="card-h"><div><h3>الحجم لا يعني النجاح</h3><p>العملاء المحتملون مقابل التحويل إلى بيع · الحجم = الإيرادات</p></div></div>
+        <div class="card-h"><div><h3>الحجم وحده ليس معياراً للنجاح</h3><p>العملاء المحتملون مقابل التحويل إلى بيع · الحجم = الإيرادات</p></div></div>
         <div class="chart-box tall"><canvas id="srcChart"></canvas></div>
       </div>
       <div class="card c5">
@@ -210,7 +210,7 @@
         <div class="ranking" id="custTypes"></div>
       </div>
       <div class="card c12">
-        <div class="card-h"><div><h3>أي الحملات تحقق إيرادات؟</h3><p>الإنفاق موزع نسبياً على أيام الفترة</p></div></div>
+        <div class="card-h"><div><h3>ما الحملات المحققة للإيرادات؟</h3><p>الإنفاق موزع نسبياً على أيام الفترة</p></div></div>
         <div id="campaigns"></div>
       </div>
     </div>
@@ -218,16 +218,16 @@
 
   <!-- ============================ INVENTORY ============================ -->
   <section class="tab-pane" data-pane="inventory" hidden>
-    <div class="sec-h"><h2><small>أين يتجمد رأس المال؟ وما الذي يتقادم أو ينقص؟</small>المخزون</h2><p class="scope-line"></p></div>
+    <div class="sec-h"><h2><small>أين يتركّز رأس المال المجمَّد؟ وما المخزون المتقادم أو الناقص؟</small>المخزون</h2><p class="scope-line"></p></div>
     <div class="card stats" id="inv-stats"></div>
     <div class="grid">
       <div class="card c12">
-        <div class="card-h"><div><h3>رأس المال المحتجز حسب العلامة</h3><p>قيمة المخزون (تكلفة الوكيل) موزعة على أعمار المخزون — الأطول = رأس مال أكبر · اضغط أي علامة أو فئة عمرية</p></div>
+        <div class="card-h"><div><h3>رأس المال المحتجز حسب العلامة</h3><p>قيمة المخزون (تكلفة الوكيل) موزعة على أعمار المخزون — الشريط الأطول يعني رأس مال أكبر · انقر على أي علامة أو فئة عمرية</p></div>
           <div class="legend"><span><i style="background:#151515"></i>0–30</span><span><i style="background:#6B7280"></i>31–60</span><span><i style="background:#B89B5E"></i>61–90</span><span><i style="background:#F59E0B"></i>91–120</span><span><i style="background:#DC2626"></i>+120 يوماً</span></div></div>
         <div id="capBrand"></div>
       </div>
       <div class="card c5">
-        <div class="card-h"><div><h3>أعمار المخزون</h3><p>اضغط أي فئة عمرية لعرض المركبات والإجراء المقترح</p></div><button class="info-btn" data-info="aged90"><i data-lucide="info"></i></button></div>
+        <div class="card-h"><div><h3>أعمار المخزون</h3><p>انقر على أي فئة عمرية لعرض المركبات والإجراء المقترح</p></div><button class="info-btn" data-info="aged90"><i data-lucide="info"></i></button></div>
         <div class="aging" id="aging"></div>
       </div>
       <div class="card c7">
@@ -238,11 +238,11 @@
       <div class="card c4"><div class="card-h"><div><h3>طلب منخفض · مخزون مرتفع</h3><p>تغطية أكثر من 90 يوماً</p></div></div><div class="movers" id="over"></div></div>
       <div class="card c4"><div class="card-h"><div><h3>معرّض لخطر الخصم</h3><p>مركبات تجاوزت 90 يوماً</p></div></div><div class="movers" id="discountRisk"></div></div>
       <div class="card c12">
-        <div class="card-h"><div><h3>التعرض حسب الموزع</h3><p>المخزون والمركبات في الطريق والمشتريات حسب جهة التوزيع — علاقات الموزعين المُبلّغ عنها تحتاج تحققاً قبل الإنتاج</p></div></div>
+        <div class="card-h"><div><h3>التعرض حسب الموزع</h3><p>المخزون والمركبات في الطريق والمشتريات حسب جهة التوزيع — علاقات التوزيع المنشورة تستلزم التحقق قبل اعتمادها في بيئة الإنتاج</p></div></div>
         <div id="distTable"></div>
       </div>
       <div class="card c12">
-        <div class="card-h"><div><h3>التوفر حسب الفرع والعلامة</h3><p>عدد المركبات القابلة للبيع (متاحة ومحجوزة) — اضغط أي خلية لعرض الوحدات</p></div></div>
+        <div class="card-h"><div><h3>التوفر حسب الفرع والعلامة</h3><p>عدد المركبات القابلة للبيع (متاحة ومحجوزة) — انقر على أي خلية لعرض الوحدات</p></div></div>
         <div class="heat-wrap" id="heat"></div>
       </div>
     </div>
@@ -250,16 +250,16 @@
 
   <!-- ============================ PAYMENTS ============================ -->
   <section class="tab-pane" data-pane="payments" hidden>
-    <div class="sec-h"><h2><small>أين المال؟ كم حُصّل وكم ينتظر؟</small>المدفوعات والتحصيل والتدفق النقدي</h2><p class="scope-line"></p></div>
+    <div class="sec-h"><h2><small>ما المبالغ المحصَّلة؟ وما المبالغ المستحقة قيد الانتظار؟</small>المدفوعات والتحصيل والتدفق النقدي</h2><p class="scope-line"></p></div>
     <div class="card stats" id="pay-stats"></div>
     <div class="grid">
       <div class="card c4">
-        <div class="card-h"><div><h3>طرق الدفع</h3><p>حصة قيمة المبيعات — اضغط للتفاصيل</p></div></div>
+        <div class="card-h"><div><h3>طرق الدفع</h3><p>حصة قيمة المبيعات — انقر لعرض التفاصيل</p></div></div>
         <div class="donut-box"><canvas id="mixChart"></canvas><div class="donut-center" id="mixCenter"></div></div>
         <ul class="dl" id="mixLegend"></ul>
       </div>
       <div class="card c4">
-        <div class="card-h"><div><h3>المحصّل مقابل القائم</h3><p>لكل طريقة دفع كما في اليوم</p></div></div>
+        <div class="card-h"><div><h3>المحصّل مقابل القائم</h3><p>لكل طريقة دفع حتى تاريخه</p></div></div>
         <div class="cvo-list" id="cvo"></div>
       </div>
       <div class="card c4">
@@ -281,18 +281,18 @@
 
   <!-- ============================ PROFITABILITY ============================ -->
   <section class="tab-pane" data-pane="profit" hidden>
-    <div class="sec-h"><h2><small>أين نربح فعلاً؟</small>الربحية</h2><p class="scope-line"></p></div>
+    <div class="sec-h"><h2><small>ما مصادر الربح الفعلية؟</small>الربحية</h2><p class="scope-line"></p></div>
     <div class="grid">
       <div class="card c7">
         <div class="card-h"><div><h3>من سعر القائمة إلى المساهمة</h3><p id="wf-sub"></p></div><button class="info-btn" data-info="contribution"><i data-lucide="info"></i></button></div>
         <div class="chart-box tall"><canvas id="wfChart"></canvas></div>
       </div>
       <div class="card c5">
-        <div class="card-h"><div><h3>الهامش حسب العلامة والفرع</h3><p>الأغمق = هامش أعلى — اضغط خلية للتفاصيل</p></div></div>
+        <div class="card-h"><div><h3>الهامش حسب العلامة والفرع</h3><p>اللون الأغمق يعني هامشاً أعلى — انقر على أي خلية لعرض التفاصيل</p></div></div>
         <div class="heat-wrap" id="marginHeat"></div>
       </div>
       <div class="card c12">
-        <div class="card-h"><div><h3>الربحية حسب</h3><p>اضغط أي صف للتعمق حتى مستوى الصفقة</p></div><div class="seg sm" id="profitDim"></div></div>
+        <div class="card-h"><div><h3>الربحية حسب</h3><p>انقر على أي صف للتعمق حتى مستوى الصفقة</p></div><div class="seg sm" id="profitDim"></div></div>
         <div id="profitTable"></div>
       </div>
     </div>

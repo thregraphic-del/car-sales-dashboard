@@ -58,8 +58,8 @@ const Info = {
     const applies = Q.APPLIES[m.src] || [];
     const on = Object.keys(f).filter(k=>applies.includes(k));
     const off = Object.keys(f).filter(k=>!applies.includes(k));
-    const dims = list => list.length ? list.map(k=>`<span class="mini-chip">${DIM_LABEL[k]}: ${esc(dimValueLabel(k,f[k]))}</span>`).join('') : '<span class="muted">لا توجد فلاتر — كل البيانات</span>';
-    const range = m.snapshot ? `لقطة كما في ${fmt.date(DB.isoOf(Math.min(P.end, DB.meta.todayDay)))}` : `${P.label} · ${Periods.rangeLabel(P)}`;
+    const dims = list => list.length ? list.map(k=>`<span class="mini-chip">${DIM_LABEL[k]}: ${esc(dimValueLabel(k,f[k]))}</span>`).join('') : '<span class="muted">لا توجد عوامل تصفية — جميع البيانات</span>';
+    const range = m.snapshot ? `لقطة بتاريخ ${fmt.date(DB.isoOf(Math.min(P.end, DB.meta.todayDay)))}` : `${P.label} · ${Periods.rangeLabel(P)}`;
     const html = `<div class="info-pop">
       <h5>${ic('info')} ${m.label}</h5>
       <dl>
@@ -67,8 +67,8 @@ const Info = {
         <dt>طريقة الحساب</dt><dd>${m.how}</dd>
         <dt>البيانات المشمولة</dt><dd>${m.data}</dd>
         <dt>النطاق الزمني</dt><dd>${range}${P.prev && !m.snapshot?`<br><span class="muted">المقارنة مع: ${P.prev.label}${f.year?` · سنة الطراز ${f.year-1} (مقارنة مماثلة)`:''}</span>`:''}</dd>
-        <dt>الفلاتر المطبقة</dt><dd>${dims(on)}</dd>
-        ${off.length?`<dt>فلاتر لا تنطبق على هذا المؤشر</dt><dd>${dims(off)}</dd>`:''}
+        <dt>عوامل التصفية المطبقة</dt><dd>${dims(on)}</dd>
+        ${off.length?`<dt>عوامل تصفية لا تنطبق على هذا المؤشر</dt><dd>${dims(off)}</dd>`:''}
       </dl>
       <div class="info-foot">${DB.meta.mode==='demo'?'مصدر البيانات: بيانات تجريبية (Demo)':'مصدر البيانات: بيانات الإنتاج'}</div></div>`;
     Pop.open(anchor, html, 'info-'+metricId+(ctx.key||''), 'wide');

@@ -45,7 +45,7 @@ const Drill = (function(){
   function applyAsFilter(spec){
     const patch = {...(spec.add||{})};
     if(spec.P && spec.P.id) patch.period = spec.P.id;
-    Store.set(patch, 'drawer'); Drawer.close(); toast('تم تطبيق الاختيار كفلتر على اللوحة');
+    Store.set(patch, 'drawer'); Drawer.close(); toast('طُبّق الاختيار عاملَ تصفية على اللوحة');
     document.getElementById('top')?.scrollIntoView({behavior:'smooth'});
   }
 
@@ -158,7 +158,7 @@ const Drill = (function(){
   function paneSales(pane, spec, P, f){
     let rows = Q.sales(f, P);
     if(spec.delivered) rows = DB.sales.filter(s=>Q.inP(s._delivered,P) && s.deliveryStatus==='Delivered' && Q.saleMatch(s,f));
-    pane.innerHTML = `<div class="d-note">${ic('receipt')} ${spec.delivered?'المركبات المسلّمة للعملاء خلال الفترة':'صفقات البيع التي يقع تاريخها ضمن الفترة'} — اضغط أي صف لعرض تفاصيل الصفقة والتحصيل.</div><div class="d-table"></div>`;
+    pane.innerHTML = `<div class="d-note">${ic('receipt')} ${spec.delivered?'المركبات المسلّمة للعملاء خلال الفترة':'صفقات البيع التي يقع تاريخها ضمن الفترة'} — انقر على أي صف لعرض تفاصيل الصفقة والتحصيل.</div><div class="d-table"></div>`;
     DataTable(pane.querySelector('.d-table'), {rows, columns:saleCols, exportName:'sales', initialSort:{key:0,dir:-1}, onRow:s=>Records.sale(s.saleId)});
   }
 
@@ -193,10 +193,10 @@ const Drill = (function(){
   function recommend(v, age){
     if(v.status==='Reserved') return {t:'متابعة إتمام البيع', tone:'gold'};
     const leads90 = demandIndex()[v._t._modelKey]||0;
-    if(age>120) return {t:'خصم تصفية أو نقل لفرع أعلى طلباً', tone:'neg'};
-    if(age>90) return {t:'حملة موجهة + مراجعة السعر', tone:'warn'};
+    if(age>120) return {t:'خصم تصفية أو النقل إلى فرع أعلى طلباً', tone:'neg'};
+    if(age>90) return {t:'حملة موجّهة مع مراجعة السعر', tone:'warn'};
     if(age>60 && leads90<40) return {t:'مراجعة التسعير مبكراً', tone:'warn'};
-    return {t:'لا إجراء', tone:''};
+    return {t:'لا يلزم إجراء', tone:''};
   }
   function paneStock(pane, spec, P, f){
     const d = Math.min(P.end, DB.meta.todayDay);
@@ -209,9 +209,9 @@ const Drill = (function(){
     pane.innerHTML = kpiGrid([
       {label:'المركبات', value:fmt.int(S.units)}, {label:'قيمة المخزون', value:fmt.sarC(S.value), info:'inventoryValue'},
       {label:'متوسط العمر', value:fmt.days(S.avgAge), info:'avgAge'}, {label:'تجاوز 90 يوماً', value:fmt.int(S.aged90), info:'aged90'}
-    ]) + (!rows.length && Object.keys(f).length ? `<div class="d-note warn">${ic('info')} لا توجد مركبات${a.label?` ${a.label}`:''} ضمن الفلاتر الحالية (${Object.keys(f).map(k=>esc(dimValueLabel(k,f[k]))).join(' · ')}). <button class="link widen">عرضها على مستوى المجموعة</button></div>` : '')
-      + `<div class="d-note">${ic('warehouse')} المخزون كما في ${fmt.date(DB.isoOf(d))}${a.label?` · ${a.label}`:''} — الإجراء المقترح مبني على عمر المركبة والطلب خلال آخر 90 يوماً.</div><div class="d-table"></div>`;
-    pane.querySelector('.widen')?.addEventListener('click',()=>{ const none={}; FILTER_DIMS.forEach(k=>none[k]=null); slice({...spec, title:spec.title+' · كل المجموعة', crumb:'كل المجموعة', add:none}, true); });
+    ]) + (!rows.length && Object.keys(f).length ? `<div class="d-note warn">${ic('info')} لا توجد مركبات${a.label?` ${a.label}`:''} ضمن عوامل التصفية الحالية (${Object.keys(f).map(k=>esc(dimValueLabel(k,f[k]))).join(' · ')}). <button class="link widen">عرضها على مستوى المجموعة</button></div>` : '')
+      + `<div class="d-note">${ic('warehouse')} المخزون بتاريخ ${fmt.date(DB.isoOf(d))}${a.label?` · ${a.label}`:''} — الإجراء المقترح مبني على عمر المركبة والطلب خلال آخر 90 يوماً.</div><div class="d-table"></div>`;
+    pane.querySelector('.widen')?.addEventListener('click',()=>{ const none={}; FILTER_DIMS.forEach(k=>none[k]=null); slice({...spec, title:spec.title+' · المجموعة كاملة', crumb:'المجموعة كاملة', add:none}, true); });
     DataTable(pane.querySelector('.d-table'), {rows, exportName:'inventory', initialSort:{key:6,dir:-1}, onRow:v=>Records.vehicle(v.vehicleId), columns:[
       {label:'رقم الهيكل (VIN)', get:v=>v.vin, render:v=>`<code>${v.vin}</code><small>${v.vehicleId}</small>`},
       {label:'المركبة', get:v=>L.vehicleY(v._t), render:v=>`<span class="bcell">${brandMark(v._t.brand,{size:'sm'})}<span><b>${esc(v._t.model)} ${esc(v._t.trim)}</b><small>${v._t.year} · ${L.dist(v.distributorId)}</small></span></span>`},
@@ -238,7 +238,7 @@ const Drill = (function(){
     pane.innerHTML = kpiGrid([
       {label:'عدد الدفعات', value:fmt.int(rows.length)}, {label:'المبلغ المستحق', value:fmt.sarC(due)},
       {label:'المحصّل', value:fmt.sarC(paid), info:'collected'}, {label:'المتأخر', value:fmt.sarC(od), info:'overdue'}
-    ]) + `<div class="d-note">${ic('wallet')} ${o.status==='Overdue'?`دفعات متأخرة غير مسددة كما في اليوم${o.label?` · ${o.label}`:''}`:o.field==='_due'?'الدفعات المستحقة خلال الفترة (مدفوعة أو غير مدفوعة)':'الدفعات المستلمة فعلياً خلال الفترة'}.</div><div class="d-table"></div>`;
+    ]) + `<div class="d-note">${ic('wallet')} ${o.status==='Overdue'?`دفعات متأخرة غير مسددة حتى تاريخه${o.label?` · ${o.label}`:''}`:o.field==='_due'?'الدفعات المستحقة خلال الفترة (مدفوعة أو غير مدفوعة)':'الدفعات المستلمة فعلياً خلال الفترة'}.</div><div class="d-table"></div>`;
     DataTable(pane.querySelector('.d-table'), {rows, exportName:'payments', initialSort:{key:0,dir:-1}, onRow:p=>Records.sale(p.saleId), columns:[
       {label:o.field==='_paid'||!o.field&&o.status!=='Overdue'?'تاريخ الدفع':'تاريخ الاستحقاق', get:p=>o.field==='_paid'||(!o.field&&o.status!=='Overdue')?p._paid:p._due, render:p=>fmt.date(o.field==='_paid'||(!o.field&&o.status!=='Overdue')?p.paidDate:p.dueDate)},
       {label:'العميل', get:p=>p._s._cust.name, render:p=>`${esc(p._s._cust.name)}<small>${L.custType(p._s.customerType)}</small>`},
@@ -326,8 +326,8 @@ const Records = (function(){
     const AR_F = {'Vehicle ID':'معرّف المركبة','VIN':'رقم الهيكل','Brand':'العلامة','Model':'الطراز','Generation':'الجيل','Year':'سنة الطراز','Trim':'الفئة','Body Type':'نوع الهيكل','Price Segment':'الشريحة السعرية',
       'Powertrain':'نوع المحرك','Engine':'المحرك','Transmission':'ناقل الحركة','Drive Type':'نظام الدفع','Distributor':'الموزع','Exterior Color':'اللون الخارجي','Interior Color':'اللون الداخلي','MSRP':'السعر الرسمي',
       'Dealer Cost':'تكلفة الوكيل','Current Price':'السعر الحالي','Selling Price':'سعر البيع','Discount':'الخصم','Status':'الحالة','Transferred From':'منقولة من فرع',
-      'Gross Profit':'إجمالي الربح','Margin':'الهامش','Stock':'متاح (نفس الفئة)','Reserved':'محجوز (نفس الفئة)','Sold':'مباع (نفس الفئة)','Days in Inventory':'الأيام في المخزون',
-      'Average Days to Sell':'متوسط أيام البيع (نفس الفئة)','Branch':'الفرع','Salesperson':'مستشار المبيعات','Lead Source':'مصدر العميل','Campaign':'الحملة','Customer Type':'نوع العميل','Payment Method':'طريقة الدفع',
+      'Gross Profit':'إجمالي الربح','Margin':'الهامش','Stock':'متاح (الفئة ذاتها)','Reserved':'محجوز (الفئة ذاتها)','Sold':'مباع (الفئة ذاتها)','Days in Inventory':'الأيام في المخزون',
+      'Average Days to Sell':'متوسط أيام البيع (الفئة ذاتها)','Branch':'الفرع','Salesperson':'مستشار المبيعات','Lead Source':'مصدر العميل','Campaign':'الحملة','Customer Type':'نوع العميل','Payment Method':'طريقة الدفع',
       'Cash Amount':'المبلغ النقدي','Financed Amount':'المبلغ الممول','Down Payment':'الدفعة الأولى','Installment Amount':'القسط','Outstanding Amount':'المتبقي','Collection Status':'حالة التحصيل',
       'Delivery Status':'حالة التسليم','Image':'الصورة','3D Asset':'النموذج ثلاثي الأبعاد','Source URL':'رابط المصدر','Asset License / Source Metadata':'ترخيص/مصدر الأصل'};
     const val = (k,x)=>{ if(x==null) return '—';
