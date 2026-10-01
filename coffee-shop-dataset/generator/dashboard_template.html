@@ -1,0 +1,706 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>لوحة أداء المقهى</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b0c10; --bg-2:#0d0e12;
+  --panel:#14151c; --card:#16171f; --card-2:#1b1d27;
+  --stroke:#23252f; --stroke-soft:#1c1e27;
+  --txt:#f3f4f8; --txt-2:#c7cad6; --muted:#8a90a0; --muted-2:#5d6373;
+  --accent:#ef2b3a; --accent-soft:#ff5a45;
+  --emerald:#25c281; --emerald-soft:#34d399;
+  --amber:#ffc24b; --cyan:#38bdf8;
+  --grad-accent:linear-gradient(90deg,#ff2d55 0%,#ff7a18 100%);
+  --grad-green:linear-gradient(90deg,#0f9d6b 0%,#34d399 100%);
+  --grad-amber:linear-gradient(90deg,#ff9f1c 0%,#ffd166 100%);
+  --grad-cyan:linear-gradient(90deg,#0ea5e9 0%,#22d3ee 100%);
+  --grad-violet:linear-gradient(90deg,#7c3aed 0%,#a78bfa 100%);
+  --radius:14px; --radius-sm:10px; --radius-pill:999px; --gap:18px;
+  --shadow:0 18px 40px -22px rgba(0,0,0,.85);
+  /* validated categorical palette (dark surface), fixed order */
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#9085e9; --s7:#e66767; --s-other:#5d6373;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--bg)}
+body{font-family:'Tajawal',system-ui,'Segoe UI',Tahoma,sans-serif;color:var(--txt);line-height:1.5;padding:18px;min-height:100vh;
+  background:radial-gradient(1200px 600px at 100% -10%,rgba(239,43,58,.07),transparent 60%),
+             radial-gradient(900px 500px at -5% 0%,rgba(56,189,248,.05),transparent 55%),
+             linear-gradient(180deg,var(--bg-2),var(--bg));}
+.wrap{max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:var(--gap)}
+.card,.kpi,.panel{position:relative;background:linear-gradient(180deg,var(--card-2),var(--card));border:1px solid var(--stroke);
+  border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;padding:18px}
+.card::before,.kpi::before,.panel::before{content:"";position:absolute;inset-block-start:0;inset-inline:0;height:2px;
+  background:var(--grad-accent);box-shadow:0 0 12px rgba(255,45,85,.7)}
+.kpi.g::before{background:var(--grad-green);box-shadow:0 0 12px rgba(52,211,153,.6)}
+.kpi.a::before{background:var(--grad-amber);box-shadow:0 0 12px rgba(255,194,75,.55)}
+.kpi.c::before{background:var(--grad-cyan);box-shadow:0 0 12px rgba(34,211,238,.55)}
+.kpi.v::before{background:var(--grad-violet);box-shadow:0 0 12px rgba(167,139,250,.55)}
+.ico svg{width:22px;height:22px;fill:none;stroke:var(--txt-2);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ico{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:#11121a;border:1px solid var(--stroke)}
+
+/* header */
+.header{display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+#custom-brand-logo{width:54px;height:54px;border-radius:14px;border:1px dashed var(--stroke);flex:none}
+.h-title h1{font-size:22px;font-weight:900;letter-spacing:.2px}
+.h-title p{font-size:13px;color:var(--muted)}
+.h-status{margin-inline-start:auto;display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--txt-2);
+  background:#0f1016;border:1px solid var(--stroke);border-radius:var(--radius-pill);padding:7px 14px}
+.live{width:8px;height:8px;border-radius:50%;background:var(--emerald-soft);box-shadow:0 0 10px var(--emerald-soft);animation:pulse 1.8s infinite}
+@keyframes pulse{50%{opacity:.35}}
+
+/* filters */
+.filters{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.f-item{display:flex;align-items:center;gap:8px;background:#0f1016;border:1px solid var(--stroke);border-radius:var(--radius-pill);padding:4px 6px 4px 12px}
+.f-item .ico{width:30px;height:30px;border-radius:50%;background:transparent;border:none}
+.f-item .ico svg{width:18px;height:18px}
+.f-item select{appearance:none;-webkit-appearance:none;background:transparent;border:none;color:var(--txt);font:inherit;font-size:13.5px;
+  font-weight:700;padding:6px 4px 6px 18px;cursor:pointer;outline:none}
+.f-item select option{background:#14151c;color:var(--txt)}
+.actions{margin-inline-start:auto;display:flex;gap:10px}
+.btn{font:inherit;font-weight:800;font-size:13px;border-radius:var(--radius-pill);padding:9px 18px;cursor:pointer;border:1px solid var(--stroke);
+  display:inline-flex;align-items:center;gap:8px;transition:.16s}
+.btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.btn-primary{background:var(--grad-accent);color:#fff;border-color:transparent;box-shadow:0 0 22px rgba(239,43,58,.45)}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-ghost{background:#1a1b23;color:var(--txt-2)}
+.btn-ghost:hover{color:#fff}
+.btn:focus-visible,.opt:focus-visible,.inv-btn:focus-visible,.view-toggle:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:var(--gap)}
+.kpi{display:flex;flex-direction:column;gap:10px;min-height:150px}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.kpi-label{font-size:13.5px;font-weight:700;color:var(--txt-2)}
+.kpi-value{font-size:27px;font-weight:900;color:#fff;letter-spacing:.3px;white-space:nowrap}
+.kpi-value .unit{font-size:14px;font-weight:700;color:var(--txt-2);margin-inline-start:6px}
+.kpi-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin-top:auto}
+.badge-mom{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:var(--radius-pill);font-size:11.5px;font-weight:800}
+.badge-mom svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.badge-mom.up{background:rgba(37,194,129,.1);border:1px solid rgba(37,194,129,.3);color:var(--emerald-soft)}
+.badge-mom.down{background:rgba(239,43,58,.1);border:1px solid rgba(239,43,58,.3);color:var(--accent-soft)}
+.badge-mom.ref{background:#1a1b23;border:1px solid var(--stroke);color:var(--muted)}
+
+/* grid & panels */
+.grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:var(--gap)}
+.span-8{grid-column:span 8}.span-4{grid-column:span 4}.span-6{grid-column:span 6}.span-12{grid-column:span 12}.span-7{grid-column:span 7}.span-5{grid-column:span 5}
+.p-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.p-head h2{font-size:16px;font-weight:800}
+.p-head .sub{font-size:12px;color:var(--muted)}
+.p-head .switch{margin-inline-start:auto}
+.switch{display:inline-flex;gap:4px;background:#0f1016;border:1px solid var(--stroke);border-radius:var(--radius-pill);padding:4px;flex-wrap:wrap}
+.switch .opt{padding:6px 13px;border-radius:var(--radius-pill);font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;transition:.16s;
+  white-space:nowrap;background:none;border:none;font-family:inherit}
+.switch .opt:hover{color:var(--txt)}
+.switch .opt.active{background:linear-gradient(180deg,var(--accent-soft),var(--accent));color:#fff}
+.switch.green .opt.active{background:linear-gradient(180deg,var(--emerald-soft),var(--emerald));color:#06231a}
+.chart{position:relative;width:100%}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.axis text,.lbl{fill:var(--muted);font-size:11px;font-family:inherit}
+.gridline{stroke:#22242e;stroke-width:1}
+.empty{display:grid;place-items:center;min-height:200px;color:var(--muted);font-size:14px;text-align:center;gap:8px}
+.empty svg{width:34px;height:34px;fill:none;stroke:var(--muted-2);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+
+/* donut legend */
+.donut-wrap{display:grid;grid-template-columns:200px 1fr;gap:18px;align-items:center}
+.legend{display:flex;flex-direction:column;gap:8px}
+.lg-row{display:grid;grid-template-columns:12px 1fr auto auto;gap:10px;align-items:center;font-size:12.5px}
+.lg-sw{width:12px;height:12px;border-radius:4px}
+.lg-name{color:var(--txt-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lg-val{color:var(--txt);font-weight:800;text-align:left}
+.lg-pct{color:var(--muted);font-weight:700;min-width:46px;text-align:left}
+
+/* gauge */
+.gauge-meta{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px}
+.gm{background:#0f1016;border:1px solid var(--stroke-soft);border-radius:var(--radius-sm);padding:10px 12px}
+.gm span{display:block;font-size:11.5px;color:var(--muted)}
+.gm b{font-size:15px;font-weight:800;display:block}
+.note{font-size:11.5px;color:var(--muted);margin-top:10px}
+
+/* bars (horizontal) */
+.hbar-row{display:grid;grid-template-columns:24px 170px 1fr 120px;gap:10px;align-items:center;font-size:12.5px;padding:5px 0}
+.hbar-rank{color:var(--muted);font-weight:800;text-align:center}
+.hbar-name{color:var(--txt-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbar-track{height:14px;background:#11121a;border-radius:6px;position:relative}
+.hbar-fill{position:absolute;inset-block:0;inset-inline-start:0;border-radius:2px 6px 6px 2px;background:var(--s1);min-width:2px}
+.hbar-val{font-weight:800;text-align:left}
+.drawer{margin-top:12px;border-top:1px solid var(--stroke);padding-top:12px;display:none;max-height:340px;overflow:auto}
+.drawer.open{display:block}
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{position:sticky;top:0;background:#14151c;color:var(--muted);font-weight:700;text-align:right;padding:8px;border-bottom:1px solid var(--stroke)}
+.tbl td{padding:7px 8px;border-bottom:1px solid var(--stroke-soft);color:var(--txt-2)}
+.tbl td.n{text-align:left;color:var(--txt);font-weight:700}
+.link-btn{font:inherit;font-size:12.5px;font-weight:800;color:var(--cyan);background:none;border:1px solid rgba(56,189,248,.35);
+  border-radius:var(--radius-pill);padding:6px 14px;cursor:pointer;margin-top:10px;display:inline-flex;gap:6px;align-items:center}
+.link-btn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* chart 5 control row */
+.inv-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#0f1016;border:1px solid var(--stroke-soft);
+  border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:14px}
+.inv-btn{display:inline-flex;align-items:center;gap:8px;padding:8px 15px;border-radius:var(--radius-pill);font-size:12.5px;font-weight:800;
+  color:var(--muted);cursor:pointer;background:#14151c;border:1px solid var(--stroke);transition:.16s;font-family:inherit}
+.inv-btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.inv-btn.active{background:linear-gradient(180deg,var(--accent-soft),var(--accent));color:#fff;border-color:transparent}
+.inv-views{display:inline-flex;gap:6px;margin-inline-start:auto}
+.view-toggle{width:40px;height:38px;display:grid;place-items:center;border-radius:10px;cursor:pointer;background:#14151c;border:1px solid var(--stroke);color:var(--muted)}
+.view-toggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.view-toggle.active{background:rgba(56,189,248,.12);border-color:rgba(56,189,248,.45);color:var(--cyan)}
+
+/* payments */
+.pay-row{display:grid;grid-template-columns:30px 120px 1fr 110px 96px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--stroke-soft);font-size:12.5px}
+.pay-row:last-child{border-bottom:none}
+.pay-logo{width:30px;height:30px}
+.pay-logo svg{width:30px;height:30px}
+.pay-name{color:var(--txt-2);font-weight:700}
+.pay-val{font-weight:800;text-align:left}
+.pay-fee{color:var(--muted);text-align:left;font-size:11.5px;line-height:1.35}
+.pay-fee b{display:block;color:var(--txt-2);font-weight:700}
+.pay-head{font-size:11px;color:var(--muted);font-weight:700}
+
+/* heatmap */
+.hm{display:grid;gap:6px;font-size:12px}
+.hm-h{color:var(--muted);font-weight:700;text-align:center;padding:4px}
+.hm-r{color:var(--txt-2);font-weight:700;display:flex;align-items:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hm-cell{border-radius:8px;padding:11px 6px;font-weight:800;color:#fff;border:1px solid rgba(255,255,255,.05);text-align:center;cursor:default}
+
+.mini-tip{position:fixed;z-index:50;pointer-events:none;background:#0a0b0f;border:1px solid var(--stroke);color:#fff;font-size:12px;
+  font-weight:800;padding:5px 10px;border-radius:8px;transform:translate(-50%,-135%);opacity:0;transition:opacity .12s;white-space:nowrap;direction:rtl}
+.footer{font-size:11.5px;color:var(--muted-2);text-align:center;padding:6px}
+
+@media (max-width:1200px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.span-8,.span-4,.span-6,.span-7,.span-5{grid-column:span 12}}
+@media (max-width:720px){body{padding:16px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi-value{font-size:21px}
+  .donut-wrap{grid-template-columns:1fr}.hbar-row{grid-template-columns:20px 110px 1fr 90px}.pay-row{grid-template-columns:30px 90px 1fr 90px}
+  .pay-fee{display:none}.actions{margin-inline-start:0}.h-status{margin-inline-start:0}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="card header">
+    <div id="custom-brand-logo"></div>
+    <div class="h-title">
+      <h1>لوحة الأداء التنفيذية — مقهى القهوة المختصة</h1>
+      <p>الرياض · بيانات المعاملات اليومية 2023 – 2025 · جميع المبالغ بالريال السعودي (ر.س) غير شاملة ضريبة القيمة المضافة</p>
+    </div>
+    <div class="h-status" aria-live="polite"><span class="live"></span><span id="sync">تمت المزامنة ✓</span></div>
+  </header>
+
+  <section class="card filters" aria-label="الفلاتر">
+    <label class="f-item"><span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 3v3M16 3v3"/></svg></span>
+      <select id="f-year" aria-label="السنة"></select></label>
+    <label class="f-item"><span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg></span>
+      <select id="f-month" aria-label="الشهر"></select></label>
+    <label class="f-item"><span class="ico"><svg viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20H4z"/><path d="M9.5 20v-5.5h5V20"/></svg></span>
+      <select id="f-ch" aria-label="قناة الطلب"></select></label>
+    <label class="f-item"><span class="ico"><svg viewBox="0 0 24 24"><path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 10.5h1.5a2.5 2.5 0 0 1 0 5H16M8 3.5c0 1.5 1.5 1.5 1.5 3M12 3.5c0 1.5 1.5 1.5 1.5 3"/></svg></span>
+      <select id="f-cat" aria-label="فئة المنتج"></select></label>
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-refresh"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/></svg>تحديث البيانات</button>
+      <button class="btn btn-ghost" id="btn-reset"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v5h5"/></svg>إعادة تعيين</button>
+    </div>
+  </section>
+
+  <section class="kpis" id="kpis" aria-label="المؤشرات الرئيسية"></section>
+
+  <section class="grid">
+    <div class="panel span-8">
+      <div class="p-head"><h2>الاتجاه الزمني</h2><span class="sub" id="trend-sub"></span>
+        <div class="switch" data-key="trend" role="tablist">
+          <button class="opt active" data-v="net">المبيعات</button><button class="opt" data-v="np">الأرباح</button><button class="opt" data-v="gm">الهامش</button>
+        </div></div>
+      <div class="chart" id="c-trend"></div>
+    </div>
+    <div class="panel span-4">
+      <div class="p-head"><h2>تحقيق المستهدف</h2>
+        <div class="switch green" data-key="gauge">
+          <button class="opt active" data-v="net">المبيعات</button><button class="opt" data-v="orders">عدد الطلبات</button><button class="opt" data-v="newc">العملاء الجدد</button>
+        </div></div>
+      <div class="chart" id="c-gauge"></div>
+    </div>
+
+    <div class="panel span-6">
+      <div class="p-head"><h2>توزيع صافي المبيعات</h2>
+        <div class="switch" data-key="donut">
+          <button class="opt active" data-v="ch">القناة</button><button class="opt" data-v="pay">وسيلة الدفع</button><button class="opt" data-v="cat">الفئة</button><button class="opt" data-v="ct">نوع العميل</button><button class="opt" data-v="season">الموسم</button>
+        </div></div>
+      <div class="chart" id="c-donut"></div>
+    </div>
+    <div class="panel span-6">
+      <div class="p-head"><h2>أداء المنتجات</h2><span class="sub">أعلى 10 منتجات</span>
+        <div class="switch" data-key="prod">
+          <button class="opt" data-v="qty">الكمية المباعة</button><button class="opt active" data-v="net">الإيراد</button><button class="opt" data-v="margin">هامش الربح</button>
+        </div></div>
+      <div class="chart" id="c-prod"></div>
+      <button class="link-btn" id="btn-drawer" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>عرض التفاصيل</span></button>
+      <div class="drawer" id="drawer"></div>
+    </div>
+
+    <div class="panel span-12">
+      <div class="p-head"><h2>مركز التحليل الزمني والمناسبات</h2><span class="sub" id="time-sub"></span></div>
+      <div class="inv-controls">
+        <button class="inv-btn active" data-tc="hour"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>ساعات اليوم</button>
+        <button class="inv-btn" data-tc="dow"><svg viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 13.5h2M12 13.5h2M16 13.5h.5M8 17h2"/></svg>أيام الأسبوع</button>
+        <button class="inv-btn" data-tc="event"><svg viewBox="0 0 24 24"><path d="M15.5 4.5a7.5 7.5 0 1 0 4 12.3A6 6 0 0 1 15.5 4.5z"/><path d="m18 4 .6 1.4L20 6l-1.4.6L18 8l-.6-1.4L16 6l1.4-.6z"/></svg>المواسم والمناسبات</button>
+        <div class="inv-views">
+          <button class="view-toggle active" data-view="bar" aria-label="عرض أعمدة"><svg viewBox="0 0 24 24"><path d="M5 20V11M10 20V5M15 20v-7M20 20V9"/></svg></button>
+          <button class="view-toggle" data-view="donut" aria-label="عرض دائري"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.5"/><path d="M12 3.5v5"/></svg></button>
+        </div>
+      </div>
+      <div class="chart" id="c-time"></div>
+    </div>
+
+    <div class="panel span-5">
+      <div class="p-head"><h2>وسائل الدفع ورسوم التحصيل</h2></div>
+      <div id="c-pay"></div>
+    </div>
+    <div class="panel span-7">
+      <div class="p-head"><h2>مصفوفة الإيراد</h2><span class="sub">أعلى المنتجات × قنوات الطلب (صافي المبيعات ر.س)</span></div>
+      <div id="c-heat"></div>
+    </div>
+  </section>
+  <div class="footer">صافي الربح = إجمالي الربح − رسوم الدفع − عمولات التوصيل − المصاريف التشغيلية (موزّعة حسب حصة المبيعات عند تطبيق فلتر القناة أو الفئة) · الهدف = نفس الفترة من السنة السابقة + 8% (2023: متوسط شهري ثابت)</div>
+</div>
+<div class="mini-tip" id="tip"></div>
+
+<script>
+const DATA = /*__DATA__*/null;
+(function(){
+"use strict";
+const $ = s => document.querySelector(s);
+const MONTH_AR = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const CH_AR = ["داخل المقهى","الطلب من السيارة","تطبيق الجوال","تطبيقات التوصيل","غير محدد"];
+const PAY_AR = ["مدى","Apple Pay","بطاقة ائتمانية","نقداً","STC Pay","تطبيق التوصيل","فاتورة شركات","غير محدد"];
+const CT_AR = ["عميل جديد","عميل عائد","زائر غير مسجّل"];
+const CAT_AR = ["مشروبات الإسبريسو","القهوة المثلجة","القهوة المختصة","الشاي والماتشا","مشروبات أخرى","المخبوزات","الحلويات","الساندويتشات","المنتجات الموسمية"];
+const DOW_AR = ["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+const EV_AR = ["أيام عادية","عيد الفطر","عيد الأضحى","رمضان","اليوم الوطني ويوم التأسيس","الجمعة البيضاء","أسبوع الراتب"];
+const SEASON_AR = ["الشتاء","الربيع","الصيف","الخريف"];
+const PROD_AR = {P001:"إسبريسو",P002:"كورتادو",P003:"أمريكانو",P004:"كابتشينو",P005:"لاتيه",P006:"فلات وايت",P007:"سبانش لاتيه",P008:"موكا",
+ P009:"كراميل ماكياتو",P010:"أمريكانو مثلج",P011:"لاتيه مثلج",P012:"سبانش لاتيه مثلج",P013:"موكا مثلجة",P014:"كولد برو",P015:"V60 تقطير",
+ P016:"قهوة سعودية (دلّة)",P017:"ماتشا لاتيه",P018:"ماتشا لاتيه مثلجة",P019:"شاي كرك",P020:"شاي أسود",P021:"هوت شوكليت",P022:"ليمون بالنعناع",
+ P023:"مياه معدنية",P024:"كرواسون بالزبدة",P025:"كرواسون باللوز",P026:"كرواسون زعتر وجبن",P027:"كوكيز بالشوكولاتة",P028:"كوكيز معمول التمر",
+ P029:"سان سباستيان تشيزكيك",P030:"كيكة الشوكولاتة",P031:"كيكة العسل",P032:"ساندويتش تركي وجبن",P033:"ساندويتش حلوم بالبيستو",P034:"راب دجاج سيزر",
+ P035:"بمبكن سبايس لاتيه",P036:"لاتيه الفستق",P037:"لاتيه الزعفران والورد",P038:"لاتيه اليوم الوطني",P039:"بوكس قهوة وتمر رمضان",P040:"بوكس معمول العيد"};
+const SERIES = ["var(--s1)","var(--s2)","var(--s3)","var(--s4)","var(--s5)","var(--s6)","var(--s7)"];
+const NM = DATA.months.length;
+
+// ---------- formatting ----------
+const ISO = t => "\u2066" + t + "\u2069";   // isolate numbers so signs stay put inside RTL text
+const fmtInt = n => ISO(Math.round(n || 0).toLocaleString("en-US"));
+const fmtSAR = n => fmtInt(n) + " ر.س";
+const fmt2 = n => ISO((n || 0).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2}));
+const fmtPct = n => ISO((isFinite(n) ? n.toFixed(1) : "0.0") + "%");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const monthLabel = m => { const [y, mm] = DATA.months[m].split("-"); return MONTH_AR[+mm - 1] + " " + y; };
+
+// ---------- state ----------
+const DEF = {year:"all", month:"all", ch:"all", cat:"all", trend:"net", gauge:"net", donut:"ch", prod:"net", tc:"hour", view:"bar", drawer:false};
+let S = Object.assign({}, DEF);
+
+// ---------- precomputed totals per month (for opex allocation) ----------
+const netTotM = new Array(NM).fill(0);
+for (const r of DATA.L) netTotM[r[0]] += r[5];
+const netTotD = new Array(DATA.days.length).fill(0);
+for (const r of DATA.D) netTotD[r[0]] += r[3];
+
+const monthOk = m => {
+  const [y, mm] = DATA.months[m].split("-");
+  return (S.year === "all" || S.year === y) && (S.month === "all" || +S.month === +mm);
+};
+const chOk = c => S.ch === "all" || +S.ch === c;
+const catOk = c => S.cat === "all" || +S.cat === c;
+const selMonths = () => { const a = []; for (let m = 0; m < NM; m++) if (monthOk(m)) a.push(m); return a; };
+
+// metrics over a set of months (array of month indexes)
+function metrics(ms){
+  const set = new Set(ms);
+  const t = {net:0, gp:0, gross:0, disc:0, qty:0, fc:0, orders:0, newc:0, opex:0};
+  const netM = {};
+  for (const r of DATA.L){
+    if (!set.has(r[0]) || !chOk(r[1]) || !catOk(r[4])) continue;
+    t.net += r[5]; t.gp += r[6]; t.gross += r[7]; t.disc += r[8]; t.qty += r[9]; t.fc += r[10] + r[11];
+    if (S.cat !== "all") { t.orders += r[12]; if (r[3] === 0) t.newc += r[12]; }
+    netM[r[0]] = (netM[r[0]] || 0) + r[5];
+  }
+  if (S.cat === "all"){
+    for (const r of DATA.O){ if (!set.has(r[0]) || !chOk(r[1])) continue; t.orders += r[4]; if (r[3] === 0) t.newc += r[4]; }
+  }
+  for (const m of set){ if (netTotM[m] > 0) t.opex += DATA.opex[m] * ((netM[m] || 0) / netTotM[m]); }
+  t.np = t.gp - t.fc - t.opex;
+  t.aov = t.orders ? t.net / t.orders : 0;
+  t.gm = t.net ? t.gp / t.net * 100 : 0;
+  return t;
+}
+
+// ---------- tooltip ----------
+const tip = $("#tip");
+function showTip(ev, html){ tip.innerHTML = html; tip.style.left = ev.clientX + "px"; tip.style.top = ev.clientY + "px"; tip.style.opacity = 1; }
+function hideTip(){ tip.style.opacity = 0; }
+function bindTips(root){
+  root.querySelectorAll("[data-tip]").forEach(el => {
+    el.addEventListener("mousemove", e => showTip(e, el.getAttribute("data-tip")));
+    el.addEventListener("mouseleave", hideTip);
+  });
+}
+
+const EMPTY = msg => `<div class="empty"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4M8.5 11h5"/></svg><div>${msg || "لا توجد بيانات ضمن الفلاتر المحددة"}</div></div>`;
+
+// ---------- KPIs ----------
+const ICONS = {
+  net:'<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="3"/><circle cx="12" cy="12" r="2.5"/><path d="M6.5 9.5v.01M17.5 14.5v.01"/></svg>',
+  np:'<svg viewBox="0 0 24 24"><path d="M4 17l5-5 4 3 7-8"/><path d="M15 7h5v5"/></svg>',
+  orders:'<svg viewBox="0 0 24 24"><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12h6"/></svg>',
+  aov:'<svg viewBox="0 0 24 24"><path d="M5 8h14l-1.5 11a2 2 0 0 1-2 1.5h-7a2 2 0 0 1-2-1.5z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg>',
+  gm:'<svg viewBox="0 0 24 24"><circle cx="7.5" cy="7.5" r="2.5"/><circle cx="16.5" cy="16.5" r="2.5"/><path d="M18 6 6 18"/></svg>'
+};
+const ARROW_UP = '<svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg>';
+const ARROW_DN = '<svg viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg>';
+
+function renderKPIs(ms){
+  const el = $("#kpis");
+  const t = metrics(ms);
+  const last = ms.length ? Math.max(...ms) : -1;
+  const cur = last >= 0 ? metrics([last]) : null;
+  const prev = last > 0 ? metrics([last - 1]) : null;
+  const defs = [
+    {k:"net", label:"صافي المبيعات", cls:"", val:fmtInt(t.net), unit:"ر.س", sub:"إجمالي " + fmtSAR(t.gross) + " − خصومات ومرتجعات"},
+    {k:"np", label:"صافي الربح (بعد التكاليف)", cls:"g", val:fmtInt(t.np), unit:"ر.س", sub:"هامش صافي " + fmtPct(t.net ? t.np / t.net * 100 : 0)},
+    {k:"orders", label:"عدد الطلبات", cls:"c", val:fmtInt(t.orders), unit:"طلب", sub:"عملاء جدد: " + fmtInt(t.newc)},
+    {k:"aov", label:"متوسط قيمة الطلب", cls:"a", val:fmt2(t.aov), unit:"ر.س", sub:"قطع لكل طلب: " + (t.orders ? (t.qty / t.orders).toFixed(2) : "0.00")},
+    {k:"gm", label:"هامش الربح الإجمالي", cls:"v", val:fmtPct(t.gm), unit:"", sub:"إجمالي الربح " + fmtSAR(t.gp)},
+  ];
+  el.innerHTML = defs.map(d => {
+    let badge;
+    if (!t.net && !t.orders) badge = '<span class="badge-mom ref">— لا بيانات</span>';
+    else if (!prev || !cur || (prev.net === 0 && prev.orders === 0)) badge = '<span class="badge-mom ref">— مرجع</span>';
+    else {
+      let ch, txt;
+      if (d.k === "gm"){ ch = cur.gm - prev.gm; txt = ISO((ch >= 0 ? "+" : "") + ch.toFixed(1)) + " نقطة"; }
+      else { const a = cur[d.k], b = prev[d.k]; ch = b ? (a - b) / Math.abs(b) * 100 : 0; txt = ISO((ch >= 0 ? "+" : "") + ch.toFixed(1) + "%"); }
+      badge = `<span class="badge-mom ${ch >= 0 ? "up" : "down"}" title="${esc(monthLabel(last))} مقارنة بـ ${esc(monthLabel(last - 1))}">${ch >= 0 ? ARROW_UP : ARROW_DN}${txt}</span>`;
+    }
+    return `<div class="kpi ${d.cls}"><div class="kpi-top"><span class="kpi-label">${d.label}</span><span class="ico">${ICONS[d.k]}</span></div>
+      <div class="kpi-value">${t.net || t.orders ? d.val : "0"}${d.unit ? `<span class="unit">${d.unit}</span>` : ""}</div>
+      <div class="kpi-foot">${badge}<span>${last >= 0 ? "شهرياً · " + esc(monthLabel(last)) : ""}</span></div>
+      <div class="kpi-foot" style="margin-top:0">${esc(d.sub)}</div></div>`;
+  }).join("");
+}
+
+// ---------- chart 1: trend ----------
+function niceMax(v){ if (v <= 0) return 1; const p = Math.pow(10, Math.floor(Math.log10(v))); const n = v / p; return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10) * p; }
+function renderTrend(ms){
+  const el = $("#c-trend");
+  if (!ms.length){ el.innerHTML = EMPTY(); return; }
+  let pts = [];
+  if (ms.length === 1){
+    const m = ms[0]; const by = {};
+    DATA.daymeta.forEach((dm, i) => { if (dm[0] === m) by[i] = {net:0, gp:0, fc:0}; });
+    for (const r of DATA.D){ const o = by[r[0]]; if (!o || !chOk(r[1]) || !catOk(r[2])) continue; o.net += r[3]; o.gp += r[4]; o.fc += r[5]; }
+    for (const i of Object.keys(by).map(Number).sort((a, b) => a - b)){
+      const o = by[i]; const op = netTotD[i] ? DATA.opexD[i] * o.net / netTotD[i] : 0;
+      pts.push({label: DATA.days[i].slice(8) + "/" + DATA.days[i].slice(5, 7), full: DATA.days[i], net:o.net, np:o.gp - o.fc - op, gm:o.net ? o.gp / o.net * 100 : 0});
+    }
+    $("#trend-sub").textContent = "يومي · " + monthLabel(m);
+  } else {
+    for (const m of ms){ const t = metrics([m]); pts.push({label: MONTH_AR[+DATA.months[m].slice(5) - 1].slice(0, 3) + " " + DATA.months[m].slice(2, 4), full: monthLabel(m), net:t.net, np:t.np, gm:t.gm}); }
+    $("#trend-sub").textContent = "شهري · " + pts.length + " شهر";
+  }
+  const key = S.trend;
+  const vals = pts.filter(p => !(key === "gm" && !p.net)).map(p => p[key]);
+  if (vals.every(v => !v)){ el.innerHTML = EMPTY(); return; }
+  const W = 900, H = 300, L = 70, R = 16, T = 14, B = 34;
+  let lo = Math.min(0, ...vals), hi = Math.max(...vals);
+  if (key === "gm"){ lo = Math.max(0, Math.floor((Math.min(...vals) - 3) / 5) * 5); hi = Math.ceil((hi + 2) / 5) * 5; }
+  else { hi = niceMax(hi); if (lo < 0) lo = -niceMax(-lo); }
+  const n = pts.length;
+  const x = i => (W - R) - (n === 1 ? (W - L - R) / 2 : i * (W - L - R) / (n - 1));   // RTL: time flows right→left
+  const y = v => T + (H - T - B) * (1 - (v - lo) / (hi - lo || 1));
+  const ticks = 5; let g = "";
+  for (let k = 0; k <= ticks; k++){
+    const v = lo + (hi - lo) * k / ticks, yy = y(v);
+    g += `<line class="gridline" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/><text class="lbl" x="${L - 8}" y="${yy + 4}" text-anchor="end">${key === "gm" ? v.toFixed(0) + "%" : fmtInt(v)}</text>`;
+  }
+  if (lo < 0) g += `<line x1="${L}" x2="${W - R}" y1="${y(0)}" y2="${y(0)}" stroke="#4a4f5e" stroke-width="1"/>`;
+  const step = Math.max(1, Math.ceil(n / 12));
+  pts.forEach((p, i) => { if (i % step === 0 || i === n - 1) g += `<text class="lbl" x="${x(i)}" y="${H - 10}" text-anchor="middle">${esc(p.label)}</text>`; });
+  const valid = p => !(key === "gm" && !p.net);
+  let path = "", pen = false;
+  pts.forEach((p, i) => { if (!valid(p)){ pen = false; return; } path += (pen ? "L" : "M") + x(i).toFixed(1) + " " + y(p[key]).toFixed(1) + " "; pen = true; });
+  const vi = pts.map((p, i) => i).filter(i => valid(pts[i]));
+  const base = y(Math.max(lo, 0));
+  const contiguous = vi.length === n;
+  const area = contiguous ? path + ` L${x(n - 1).toFixed(1)} ${base} L${x(0).toFixed(1)} ${base} Z` : "";
+  const fmtV = v => key === "gm" ? fmtPct(v) : fmtSAR(v);
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="الاتجاه الزمني">
+    <defs><linearGradient id="ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3987e5" stop-opacity=".28"/><stop offset="1" stop-color="#3987e5" stop-opacity="0"/></linearGradient></defs>
+    <g class="axis">${g}</g><path d="${area}" fill="url(#ga)"/>
+    <path d="${path}" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <line id="xh" y1="${T}" y2="${H - B}" stroke="#6b7180" stroke-width="1" stroke-dasharray="3 3" opacity="0"/>
+    <circle id="xd" r="5" fill="var(--s1)" stroke="var(--card)" stroke-width="2" opacity="0"/>
+    <rect id="hit" x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent"/></svg>`;
+  const svg = el.querySelector("svg"), hit = el.querySelector("#hit"), xh = el.querySelector("#xh"), xd = el.querySelector("#xd");
+  hit.addEventListener("mousemove", e => {
+    const r = svg.getBoundingClientRect(); const px = (e.clientX - r.left) * W / r.width;
+    let best = 0, bd = 1e9; pts.forEach((p, i) => { if (key === "gm" && !p.net) return; const d = Math.abs(x(i) - px); if (d < bd){ bd = d; best = i; } });
+    const p = pts[best];
+    xh.setAttribute("x1", x(best)); xh.setAttribute("x2", x(best)); xh.setAttribute("opacity", 1);
+    xd.setAttribute("cx", x(best)); xd.setAttribute("cy", y(p[key])); xd.setAttribute("opacity", 1);
+    showTip(e, esc(p.full) + " · " + fmtV(p[key]));
+  });
+  hit.addEventListener("mouseleave", () => { xh.setAttribute("opacity", 0); xd.setAttribute("opacity", 0); hideTip(); });
+}
+
+// ---------- chart 2 / 5 shared donut ----------
+function donutSVG(items, total, centerTop, centerBottom){
+  const R = 88, r = 58, C = 100; let a0 = -Math.PI / 2, s = "";
+  const gap = items.length > 1 ? 0.012 : 0;
+  items.forEach(it => {
+    const frac = it.v / total; if (frac <= 0) return;
+    const a1 = a0 + frac * Math.PI * 2;
+    const s0 = a0 + gap, s1 = Math.max(s0 + 0.001, a1 - gap);
+    const large = (s1 - s0) > Math.PI ? 1 : 0;
+    const p = (ang, rad) => [C + rad * Math.cos(ang), C + rad * Math.sin(ang)];
+    const [x0, y0] = p(s0, R), [x1, y1] = p(s1, R), [x2, y2] = p(s1, r), [x3, y3] = p(s0, r);
+    const d = frac >= 0.9999 ? `M${C} ${C - R} A${R} ${R} 0 1 1 ${C - 0.01} ${C - R} L${C - 0.01} ${C - r} A${r} ${r} 0 1 0 ${C} ${C - r} Z`
+      : `M${x0} ${y0} A${R} ${R} 0 ${large} 1 ${x1} ${y1} L${x2} ${y2} A${r} ${r} 0 ${large} 0 ${x3} ${y3} Z`;
+    s += `<path d="${d}" fill="${it.c}" data-tip="${esc(it.name)} · ${esc(it.fmt)} · ${(frac * 100).toFixed(1)}%"/>`;
+    a0 = a1;
+  });
+  return `<svg viewBox="0 0 200 200" role="img">${s}<text x="100" y="96" text-anchor="middle" fill="var(--muted)" font-size="11" font-family="inherit">${esc(centerTop)}</text>
+    <text x="100" y="116" text-anchor="middle" fill="#fff" font-size="15" font-weight="800" font-family="inherit">${esc(centerBottom)}</text></svg>`;
+}
+function foldItems(items, max){
+  items = items.filter(i => i.v > 0);
+  if (items.length <= max) return items.map((it, k) => Object.assign(it, {c: it.c || SERIES[k]}));
+  const sorted = [...items].sort((a, b) => b.v - a.v); const keep = new Set(sorted.slice(0, max - 1));
+  const out = items.filter(i => keep.has(i)).map((it, k) => Object.assign(it, {c: SERIES[k]}));
+  const rest = items.filter(i => !keep.has(i)).reduce((s, i) => s + i.v, 0);
+  out.push({name:"أخرى", v:rest, c:"var(--s-other)"});
+  return out;
+}
+function donutBlock(items, total, fmtFn, centerTop){
+  const legend = items.map(it => `<div class="lg-row"><span class="lg-sw" style="background:${it.c}"></span><span class="lg-name">${esc(it.name)}</span>
+     <span class="lg-val">${fmtFn(it.v)}</span><span class="lg-pct">${(it.v / total * 100).toFixed(1)}%</span></div>`).join("");
+  return `<div class="donut-wrap">${donutSVG(items.map(i => Object.assign({fmt: fmtFn(i.v)}, i)), total, centerTop, fmtFn(total))}<div class="legend">${legend}</div></div>`;
+}
+function renderDonut(ms){
+  const el = $("#c-donut"); const set = new Set(ms);
+  const dimIdx = {ch:1, pay:2, ct:3, cat:4}[S.donut];
+  const names = {ch:CH_AR, pay:PAY_AR, ct:CT_AR, cat:CAT_AR, season:SEASON_AR}[S.donut];
+  const acc = new Array(names.length).fill(0);
+  for (const r of DATA.L){
+    if (!set.has(r[0]) || !chOk(r[1]) || !catOk(r[4])) continue;
+    if (S.donut === "season"){ const mm = +DATA.months[r[0]].slice(5); acc[mm === 12 || mm <= 2 ? 0 : mm <= 5 ? 1 : mm <= 8 ? 2 : 3] += r[5]; }
+    else acc[r[dimIdx]] += r[5];
+  }
+  const total = acc.reduce((a, b) => a + b, 0);
+  if (!total){ el.innerHTML = EMPTY(); return; }
+  const items = foldItems(acc.map((v, k) => ({name:names[k], v, c: k < 7 ? SERIES[k] : "var(--s-other)"})), 7);
+  el.innerHTML = donutBlock(items, total, fmtSAR, "صافي المبيعات");
+  bindTips(el);
+}
+
+// ---------- chart 3: gauge ----------
+function gaugeValue(ms, key){ const t = metrics(ms); return key === "net" ? t.net : key === "orders" ? t.orders : t.newc; }
+function renderGauge(ms){
+  const el = $("#c-gauge");
+  if (!ms.length){ el.innerHTML = EMPTY(); return; }
+  const key = S.gauge; let actual = 0, target = 0;
+  const base23 = []; for (let m = 0; m < 12; m++) base23.push(gaugeValue([m], key));
+  const avg23 = base23.reduce((a, b) => a + b, 0) / 12;
+  for (const m of ms){ actual += gaugeValue([m], key); target += m >= 12 ? gaugeValue([m - 12], key) * 1.08 : avg23; }
+  if (!target){ el.innerHTML = EMPTY(); return; }
+  const pct = actual / target * 100;
+  const col = pct >= 100 ? "#34d399" : pct >= 90 ? "#ffc24b" : "#ff5a45";
+  const glow = pct >= 100 ? "rgba(52,211,153,.75)" : pct >= 90 ? "rgba(255,194,75,.6)" : "rgba(255,90,69,.6)";
+  const f = Math.max(0, Math.min(1.2, pct / 100)) / 1.2;
+  const C = 120, R = 92, sw = 16;
+  const pt = a => [C + R * Math.cos(a), 130 + R * Math.sin(a)];
+  const a0 = Math.PI, a1 = Math.PI + f * Math.PI;
+  const [x0, y0] = pt(a0), [x1, y1] = pt(2 * Math.PI), [xf, yf] = pt(a1);
+  const [xt, yt] = pt(Math.PI + Math.PI / 1.2);
+  const fmtV = key === "net" ? fmtSAR : v => fmtInt(v);
+  el.innerHTML = `<svg viewBox="0 0 240 150" role="img" aria-label="تحقيق المستهدف">
+    <defs><filter id="neon" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="3.2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+    <path d="M${x0} ${y0} A${R} ${R} 0 0 1 ${x1} ${y1}" fill="none" stroke="#1f2130" stroke-width="${sw}" stroke-linecap="round"/>
+    ${f > 0.001 ? `<path d="M${x0} ${y0} A${R} ${R} 0 0 1 ${xf} ${yf}" fill="none" stroke="${col}" stroke-width="${sw}" stroke-linecap="round" filter="url(#neon)" style="filter:drop-shadow(0 0 6px ${glow})"/>` : ""}
+    <line x1="${C + (R - 12) * Math.cos(Math.PI + Math.PI / 1.2)}" y1="${130 + (R - 12) * Math.sin(Math.PI + Math.PI / 1.2)}" x2="${xt + (xt - C) * 0.12}" y2="${yt + (yt - 130) * 0.12}" stroke="#c7cad6" stroke-width="2" stroke-linecap="round"/>
+    <text x="${C}" y="112" text-anchor="middle" fill="#fff" font-size="30" font-weight="900" font-family="inherit">${pct.toFixed(1)}%</text>
+    <text x="${C}" y="132" text-anchor="middle" fill="var(--muted)" font-size="11" font-family="inherit">نسبة الإنجاز (العلامة = 100%)</text></svg>
+    <div class="gauge-meta"><div class="gm"><span>الفعلي</span><b>${fmtV(actual)}</b></div><div class="gm"><span>المستهدف</span><b>${fmtV(target)}</b></div></div>
+    <div class="note">${pct >= 100 ? "تجاوز المستهدف" : pct >= 90 ? "قريب من المستهدف" : "أقل من المستهدف"} بفارق ${fmtV(Math.abs(actual - target))}</div>`;
+}
+
+// ---------- chart 4: products ----------
+function productRows(ms){
+  const set = new Set(ms); const acc = DATA.prod.map(p => ({id:p[0], cat:p[2], qty:0, net:0, gp:0}));
+  for (const r of DATA.P){ if (!set.has(r[0]) || !chOk(r[1])) continue; const a = acc[r[2]]; if (!catOk(a.cat)) continue; a.qty += r[3]; a.net += r[4]; a.gp += r[5]; }
+  return acc.filter(a => a.qty > 0).map(a => Object.assign(a, {name: PROD_AR[a.id] || a.id, margin: a.net ? a.gp / a.net * 100 : 0}));
+}
+function renderProducts(ms){
+  const el = $("#c-prod"); const rows = productRows(ms);
+  if (!rows.length){ el.innerHTML = EMPTY(); $("#drawer").innerHTML = ""; return; }
+  const key = S.prod; const minQ = key === "margin" ? Math.max(20, rows.reduce((s, r) => s + r.qty, 0) * 0.002) : 0;
+  const top = rows.filter(r => r.qty >= minQ).sort((a, b) => b[key] - a[key]).slice(0, 10);
+  const max = Math.max(...top.map(r => r[key])) || 1;
+  const f = key === "net" ? fmtSAR : key === "qty" ? v => fmtInt(v) + " وحدة" : fmtPct;
+  el.innerHTML = top.map((r, i) => `<div class="hbar-row"><span class="hbar-rank">${i + 1}</span><span class="hbar-name" title="${esc(r.name)}">${esc(r.name)}</span>
+    <div class="hbar-track"><div class="hbar-fill" style="width:${(r[key] / max * 100).toFixed(2)}%" data-tip="${esc(r.name)} · ${esc(f(r[key]))}"></div></div>
+    <span class="hbar-val">${f(r[key])}</span></div>`).join("") + (key === "margin" ? `<div class="note">يُستبعد المنتج إذا قلّت كميته عن ${fmtInt(minQ)} وحدة لتفادي الهوامش غير الممثّلة.</div>` : "");
+  bindTips(el);
+  const all = rows.sort((a, b) => b.net - a.net);
+  $("#drawer").innerHTML = `<table class="tbl"><thead><tr><th>#</th><th>المنتج</th><th>الفئة</th><th>الكمية</th><th>صافي المبيعات (ر.س)</th><th>إجمالي الربح (ر.س)</th><th>الهامش</th></tr></thead><tbody>
+    ${all.map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.name)}</td><td>${esc(CAT_AR[r.cat])}</td><td class="n">${fmtInt(r.qty)}</td><td class="n">${fmtInt(r.net)}</td><td class="n">${fmtInt(r.gp)}</td><td class="n">${fmtPct(r.margin)}</td></tr>`).join("")}</tbody></table>`;
+}
+
+// ---------- chart 5: time & events ----------
+function timeItems(ms){
+  const set = new Set(ms);
+  if (S.tc === "hour"){
+    const acc = new Array(24).fill(0);
+    if (S.cat === "all"){ for (const r of DATA.H0) if (set.has(r[0]) && chOk(r[1])) acc[r[2]] += r[3]; }
+    else { for (const r of DATA.H) if (set.has(r[0]) && chOk(r[1]) && catOk(r[2])) acc[r[3]] += r[5]; }
+    const order = [...Array(24).keys()].map(h => (h + 6) % 24).filter(h => acc[h] > 0);   // business day starts 06:00
+    return {items: order.map(h => ({name: String(h).padStart(2, "0") + ":00", v: acc[h]})), unit:"طلب", sub:"عدد الطلبات حسب الساعة (00–03 بعد منتصف الليل تتبع يوم العمل السابق)", fmt: v => fmtInt(v) + " طلب"};
+  }
+  const groups = S.tc === "dow" ? DOW_AR : EV_AR; const gi = S.tc === "dow" ? 1 : 2;
+  const net = new Array(groups.length).fill(0), days = new Array(groups.length).fill(0);
+  DATA.daymeta.forEach(dm => { if (set.has(dm[0])) days[dm[gi]]++; });
+  for (const r of DATA.D){ const dm = DATA.daymeta[r[0]]; if (!set.has(dm[0]) || !chOk(r[1]) || !catOk(r[2])) continue; net[dm[gi]] += r[3]; }
+  const items = groups.map((g, k) => ({name: g + (S.tc === "event" ? ` (${days[k]} يوم)` : ""), v: days[k] ? net[k] / days[k] : 0})).filter(i => i.v > 0);
+  return {items, unit:"ر.س", sub:"متوسط صافي المبيعات اليومي (ر.س)", fmt: fmtSAR};
+}
+function renderTime(ms){
+  const el = $("#c-time");
+  if (!ms.length){ el.innerHTML = EMPTY(); return; }
+  const {items, sub, fmt} = timeItems(ms);
+  $("#time-sub").textContent = sub;
+  if (!items.length){ el.innerHTML = EMPTY(); return; }
+  if (S.view === "donut"){
+    const total = items.reduce((s, i) => s + i.v, 0);
+    el.innerHTML = `<div style="max-width:720px;margin:0 auto">${donutBlock(foldItems(items.map(i => Object.assign({}, i)), 7), total, fmt, S.tc === "hour" ? "إجمالي الطلبات" : "مجموع المتوسطات")}</div>`;
+    bindTips(el); return;
+  }
+  const W = 1200, H = 290, L = 70, R = 10, T = 22, B = 46, n = items.length;
+  const max = niceMax(Math.max(...items.map(i => i.v)));
+  const bw = (W - L - R) / n, gapPx = Math.max(2, bw * 0.22);
+  const y = v => T + (H - T - B) * (1 - v / max);
+  let g = "";
+  for (let k = 0; k <= 4; k++){ const v = max * k / 4, yy = y(v); g += `<line class="gridline" x1="${L}" x2="${W - R}" y1="${yy}" y2="${yy}"/><text class="lbl" x="${L - 8}" y="${yy + 4}" text-anchor="end">${fmtInt(v)}</text>`; }
+  const peak = items.reduce((b, i, k) => i.v > items[b].v ? k : b, 0);
+  let bars = "";
+  items.forEach((it, k) => {
+    const x = (W - R) - (k + 1) * bw + gapPx / 2, w = bw - gapPx, yy = y(it.v), h = (H - B) - yy, rr = Math.min(4, w / 2, h);
+    const d = `M${x} ${H - B} L${x} ${yy + rr} Q${x} ${yy} ${x + rr} ${yy} L${x + w - rr} ${yy} Q${x + w} ${yy} ${x + w} ${yy + rr} L${x + w} ${H - B} Z`;
+    bars += `<path d="${d}" fill="${k === peak ? "var(--s2)" : "var(--s1)"}" data-tip="${esc(it.name)} · ${esc(fmt(it.v))}"/>`;
+    bars += `<rect x="${x - gapPx / 2}" y="${T}" width="${bw}" height="${H - T - B}" fill="transparent" data-tip="${esc(it.name)} · ${esc(fmt(it.v))}"/>`;
+    const lbl = it.name.length > 14 && n > 6 ? it.name.slice(0, 13) + "…" : it.name;
+    bars += `<text class="lbl" x="${x + w / 2}" y="${H - B + 16}" text-anchor="middle">${esc(lbl)}</text>`;
+  });
+  const pk = items[peak], px = (W - R) - (peak + 1) * bw + bw / 2;
+  bars += `<text x="${px}" y="${y(pk.v) - 7}" text-anchor="middle" fill="var(--txt)" font-size="11.5" font-weight="800" font-family="inherit">${esc(fmt(pk.v))}</text>`;
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="التحليل الزمني"><g class="axis">${g}</g>${bars}
+    </svg><div class="note">العمود البرتقالي = القيمة الأعلى.</div>`;
+  bindTips(el);
+}
+
+// ---------- chart 6: payments ----------
+const PAY_LOGO = ["مدى", "Pay", "CC", "SAR", "stc", "APP", "INV", "؟"];
+function payLogo(k){
+  const t = PAY_LOGO[k]; const fs = t.length > 3 ? 8 : t.length === 3 ? 9 : 11;
+  return `<svg viewBox="0 0 30 30" aria-hidden="true"><rect x="1" y="1" width="28" height="28" rx="8" fill="none" stroke="#c7cad6" stroke-width="1.4"/>
+    <text x="15" y="${15 + fs / 3}" text-anchor="middle" font-size="${fs}" font-weight="800" fill="#c7cad6" font-family="inherit">${t}</text></svg>`;
+}
+function renderPay(ms){
+  const el = $("#c-pay"); const set = new Set(ms);
+  const net = new Array(PAY_AR.length).fill(0), fee = new Array(PAY_AR.length).fill(0);
+  for (const r of DATA.L){ if (!set.has(r[0]) || !chOk(r[1]) || !catOk(r[4])) continue; net[r[2]] += r[5]; fee[r[2]] += r[10] + r[11]; }
+  const total = net.reduce((a, b) => a + b, 0);
+  if (!total){ el.innerHTML = EMPTY(); return; }
+  const rows = PAY_AR.map((n, k) => ({k, n, v:net[k], f:fee[k]})).filter(r => r.v > 0).sort((a, b) => b.v - a.v);
+  const max = rows[0].v;
+  el.innerHTML = `<div class="pay-row pay-head"><span></span><span>الوسيلة</span><span>الحصة من صافي المبيعات</span><span style="text-align:left">صافي المبيعات</span><span style="text-align:left">الرسوم والعمولة</span></div>` +
+    rows.map(r => `<div class="pay-row"><span class="pay-logo">${payLogo(r.k)}</span><span class="pay-name">${esc(r.n)}</span>
+      <div class="hbar-track"><div class="hbar-fill" style="width:${(r.v / max * 100).toFixed(2)}%" data-tip="${esc(r.n)} · ${(r.v / total * 100).toFixed(1)}%"></div></div>
+      <span class="pay-val">${fmtSAR(r.v)}</span><span class="pay-fee"><b>${fmtSAR(r.f)}</b>${fmtPct(r.v ? r.f / r.v * 100 : 0)}</span></div>`).join("") +
+    `<div class="note">الرسوم: مدى 0.8% · Apple Pay 0.9% · ائتمانية 2.2% · STC Pay 1.5% · عمولة تطبيقات التوصيل 22% (20% من 2025).</div>`;
+  bindTips(el);
+}
+
+// ---------- chart 7: heatmap ----------
+function renderHeat(ms){
+  const el = $("#c-heat"); const set = new Set(ms);
+  const chans = [0, 1, 2, 3].filter(c => chOk(c));
+  const acc = {};
+  for (const r of DATA.P){
+    if (!set.has(r[0]) || chans.indexOf(r[1]) < 0) continue; const p = DATA.prod[r[2]]; if (!catOk(p[2])) continue;
+    (acc[r[2]] = acc[r[2]] || {t:0, c:{}}); acc[r[2]].t += r[4]; acc[r[2]].c[r[1]] = (acc[r[2]].c[r[1]] || 0) + r[4];
+  }
+  const top = Object.keys(acc).map(Number).sort((a, b) => acc[b].t - acc[a].t).slice(0, 10);
+  if (!top.length){ el.innerHTML = EMPTY(); return; }
+  let mx = 0; top.forEach(p => chans.forEach(c => { mx = Math.max(mx, acc[p].c[c] || 0); }));
+  const cols = `minmax(130px,1.3fr) repeat(${chans.length},minmax(0,1fr))`;
+  let html = `<div class="hm" style="grid-template-columns:${cols}"><div></div>` + chans.map(c => `<div class="hm-h">${CH_AR[c]}</div>`).join("");
+  top.forEach(p => {
+    const nm = PROD_AR[DATA.prod[p][0]];
+    html += `<div class="hm-r" title="${esc(nm)}">${esc(nm)}</div>`;
+    chans.forEach(c => {
+      const v = acc[p].c[c] || 0, ratio = mx ? v / mx : 0;
+      html += `<div class="hm-cell" style="background:linear-gradient(160deg,rgba(57,135,229,${(0.08 + ratio * 0.72).toFixed(3)}),rgba(57,135,229,${(0.04 + ratio * 0.5).toFixed(3)}))" data-tip="${esc(nm)} · ${esc(CH_AR[c])} · ${fmtSAR(v)}">${fmtInt(v)}</div>`;
+    });
+  });
+  el.innerHTML = html + "</div>";
+  bindTips(el);
+}
+
+// ---------- orchestration ----------
+function renderAll(){
+  const ms = selMonths();
+  renderKPIs(ms); renderTrend(ms); renderGauge(ms); renderDonut(ms); renderProducts(ms); renderTime(ms); renderPay(ms); renderHeat(ms);
+}
+function fillSelect(id, opts, val){ $(id).innerHTML = opts.map(o => `<option value="${o[0]}">${esc(o[1])}</option>`).join(""); $(id).value = val; }
+function initFilters(){
+  const years = [...new Set(DATA.months.map(m => m.slice(0, 4)))];
+  fillSelect("#f-year", [["all", "جميع السنوات"]].concat(years.map(y => [y, "سنة " + y])), S.year);
+  fillSelect("#f-month", [["all", "جميع الأشهر"]].concat(MONTH_AR.map((m, i) => [String(i + 1), m])), S.month);
+  fillSelect("#f-ch", [["all", "جميع القنوات"]].concat([0, 1, 2, 3].map(i => [String(i), CH_AR[i]])), S.ch);
+  fillSelect("#f-cat", [["all", "جميع الفئات"]].concat(CAT_AR.map((c, i) => [String(i), c])), S.cat);
+}
+function syncSwitches(){
+  document.querySelectorAll(".switch").forEach(sw => sw.querySelectorAll(".opt").forEach(o => o.classList.toggle("active", o.dataset.v === S[sw.dataset.key])));
+  document.querySelectorAll(".inv-btn").forEach(b => b.classList.toggle("active", b.dataset.tc === S.tc));
+  document.querySelectorAll(".view-toggle").forEach(b => b.classList.toggle("active", b.dataset.view === S.view));
+  $("#drawer").classList.toggle("open", S.drawer);
+  $("#btn-drawer span").textContent = S.drawer ? "إخفاء التفاصيل" : "عرض التفاصيل";
+  $("#btn-drawer").setAttribute("aria-expanded", String(S.drawer));
+}
+const R = { trend: () => renderTrend(selMonths()), gauge: () => renderGauge(selMonths()), donut: () => renderDonut(selMonths()), prod: () => renderProducts(selMonths()) };
+function bind(){
+  [["#f-year", "year"], ["#f-month", "month"], ["#f-ch", "ch"], ["#f-cat", "cat"]].forEach(([id, k]) => $(id).addEventListener("change", e => { S[k] = e.target.value; renderAll(); }));
+  document.querySelectorAll(".switch").forEach(sw => sw.addEventListener("click", e => {
+    const o = e.target.closest(".opt"); if (!o) return; S[sw.dataset.key] = o.dataset.v; syncSwitches(); R[sw.dataset.key]();
+  }));
+  document.querySelectorAll(".inv-btn").forEach(b => b.addEventListener("click", () => { S.tc = b.dataset.tc; syncSwitches(); renderTime(selMonths()); }));
+  document.querySelectorAll(".view-toggle").forEach(b => b.addEventListener("click", () => { S.view = b.dataset.view; syncSwitches(); renderTime(selMonths()); }));
+  $("#btn-drawer").addEventListener("click", () => { S.drawer = !S.drawer; syncSwitches(); });
+  $("#btn-reset").addEventListener("click", () => { S = Object.assign({}, DEF); initFilters(); syncSwitches(); renderAll(); });
+  $("#btn-refresh").addEventListener("click", () => {
+    const s = $("#sync"); s.textContent = "جارٍ التحديث…";
+    setTimeout(() => { renderAll(); s.textContent = "تم التحديث ✓"; }, 650);
+  });
+  window.addEventListener("scroll", hideTip, {passive:true});
+}
+try {
+  initFilters(); syncSwitches(); bind(); renderAll();
+} catch (err) {
+  console.error(err);
+  document.querySelector(".wrap").insertAdjacentHTML("beforeend", EMPTY("تعذّر تحميل اللوحة: " + esc(err.message)));
+}
+window.__dash = {S, metrics, selMonths, renderAll, setState: o => { Object.assign(S, o); initFilters(); syncSwitches(); renderAll(); }};
+})();
+</script>
+</body>
+</html>
