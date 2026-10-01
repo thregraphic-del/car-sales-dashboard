@@ -1,0 +1,28 @@
+Effective_Date,Type,Product_or_Group,Change,Reason
+2024-03-01,Price,Cortado,+1 SAR menu price (incl. VAT),Milk-based drinks +1 SAR
+2024-03-01,Price,Cappuccino,+1 SAR menu price (incl. VAT),Milk-based drinks +1 SAR
+2024-03-01,Price,Latte,+1 SAR menu price (incl. VAT),Milk-based drinks +1 SAR
+2024-03-01,Price,Flat White,+1 SAR menu price (incl. VAT),Milk-based drinks +1 SAR
+2024-03-01,Price,Spanish Latte,+1 SAR menu price (incl. VAT),Milk-based drinks +1 SAR
+2024-03-01,Price,Mocha,+1 SAR menu price (incl. VAT),Milk-based drinks +1 SAR
+2024-03-01,Price,Caramel Macchiato,+1 SAR menu price (incl. VAT),Milk-based drinks +1 SAR
+2024-03-01,Price,Iced Latte,+1 SAR menu price (incl. VAT),Milk-based drinks +1 SAR
+2024-03-01,Price,Iced Spanish Latte,+1 SAR menu price (incl. VAT),Milk-based drinks +1 SAR
+2024-03-01,Price,Iced Mocha,+1 SAR menu price (incl. VAT),Milk-based drinks +1 SAR
+2024-07-01,Price,Cold Brew,+2 SAR menu price (incl. VAT),Brew bar +2 SAR
+2024-07-01,Price,V60 Pour Over,+2 SAR menu price (incl. VAT),Brew bar +2 SAR
+2025-01-15,Price,Turkey & Cheese Sandwich,+2 SAR menu price (incl. VAT),Food & cheesecake +2 SAR
+2025-01-15,Price,Halloumi Pesto Sandwich,+2 SAR menu price (incl. VAT),Food & cheesecake +2 SAR
+2025-01-15,Price,Chicken Caesar Wrap,+2 SAR menu price (incl. VAT),Food & cheesecake +2 SAR
+2025-01-15,Price,San Sebastian Cheesecake,+2 SAR menu price (incl. VAT),Food & cheesecake +2 SAR
+2025-01-15,Price,Butter Croissant,+1 SAR menu price (incl. VAT),Croissants +1 SAR
+2025-01-15,Price,Almond Croissant,+1 SAR menu price (incl. VAT),Croissants +1 SAR
+2025-01-15,Price,Zaatar & Cheese Croissant,+1 SAR menu price (incl. VAT),Croissants +1 SAR
+2025-09-01,Price,Espresso,+1 SAR menu price (incl. VAT),Black coffee +1 SAR
+2025-09-01,Price,Americano,+1 SAR menu price (incl. VAT),Black coffee +1 SAR
+2025-09-01,Price,Iced Americano,+1 SAR menu price (incl. VAT),Black coffee +1 SAR
+2024-01-01,Cost,group:milk,x1.06,Dairy supplier price increase
+2024-07-01,Cost,group:esp,x1.05,Green coffee bean contract renewal
+2025-01-15,Cost,group:food,x1.07,Bakery/kitchen supplier increase
+2025-05-01,Cost,group:esp,x1.08,Global arabica price surge pass-through
+2025-05-01,Cost,group:brew,x1.08,Global arabica price surge pass-through

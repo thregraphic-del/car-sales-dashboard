@@ -1,0 +1,35 @@
+Area,Assumption,Value / Formula
+Business,"Single premium specialty coffee shop, north Riyadh, with drive-thru, opened 2021",Medium size: ~215 orders/day in 2023 rising to ~250 in 2025
+Business,Prices are stored VAT-exclusive (VAT 15 %); menu prices are round VAT-inclusive numbers,Unit_Price = menu/1.15
+Demand structure,"Daily orders are the sum of 5 latent demand segments with their own weekly, hourly and seasonal behaviour","Commuter, Student, Leisure, Family, Delivery"
+Demand structure,Expected orders are multiplicative in components,"lambda[d,s] = base_s x Trend x Regime x MonthShock x MonthBehaviour x DOW x Climate x School x Salary x Ramadan x Holiday x Promo x Structural x Anomaly"
+Noise,Realised orders are Poisson around a log-normally perturbed mean (over-dispersed counts),"N ~ Poisson(lambda x exp(e_d + e_ds)), e_d ~ N(0, 0.055), e_ds ~ N(0, 0.045)"
+Trend,Decelerating organic growth on log scale,log Trend = 0.068 t - 0.002 t^2 (t in years)
+Trend,Slow-moving regime (strong / weak spells),"AR(1) on log scale: x_t = 0.97 x_{t-1} + N(0, 0.008); SD ~ 3.3 %"
+Trend,Calendar-month shocks: some months beat / miss expectations,"exp(N(0, 0.022)) per month + designed surprises Oct-23 +4 %, Jun-24 -5 %, Dec-24 +5 %, Feb-25 +3 %, Aug-25 -4 %"
+Weekly,"Saudi week: Sun-Thu work/school, Fri-Sat weekend; Thursday night is the strongest social night","Segment DOW tables (e.g. Commuter Fri 0.22, Leisure Thu 1.45, Family Fri 1.90)"
+Weekly,Weekend effect is NOT a fixed % - it is the result of segments with opposite weekly patterns,Commuters/students collapse on Fri-Sat while leisure/families surge; mix varies with season
+Daily,"Opening hours: Sun-Wed 06:00-24:00, Thu 06:00-01:00, Fri 06:00-11:30 & 12:50-01:00 (Jumu'ah), Sat 07:00-01:00",Ramadan 15:00-18:00 (takeaway) & 19:30-03:00
+Daily,"Intraday demand per segment = sum of Gaussian bumps (morning commute ~07:25, afternoon students ~14:35, evening ~20:35, Thu late night)","Bump centres jitter N(0, 0.15 h) and heights x exp(N(0, 0.08)) daily so no two days are identical"
+Monthly,Smooth month behaviour curve (cosine interpolated between month mid-points),"Jan 1.03, Feb 1.02, Mar 1.00, Apr 0.99, May 0.98, Jun 0.97, Jul 0.96, Aug 0.97, Sep 1.00, Oct 1.01, Nov 1.02, Dec 1.04"
+Climate,Riyadh daily mean temperature = climatology + AR(1) anomaly,"Monthly means 14.5..36.8 C; anomaly a_t = 0.8 a_{t-1} + N(0, 1.2)"
+Climate,"Leisure demand rises with outdoor comfort, families/leisure dip with summer travel abroad, delivery rises with heat",Leisure x (0.84 + 0.28 exp(-((T-22)/9)^2)) x (1 - 0.14 travel); Delivery x (1 + 0.014 (T-26)); travel = Gaussian centred 24 Jul
+Product mix,Iced share of drinks follows temperature,"share_iced = 0.20 + 0.66 / (1 + exp(-(T_eff - 25)/4.5)), T_eff = T + hour shift"
+Ramadan,"Shop closed during fasting hours; demand shifts to night; fewer commuters/students, more leisure/family/delivery","Commuter 0.30, Student 0.45, Leisure 1.40, Family 1.25, Delivery 1.55 x intra-month curve (start 0.85 -> 1.0, last 10 nights x0.93, Eid eve x1.27)"
+Ramadan,"Baskets are larger (group gatherings, desserts, dallah)","Drinks per order x1.2, food x1.25, desserts weight x1.6, Saudi Qahwa x2.2"
+Eid,"Eid day 1 is quiet in the morning (prayer, family visits) and strong in the evening; days 2-3 strongest; city empties afterwards (travel)","e.g. Eid Al-Fitr day 2: Leisure x1.30, Family x1.45 on a weekend baseline; post-Eid days x0.6-0.95"
+Holidays,National Day / Founding Day behave like a weekend plus celebration uplift and a promotion,"National Day: Leisure x1.30, Family x1.25 on a Saturday baseline + National Day Offer 20 %"
+Salary,"Government payday on the 27th (Thursday if it falls on Fri/Sat); spending lift decays, end-of-cycle squeeze","salary = 1 + 0.09 exp(-k/2.5) - 0.045 clip((k-14)/12, 0, 1); sensitivity Leisure/Family/Delivery 1.0, Student 0.5, Commuter 0.3"
+School,Students vanish in summer and term breaks; exams raise late-night study visits,"Student: Summer 0.20, Break 0.45, Exams 1.10 (+ 22:50 bump)"
+Promotions,"Promotions lift traffic, raise new-customer acquisition and cut margin; White Friday borrows from the following week","White Friday 20 % off: Delivery x1.35, Leisure x1.25; next 7 days x0.93-0.96"
+Promotions,"Hour-specific promotion: Summer Iced Happy Hour (2024, 2025 only - 2023 is the control year)",25 % off iced drinks Sun-Thu 14:00-17:00; segment demand in window x1.2-1.45
+Prices,"Stable base prices, 5 scheduled price changes and 5 cost changes; demand elasticity on relative price",weight x (price/initial price)^-0.8
+Customers,Persistent members with heterogeneous visit rates,"visit weight ~ Gamma(0.7-1.0, 1); 35 % of new members never return; lifetime ~ Exp(220-420 days)"
+Customers,Members re-order their favourite drink 55 % of the time (switching to the iced counterpart when hot),Favourite drawn at sign-up from segment preferences
+Customers,Loyalty: every 10 stamped drinks earns a free drink,Cheapest drink on the order discounted 100 % for one unit
+Channels,Mobile app adoption follows a saturating curve after launch,app share = 0.03 + 0.15 (1 - exp(-days/240))
+Data quality,Missing values only where they occur in real POS data,"Payment 0.35 %, Channel 0.25 %, Time 0.05 % + POS outage orders; Customer_ID empty for guests"
+Outliers,"Corporate bulk orders (5-20 units per line) ~1.7-2.3 per month, plus 2 per year before national days","Payment = Corporate Invoice, 10 % discount"
+Anomalies,"Unlabelled: sandstorms, rain days, machine breakdown, power outage, POS outage, Riyadh Season event nights",See ground_truth_daily_components.csv
+Structural breaks,"Office tower opening (Oct-23), app launch (Sep-23), viral video (Feb-24), competitor (Apr-24), road works (Aug-25)",See METHODOLOGY.md section 6
+Profit,Net Profit = Gross Profit - payment fees - delivery commissions - operating expenses,"Opex: staff (62k/67.5k/72k SAR per month, +12 % in Ramadan), rent (420k/420k/455k per year), utilities 210 + 11 x max(0, T-22), marketing 110 + promo budgets, other 190 + one-offs"

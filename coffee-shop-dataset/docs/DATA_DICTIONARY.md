@@ -1,0 +1,53 @@
+# Data dictionary - `coffee_shop_transactions_*.csv`
+
+Grain: **one row per order line** (product within a receipt). An order = all rows sharing a `Transaction_ID`.
+All money is SAR, VAT-exclusive, 2 decimals, and reconciles exactly (see `reports/validation_checks.csv`).
+
+| Column | Type | Example | Description | Derivation / Formula |
+|---|---|---|---|---|
+| Transaction_ID | string | TXN-0000001 | Order (receipt) identifier, sequential in time. One order = one or more rows (lines). | TXN-nnnnnnn, assigned after sorting orders by business date and time |
+| Line_No | int | 1 | Line number within the order (1..n). | Transaction_ID + Line_No is the primary key |
+| Date | date | 2023-01-01 | Business date (YYYY-MM-DD). Sales after midnight (until 03:00 in Ramadan, 01:00 Thu-Sat) belong to the previous business date, as in a real POS end-of-day. | Calendar 2023-01-01..2025-12-31, no gaps |
+| Time | time | 06:37:11 | Clock time of the order (HH:MM:SS). Missing for orders keyed in manually during the 2024-10-15 POS outage and for ~0.05 % random sync errors. | Sampled from the segment's intraday profile |
+| Day_Name | string | Sunday | Day of week name. Saudi work week is Sunday-Thursday. | From Date |
+| Week_Number | int | 52 | ISO-8601 week number (Monday start). Weekly summaries use Sunday-start Saudi weeks. | Date.isocalendar().week |
+| Month | int | 1 | Month number 1-12. | From Date |
+| Month_Name | string | January | Month name. | From Date |
+| Quarter | int | 1 | Calendar quarter 1-4. | From Date |
+| Year | int | 2023 | Calendar year. | From Date |
+| Is_Weekend | 0/1 | 0 | 1 on Friday and Saturday (Saudi weekend). | Day_Name in {Friday, Saturday} |
+| Is_Holiday | 0/1 | 0 | 1 on official public holidays: Founding Day, National Day (+ bridge days), Eid Al-Fitr days 1-4, Day of Arafah and Eid Al-Adha days 1-4. | Umm al-Qura calendar |
+| Season | string | Winter | Meteorological season: Winter (Dec-Feb), Spring (Mar-May), Summer (Jun-Aug), Autumn (Sep-Nov). | From Month |
+| Event | string | No Event | Known business events active that day, ' \| ' separated (Ramadan, Eid, national days, promotions, post-promotion dip, Salary Week = payday to +4 days). 'No Event' otherwise. Weather and operational anomalies are deliberately NOT labelled. | Calendar + promotion calendar |
+| School_Period | string | In Session | In Session / Exams / Term Break / Summer Vacation (approximate Saudi MoE calendar). | config.SCHOOL_PERIODS |
+| Customer_ID | string | C000149 | Loyalty member ID (Cnnnnnn) or corporate account (CORP-nn). Empty for Guest (non-member) orders - this is structural, not an error. | Persistent customer pool; same ID re-appears across visits |
+| Customer_Type | string | Returning | New = member's first ever order; Returning = member seen before (members registered before 2023 are Returning on their first 2023 visit); Guest = not identified. | Customer simulation |
+| Product_ID | string | P006 | Product code P001-P040. | product_master.csv |
+| Product_Name | string | Flat White | Product name. | product_master.csv |
+| Category | string | Espresso Drinks | Espresso Drinks, Iced Coffee, Specialty Coffee, Tea & Matcha, Other Beverages, Bakery, Desserts, Sandwiches, Seasonal. | product_master.csv |
+| Quantity | int | 1 | Units of the product on this line (>= 1). Corporate bulk orders carry 5-20. | Count of identical items in the basket |
+| Unit_Price | SAR | 16.52 | VAT-exclusive selling price per unit on that date (menu price / 1.15, rounded to 0.01). Stable with scheduled price changes. | price_cost_change_log.csv |
+| Gross_Sales | SAR | 16.52 | Revenue before discounts. | = Quantity x Unit_Price (exact) |
+| Discount | SAR | 0.0 | Discount granted on the line (promotion, loyalty free drink, corporate agreement). | = round(Gross_Sales x promo rate, 2); loyalty: one unit free |
+| Promotion | string | No Promotion | Name of the discount applied to the line or 'No Promotion'. | promotion_calendar.csv |
+| Return_Amount | SAR | 0.0 | Refund value when the line was returned/refunded (wrong order, quality complaint). Product is still consumed/wasted so COGS remains. | = Gross_Sales - Discount when refunded, else 0 |
+| Net_Sales | SAR | 16.52 | Net revenue of the line. | = Gross_Sales - Discount - Return_Amount (exact) |
+| Unit_Cost | SAR | 3.4 | Standard cost per unit (ingredients + packaging) on that date. | Base cost x scheduled cost changes |
+| COGS | SAR | 3.4 | Cost of goods sold for the line. | = Quantity x Unit_Cost (exact) |
+| Gross_Profit | SAR | 13.12 | Gross profit of the line after discounts and refunds. | = Net_Sales - COGS (exact) |
+| Payment_Method | string | mada | mada, Apple Pay, Credit Card, Cash, STC Pay, Delivery App (aggregator-paid), Corporate Invoice. ~0.35 % missing (sync errors) + POS-outage orders. | Customer preference + time-varying mix |
+| Order_Channel | string | In-Store | In-Store, Drive-Thru, Mobile App (launched 2023-09-10), Delivery App. ~0.25 % missing. | Segment/time-dependent |
+| Payment_Fee | SAR | 0.13 | Card/wallet processing fee on the line. | = round(Net_Sales x rate): mada 0.8 %, Apple Pay 0.9 %, Credit 2.2 %, STC Pay 1.5 %, Cash/Invoice/Delivery 0 |
+| Delivery_Commission | SAR | 0.0 | Aggregator commission on delivery orders. | = round(Net_Sales x 22 %) in 2023-2024, 20 % from 2025-01-01; 0 for other channels |
+
+## Companion files
+
+| File | Grain | Content |
+|---|---|---|
+| `data/calendar_features.csv` | day | Holiday name, event, school period, Riyadh avg temperature, days since payday (exogenous regressors) |
+| `data/daily_operating_expenses.csv` | day | Staff, rent, utilities, marketing, other opex -> Net Profit |
+| `data/product_master.csv` | product | Category, kind (hot/iced/food), base & final price and cost, base margin |
+| `data/price_cost_change_log.csv` | change | Every scheduled price / cost change with reason |
+| `data/promotion_calendar.csv` | promotion | Dates, discount rate, scope, hours, channels, daily marketing budget |
+| `data/customer_master.csv` | customer | Acquisition segment, first-seen date, pre-2023 member flag |
+| `data/ground_truth_daily_components.csv` | day | Noise-free expected orders, every multiplicative component, segment orders, unlabelled anomalies |

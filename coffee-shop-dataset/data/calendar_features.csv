@@ -1,0 +1,1097 @@
+Date,Day_Name,Is_Weekend,Is_Holiday,Holiday_Name,Season,School_Period,Event,Avg_Temp_C,Days_Since_Payday
+2023-01-01,Sunday,False,False,,Winter,In Session,No Event,15.1,5
+2023-01-02,Monday,False,False,,Winter,In Session,No Event,15.4,6
+2023-01-03,Tuesday,False,False,,Winter,In Session,No Event,16.1,7
+2023-01-04,Wednesday,False,False,,Winter,In Session,No Event,16.0,8
+2023-01-05,Thursday,False,False,,Winter,In Session,No Event,16.0,9
+2023-01-06,Friday,True,False,,Winter,In Session,No Event,16.6,10
+2023-01-07,Saturday,True,False,,Winter,In Session,No Event,16.8,11
+2023-01-08,Sunday,False,False,,Winter,In Session,No Event,14.0,12
+2023-01-09,Monday,False,False,,Winter,In Session,No Event,13.5,13
+2023-01-10,Tuesday,False,False,,Winter,In Session,No Event,13.8,14
+2023-01-11,Wednesday,False,False,,Winter,In Session,No Event,13.4,15
+2023-01-12,Thursday,False,False,,Winter,In Session,No Event,13.7,16
+2023-01-13,Friday,True,False,,Winter,In Session,No Event,12.9,17
+2023-01-14,Saturday,True,False,,Winter,In Session,No Event,14.0,18
+2023-01-15,Sunday,False,False,,Winter,In Session,No Event,15.1,19
+2023-01-16,Monday,False,False,,Winter,In Session,No Event,14.2,20
+2023-01-17,Tuesday,False,False,,Winter,In Session,No Event,13.0,21
+2023-01-18,Wednesday,False,False,,Winter,In Session,No Event,15.5,22
+2023-01-19,Thursday,False,False,,Winter,In Session,No Event,14.8,23
+2023-01-20,Friday,True,False,,Winter,In Session,No Event,14.5,24
+2023-01-21,Saturday,True,False,,Winter,In Session,No Event,16.4,25
+2023-01-22,Sunday,False,False,,Winter,In Session,No Event,17.1,26
+2023-01-23,Monday,False,False,,Winter,In Session,No Event,18.5,27
+2023-01-24,Tuesday,False,False,,Winter,In Session,No Event,15.3,28
+2023-01-25,Wednesday,False,False,,Winter,In Session,No Event,17.9,29
+2023-01-26,Thursday,False,False,,Winter,In Session,Salary Week,16.6,0
+2023-01-27,Friday,True,False,,Winter,In Session,Salary Week,15.5,1
+2023-01-28,Saturday,True,False,,Winter,In Session,Salary Week,16.6,2
+2023-01-29,Sunday,False,False,,Winter,In Session,Salary Week,15.2,3
+2023-01-30,Monday,False,False,,Winter,In Session,Salary Week,14.9,4
+2023-01-31,Tuesday,False,False,,Winter,In Session,No Event,15.2,5
+2023-02-01,Wednesday,False,False,,Winter,In Session,No Event,17.3,6
+2023-02-02,Thursday,False,False,,Winter,In Session,No Event,17.9,7
+2023-02-03,Friday,True,False,,Winter,In Session,No Event,19.9,8
+2023-02-04,Saturday,True,False,,Winter,In Session,No Event,20.1,9
+2023-02-05,Sunday,False,False,,Winter,In Session,No Event,19.6,10
+2023-02-06,Monday,False,False,,Winter,In Session,No Event,19.6,11
+2023-02-07,Tuesday,False,False,,Winter,In Session,No Event,18.2,12
+2023-02-08,Wednesday,False,False,,Winter,In Session,No Event,19.5,13
+2023-02-09,Thursday,False,False,,Winter,In Session,No Event,19.1,14
+2023-02-10,Friday,True,False,,Winter,In Session,No Event,17.7,15
+2023-02-11,Saturday,True,False,,Winter,In Session,No Event,16.6,16
+2023-02-12,Sunday,False,False,,Winter,In Session,No Event,17.5,17
+2023-02-13,Monday,False,False,,Winter,In Session,No Event,17.8,18
+2023-02-14,Tuesday,False,False,,Winter,In Session,No Event,17.3,19
+2023-02-15,Wednesday,False,False,,Winter,In Session,No Event,18.4,20
+2023-02-16,Thursday,False,False,,Winter,In Session,No Event,17.7,21
+2023-02-17,Friday,True,False,,Winter,In Session,No Event,18.4,22
+2023-02-18,Saturday,True,False,,Winter,In Session,No Event,16.7,23
+2023-02-19,Sunday,False,False,,Winter,Exams,No Event,16.4,24
+2023-02-20,Monday,False,False,,Winter,Exams,No Event,16.0,25
+2023-02-21,Tuesday,False,False,,Winter,Exams,Founding Day Offer,16.9,26
+2023-02-22,Wednesday,False,True,Saudi Founding Day,Winter,Exams,Saudi Founding Day | Founding Day Offer,17.3,27
+2023-02-23,Thursday,False,True,Founding Day Holiday,Winter,Exams,Founding Day Holiday | Founding Day Offer,17.9,28
+2023-02-24,Friday,True,False,,Winter,Exams,No Event,17.1,29
+2023-02-25,Saturday,True,False,,Winter,Exams,No Event,18.0,30
+2023-02-26,Sunday,False,False,,Winter,Exams,No Event,19.4,31
+2023-02-27,Monday,False,False,,Winter,Exams,Salary Week,21.3,0
+2023-02-28,Tuesday,False,False,,Winter,Exams,Salary Week,19.8,1
+2023-03-01,Wednesday,False,False,,Spring,Exams,Salary Week,20.7,2
+2023-03-02,Thursday,False,False,,Spring,Exams,Salary Week,20.4,3
+2023-03-03,Friday,True,False,,Spring,Term Break,Salary Week,20.9,4
+2023-03-04,Saturday,True,False,,Spring,Term Break,No Event,21.8,5
+2023-03-05,Sunday,False,False,,Spring,Term Break,No Event,21.3,6
+2023-03-06,Monday,False,False,,Spring,Term Break,No Event,22.2,7
+2023-03-07,Tuesday,False,False,,Spring,Term Break,No Event,21.5,8
+2023-03-08,Wednesday,False,False,,Spring,Term Break,No Event,19.7,9
+2023-03-09,Thursday,False,False,,Spring,Term Break,No Event,19.6,10
+2023-03-10,Friday,True,False,,Spring,Term Break,No Event,18.5,11
+2023-03-11,Saturday,True,False,,Spring,Term Break,No Event,18.4,12
+2023-03-12,Sunday,False,False,,Spring,In Session,No Event,19.8,13
+2023-03-13,Monday,False,False,,Spring,In Session,No Event,20.0,14
+2023-03-14,Tuesday,False,False,,Spring,In Session,No Event,21.5,15
+2023-03-15,Wednesday,False,False,,Spring,In Session,No Event,19.7,16
+2023-03-16,Thursday,False,False,,Spring,In Session,No Event,19.4,17
+2023-03-17,Friday,True,False,,Spring,In Session,No Event,19.0,18
+2023-03-18,Saturday,True,False,,Spring,In Session,No Event,19.0,19
+2023-03-19,Sunday,False,False,,Spring,In Session,No Event,20.0,20
+2023-03-20,Monday,False,False,,Spring,In Session,No Event,19.8,21
+2023-03-21,Tuesday,False,False,,Spring,In Session,No Event,23.0,22
+2023-03-22,Wednesday,False,False,,Spring,In Session,Ramadan Eve,21.5,23
+2023-03-23,Thursday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,23.2,24
+2023-03-24,Friday,True,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,24.6,25
+2023-03-25,Saturday,True,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,23.0,26
+2023-03-26,Sunday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,22.3,27
+2023-03-27,Monday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10% | Salary Week,21.2,0
+2023-03-28,Tuesday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10% | Salary Week,22.1,1
+2023-03-29,Wednesday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10% | Salary Week,22.2,2
+2023-03-30,Thursday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10% | Salary Week,24.6,3
+2023-03-31,Friday,True,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10% | Salary Week,24.7,4
+2023-04-01,Saturday,True,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,25.6,5
+2023-04-02,Sunday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,25.1,6
+2023-04-03,Monday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,23.8,7
+2023-04-04,Tuesday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,25.0,8
+2023-04-05,Wednesday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,25.8,9
+2023-04-06,Thursday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,26.1,10
+2023-04-07,Friday,True,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,27.6,11
+2023-04-08,Saturday,True,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,27.3,12
+2023-04-09,Sunday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,28.0,13
+2023-04-10,Monday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,27.2,14
+2023-04-11,Tuesday,False,False,,Spring,In Session,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,26.3,15
+2023-04-12,Wednesday,False,False,,Spring,In Session,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,27.1,16
+2023-04-13,Thursday,False,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,27.2,17
+2023-04-14,Friday,True,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,27.4,18
+2023-04-15,Saturday,True,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,28.0,19
+2023-04-16,Sunday,False,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,28.6,20
+2023-04-17,Monday,False,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,28.7,21
+2023-04-18,Tuesday,False,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,29.3,22
+2023-04-19,Wednesday,False,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,28.0,23
+2023-04-20,Thursday,False,False,,Spring,Term Break,Ramadan - Last 10 Nights | Eid Al-Fitr Eve | Ramadan Nights Desserts 10%,26.9,24
+2023-04-21,Friday,True,True,Eid Al-Fitr,Spring,Term Break,Eid Al-Fitr,27.8,25
+2023-04-22,Saturday,True,True,Eid Al-Fitr,Spring,Term Break,Eid Al-Fitr,31.0,26
+2023-04-23,Sunday,False,True,Eid Al-Fitr,Spring,Term Break,Eid Al-Fitr,28.9,27
+2023-04-24,Monday,False,True,Eid Al-Fitr,Spring,Term Break,Eid Al-Fitr,31.1,28
+2023-04-25,Tuesday,False,False,,Spring,Term Break,Post-Eid Al-Fitr Holiday,31.5,29
+2023-04-26,Wednesday,False,False,,Spring,Term Break,Post-Eid Al-Fitr Holiday,30.0,30
+2023-04-27,Thursday,False,False,,Spring,Term Break,Post-Eid Al-Fitr Holiday | Salary Week,30.3,0
+2023-04-28,Friday,True,False,,Spring,Term Break,Salary Week,28.6,1
+2023-04-29,Saturday,True,False,,Spring,Term Break,Salary Week,26.9,2
+2023-04-30,Sunday,False,False,,Spring,In Session,Salary Week,26.9,3
+2023-05-01,Monday,False,False,,Spring,In Session,Salary Week,29.6,4
+2023-05-02,Tuesday,False,False,,Spring,In Session,No Event,30.4,5
+2023-05-03,Wednesday,False,False,,Spring,In Session,No Event,30.7,6
+2023-05-04,Thursday,False,False,,Spring,In Session,No Event,30.6,7
+2023-05-05,Friday,True,False,,Spring,In Session,No Event,32.7,8
+2023-05-06,Saturday,True,False,,Spring,In Session,No Event,32.7,9
+2023-05-07,Sunday,False,False,,Spring,In Session,No Event,34.2,10
+2023-05-08,Monday,False,False,,Spring,In Session,No Event,33.9,11
+2023-05-09,Tuesday,False,False,,Spring,In Session,No Event,32.7,12
+2023-05-10,Wednesday,False,False,,Spring,In Session,No Event,34.2,13
+2023-05-11,Thursday,False,False,,Spring,In Session,No Event,33.2,14
+2023-05-12,Friday,True,False,,Spring,In Session,No Event,31.8,15
+2023-05-13,Saturday,True,False,,Spring,In Session,No Event,32.0,16
+2023-05-14,Sunday,False,False,,Spring,In Session,No Event,31.7,17
+2023-05-15,Monday,False,False,,Spring,In Session,No Event,30.2,18
+2023-05-16,Tuesday,False,False,,Spring,In Session,No Event,31.2,19
+2023-05-17,Wednesday,False,False,,Spring,In Session,No Event,31.6,20
+2023-05-18,Thursday,False,False,,Spring,In Session,No Event,32.0,21
+2023-05-19,Friday,True,False,,Spring,In Session,No Event,32.3,22
+2023-05-20,Saturday,True,False,,Spring,In Session,No Event,32.8,23
+2023-05-21,Sunday,False,False,,Spring,In Session,No Event,32.4,24
+2023-05-22,Monday,False,False,,Spring,In Session,No Event,33.1,25
+2023-05-23,Tuesday,False,False,,Spring,In Session,No Event,31.8,26
+2023-05-24,Wednesday,False,False,,Spring,In Session,No Event,33.1,27
+2023-05-25,Thursday,False,False,,Spring,In Session,Salary Week,35.7,0
+2023-05-26,Friday,True,False,,Spring,In Session,Salary Week,34.9,1
+2023-05-27,Saturday,True,False,,Spring,In Session,Salary Week,35.7,2
+2023-05-28,Sunday,False,False,,Spring,In Session,Salary Week,35.2,3
+2023-05-29,Monday,False,False,,Spring,In Session,Salary Week,35.3,4
+2023-05-30,Tuesday,False,False,,Spring,In Session,No Event,35.7,5
+2023-05-31,Wednesday,False,False,,Spring,In Session,No Event,35.9,6
+2023-06-01,Thursday,False,False,,Summer,In Session,No Event,36.2,7
+2023-06-02,Friday,True,False,,Summer,In Session,No Event,34.6,8
+2023-06-03,Saturday,True,False,,Summer,In Session,No Event,35.6,9
+2023-06-04,Sunday,False,False,,Summer,In Session,No Event,35.8,10
+2023-06-05,Monday,False,False,,Summer,In Session,No Event,35.9,11
+2023-06-06,Tuesday,False,False,,Summer,In Session,No Event,34.6,12
+2023-06-07,Wednesday,False,False,,Summer,In Session,No Event,35.0,13
+2023-06-08,Thursday,False,False,,Summer,In Session,No Event,35.9,14
+2023-06-09,Friday,True,False,,Summer,In Session,No Event,38.0,15
+2023-06-10,Saturday,True,False,,Summer,In Session,No Event,39.7,16
+2023-06-11,Sunday,False,False,,Summer,Exams,No Event,37.6,17
+2023-06-12,Monday,False,False,,Summer,Exams,No Event,36.6,18
+2023-06-13,Tuesday,False,False,,Summer,Exams,No Event,37.5,19
+2023-06-14,Wednesday,False,False,,Summer,Exams,No Event,37.1,20
+2023-06-15,Thursday,False,False,,Summer,Exams,No Event,39.1,21
+2023-06-16,Friday,True,False,,Summer,Exams,No Event,36.3,22
+2023-06-17,Saturday,True,False,,Summer,Exams,No Event,37.9,23
+2023-06-18,Sunday,False,False,,Summer,Exams,No Event,37.7,24
+2023-06-19,Monday,False,False,,Summer,Exams,No Event,34.0,25
+2023-06-20,Tuesday,False,False,,Summer,Exams,No Event,34.1,26
+2023-06-21,Wednesday,False,False,,Summer,Exams,No Event,35.5,27
+2023-06-22,Thursday,False,False,,Summer,Exams,No Event,35.9,28
+2023-06-23,Friday,True,False,,Summer,Summer Vacation,No Event,36.4,29
+2023-06-24,Saturday,True,False,,Summer,Summer Vacation,No Event,33.8,30
+2023-06-25,Sunday,False,False,,Summer,Summer Vacation,No Event,33.8,31
+2023-06-26,Monday,False,False,,Summer,Summer Vacation,No Event,31.6,32
+2023-06-27,Tuesday,False,True,Day of Arafah,Summer,Summer Vacation,Day of Arafah | Salary Week,34.0,0
+2023-06-28,Wednesday,False,True,Eid Al-Adha,Summer,Summer Vacation,Eid Al-Adha | Salary Week,35.6,1
+2023-06-29,Thursday,False,True,Eid Al-Adha,Summer,Summer Vacation,Eid Al-Adha | Salary Week,36.3,2
+2023-06-30,Friday,True,True,Eid Al-Adha,Summer,Summer Vacation,Eid Al-Adha | Salary Week,37.7,3
+2023-07-01,Saturday,True,True,Eid Al-Adha,Summer,Summer Vacation,Eid Al-Adha | Salary Week,37.4,4
+2023-07-02,Sunday,False,False,,Summer,Summer Vacation,Post-Eid Al-Adha Holiday,37.8,5
+2023-07-03,Monday,False,False,,Summer,Summer Vacation,Post-Eid Al-Adha Holiday,36.6,6
+2023-07-04,Tuesday,False,False,,Summer,Summer Vacation,Post-Eid Al-Adha Holiday,36.9,7
+2023-07-05,Wednesday,False,False,,Summer,Summer Vacation,No Event,36.5,8
+2023-07-06,Thursday,False,False,,Summer,Summer Vacation,No Event,36.4,9
+2023-07-07,Friday,True,False,,Summer,Summer Vacation,No Event,35.5,10
+2023-07-08,Saturday,True,False,,Summer,Summer Vacation,No Event,37.3,11
+2023-07-09,Sunday,False,False,,Summer,Summer Vacation,No Event,37.5,12
+2023-07-10,Monday,False,False,,Summer,Summer Vacation,No Event,35.8,13
+2023-07-11,Tuesday,False,False,,Summer,Summer Vacation,No Event,36.5,14
+2023-07-12,Wednesday,False,False,,Summer,Summer Vacation,No Event,36.8,15
+2023-07-13,Thursday,False,False,,Summer,Summer Vacation,No Event,37.0,16
+2023-07-14,Friday,True,False,,Summer,Summer Vacation,No Event,37.5,17
+2023-07-15,Saturday,True,False,,Summer,Summer Vacation,No Event,35.9,18
+2023-07-16,Sunday,False,False,,Summer,Summer Vacation,No Event,33.3,19
+2023-07-17,Monday,False,False,,Summer,Summer Vacation,No Event,33.8,20
+2023-07-18,Tuesday,False,False,,Summer,Summer Vacation,No Event,36.4,21
+2023-07-19,Wednesday,False,False,,Summer,Summer Vacation,No Event,35.9,22
+2023-07-20,Thursday,False,False,,Summer,Summer Vacation,No Event,37.2,23
+2023-07-21,Friday,True,False,,Summer,Summer Vacation,No Event,37.1,24
+2023-07-22,Saturday,True,False,,Summer,Summer Vacation,No Event,35.5,25
+2023-07-23,Sunday,False,False,,Summer,Summer Vacation,No Event,35.3,26
+2023-07-24,Monday,False,False,,Summer,Summer Vacation,No Event,35.2,27
+2023-07-25,Tuesday,False,False,,Summer,Summer Vacation,No Event,36.0,28
+2023-07-26,Wednesday,False,False,,Summer,Summer Vacation,No Event,34.3,29
+2023-07-27,Thursday,False,False,,Summer,Summer Vacation,Salary Week,33.2,0
+2023-07-28,Friday,True,False,,Summer,Summer Vacation,Salary Week,34.2,1
+2023-07-29,Saturday,True,False,,Summer,Summer Vacation,Salary Week,35.0,2
+2023-07-30,Sunday,False,False,,Summer,Summer Vacation,Salary Week,34.8,3
+2023-07-31,Monday,False,False,,Summer,Summer Vacation,Salary Week,36.1,4
+2023-08-01,Tuesday,False,False,,Summer,Summer Vacation,No Event,36.5,5
+2023-08-02,Wednesday,False,False,,Summer,Summer Vacation,No Event,36.4,6
+2023-08-03,Thursday,False,False,,Summer,Summer Vacation,No Event,37.2,7
+2023-08-04,Friday,True,False,,Summer,Summer Vacation,No Event,38.6,8
+2023-08-05,Saturday,True,False,,Summer,Summer Vacation,No Event,37.7,9
+2023-08-06,Sunday,False,False,,Summer,Summer Vacation,No Event,38.6,10
+2023-08-07,Monday,False,False,,Summer,Summer Vacation,No Event,37.6,11
+2023-08-08,Tuesday,False,False,,Summer,Summer Vacation,No Event,36.0,12
+2023-08-09,Wednesday,False,False,,Summer,Summer Vacation,No Event,35.1,13
+2023-08-10,Thursday,False,False,,Summer,Summer Vacation,No Event,35.1,14
+2023-08-11,Friday,True,False,,Summer,Summer Vacation,No Event,36.1,15
+2023-08-12,Saturday,True,False,,Summer,Summer Vacation,No Event,38.3,16
+2023-08-13,Sunday,False,False,,Summer,Summer Vacation,No Event,38.8,17
+2023-08-14,Monday,False,False,,Summer,Summer Vacation,No Event,37.6,18
+2023-08-15,Tuesday,False,False,,Summer,Summer Vacation,No Event,36.5,19
+2023-08-16,Wednesday,False,False,,Summer,Summer Vacation,No Event,36.4,20
+2023-08-17,Thursday,False,False,,Summer,Summer Vacation,No Event,36.5,21
+2023-08-18,Friday,True,False,,Summer,Summer Vacation,No Event,36.6,22
+2023-08-19,Saturday,True,False,,Summer,Summer Vacation,No Event,35.3,23
+2023-08-20,Sunday,False,False,,Summer,In Session,No Event,35.4,24
+2023-08-21,Monday,False,False,,Summer,In Session,No Event,35.9,25
+2023-08-22,Tuesday,False,False,,Summer,In Session,No Event,37.0,26
+2023-08-23,Wednesday,False,False,,Summer,In Session,No Event,37.0,27
+2023-08-24,Thursday,False,False,,Summer,In Session,No Event,34.7,28
+2023-08-25,Friday,True,False,,Summer,In Session,No Event,34.4,29
+2023-08-26,Saturday,True,False,,Summer,In Session,No Event,36.1,30
+2023-08-27,Sunday,False,False,,Summer,In Session,Salary Week,34.8,0
+2023-08-28,Monday,False,False,,Summer,In Session,Salary Week,35.4,1
+2023-08-29,Tuesday,False,False,,Summer,In Session,Salary Week,35.0,2
+2023-08-30,Wednesday,False,False,,Summer,In Session,Salary Week,35.2,3
+2023-08-31,Thursday,False,False,,Summer,In Session,Salary Week,32.8,4
+2023-09-01,Friday,True,False,,Autumn,In Session,No Event,33.6,5
+2023-09-02,Saturday,True,False,,Autumn,In Session,No Event,32.7,6
+2023-09-03,Sunday,False,False,,Autumn,In Session,No Event,33.4,7
+2023-09-04,Monday,False,False,,Autumn,In Session,No Event,31.5,8
+2023-09-05,Tuesday,False,False,,Autumn,In Session,No Event,33.4,9
+2023-09-06,Wednesday,False,False,,Autumn,In Session,No Event,33.8,10
+2023-09-07,Thursday,False,False,,Autumn,In Session,No Event,32.4,11
+2023-09-08,Friday,True,False,,Autumn,In Session,No Event,34.0,12
+2023-09-09,Saturday,True,False,,Autumn,In Session,No Event,35.6,13
+2023-09-10,Sunday,False,False,,Autumn,In Session,App Launch 25% Off,36.2,14
+2023-09-11,Monday,False,False,,Autumn,In Session,App Launch 25% Off,34.9,15
+2023-09-12,Tuesday,False,False,,Autumn,In Session,App Launch 25% Off,35.3,16
+2023-09-13,Wednesday,False,False,,Autumn,In Session,App Launch 25% Off,35.4,17
+2023-09-14,Thursday,False,False,,Autumn,In Session,App Launch 25% Off,35.1,18
+2023-09-15,Friday,True,False,,Autumn,In Session,App Launch 25% Off,34.4,19
+2023-09-16,Saturday,True,False,,Autumn,In Session,App Launch 25% Off,34.4,20
+2023-09-17,Sunday,False,False,,Autumn,In Session,App Launch 25% Off,31.2,21
+2023-09-18,Monday,False,False,,Autumn,In Session,App Launch 25% Off,32.8,22
+2023-09-19,Tuesday,False,False,,Autumn,In Session,App Launch 25% Off,32.2,23
+2023-09-20,Wednesday,False,False,,Autumn,In Session,App Launch 25% Off,33.4,24
+2023-09-21,Thursday,False,False,,Autumn,In Session,App Launch 25% Off | National Day Offer,33.9,25
+2023-09-22,Friday,True,False,,Autumn,In Session,National Day Eve | App Launch 25% Off | National Day Offer,34.4,26
+2023-09-23,Saturday,True,True,Saudi National Day,Autumn,In Session,Saudi National Day | App Launch 25% Off | National Day Offer,32.4,27
+2023-09-24,Sunday,False,True,National Day Holiday,Autumn,In Session,National Day Holiday | App Launch 25% Off | National Day Offer,32.7,28
+2023-09-25,Monday,False,False,,Autumn,In Session,App Launch 25% Off,32.8,29
+2023-09-26,Tuesday,False,False,,Autumn,In Session,App Launch 25% Off,32.1,30
+2023-09-27,Wednesday,False,False,,Autumn,In Session,App Launch 25% Off | Salary Week,32.8,0
+2023-09-28,Thursday,False,False,,Autumn,In Session,App Launch 25% Off | Salary Week,32.0,1
+2023-09-29,Friday,True,False,,Autumn,In Session,App Launch 25% Off | Salary Week,33.8,2
+2023-09-30,Saturday,True,False,,Autumn,In Session,App Launch 25% Off | Salary Week,33.5,3
+2023-10-01,Sunday,False,False,,Autumn,In Session,Salary Week,29.8,4
+2023-10-02,Monday,False,False,,Autumn,In Session,No Event,30.8,5
+2023-10-03,Tuesday,False,False,,Autumn,In Session,No Event,32.3,6
+2023-10-04,Wednesday,False,False,,Autumn,In Session,No Event,30.8,7
+2023-10-05,Thursday,False,False,,Autumn,In Session,No Event,29.1,8
+2023-10-06,Friday,True,False,,Autumn,In Session,No Event,28.5,9
+2023-10-07,Saturday,True,False,,Autumn,In Session,No Event,29.1,10
+2023-10-08,Sunday,False,False,,Autumn,In Session,No Event,29.1,11
+2023-10-09,Monday,False,False,,Autumn,In Session,No Event,27.4,12
+2023-10-10,Tuesday,False,False,,Autumn,In Session,No Event,25.9,13
+2023-10-11,Wednesday,False,False,,Autumn,In Session,No Event,25.7,14
+2023-10-12,Thursday,False,False,,Autumn,In Session,No Event,26.9,15
+2023-10-13,Friday,True,False,,Autumn,In Session,No Event,25.7,16
+2023-10-14,Saturday,True,False,,Autumn,In Session,No Event,27.5,17
+2023-10-15,Sunday,False,False,,Autumn,In Session,No Event,27.7,18
+2023-10-16,Monday,False,False,,Autumn,In Session,No Event,27.0,19
+2023-10-17,Tuesday,False,False,,Autumn,In Session,No Event,25.3,20
+2023-10-18,Wednesday,False,False,,Autumn,In Session,No Event,27.5,21
+2023-10-19,Thursday,False,False,,Autumn,In Session,No Event,27.9,22
+2023-10-20,Friday,True,False,,Autumn,In Session,No Event,25.0,23
+2023-10-21,Saturday,True,False,,Autumn,In Session,No Event,25.9,24
+2023-10-22,Sunday,False,False,,Autumn,In Session,No Event,25.2,25
+2023-10-23,Monday,False,False,,Autumn,In Session,No Event,23.9,26
+2023-10-24,Tuesday,False,False,,Autumn,In Session,No Event,24.0,27
+2023-10-25,Wednesday,False,False,,Autumn,In Session,No Event,24.0,28
+2023-10-26,Thursday,False,False,,Autumn,In Session,Salary Week,24.6,0
+2023-10-27,Friday,True,False,,Autumn,In Session,Salary Week,23.6,1
+2023-10-28,Saturday,True,False,,Autumn,In Session,Salary Week,22.9,2
+2023-10-29,Sunday,False,False,,Autumn,In Session,Salary Week,20.6,3
+2023-10-30,Monday,False,False,,Autumn,In Session,Salary Week,20.8,4
+2023-10-31,Tuesday,False,False,,Autumn,In Session,No Event,20.8,5
+2023-11-01,Wednesday,False,False,,Autumn,In Session,No Event,20.2,6
+2023-11-02,Thursday,False,False,,Autumn,In Session,No Event,21.5,7
+2023-11-03,Friday,True,False,,Autumn,In Session,No Event,20.3,8
+2023-11-04,Saturday,True,False,,Autumn,In Session,No Event,21.2,9
+2023-11-05,Sunday,False,False,,Autumn,Exams,No Event,20.8,10
+2023-11-06,Monday,False,False,,Autumn,Exams,No Event,21.1,11
+2023-11-07,Tuesday,False,False,,Autumn,Exams,No Event,20.9,12
+2023-11-08,Wednesday,False,False,,Autumn,Exams,No Event,21.5,13
+2023-11-09,Thursday,False,False,,Autumn,Exams,No Event,21.8,14
+2023-11-10,Friday,True,False,,Autumn,Exams,No Event,20.5,15
+2023-11-11,Saturday,True,False,,Autumn,Exams,No Event,20.9,16
+2023-11-12,Sunday,False,False,,Autumn,Exams,No Event,20.9,17
+2023-11-13,Monday,False,False,,Autumn,Exams,No Event,21.2,18
+2023-11-14,Tuesday,False,False,,Autumn,Exams,No Event,21.4,19
+2023-11-15,Wednesday,False,False,,Autumn,Exams,No Event,20.9,20
+2023-11-16,Thursday,False,False,,Autumn,Exams,No Event,19.2,21
+2023-11-17,Friday,True,False,,Autumn,Term Break,No Event,18.6,22
+2023-11-18,Saturday,True,False,,Autumn,Term Break,No Event,20.8,23
+2023-11-19,Sunday,False,False,,Autumn,Term Break,No Event,20.8,24
+2023-11-20,Monday,False,False,,Autumn,Term Break,No Event,18.3,25
+2023-11-21,Tuesday,False,False,,Autumn,Term Break,No Event,20.2,26
+2023-11-22,Wednesday,False,False,,Autumn,Term Break,White Friday,17.7,27
+2023-11-23,Thursday,False,False,,Autumn,Term Break,White Friday,18.4,28
+2023-11-24,Friday,True,False,,Autumn,Term Break,White Friday,18.4,29
+2023-11-25,Saturday,True,False,,Autumn,Term Break,White Friday,20.0,30
+2023-11-26,Sunday,False,False,,Autumn,In Session,White Friday,19.4,31
+2023-11-27,Monday,False,False,,Autumn,In Session,White Friday | Salary Week,17.1,0
+2023-11-28,Tuesday,False,False,,Autumn,In Session,Post-White Friday | Salary Week,20.9,1
+2023-11-29,Wednesday,False,False,,Autumn,In Session,Post-White Friday | Salary Week,19.9,2
+2023-11-30,Thursday,False,False,,Autumn,In Session,Post-White Friday | Salary Week,21.1,3
+2023-12-01,Friday,True,False,,Winter,In Session,Post-White Friday | Salary Week,21.4,4
+2023-12-02,Saturday,True,False,,Winter,In Session,Post-White Friday,20.3,5
+2023-12-03,Sunday,False,False,,Winter,In Session,Post-White Friday,20.1,6
+2023-12-04,Monday,False,False,,Winter,In Session,Post-White Friday,17.3,7
+2023-12-05,Tuesday,False,False,,Winter,In Session,No Event,18.6,8
+2023-12-06,Wednesday,False,False,,Winter,In Session,No Event,16.2,9
+2023-12-07,Thursday,False,False,,Winter,In Session,No Event,15.1,10
+2023-12-08,Friday,True,False,,Winter,In Session,No Event,15.9,11
+2023-12-09,Saturday,True,False,,Winter,In Session,No Event,14.9,12
+2023-12-10,Sunday,False,False,,Winter,In Session,No Event,15.8,13
+2023-12-11,Monday,False,False,,Winter,In Session,No Event,17.1,14
+2023-12-12,Tuesday,False,False,,Winter,In Session,No Event,15.9,15
+2023-12-13,Wednesday,False,False,,Winter,In Session,No Event,16.1,16
+2023-12-14,Thursday,False,False,,Winter,In Session,No Event,15.5,17
+2023-12-15,Friday,True,False,,Winter,In Session,No Event,15.2,18
+2023-12-16,Saturday,True,False,,Winter,In Session,No Event,15.8,19
+2023-12-17,Sunday,False,False,,Winter,In Session,No Event,14.3,20
+2023-12-18,Monday,False,False,,Winter,In Session,No Event,12.0,21
+2023-12-19,Tuesday,False,False,,Winter,In Session,No Event,11.8,22
+2023-12-20,Wednesday,False,False,,Winter,In Session,No Event,13.0,23
+2023-12-21,Thursday,False,False,,Winter,In Session,No Event,14.4,24
+2023-12-22,Friday,True,False,,Winter,In Session,No Event,15.0,25
+2023-12-23,Saturday,True,False,,Winter,In Session,No Event,18.0,26
+2023-12-24,Sunday,False,False,,Winter,In Session,No Event,18.3,27
+2023-12-25,Monday,False,False,,Winter,In Session,No Event,16.2,28
+2023-12-26,Tuesday,False,False,,Winter,In Session,No Event,14.6,29
+2023-12-27,Wednesday,False,False,,Winter,In Session,Salary Week,16.1,0
+2023-12-28,Thursday,False,False,,Winter,In Session,Salary Week,16.0,1
+2023-12-29,Friday,True,False,,Winter,In Session,Salary Week,15.6,2
+2023-12-30,Saturday,True,False,,Winter,In Session,Salary Week,14.8,3
+2023-12-31,Sunday,False,False,,Winter,In Session,Salary Week,14.2,4
+2024-01-01,Monday,False,False,,Winter,In Session,No Event,15.0,5
+2024-01-02,Tuesday,False,False,,Winter,In Session,No Event,16.0,6
+2024-01-03,Wednesday,False,False,,Winter,In Session,No Event,18.1,7
+2024-01-04,Thursday,False,False,,Winter,In Session,No Event,17.2,8
+2024-01-05,Friday,True,False,,Winter,In Session,No Event,18.8,9
+2024-01-06,Saturday,True,False,,Winter,In Session,No Event,16.5,10
+2024-01-07,Sunday,False,False,,Winter,In Session,No Event,15.0,11
+2024-01-08,Monday,False,False,,Winter,In Session,No Event,11.5,12
+2024-01-09,Tuesday,False,False,,Winter,In Session,No Event,14.1,13
+2024-01-10,Wednesday,False,False,,Winter,In Session,No Event,13.9,14
+2024-01-11,Thursday,False,False,,Winter,In Session,No Event,14.5,15
+2024-01-12,Friday,True,False,,Winter,In Session,No Event,14.0,16
+2024-01-13,Saturday,True,False,,Winter,In Session,No Event,13.5,17
+2024-01-14,Sunday,False,False,,Winter,In Session,No Event,14.6,18
+2024-01-15,Monday,False,False,,Winter,In Session,No Event,15.1,19
+2024-01-16,Tuesday,False,False,,Winter,In Session,No Event,16.0,20
+2024-01-17,Wednesday,False,False,,Winter,In Session,No Event,14.8,21
+2024-01-18,Thursday,False,False,,Winter,In Session,No Event,16.8,22
+2024-01-19,Friday,True,False,,Winter,In Session,No Event,16.7,23
+2024-01-20,Saturday,True,False,,Winter,In Session,No Event,15.8,24
+2024-01-21,Sunday,False,False,,Winter,In Session,No Event,14.1,25
+2024-01-22,Monday,False,False,,Winter,In Session,No Event,14.8,26
+2024-01-23,Tuesday,False,False,,Winter,In Session,No Event,13.4,27
+2024-01-24,Wednesday,False,False,,Winter,In Session,No Event,14.7,28
+2024-01-25,Thursday,False,False,,Winter,In Session,Salary Week,14.3,0
+2024-01-26,Friday,True,False,,Winter,In Session,Salary Week,15.3,1
+2024-01-27,Saturday,True,False,,Winter,In Session,Salary Week,15.2,2
+2024-01-28,Sunday,False,False,,Winter,In Session,Salary Week,17.6,3
+2024-01-29,Monday,False,False,,Winter,In Session,Salary Week,18.4,4
+2024-01-30,Tuesday,False,False,,Winter,In Session,No Event,19.4,5
+2024-01-31,Wednesday,False,False,,Winter,In Session,No Event,20.0,6
+2024-02-01,Thursday,False,False,,Winter,In Session,No Event,19.4,7
+2024-02-02,Friday,True,False,,Winter,In Session,No Event,18.6,8
+2024-02-03,Saturday,True,False,,Winter,In Session,No Event,18.4,9
+2024-02-04,Sunday,False,False,,Winter,In Session,No Event,17.4,10
+2024-02-05,Monday,False,False,,Winter,In Session,No Event,15.7,11
+2024-02-06,Tuesday,False,False,,Winter,In Session,No Event,17.0,12
+2024-02-07,Wednesday,False,False,,Winter,In Session,No Event,17.9,13
+2024-02-08,Thursday,False,False,,Winter,In Session,No Event,17.8,14
+2024-02-09,Friday,True,False,,Winter,In Session,No Event,17.0,15
+2024-02-10,Saturday,True,False,,Winter,In Session,No Event,17.2,16
+2024-02-11,Sunday,False,False,,Winter,Exams,No Event,17.2,17
+2024-02-12,Monday,False,False,,Winter,Exams,No Event,17.0,18
+2024-02-13,Tuesday,False,False,,Winter,Exams,No Event,18.3,19
+2024-02-14,Wednesday,False,False,,Winter,Exams,No Event,18.6,20
+2024-02-15,Thursday,False,False,,Winter,Exams,No Event,17.0,21
+2024-02-16,Friday,True,False,,Winter,Exams,No Event,18.0,22
+2024-02-17,Saturday,True,False,,Winter,Exams,No Event,16.7,23
+2024-02-18,Sunday,False,False,,Winter,Exams,No Event,15.9,24
+2024-02-19,Monday,False,False,,Winter,Exams,No Event,15.8,25
+2024-02-20,Tuesday,False,False,,Winter,Exams,No Event,17.7,26
+2024-02-21,Wednesday,False,False,,Winter,Exams,Founding Day Offer,19.2,27
+2024-02-22,Thursday,False,True,Saudi Founding Day,Winter,Exams,Saudi Founding Day | Founding Day Offer,17.4,28
+2024-02-23,Friday,True,False,,Winter,Term Break,Founding Day Offer,16.3,29
+2024-02-24,Saturday,True,False,,Winter,Term Break,No Event,16.3,30
+2024-02-25,Sunday,False,False,,Winter,Term Break,No Event,17.9,31
+2024-02-26,Monday,False,False,,Winter,Term Break,No Event,19.4,32
+2024-02-27,Tuesday,False,False,,Winter,Term Break,Salary Week,17.2,0
+2024-02-28,Wednesday,False,False,,Winter,Term Break,Salary Week,17.8,1
+2024-02-29,Thursday,False,False,,Winter,Term Break,Salary Week,18.2,2
+2024-03-01,Friday,True,False,,Spring,Term Break,Salary Week,17.5,3
+2024-03-02,Saturday,True,False,,Spring,Term Break,Salary Week,20.0,4
+2024-03-03,Sunday,False,False,,Spring,In Session,No Event,19.8,5
+2024-03-04,Monday,False,False,,Spring,In Session,No Event,20.7,6
+2024-03-05,Tuesday,False,False,,Spring,In Session,No Event,22.8,7
+2024-03-06,Wednesday,False,False,,Spring,In Session,No Event,22.1,8
+2024-03-07,Thursday,False,False,,Spring,In Session,No Event,20.7,9
+2024-03-08,Friday,True,False,,Spring,In Session,No Event,19.5,10
+2024-03-09,Saturday,True,False,,Spring,In Session,No Event,19.1,11
+2024-03-10,Sunday,False,False,,Spring,In Session,Ramadan Eve,20.0,12
+2024-03-11,Monday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,19.0,13
+2024-03-12,Tuesday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,19.6,14
+2024-03-13,Wednesday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,19.4,15
+2024-03-14,Thursday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,17.4,16
+2024-03-15,Friday,True,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,19.6,17
+2024-03-16,Saturday,True,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,21.1,18
+2024-03-17,Sunday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,19.7,19
+2024-03-18,Monday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,19.9,20
+2024-03-19,Tuesday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,17.3,21
+2024-03-20,Wednesday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,16.6,22
+2024-03-21,Thursday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,17.6,23
+2024-03-22,Friday,True,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,19.7,24
+2024-03-23,Saturday,True,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,18.7,25
+2024-03-24,Sunday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,19.5,26
+2024-03-25,Monday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,19.0,27
+2024-03-26,Tuesday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,21.1,28
+2024-03-27,Wednesday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10% | Salary Week,22.8,0
+2024-03-28,Thursday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10% | Salary Week,25.0,1
+2024-03-29,Friday,True,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10% | Salary Week,23.7,2
+2024-03-30,Saturday,True,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10% | Salary Week,26.3,3
+2024-03-31,Sunday,False,False,,Spring,In Session,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10% | Salary Week,25.1,4
+2024-04-01,Monday,False,False,,Spring,In Session,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,27.8,5
+2024-04-02,Tuesday,False,False,,Spring,In Session,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,26.7,6
+2024-04-03,Wednesday,False,False,,Spring,In Session,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,27.3,7
+2024-04-04,Thursday,False,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,28.4,8
+2024-04-05,Friday,True,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,28.7,9
+2024-04-06,Saturday,True,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,28.0,10
+2024-04-07,Sunday,False,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,29.3,11
+2024-04-08,Monday,False,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,30.5,12
+2024-04-09,Tuesday,False,False,,Spring,Term Break,Ramadan - Last 10 Nights | Eid Al-Fitr Eve | Ramadan Nights Desserts 10%,30.6,13
+2024-04-10,Wednesday,False,True,Eid Al-Fitr,Spring,Term Break,Eid Al-Fitr,30.4,14
+2024-04-11,Thursday,False,True,Eid Al-Fitr,Spring,Term Break,Eid Al-Fitr,27.8,15
+2024-04-12,Friday,True,True,Eid Al-Fitr,Spring,Term Break,Eid Al-Fitr,29.4,16
+2024-04-13,Saturday,True,True,Eid Al-Fitr,Spring,Term Break,Eid Al-Fitr,28.7,17
+2024-04-14,Sunday,False,False,,Spring,Term Break,Post-Eid Al-Fitr Holiday,25.7,18
+2024-04-15,Monday,False,False,,Spring,Term Break,Post-Eid Al-Fitr Holiday,26.1,19
+2024-04-16,Tuesday,False,False,,Spring,Term Break,Post-Eid Al-Fitr Holiday,26.4,20
+2024-04-17,Wednesday,False,False,,Spring,Term Break,No Event,25.9,21
+2024-04-18,Thursday,False,False,,Spring,Term Break,No Event,26.6,22
+2024-04-19,Friday,True,False,,Spring,Term Break,No Event,25.5,23
+2024-04-20,Saturday,True,False,,Spring,Term Break,No Event,28.0,24
+2024-04-21,Sunday,False,False,,Spring,In Session,No Event,26.6,25
+2024-04-22,Monday,False,False,,Spring,In Session,No Event,26.3,26
+2024-04-23,Tuesday,False,False,,Spring,In Session,No Event,27.0,27
+2024-04-24,Wednesday,False,False,,Spring,In Session,No Event,26.1,28
+2024-04-25,Thursday,False,False,,Spring,In Session,Salary Week,26.9,0
+2024-04-26,Friday,True,False,,Spring,In Session,Salary Week,28.3,1
+2024-04-27,Saturday,True,False,,Spring,In Session,Salary Week,27.9,2
+2024-04-28,Sunday,False,False,,Spring,In Session,Salary Week,27.4,3
+2024-04-29,Monday,False,False,,Spring,In Session,Salary Week,28.9,4
+2024-04-30,Tuesday,False,False,,Spring,In Session,No Event,26.0,5
+2024-05-01,Wednesday,False,False,,Spring,In Session,No Event,29.7,6
+2024-05-02,Thursday,False,False,,Spring,In Session,No Event,30.8,7
+2024-05-03,Friday,True,False,,Spring,In Session,No Event,29.5,8
+2024-05-04,Saturday,True,False,,Spring,In Session,No Event,30.5,9
+2024-05-05,Sunday,False,False,,Spring,In Session,No Event,31.4,10
+2024-05-06,Monday,False,False,,Spring,In Session,No Event,31.8,11
+2024-05-07,Tuesday,False,False,,Spring,In Session,No Event,32.2,12
+2024-05-08,Wednesday,False,False,,Spring,In Session,No Event,31.7,13
+2024-05-09,Thursday,False,False,,Spring,In Session,No Event,30.8,14
+2024-05-10,Friday,True,False,,Spring,In Session,No Event,32.3,15
+2024-05-11,Saturday,True,False,,Spring,In Session,No Event,34.9,16
+2024-05-12,Sunday,False,False,,Spring,In Session,No Event,33.6,17
+2024-05-13,Monday,False,False,,Spring,In Session,No Event,34.5,18
+2024-05-14,Tuesday,False,False,,Spring,In Session,No Event,35.9,19
+2024-05-15,Wednesday,False,False,,Spring,In Session,No Event,37.4,20
+2024-05-16,Thursday,False,False,,Spring,In Session,No Event,37.3,21
+2024-05-17,Friday,True,False,,Spring,In Session,No Event,36.9,22
+2024-05-18,Saturday,True,False,,Spring,In Session,No Event,36.1,23
+2024-05-19,Sunday,False,False,,Spring,In Session,No Event,34.6,24
+2024-05-20,Monday,False,False,,Spring,In Session,No Event,35.3,25
+2024-05-21,Tuesday,False,False,,Spring,In Session,No Event,36.5,26
+2024-05-22,Wednesday,False,False,,Spring,In Session,No Event,35.4,27
+2024-05-23,Thursday,False,False,,Spring,In Session,No Event,37.3,28
+2024-05-24,Friday,True,False,,Spring,In Session,No Event,35.9,29
+2024-05-25,Saturday,True,False,,Spring,In Session,No Event,34.8,30
+2024-05-26,Sunday,False,False,,Spring,In Session,No Event,35.3,31
+2024-05-27,Monday,False,False,,Spring,In Session,Salary Week,32.2,0
+2024-05-28,Tuesday,False,False,,Spring,In Session,Salary Week,33.1,1
+2024-05-29,Wednesday,False,False,,Spring,In Session,Salary Week,32.9,2
+2024-05-30,Thursday,False,False,,Spring,In Session,Salary Week,34.2,3
+2024-05-31,Friday,True,False,,Spring,In Session,Salary Week,33.7,4
+2024-06-01,Saturday,True,False,,Summer,In Session,No Event,33.5,5
+2024-06-02,Sunday,False,False,,Summer,Exams,No Event,34.4,6
+2024-06-03,Monday,False,False,,Summer,Exams,No Event,34.5,7
+2024-06-04,Tuesday,False,False,,Summer,Exams,No Event,33.1,8
+2024-06-05,Wednesday,False,False,,Summer,Exams,No Event,32.2,9
+2024-06-06,Thursday,False,False,,Summer,Exams,No Event,33.6,10
+2024-06-07,Friday,True,False,,Summer,Exams,No Event,34.8,11
+2024-06-08,Saturday,True,False,,Summer,Exams,No Event,35.3,12
+2024-06-09,Sunday,False,False,,Summer,Exams,No Event,36.1,13
+2024-06-10,Monday,False,False,,Summer,Exams,No Event,36.5,14
+2024-06-11,Tuesday,False,False,,Summer,Exams,No Event,34.4,15
+2024-06-12,Wednesday,False,False,,Summer,Exams,No Event,35.5,16
+2024-06-13,Thursday,False,False,,Summer,Exams,No Event,34.8,17
+2024-06-14,Friday,True,False,,Summer,Summer Vacation,No Event,34.3,18
+2024-06-15,Saturday,True,True,Day of Arafah,Summer,Summer Vacation,Day of Arafah,37.1,19
+2024-06-16,Sunday,False,True,Eid Al-Adha,Summer,Summer Vacation,Eid Al-Adha,34.8,20
+2024-06-17,Monday,False,True,Eid Al-Adha,Summer,Summer Vacation,Eid Al-Adha,36.4,21
+2024-06-18,Tuesday,False,True,Eid Al-Adha,Summer,Summer Vacation,Eid Al-Adha,35.1,22
+2024-06-19,Wednesday,False,True,Eid Al-Adha,Summer,Summer Vacation,Eid Al-Adha,36.8,23
+2024-06-20,Thursday,False,False,,Summer,Summer Vacation,Post-Eid Al-Adha Holiday,36.7,24
+2024-06-21,Friday,True,False,,Summer,Summer Vacation,Post-Eid Al-Adha Holiday,37.2,25
+2024-06-22,Saturday,True,False,,Summer,Summer Vacation,Post-Eid Al-Adha Holiday,37.0,26
+2024-06-23,Sunday,False,False,,Summer,Summer Vacation,No Event,36.8,27
+2024-06-24,Monday,False,False,,Summer,Summer Vacation,No Event,34.5,28
+2024-06-25,Tuesday,False,False,,Summer,Summer Vacation,No Event,34.6,29
+2024-06-26,Wednesday,False,False,,Summer,Summer Vacation,No Event,37.6,30
+2024-06-27,Thursday,False,False,,Summer,Summer Vacation,Salary Week,36.4,0
+2024-06-28,Friday,True,False,,Summer,Summer Vacation,Salary Week,37.4,1
+2024-06-29,Saturday,True,False,,Summer,Summer Vacation,Salary Week,37.6,2
+2024-06-30,Sunday,False,False,,Summer,Summer Vacation,Salary Week,39.1,3
+2024-07-01,Monday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour | Salary Week,38.7,4
+2024-07-02,Tuesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.8,5
+2024-07-03,Wednesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.5,6
+2024-07-04,Thursday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,39.5,7
+2024-07-05,Friday,True,False,,Summer,Summer Vacation,No Event,40.1,8
+2024-07-06,Saturday,True,False,,Summer,Summer Vacation,No Event,38.9,9
+2024-07-07,Sunday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,38.0,10
+2024-07-08,Monday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,38.5,11
+2024-07-09,Tuesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,35.5,12
+2024-07-10,Wednesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,35.2,13
+2024-07-11,Thursday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,36.4,14
+2024-07-12,Friday,True,False,,Summer,Summer Vacation,No Event,36.3,15
+2024-07-13,Saturday,True,False,,Summer,Summer Vacation,No Event,37.5,16
+2024-07-14,Sunday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.8,17
+2024-07-15,Monday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,36.8,18
+2024-07-16,Tuesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,38.1,19
+2024-07-17,Wednesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,39.0,20
+2024-07-18,Thursday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.6,21
+2024-07-19,Friday,True,False,,Summer,Summer Vacation,No Event,37.6,22
+2024-07-20,Saturday,True,False,,Summer,Summer Vacation,No Event,38.0,23
+2024-07-21,Sunday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.6,24
+2024-07-22,Monday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,38.1,25
+2024-07-23,Tuesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,36.8,26
+2024-07-24,Wednesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.5,27
+2024-07-25,Thursday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour | Salary Week,35.5,0
+2024-07-26,Friday,True,False,,Summer,Summer Vacation,Salary Week,36.1,1
+2024-07-27,Saturday,True,False,,Summer,Summer Vacation,Salary Week,35.4,2
+2024-07-28,Sunday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour | Salary Week,37.0,3
+2024-07-29,Monday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour | Salary Week,35.1,4
+2024-07-30,Tuesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,34.4,5
+2024-07-31,Wednesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.1,6
+2024-08-01,Thursday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,36.6,7
+2024-08-02,Friday,True,False,,Summer,Summer Vacation,No Event,36.9,8
+2024-08-03,Saturday,True,False,,Summer,Summer Vacation,No Event,37.8,9
+2024-08-04,Sunday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,39.4,10
+2024-08-05,Monday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,36.3,11
+2024-08-06,Tuesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,36.0,12
+2024-08-07,Wednesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,38.3,13
+2024-08-08,Thursday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.9,14
+2024-08-09,Friday,True,False,,Summer,Summer Vacation,No Event,36.4,15
+2024-08-10,Saturday,True,False,,Summer,Summer Vacation,No Event,38.6,16
+2024-08-11,Sunday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.7,17
+2024-08-12,Monday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,38.9,18
+2024-08-13,Tuesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.6,19
+2024-08-14,Wednesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.3,20
+2024-08-15,Thursday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,39.1,21
+2024-08-16,Friday,True,False,,Summer,Summer Vacation,No Event,38.8,22
+2024-08-17,Saturday,True,False,,Summer,Summer Vacation,No Event,39.0,23
+2024-08-18,Sunday,False,False,,Summer,In Session,Summer Iced Happy Hour | Back to School 15%,40.0,24
+2024-08-19,Monday,False,False,,Summer,In Session,Summer Iced Happy Hour | Back to School 15%,40.0,25
+2024-08-20,Tuesday,False,False,,Summer,In Session,Summer Iced Happy Hour | Back to School 15%,37.9,26
+2024-08-21,Wednesday,False,False,,Summer,In Session,Summer Iced Happy Hour | Back to School 15%,37.6,27
+2024-08-22,Thursday,False,False,,Summer,In Session,Summer Iced Happy Hour | Back to School 15%,36.1,28
+2024-08-23,Friday,True,False,,Summer,In Session,Back to School 15%,35.7,29
+2024-08-24,Saturday,True,False,,Summer,In Session,Back to School 15%,35.9,30
+2024-08-25,Sunday,False,False,,Summer,In Session,Summer Iced Happy Hour | Back to School 15%,35.4,31
+2024-08-26,Monday,False,False,,Summer,In Session,Summer Iced Happy Hour | Back to School 15%,34.0,32
+2024-08-27,Tuesday,False,False,,Summer,In Session,Summer Iced Happy Hour | Back to School 15% | Salary Week,36.1,0
+2024-08-28,Wednesday,False,False,,Summer,In Session,Summer Iced Happy Hour | Back to School 15% | Salary Week,35.6,1
+2024-08-29,Thursday,False,False,,Summer,In Session,Summer Iced Happy Hour | Back to School 15% | Salary Week,35.4,2
+2024-08-30,Friday,True,False,,Summer,In Session,Back to School 15% | Salary Week,34.2,3
+2024-08-31,Saturday,True,False,,Summer,In Session,Back to School 15% | Salary Week,34.4,4
+2024-09-01,Sunday,False,False,,Autumn,In Session,No Event,32.1,5
+2024-09-02,Monday,False,False,,Autumn,In Session,No Event,33.7,6
+2024-09-03,Tuesday,False,False,,Autumn,In Session,No Event,34.7,7
+2024-09-04,Wednesday,False,False,,Autumn,In Session,No Event,34.9,8
+2024-09-05,Thursday,False,False,,Autumn,In Session,No Event,35.4,9
+2024-09-06,Friday,True,False,,Autumn,In Session,No Event,36.7,10
+2024-09-07,Saturday,True,False,,Autumn,In Session,No Event,36.2,11
+2024-09-08,Sunday,False,False,,Autumn,In Session,No Event,35.9,12
+2024-09-09,Monday,False,False,,Autumn,In Session,No Event,34.5,13
+2024-09-10,Tuesday,False,False,,Autumn,In Session,No Event,34.7,14
+2024-09-11,Wednesday,False,False,,Autumn,In Session,No Event,35.2,15
+2024-09-12,Thursday,False,False,,Autumn,In Session,No Event,35.1,16
+2024-09-13,Friday,True,False,,Autumn,In Session,No Event,34.5,17
+2024-09-14,Saturday,True,False,,Autumn,In Session,No Event,34.1,18
+2024-09-15,Sunday,False,False,,Autumn,In Session,No Event,34.8,19
+2024-09-16,Monday,False,False,,Autumn,In Session,No Event,32.0,20
+2024-09-17,Tuesday,False,False,,Autumn,In Session,No Event,34.1,21
+2024-09-18,Wednesday,False,False,,Autumn,In Session,No Event,34.9,22
+2024-09-19,Thursday,False,False,,Autumn,In Session,No Event,34.7,23
+2024-09-20,Friday,True,False,,Autumn,In Session,No Event,34.3,24
+2024-09-21,Saturday,True,False,,Autumn,In Session,National Day Offer,34.4,25
+2024-09-22,Sunday,False,False,,Autumn,In Session,National Day Eve | National Day Offer,36.0,26
+2024-09-23,Monday,False,True,Saudi National Day,Autumn,In Session,Saudi National Day | National Day Offer,35.3,27
+2024-09-24,Tuesday,False,False,,Autumn,In Session,National Day Offer,33.2,28
+2024-09-25,Wednesday,False,False,,Autumn,In Session,No Event,30.5,29
+2024-09-26,Thursday,False,False,,Autumn,In Session,Salary Week,32.0,0
+2024-09-27,Friday,True,False,,Autumn,In Session,Salary Week,32.6,1
+2024-09-28,Saturday,True,False,,Autumn,In Session,Salary Week,31.2,2
+2024-09-29,Sunday,False,False,,Autumn,In Session,Salary Week,32.2,3
+2024-09-30,Monday,False,False,,Autumn,In Session,Salary Week,32.3,4
+2024-10-01,Tuesday,False,False,,Autumn,In Session,No Event,32.5,5
+2024-10-02,Wednesday,False,False,,Autumn,In Session,No Event,31.1,6
+2024-10-03,Thursday,False,False,,Autumn,In Session,No Event,31.5,7
+2024-10-04,Friday,True,False,,Autumn,In Session,No Event,30.0,8
+2024-10-05,Saturday,True,False,,Autumn,In Session,No Event,29.5,9
+2024-10-06,Sunday,False,False,,Autumn,In Session,No Event,27.6,10
+2024-10-07,Monday,False,False,,Autumn,In Session,No Event,30.3,11
+2024-10-08,Tuesday,False,False,,Autumn,In Session,No Event,30.4,12
+2024-10-09,Wednesday,False,False,,Autumn,In Session,No Event,30.2,13
+2024-10-10,Thursday,False,False,,Autumn,In Session,No Event,29.6,14
+2024-10-11,Friday,True,False,,Autumn,In Session,No Event,29.7,15
+2024-10-12,Saturday,True,False,,Autumn,In Session,No Event,30.9,16
+2024-10-13,Sunday,False,False,,Autumn,In Session,No Event,30.6,17
+2024-10-14,Monday,False,False,,Autumn,In Session,No Event,31.9,18
+2024-10-15,Tuesday,False,False,,Autumn,In Session,No Event,28.5,19
+2024-10-16,Wednesday,False,False,,Autumn,In Session,No Event,28.5,20
+2024-10-17,Thursday,False,False,,Autumn,In Session,No Event,28.0,21
+2024-10-18,Friday,True,False,,Autumn,In Session,No Event,28.6,22
+2024-10-19,Saturday,True,False,,Autumn,In Session,No Event,27.2,23
+2024-10-20,Sunday,False,False,,Autumn,In Session,No Event,25.1,24
+2024-10-21,Monday,False,False,,Autumn,In Session,No Event,24.1,25
+2024-10-22,Tuesday,False,False,,Autumn,In Session,No Event,23.2,26
+2024-10-23,Wednesday,False,False,,Autumn,In Session,No Event,24.0,27
+2024-10-24,Thursday,False,False,,Autumn,In Session,No Event,22.8,28
+2024-10-25,Friday,True,False,,Autumn,In Session,No Event,21.6,29
+2024-10-26,Saturday,True,False,,Autumn,In Session,No Event,23.1,30
+2024-10-27,Sunday,False,False,,Autumn,In Session,Salary Week,23.3,0
+2024-10-28,Monday,False,False,,Autumn,In Session,Salary Week,22.4,1
+2024-10-29,Tuesday,False,False,,Autumn,In Session,Salary Week,19.8,2
+2024-10-30,Wednesday,False,False,,Autumn,In Session,Salary Week,22.2,3
+2024-10-31,Thursday,False,False,,Autumn,In Session,Salary Week,23.6,4
+2024-11-01,Friday,True,False,,Autumn,In Session,No Event,22.7,5
+2024-11-02,Saturday,True,False,,Autumn,In Session,No Event,22.5,6
+2024-11-03,Sunday,False,False,,Autumn,Exams,No Event,23.6,7
+2024-11-04,Monday,False,False,,Autumn,Exams,No Event,23.8,8
+2024-11-05,Tuesday,False,False,,Autumn,Exams,No Event,23.5,9
+2024-11-06,Wednesday,False,False,,Autumn,Exams,No Event,22.7,10
+2024-11-07,Thursday,False,False,,Autumn,Exams,No Event,22.3,11
+2024-11-08,Friday,True,False,,Autumn,Exams,No Event,23.7,12
+2024-11-09,Saturday,True,False,,Autumn,Exams,No Event,23.3,13
+2024-11-10,Sunday,False,False,,Autumn,Exams,No Event,22.8,14
+2024-11-11,Monday,False,False,,Autumn,Exams,No Event,21.7,15
+2024-11-12,Tuesday,False,False,,Autumn,Exams,No Event,22.6,16
+2024-11-13,Wednesday,False,False,,Autumn,Exams,No Event,21.6,17
+2024-11-14,Thursday,False,False,,Autumn,Exams,No Event,22.5,18
+2024-11-15,Friday,True,False,,Autumn,Term Break,No Event,20.7,19
+2024-11-16,Saturday,True,False,,Autumn,Term Break,No Event,21.7,20
+2024-11-17,Sunday,False,False,,Autumn,Term Break,No Event,22.4,21
+2024-11-18,Monday,False,False,,Autumn,Term Break,No Event,23.7,22
+2024-11-19,Tuesday,False,False,,Autumn,Term Break,No Event,25.0,23
+2024-11-20,Wednesday,False,False,,Autumn,Term Break,No Event,22.2,24
+2024-11-21,Thursday,False,False,,Autumn,Term Break,No Event,20.9,25
+2024-11-22,Friday,True,False,,Autumn,Term Break,No Event,19.3,26
+2024-11-23,Saturday,True,False,,Autumn,Term Break,No Event,19.8,27
+2024-11-24,Sunday,False,False,,Autumn,In Session,No Event,18.6,28
+2024-11-25,Monday,False,False,,Autumn,In Session,No Event,18.0,29
+2024-11-26,Tuesday,False,False,,Autumn,In Session,No Event,17.6,30
+2024-11-27,Wednesday,False,False,,Autumn,In Session,White Friday | Salary Week,17.9,0
+2024-11-28,Thursday,False,False,,Autumn,In Session,White Friday | Salary Week,19.6,1
+2024-11-29,Friday,True,False,,Autumn,In Session,White Friday | Salary Week,19.7,2
+2024-11-30,Saturday,True,False,,Autumn,In Session,White Friday | Salary Week,19.5,3
+2024-12-01,Sunday,False,False,,Winter,In Session,White Friday | Salary Week,18.9,4
+2024-12-02,Monday,False,False,,Winter,In Session,White Friday,20.4,5
+2024-12-03,Tuesday,False,False,,Winter,In Session,Post-White Friday,20.7,6
+2024-12-04,Wednesday,False,False,,Winter,In Session,Post-White Friday,22.5,7
+2024-12-05,Thursday,False,False,,Winter,In Session,Post-White Friday,21.6,8
+2024-12-06,Friday,True,False,,Winter,In Session,Post-White Friday,20.5,9
+2024-12-07,Saturday,True,False,,Winter,In Session,Post-White Friday,19.4,10
+2024-12-08,Sunday,False,False,,Winter,In Session,Post-White Friday,19.6,11
+2024-12-09,Monday,False,False,,Winter,In Session,Post-White Friday,19.9,12
+2024-12-10,Tuesday,False,False,,Winter,In Session,No Event,19.5,13
+2024-12-11,Wednesday,False,False,,Winter,In Session,No Event,17.2,14
+2024-12-12,Thursday,False,False,,Winter,In Session,No Event,20.1,15
+2024-12-13,Friday,True,False,,Winter,In Session,No Event,16.6,16
+2024-12-14,Saturday,True,False,,Winter,In Session,No Event,16.5,17
+2024-12-15,Sunday,False,False,,Winter,In Session,No Event,13.7,18
+2024-12-16,Monday,False,False,,Winter,In Session,No Event,16.6,19
+2024-12-17,Tuesday,False,False,,Winter,In Session,No Event,17.9,20
+2024-12-18,Wednesday,False,False,,Winter,In Session,No Event,20.8,21
+2024-12-19,Thursday,False,False,,Winter,In Session,No Event,19.5,22
+2024-12-20,Friday,True,False,,Winter,In Session,No Event,19.4,23
+2024-12-21,Saturday,True,False,,Winter,In Session,No Event,18.6,24
+2024-12-22,Sunday,False,False,,Winter,In Session,No Event,17.1,25
+2024-12-23,Monday,False,False,,Winter,In Session,No Event,18.8,26
+2024-12-24,Tuesday,False,False,,Winter,In Session,No Event,19.3,27
+2024-12-25,Wednesday,False,False,,Winter,In Session,No Event,18.6,28
+2024-12-26,Thursday,False,False,,Winter,In Session,Salary Week,15.6,0
+2024-12-27,Friday,True,False,,Winter,In Session,Salary Week,14.8,1
+2024-12-28,Saturday,True,False,,Winter,In Session,Salary Week,13.2,2
+2024-12-29,Sunday,False,False,,Winter,In Session,Salary Week,11.2,3
+2024-12-30,Monday,False,False,,Winter,In Session,Salary Week,12.0,4
+2024-12-31,Tuesday,False,False,,Winter,In Session,No Event,13.1,5
+2025-01-01,Wednesday,False,False,,Winter,In Session,No Event,13.2,6
+2025-01-02,Thursday,False,False,,Winter,In Session,No Event,14.4,7
+2025-01-03,Friday,True,False,,Winter,In Session,No Event,15.7,8
+2025-01-04,Saturday,True,False,,Winter,In Session,No Event,14.9,9
+2025-01-05,Sunday,False,False,,Winter,In Session,No Event,14.9,10
+2025-01-06,Monday,False,False,,Winter,In Session,Monday Boost 15%,11.3,11
+2025-01-07,Tuesday,False,False,,Winter,In Session,No Event,14.9,12
+2025-01-08,Wednesday,False,False,,Winter,In Session,No Event,14.5,13
+2025-01-09,Thursday,False,False,,Winter,In Session,No Event,13.2,14
+2025-01-10,Friday,True,False,,Winter,Term Break,No Event,12.3,15
+2025-01-11,Saturday,True,False,,Winter,Term Break,No Event,13.3,16
+2025-01-12,Sunday,False,False,,Winter,Term Break,No Event,13.6,17
+2025-01-13,Monday,False,False,,Winter,Term Break,Monday Boost 15%,14.3,18
+2025-01-14,Tuesday,False,False,,Winter,Term Break,No Event,14.3,19
+2025-01-15,Wednesday,False,False,,Winter,Term Break,No Event,16.2,20
+2025-01-16,Thursday,False,False,,Winter,Term Break,No Event,15.8,21
+2025-01-17,Friday,True,False,,Winter,Term Break,No Event,15.9,22
+2025-01-18,Saturday,True,False,,Winter,Term Break,No Event,15.2,23
+2025-01-19,Sunday,False,False,,Winter,In Session,No Event,18.2,24
+2025-01-20,Monday,False,False,,Winter,In Session,Monday Boost 15%,18.7,25
+2025-01-21,Tuesday,False,False,,Winter,In Session,No Event,16.9,26
+2025-01-22,Wednesday,False,False,,Winter,In Session,No Event,14.7,27
+2025-01-23,Thursday,False,False,,Winter,In Session,No Event,15.5,28
+2025-01-24,Friday,True,False,,Winter,In Session,No Event,14.9,29
+2025-01-25,Saturday,True,False,,Winter,In Session,No Event,14.6,30
+2025-01-26,Sunday,False,False,,Winter,In Session,No Event,16.0,31
+2025-01-27,Monday,False,False,,Winter,In Session,Monday Boost 15% | Salary Week,15.0,0
+2025-01-28,Tuesday,False,False,,Winter,In Session,Salary Week,13.8,1
+2025-01-29,Wednesday,False,False,,Winter,In Session,Salary Week,14.7,2
+2025-01-30,Thursday,False,False,,Winter,In Session,Salary Week,15.9,3
+2025-01-31,Friday,True,False,,Winter,In Session,Salary Week,18.0,4
+2025-02-01,Saturday,True,False,,Winter,In Session,No Event,15.3,5
+2025-02-02,Sunday,False,False,,Winter,In Session,No Event,14.4,6
+2025-02-03,Monday,False,False,,Winter,In Session,Monday Boost 15%,16.7,7
+2025-02-04,Tuesday,False,False,,Winter,In Session,No Event,17.2,8
+2025-02-05,Wednesday,False,False,,Winter,In Session,No Event,17.5,9
+2025-02-06,Thursday,False,False,,Winter,In Session,No Event,16.8,10
+2025-02-07,Friday,True,False,,Winter,In Session,No Event,17.7,11
+2025-02-08,Saturday,True,False,,Winter,In Session,No Event,18.1,12
+2025-02-09,Sunday,False,False,,Winter,Exams,No Event,16.9,13
+2025-02-10,Monday,False,False,,Winter,Exams,Monday Boost 15%,19.3,14
+2025-02-11,Tuesday,False,False,,Winter,Exams,No Event,19.7,15
+2025-02-12,Wednesday,False,False,,Winter,Exams,No Event,18.5,16
+2025-02-13,Thursday,False,False,,Winter,Exams,No Event,18.6,17
+2025-02-14,Friday,True,False,,Winter,Exams,No Event,18.0,18
+2025-02-15,Saturday,True,False,,Winter,Exams,No Event,16.9,19
+2025-02-16,Sunday,False,False,,Winter,Exams,No Event,17.1,20
+2025-02-17,Monday,False,False,,Winter,Exams,Monday Boost 15%,16.4,21
+2025-02-18,Tuesday,False,False,,Winter,Exams,No Event,16.5,22
+2025-02-19,Wednesday,False,False,,Winter,Exams,No Event,17.3,23
+2025-02-20,Thursday,False,False,,Winter,Exams,No Event,16.7,24
+2025-02-21,Friday,True,False,,Winter,Term Break,Founding Day Offer,17.1,25
+2025-02-22,Saturday,True,True,Saudi Founding Day,Winter,Term Break,Saudi Founding Day | Founding Day Offer,17.2,26
+2025-02-23,Sunday,False,True,Founding Day Holiday,Winter,Term Break,Founding Day Holiday | Founding Day Offer,16.7,27
+2025-02-24,Monday,False,False,,Winter,Term Break,Monday Boost 15%,16.6,28
+2025-02-25,Tuesday,False,False,,Winter,Term Break,No Event,16.4,29
+2025-02-26,Wednesday,False,False,,Winter,Term Break,No Event,18.5,30
+2025-02-27,Thursday,False,False,,Winter,Term Break,Salary Week,19.2,0
+2025-02-28,Friday,True,False,,Winter,Term Break,Ramadan Eve | Salary Week,20.6,1
+2025-03-01,Saturday,True,False,,Spring,Term Break,Ramadan | Ramadan Nights Desserts 10% | Salary Week,20.5,2
+2025-03-02,Sunday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10% | Salary Week,20.9,3
+2025-03-03,Monday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10% | Salary Week,19.0,4
+2025-03-04,Tuesday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,18.1,5
+2025-03-05,Wednesday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,19.6,6
+2025-03-06,Thursday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,18.9,7
+2025-03-07,Friday,True,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,19.4,8
+2025-03-08,Saturday,True,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,21.0,9
+2025-03-09,Sunday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,20.9,10
+2025-03-10,Monday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,20.4,11
+2025-03-11,Tuesday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,20.6,12
+2025-03-12,Wednesday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,20.4,13
+2025-03-13,Thursday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,21.3,14
+2025-03-14,Friday,True,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,23.5,15
+2025-03-15,Saturday,True,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,23.3,16
+2025-03-16,Sunday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,24.7,17
+2025-03-17,Monday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,21.4,18
+2025-03-18,Tuesday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,22.1,19
+2025-03-19,Wednesday,False,False,,Spring,In Session,Ramadan | Ramadan Nights Desserts 10%,22.9,20
+2025-03-20,Thursday,False,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,22.4,21
+2025-03-21,Friday,True,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,23.2,22
+2025-03-22,Saturday,True,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,23.5,23
+2025-03-23,Sunday,False,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,23.5,24
+2025-03-24,Monday,False,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,23.9,25
+2025-03-25,Tuesday,False,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,23.8,26
+2025-03-26,Wednesday,False,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10%,22.7,27
+2025-03-27,Thursday,False,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10% | Salary Week,23.5,0
+2025-03-28,Friday,True,False,,Spring,Term Break,Ramadan - Last 10 Nights | Ramadan Nights Desserts 10% | Salary Week,26.1,1
+2025-03-29,Saturday,True,False,,Spring,Term Break,Ramadan - Last 10 Nights | Eid Al-Fitr Eve | Ramadan Nights Desserts 10% | Salary Week,27.5,2
+2025-03-30,Sunday,False,True,Eid Al-Fitr,Spring,Term Break,Eid Al-Fitr | Salary Week,28.4,3
+2025-03-31,Monday,False,True,Eid Al-Fitr,Spring,Term Break,Eid Al-Fitr | Salary Week,29.7,4
+2025-04-01,Tuesday,False,True,Eid Al-Fitr,Spring,Term Break,Eid Al-Fitr,27.5,5
+2025-04-02,Wednesday,False,True,Eid Al-Fitr,Spring,Term Break,Eid Al-Fitr,28.3,6
+2025-04-03,Thursday,False,False,,Spring,Term Break,Post-Eid Al-Fitr Holiday,26.6,7
+2025-04-04,Friday,True,False,,Spring,Term Break,Post-Eid Al-Fitr Holiday,28.6,8
+2025-04-05,Saturday,True,False,,Spring,Term Break,Post-Eid Al-Fitr Holiday,28.0,9
+2025-04-06,Sunday,False,False,,Spring,In Session,No Event,28.1,10
+2025-04-07,Monday,False,False,,Spring,In Session,No Event,25.3,11
+2025-04-08,Tuesday,False,False,,Spring,In Session,No Event,25.5,12
+2025-04-09,Wednesday,False,False,,Spring,In Session,No Event,25.6,13
+2025-04-10,Thursday,False,False,,Spring,In Session,No Event,27.4,14
+2025-04-11,Friday,True,False,,Spring,In Session,No Event,27.0,15
+2025-04-12,Saturday,True,False,,Spring,In Session,No Event,27.7,16
+2025-04-13,Sunday,False,False,,Spring,In Session,No Event,26.1,17
+2025-04-14,Monday,False,False,,Spring,In Session,No Event,26.3,18
+2025-04-15,Tuesday,False,False,,Spring,In Session,No Event,25.4,19
+2025-04-16,Wednesday,False,False,,Spring,In Session,No Event,26.4,20
+2025-04-17,Thursday,False,False,,Spring,In Session,No Event,29.4,21
+2025-04-18,Friday,True,False,,Spring,In Session,No Event,28.6,22
+2025-04-19,Saturday,True,False,,Spring,In Session,No Event,27.0,23
+2025-04-20,Sunday,False,False,,Spring,In Session,No Event,26.5,24
+2025-04-21,Monday,False,False,,Spring,In Session,No Event,27.2,25
+2025-04-22,Tuesday,False,False,,Spring,In Session,No Event,28.7,26
+2025-04-23,Wednesday,False,False,,Spring,In Session,No Event,27.5,27
+2025-04-24,Thursday,False,False,,Spring,In Session,No Event,29.0,28
+2025-04-25,Friday,True,False,,Spring,In Session,No Event,28.8,29
+2025-04-26,Saturday,True,False,,Spring,In Session,No Event,29.1,30
+2025-04-27,Sunday,False,False,,Spring,In Session,Salary Week,29.9,0
+2025-04-28,Monday,False,False,,Spring,In Session,Salary Week,28.6,1
+2025-04-29,Tuesday,False,False,,Spring,In Session,Salary Week,29.6,2
+2025-04-30,Wednesday,False,False,,Spring,In Session,Salary Week,29.1,3
+2025-05-01,Thursday,False,False,,Spring,In Session,Salary Week,28.8,4
+2025-05-02,Friday,True,False,,Spring,In Session,No Event,29.7,5
+2025-05-03,Saturday,True,False,,Spring,In Session,No Event,30.9,6
+2025-05-04,Sunday,False,False,,Spring,In Session,No Event,32.0,7
+2025-05-05,Monday,False,False,,Spring,In Session,No Event,32.6,8
+2025-05-06,Tuesday,False,False,,Spring,In Session,No Event,35.2,9
+2025-05-07,Wednesday,False,False,,Spring,In Session,No Event,35.4,10
+2025-05-08,Thursday,False,False,,Spring,In Session,No Event,36.1,11
+2025-05-09,Friday,True,False,,Spring,In Session,No Event,34.6,12
+2025-05-10,Saturday,True,False,,Spring,In Session,No Event,34.5,13
+2025-05-11,Sunday,False,False,,Spring,In Session,No Event,33.4,14
+2025-05-12,Monday,False,False,,Spring,In Session,No Event,31.2,15
+2025-05-13,Tuesday,False,False,,Spring,In Session,No Event,29.9,16
+2025-05-14,Wednesday,False,False,,Spring,In Session,No Event,31.2,17
+2025-05-15,Thursday,False,False,,Spring,In Session,No Event,29.8,18
+2025-05-16,Friday,True,False,,Spring,In Session,No Event,31.2,19
+2025-05-17,Saturday,True,False,,Spring,In Session,No Event,31.2,20
+2025-05-18,Sunday,False,False,,Spring,In Session,No Event,31.5,21
+2025-05-19,Monday,False,False,,Spring,In Session,No Event,30.4,22
+2025-05-20,Tuesday,False,False,,Spring,In Session,No Event,29.2,23
+2025-05-21,Wednesday,False,False,,Spring,In Session,No Event,30.1,24
+2025-05-22,Thursday,False,False,,Spring,In Session,No Event,30.1,25
+2025-05-23,Friday,True,False,,Spring,In Session,No Event,32.0,26
+2025-05-24,Saturday,True,False,,Spring,In Session,No Event,32.9,27
+2025-05-25,Sunday,False,False,,Spring,In Session,No Event,32.1,28
+2025-05-26,Monday,False,False,,Spring,In Session,No Event,30.8,29
+2025-05-27,Tuesday,False,False,,Spring,In Session,Salary Week,29.7,0
+2025-05-28,Wednesday,False,False,,Spring,In Session,Salary Week,31.2,1
+2025-05-29,Thursday,False,False,,Spring,In Session,Salary Week,31.7,2
+2025-05-30,Friday,True,False,,Spring,Term Break,Salary Week,32.1,3
+2025-05-31,Saturday,True,False,,Spring,Term Break,Salary Week,31.4,4
+2025-06-01,Sunday,False,False,,Summer,Term Break,No Event,31.6,5
+2025-06-02,Monday,False,False,,Summer,Term Break,No Event,30.8,6
+2025-06-03,Tuesday,False,False,,Summer,Term Break,No Event,31.2,7
+2025-06-04,Wednesday,False,False,,Summer,Term Break,No Event,31.3,8
+2025-06-05,Thursday,False,True,Day of Arafah,Summer,Term Break,Day of Arafah,31.8,9
+2025-06-06,Friday,True,True,Eid Al-Adha,Summer,Term Break,Eid Al-Adha,31.1,10
+2025-06-07,Saturday,True,True,Eid Al-Adha,Summer,Term Break,Eid Al-Adha,31.1,11
+2025-06-08,Sunday,False,True,Eid Al-Adha,Summer,Term Break,Eid Al-Adha,34.4,12
+2025-06-09,Monday,False,True,Eid Al-Adha,Summer,Term Break,Eid Al-Adha,34.6,13
+2025-06-10,Tuesday,False,False,,Summer,Term Break,Post-Eid Al-Adha Holiday,37.5,14
+2025-06-11,Wednesday,False,False,,Summer,Term Break,Post-Eid Al-Adha Holiday,36.7,15
+2025-06-12,Thursday,False,False,,Summer,Term Break,Post-Eid Al-Adha Holiday,35.8,16
+2025-06-13,Friday,True,False,,Summer,Term Break,No Event,35.0,17
+2025-06-14,Saturday,True,False,,Summer,Term Break,No Event,34.0,18
+2025-06-15,Sunday,False,False,,Summer,Exams,No Event,34.2,19
+2025-06-16,Monday,False,False,,Summer,Exams,No Event,33.9,20
+2025-06-17,Tuesday,False,False,,Summer,Exams,No Event,33.1,21
+2025-06-18,Wednesday,False,False,,Summer,Exams,No Event,33.3,22
+2025-06-19,Thursday,False,False,,Summer,Exams,No Event,34.8,23
+2025-06-20,Friday,True,False,,Summer,Exams,No Event,34.3,24
+2025-06-21,Saturday,True,False,,Summer,Exams,No Event,33.8,25
+2025-06-22,Sunday,False,False,,Summer,Exams,Summer Iced Happy Hour,34.5,26
+2025-06-23,Monday,False,False,,Summer,Exams,Summer Iced Happy Hour,36.9,27
+2025-06-24,Tuesday,False,False,,Summer,Exams,Summer Iced Happy Hour,38.2,28
+2025-06-25,Wednesday,False,False,,Summer,Exams,Summer Iced Happy Hour,39.2,29
+2025-06-26,Thursday,False,False,,Summer,Exams,Summer Iced Happy Hour | Salary Week,39.0,0
+2025-06-27,Friday,True,False,,Summer,Summer Vacation,Salary Week,37.5,1
+2025-06-28,Saturday,True,False,,Summer,Summer Vacation,Salary Week,37.7,2
+2025-06-29,Sunday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour | Salary Week,38.4,3
+2025-06-30,Monday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour | Salary Week,36.5,4
+2025-07-01,Tuesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,35.2,5
+2025-07-02,Wednesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.5,6
+2025-07-03,Thursday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.2,7
+2025-07-04,Friday,True,False,,Summer,Summer Vacation,No Event,36.2,8
+2025-07-05,Saturday,True,False,,Summer,Summer Vacation,No Event,36.0,9
+2025-07-06,Sunday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,36.3,10
+2025-07-07,Monday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,36.1,11
+2025-07-08,Tuesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,36.6,12
+2025-07-09,Wednesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.7,13
+2025-07-10,Thursday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.2,14
+2025-07-11,Friday,True,False,,Summer,Summer Vacation,No Event,35.7,15
+2025-07-12,Saturday,True,False,,Summer,Summer Vacation,No Event,37.7,16
+2025-07-13,Sunday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,38.3,17
+2025-07-14,Monday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.1,18
+2025-07-15,Tuesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.9,19
+2025-07-16,Wednesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,38.8,20
+2025-07-17,Thursday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,39.1,21
+2025-07-18,Friday,True,False,,Summer,Summer Vacation,No Event,39.4,22
+2025-07-19,Saturday,True,False,,Summer,Summer Vacation,No Event,40.0,23
+2025-07-20,Sunday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,40.1,24
+2025-07-21,Monday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,38.7,25
+2025-07-22,Tuesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.7,26
+2025-07-23,Wednesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,39.7,27
+2025-07-24,Thursday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.7,28
+2025-07-25,Friday,True,False,,Summer,Summer Vacation,No Event,37.5,29
+2025-07-26,Saturday,True,False,,Summer,Summer Vacation,No Event,36.8,30
+2025-07-27,Sunday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour | Salary Week,37.0,0
+2025-07-28,Monday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour | Salary Week,36.6,1
+2025-07-29,Tuesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour | Salary Week,37.0,2
+2025-07-30,Wednesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour | Salary Week,38.4,3
+2025-07-31,Thursday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour | Salary Week,38.2,4
+2025-08-01,Friday,True,False,,Summer,Summer Vacation,No Event,38.0,5
+2025-08-02,Saturday,True,False,,Summer,Summer Vacation,No Event,34.3,6
+2025-08-03,Sunday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,34.2,7
+2025-08-04,Monday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,36.1,8
+2025-08-05,Tuesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,38.4,9
+2025-08-06,Wednesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,35.6,10
+2025-08-07,Thursday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,34.4,11
+2025-08-08,Friday,True,False,,Summer,Summer Vacation,No Event,34.9,12
+2025-08-09,Saturday,True,False,,Summer,Summer Vacation,No Event,36.6,13
+2025-08-10,Sunday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,38.6,14
+2025-08-11,Monday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,36.3,15
+2025-08-12,Tuesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,37.6,16
+2025-08-13,Wednesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,38.6,17
+2025-08-14,Thursday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,38.3,18
+2025-08-15,Friday,True,False,,Summer,Summer Vacation,No Event,38.2,19
+2025-08-16,Saturday,True,False,,Summer,Summer Vacation,No Event,36.5,20
+2025-08-17,Sunday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,36.6,21
+2025-08-18,Monday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,36.6,22
+2025-08-19,Tuesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,35.2,23
+2025-08-20,Wednesday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,35.2,24
+2025-08-21,Thursday,False,False,,Summer,Summer Vacation,Summer Iced Happy Hour,34.9,25
+2025-08-22,Friday,True,False,,Summer,Summer Vacation,No Event,34.7,26
+2025-08-23,Saturday,True,False,,Summer,Summer Vacation,No Event,35.0,27
+2025-08-24,Sunday,False,False,,Summer,In Session,Summer Iced Happy Hour | Back to School 15%,35.8,28
+2025-08-25,Monday,False,False,,Summer,In Session,Summer Iced Happy Hour | Back to School 15%,35.7,29
+2025-08-26,Tuesday,False,False,,Summer,In Session,Summer Iced Happy Hour | Back to School 15%,35.1,30
+2025-08-27,Wednesday,False,False,,Summer,In Session,Summer Iced Happy Hour | Back to School 15% | Salary Week,33.5,0
+2025-08-28,Thursday,False,False,,Summer,In Session,Summer Iced Happy Hour | Back to School 15% | Salary Week,31.5,1
+2025-08-29,Friday,True,False,,Summer,In Session,Back to School 15% | Salary Week,32.5,2
+2025-08-30,Saturday,True,False,,Summer,In Session,Back to School 15% | Salary Week,35.2,3
+2025-08-31,Sunday,False,False,,Summer,In Session,Summer Iced Happy Hour | Back to School 15% | Salary Week,34.0,4
+2025-09-01,Monday,False,False,,Autumn,In Session,Back to School 15%,35.4,5
+2025-09-02,Tuesday,False,False,,Autumn,In Session,Back to School 15%,35.3,6
+2025-09-03,Wednesday,False,False,,Autumn,In Session,Back to School 15%,33.8,7
+2025-09-04,Thursday,False,False,,Autumn,In Session,Back to School 15%,32.9,8
+2025-09-05,Friday,True,False,,Autumn,In Session,Back to School 15%,35.3,9
+2025-09-06,Saturday,True,False,,Autumn,In Session,Back to School 15%,34.0,10
+2025-09-07,Sunday,False,False,,Autumn,In Session,No Event,32.4,11
+2025-09-08,Monday,False,False,,Autumn,In Session,No Event,33.5,12
+2025-09-09,Tuesday,False,False,,Autumn,In Session,No Event,31.6,13
+2025-09-10,Wednesday,False,False,,Autumn,In Session,No Event,32.7,14
+2025-09-11,Thursday,False,False,,Autumn,In Session,No Event,32.6,15
+2025-09-12,Friday,True,False,,Autumn,In Session,No Event,33.8,16
+2025-09-13,Saturday,True,False,,Autumn,In Session,No Event,34.0,17
+2025-09-14,Sunday,False,False,,Autumn,In Session,No Event,34.3,18
+2025-09-15,Monday,False,False,,Autumn,In Session,No Event,33.3,19
+2025-09-16,Tuesday,False,False,,Autumn,In Session,No Event,34.6,20
+2025-09-17,Wednesday,False,False,,Autumn,In Session,No Event,33.9,21
+2025-09-18,Thursday,False,False,,Autumn,In Session,No Event,33.5,22
+2025-09-19,Friday,True,False,,Autumn,In Session,No Event,34.1,23
+2025-09-20,Saturday,True,False,,Autumn,In Session,No Event,31.5,24
+2025-09-21,Sunday,False,False,,Autumn,In Session,National Day Offer,31.6,25
+2025-09-22,Monday,False,False,,Autumn,In Session,National Day Eve | National Day Offer,30.8,26
+2025-09-23,Tuesday,False,True,Saudi National Day,Autumn,In Session,Saudi National Day | National Day Offer,28.8,27
+2025-09-24,Wednesday,False,False,,Autumn,In Session,National Day Offer,30.2,28
+2025-09-25,Thursday,False,False,,Autumn,In Session,Salary Week,28.7,0
+2025-09-26,Friday,True,False,,Autumn,In Session,Salary Week,28.0,1
+2025-09-27,Saturday,True,False,,Autumn,In Session,Salary Week,28.2,2
+2025-09-28,Sunday,False,False,,Autumn,In Session,Salary Week,30.7,3
+2025-09-29,Monday,False,False,,Autumn,In Session,Salary Week,30.8,4
+2025-09-30,Tuesday,False,False,,Autumn,In Session,No Event,30.9,5
+2025-10-01,Wednesday,False,False,,Autumn,In Session,No Event,30.6,6
+2025-10-02,Thursday,False,False,,Autumn,In Session,No Event,30.9,7
+2025-10-03,Friday,True,False,,Autumn,In Session,No Event,33.3,8
+2025-10-04,Saturday,True,False,,Autumn,In Session,No Event,31.8,9
+2025-10-05,Sunday,False,False,,Autumn,In Session,No Event,32.9,10
+2025-10-06,Monday,False,False,,Autumn,In Session,No Event,33.5,11
+2025-10-07,Tuesday,False,False,,Autumn,In Session,No Event,32.1,12
+2025-10-08,Wednesday,False,False,,Autumn,In Session,No Event,29.8,13
+2025-10-09,Thursday,False,False,,Autumn,In Session,No Event,30.0,14
+2025-10-10,Friday,True,False,,Autumn,In Session,No Event,28.9,15
+2025-10-11,Saturday,True,False,,Autumn,In Session,No Event,27.4,16
+2025-10-12,Sunday,False,False,,Autumn,In Session,No Event,26.5,17
+2025-10-13,Monday,False,False,,Autumn,In Session,No Event,24.8,18
+2025-10-14,Tuesday,False,False,,Autumn,In Session,No Event,22.4,19
+2025-10-15,Wednesday,False,False,,Autumn,In Session,No Event,24.9,20
+2025-10-16,Thursday,False,False,,Autumn,In Session,No Event,24.7,21
+2025-10-17,Friday,True,False,,Autumn,In Session,No Event,26.0,22
+2025-10-18,Saturday,True,False,,Autumn,In Session,No Event,25.3,23
+2025-10-19,Sunday,False,False,,Autumn,In Session,No Event,26.4,24
+2025-10-20,Monday,False,False,,Autumn,In Session,No Event,27.1,25
+2025-10-21,Tuesday,False,False,,Autumn,In Session,No Event,25.6,26
+2025-10-22,Wednesday,False,False,,Autumn,In Session,No Event,25.5,27
+2025-10-23,Thursday,False,False,,Autumn,In Session,No Event,26.0,28
+2025-10-24,Friday,True,False,,Autumn,In Session,No Event,26.1,29
+2025-10-25,Saturday,True,False,,Autumn,In Session,No Event,26.8,30
+2025-10-26,Sunday,False,False,,Autumn,In Session,No Event,28.7,31
+2025-10-27,Monday,False,False,,Autumn,In Session,Salary Week,27.6,0
+2025-10-28,Tuesday,False,False,,Autumn,In Session,Salary Week,25.7,1
+2025-10-29,Wednesday,False,False,,Autumn,In Session,Salary Week,25.9,2
+2025-10-30,Thursday,False,False,,Autumn,In Session,Salary Week,25.4,3
+2025-10-31,Friday,True,False,,Autumn,In Session,Salary Week,24.9,4
+2025-11-01,Saturday,True,False,,Autumn,In Session,No Event,24.9,5
+2025-11-02,Sunday,False,False,,Autumn,In Session,No Event,25.4,6
+2025-11-03,Monday,False,False,,Autumn,In Session,No Event,24.6,7
+2025-11-04,Tuesday,False,False,,Autumn,In Session,No Event,21.4,8
+2025-11-05,Wednesday,False,False,,Autumn,In Session,No Event,22.5,9
+2025-11-06,Thursday,False,False,,Autumn,In Session,No Event,21.5,10
+2025-11-07,Friday,True,False,,Autumn,In Session,No Event,22.1,11
+2025-11-08,Saturday,True,False,,Autumn,In Session,No Event,19.8,12
+2025-11-09,Sunday,False,False,,Autumn,In Session,No Event,19.6,13
+2025-11-10,Monday,False,False,,Autumn,In Session,No Event,21.9,14
+2025-11-11,Tuesday,False,False,,Autumn,In Session,No Event,21.5,15
+2025-11-12,Wednesday,False,False,,Autumn,In Session,No Event,21.8,16
+2025-11-13,Thursday,False,False,,Autumn,In Session,No Event,19.8,17
+2025-11-14,Friday,True,False,,Autumn,In Session,No Event,20.3,18
+2025-11-15,Saturday,True,False,,Autumn,In Session,No Event,21.9,19
+2025-11-16,Sunday,False,False,,Autumn,In Session,No Event,23.5,20
+2025-11-17,Monday,False,False,,Autumn,In Session,No Event,23.6,21
+2025-11-18,Tuesday,False,False,,Autumn,In Session,No Event,23.9,22
+2025-11-19,Wednesday,False,False,,Autumn,In Session,No Event,24.5,23
+2025-11-20,Thursday,False,False,,Autumn,In Session,No Event,22.9,24
+2025-11-21,Friday,True,False,,Autumn,Term Break,No Event,21.6,25
+2025-11-22,Saturday,True,False,,Autumn,Term Break,No Event,19.8,26
+2025-11-23,Sunday,False,False,,Autumn,Term Break,No Event,19.5,27
+2025-11-24,Monday,False,False,,Autumn,Term Break,No Event,19.5,28
+2025-11-25,Tuesday,False,False,,Autumn,Term Break,No Event,20.1,29
+2025-11-26,Wednesday,False,False,,Autumn,Term Break,White Friday,19.4,30
+2025-11-27,Thursday,False,False,,Autumn,Term Break,White Friday | Salary Week,18.5,0
+2025-11-28,Friday,True,False,,Autumn,Term Break,White Friday | Salary Week,19.4,1
+2025-11-29,Saturday,True,False,,Autumn,Term Break,White Friday | Salary Week,18.9,2
+2025-11-30,Sunday,False,False,,Autumn,In Session,White Friday | Salary Week,19.3,3
+2025-12-01,Monday,False,False,,Winter,In Session,White Friday | Salary Week,16.5,4
+2025-12-02,Tuesday,False,False,,Winter,In Session,Post-White Friday,18.2,5
+2025-12-03,Wednesday,False,False,,Winter,In Session,Post-White Friday,17.4,6
+2025-12-04,Thursday,False,False,,Winter,In Session,Post-White Friday,18.7,7
+2025-12-05,Friday,True,False,,Winter,In Session,Post-White Friday,18.5,8
+2025-12-06,Saturday,True,False,,Winter,In Session,Post-White Friday,17.7,9
+2025-12-07,Sunday,False,False,,Winter,In Session,Post-White Friday,16.1,10
+2025-12-08,Monday,False,False,,Winter,In Session,Post-White Friday,15.1,11
+2025-12-09,Tuesday,False,False,,Winter,In Session,No Event,16.2,12
+2025-12-10,Wednesday,False,False,,Winter,In Session,No Event,16.4,13
+2025-12-11,Thursday,False,False,,Winter,In Session,No Event,19.3,14
+2025-12-12,Friday,True,False,,Winter,In Session,No Event,18.8,15
+2025-12-13,Saturday,True,False,,Winter,In Session,No Event,19.4,16
+2025-12-14,Sunday,False,False,,Winter,In Session,No Event,17.5,17
+2025-12-15,Monday,False,False,,Winter,In Session,No Event,17.4,18
+2025-12-16,Tuesday,False,False,,Winter,In Session,No Event,16.9,19
+2025-12-17,Wednesday,False,False,,Winter,In Session,No Event,16.0,20
+2025-12-18,Thursday,False,False,,Winter,In Session,No Event,16.3,21
+2025-12-19,Friday,True,False,,Winter,In Session,No Event,16.6,22
+2025-12-20,Saturday,True,False,,Winter,In Session,No Event,16.7,23
+2025-12-21,Sunday,False,False,,Winter,In Session,No Event,16.5,24
+2025-12-22,Monday,False,False,,Winter,In Session,No Event,12.8,25
+2025-12-23,Tuesday,False,False,,Winter,In Session,No Event,15.1,26
+2025-12-24,Wednesday,False,False,,Winter,In Session,No Event,17.4,27
+2025-12-25,Thursday,False,False,,Winter,In Session,Salary Week,17.0,0
+2025-12-26,Friday,True,False,,Winter,In Session,Salary Week,17.7,1
+2025-12-27,Saturday,True,False,,Winter,In Session,Salary Week,18.5,2
+2025-12-28,Sunday,False,False,,Winter,In Session,Salary Week,17.9,3
+2025-12-29,Monday,False,False,,Winter,In Session,Salary Week,16.1,4
+2025-12-30,Tuesday,False,False,,Winter,In Session,No Event,13.9,5
+2025-12-31,Wednesday,False,False,,Winter,In Session,No Event,14.0,6

@@ -1,0 +1,9 @@
+Model,MAPE_2025_daily_orders_%
+Naive (last value),19.33
+"Seasonal naive (same weekday last week, recursive)",21.75
+Moving average (28 days),22.81
+"Weighted moving average (28 days, linear weights)",22.37
+"Seasonal naive (same weekday, 52 weeks ago)",13.2
+"Holt-Winters (damped additive trend, weekly multiplicative)",19.39
+Log-linear regression on calendar/event/weather features (Prophet/GBM-style),10.5
+ORACLE: noise-free ground truth Expected_Orders (irreducible-noise floor),7.02

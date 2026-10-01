@@ -1,0 +1,19 @@
+Check,Result,Detail
+"Gross_Sales = Quantity x Unit_Price (exact, every line)",PASS,
+Net_Sales = Gross_Sales - Discount - Return_Amount (exact),PASS,
+COGS = Quantity x Unit_Cost (exact),PASS,
+Gross_Profit = Net_Sales - COGS (exact),PASS,
+No negative Net_Sales,PASS,
+No negative Gross_Sales / Discount / Quantity,PASS,
+Discount never exceeds Gross_Sales,PASS,
+Quantity is an integer,PASS,
+COGS > Net_Sales only on refunded or loyalty-free lines,PASS,"15,834 lines (3.31%); all are returns or free loyalty drinks"
+Every calendar day 2023-01-01..2025-12-31 has transactions,PASS,1096 of 1096 days
+Transaction_ID + Line_No is unique,PASS,
+Each Transaction_ID has a single Date and Customer,PASS,
+Each product has a stable price (distinct prices = scheduled price changes + 1),PASS,max distinct prices per product: 2
+A customer is 'New' at most once and only on the first visit,PASS,
+"Guest orders have no Customer_ID, identified orders always do",PASS,
+Missing values confined to Time / Payment_Method / Order_Channel / Customer_ID (guests),PASS,Time: 0.07%; Customer_ID: 30.67%; Payment_Method: 0.36%; Order_Channel: 0.26%
+Daily Net_Profit = Gross_Profit - Payment_Fee - Delivery_Commission - Total_Opex,PASS,
+Daily AOV = Net_Sales / Orders,PASS,
