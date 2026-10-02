@@ -6,6 +6,14 @@ A working vocabulary-learning app for intermediate (B1–B2) Arabic-speaking lea
 
 The interface is in Arabic (RTL). English learning content is displayed left-to-right.
 
+## التشغيل السريع (ويندوز)
+
+1. فك ضغط `lexitube.zip` في مجلد — لا تفتح `index.html` من داخل الملف المضغوط.
+2. ثبّت [Node.js](https://nodejs.org) الإصدار 22.13 أو أحدث (LTS).
+3. انقر مرتين على `start-windows.bat` — سيثبّت المتطلبات أول مرة ثم يفتح `http://localhost:3000`.
+
+على ماك/لينكس: `./start.sh`.
+
 ## Run it
 
 ```bash
