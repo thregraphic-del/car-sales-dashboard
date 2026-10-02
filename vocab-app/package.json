@@ -1,0 +1,19 @@
+{
+  "name": "lexitube",
+  "version": "1.0.0",
+  "description": "Learn English vocabulary from YouTube videos — built for Arabic-speaking intermediate learners.",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning server/index.js",
+    "dev": "node --env-file-if-exists=.env --disable-warning=ExperimentalWarning --watch server/index.js",
+    "seed": "node --disable-warning=ExperimentalWarning server/seed.js --reset",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
+    "express": "^5.1.0",
+    "zod": "^4.1.0"
+  }
+}

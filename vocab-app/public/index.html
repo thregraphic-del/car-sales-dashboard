@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>LexiTube — تعلّم المفردات من يوتيوب</title>
+  <meta name="description" content="حوّل فيديوهات يوتيوب الإنجليزية إلى مفردات تتعلمها وتراجعها يوميًا.">
+  <meta name="theme-color" content="#1f5f5b">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%231f5f5b'/><text x='16' y='23' font-size='19' text-anchor='middle' fill='white' font-family='Georgia' font-weight='700'>L</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <div class="mobile-bar">
+    <button class="btn icon ghost" id="menuBtn" aria-label="القائمة">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+    </button>
+    <div class="row" style="gap:8px">
+      <span class="brand-name">LexiTube</span>
+      <span class="brand-mark" style="width:28px;height:28px;font-size:16px">L</span>
+    </div>
+    <a class="btn icon ghost" href="#/analyzer" aria-label="تحليل فيديو">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </a>
+  </div>
+
+  <div class="shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark">L</div>
+        <div>
+          <div class="brand-name">LexiTube</div>
+          <div class="brand-sub">مفردات حقيقية من يوتيوب</div>
+        </div>
+      </div>
+      <nav id="nav"></nav>
+      <div class="sidebar-foot" id="sidebarFoot"></div>
+    </aside>
+    <main class="main">
+      <div id="view" class="view"></div>
+    </main>
+  </div>
+
+  <nav class="tabbar" id="tabbar"></nav>
+  <div class="scrim" id="scrim"></div>
+  <div class="modal-root" id="modalRoot"><div class="modal-backdrop"></div></div>
+  <div class="toast-root" id="toastRoot"></div>
+
+  <script type="module" src="/js/app.js"></script>
+</body>
+</html>
