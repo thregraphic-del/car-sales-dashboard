@@ -5,8 +5,8 @@
 // Without an AI key the offline lexicon is used and gaps stay empty (never invented).
 import { z } from 'zod';
 import { jsonCall, aiConfigured, aiAvailable, AiError } from './ai.js';
-import { matchKey } from '../public/js/shared/text.js';
-import { lexicon, lexiconPatterns, findSpan } from './matcher.js';
+import { matchKey } from '../../public/js/shared/text.js';
+import { lexicon, lexiconPatterns, findSpan } from '../lib/matcher.js';
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const TOPICS = ['business', 'work', 'academic', 'daily', 'media', 'tech', 'emotions', 'health', 'travel', 'society', 'finance', 'data'];
@@ -134,7 +134,63 @@ async function extractWithAi({ title, channel, lines }) {
     }));
 }
 
-function extractWithDictionary({ lines }) {
+/* ------------------------------------- 1b. chunked selection (serverless) */
+
+// A light schema so one chunk of ~25 lines finishes well inside a serverless
+// time limit. Examples / similar words are filled later on click if needed.
+const CHUNK_SCHEMA = obj({
+  items: {
+    type: 'array',
+    items: obj({
+      term: str, item_type: { type: 'string', enum: TYPES }, part_of_speech: str, level: { type: 'string', enum: LEVELS },
+      band: { type: 'string', enum: ['useful', 'advanced', 'specialized'] }, usefulness: { type: 'integer' }, pronunciation: str,
+      arabic: str, arabic_general: str, simple_english: str, line: { type: 'integer' }, topic: { type: 'string', enum: TOPICS },
+    }),
+  },
+});
+const ChunkZ = z.object({
+  items: z.array(z.object({
+    term: z.string().min(1), item_type: z.enum(TYPES), part_of_speech: z.string(), level: z.enum(LEVELS),
+    band: z.enum(['useful', 'advanced', 'specialized']), usefulness: z.number(), pronunciation: z.string(), arabic: z.string(),
+    arabic_general: z.string(), simple_english: z.string(), line: z.number().int(), topic: z.enum(TOPICS),
+  })),
+});
+
+/**
+ * Choose the learnable items in one chunk of transcript lines.
+ * `context` = a few earlier lines (not numbered) so meanings stay accurate.
+ */
+export async function extractChunkWithAi({ title, lines }) {
+  const transcript = lines.map((l) => `[${l.idx}] ${l.text}`).join('\n');
+  const out = await jsonCall({
+    task: 'extract_chunk',
+    system: `${EXTRACT_SYSTEM}\n\nYou receive one part of a longer transcript. Choose only from these lines; at most one item per two lines. Leave out example fields — they are not needed here.`,
+    user: `Title: ${title}\n\n<transcript>\n${transcript}\n</transcript>`,
+    schema: CHUNK_SCHEMA,
+    zod: ChunkZ,
+    maxTokens: 2500,
+  });
+  const valid = new Set(lines.map((l) => l.idx));
+  const seen = new Set();
+  return out.items
+    .filter((it) => valid.has(it.line))
+    .filter((it) => {
+      const k = matchKey(it.term);
+      if (!k || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    })
+    .map((it) => ({
+      ...it,
+      usefulness: Math.max(0, Math.min(100, Math.round(it.usefulness))),
+      contextual_meaning: it.arabic,
+      arabic: it.arabic_general || it.arabic,
+      similar: [],
+      origin: 'ai',
+    }));
+}
+
+export function extractWithDictionary({ lines }) {
   const hits = new Map();
   for (const { entry, re } of lexiconPatterns()) {
     for (const l of lines) {
@@ -175,10 +231,11 @@ function extractWithDictionary({ lines }) {
  * lines: [{idx, start, text}] (already sentence-split).
  * Returns {items, engine, word_count}; each item has `line` (an idx in lines).
  */
-export async function extractVocabulary({ title, channel, lines, engine = 'auto' }) {
+export async function extractVocabulary({ title, channel, lines, engine = 'dictionary' }) {
   const wordCount = lines.reduce((n, l) => n + l.text.split(/\s+/).length, 0);
   if (wordCount < 12) throw new ExtractionError('النص قصير جدًا للتحليل.', 422);
-  // AI when available; the offline dictionary is always the fallback.
+  // engine 'ai' asks for the whole transcript in one call (local tools only);
+  // the app itself starts with the dictionary and refines with AI in chunks.
   let useAi = engine === 'ai' || (engine === 'auto' && aiAvailable());
   let items;
   let aiError = null;
@@ -225,8 +282,7 @@ export async function lookupWithAi({ word, sentence }) {
     user: `Clicked word: ${word}\nSentence: ${sentence}`,
     schema: LOOKUP_SCHEMA,
     zod: LookupZ,
-    maxTokens: 2000,
-    timeoutMs: 45000,
+    maxTokens: 1500,
   });
   return { ...r, contextual_meaning: r.arabic, arabic: r.arabic_general || r.arabic, similar: cleanSimilar(r.similar), origin: 'ai' };
 }

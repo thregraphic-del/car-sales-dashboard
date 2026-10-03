@@ -1,32 +1,94 @@
+// SQLite driver (local development). Uses node:sqlite, built into Node 22.
+// Opening an older database upgrades it in place (v1 → v2 → v3 → v4).
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { matchKey, sentenceKey } from '../public/js/shared/text.js';
-import { learningSignals } from './srs.js';
+import { matchKey, sentenceKey } from '../../public/js/shared/text.js';
+import { learningSignals } from '../lib/srs.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-export const ROOT = path.resolve(here, '..');
-export const SCHEMA_VERSION = 3;
+export const ROOT = path.resolve(here, '..', '..');
+export const SCHEMA_VERSION = 4;
+export const DEFAULT_SQLITE_PATH = path.join(ROOT, 'data', 'lexitube.db');
 
-const dbPath = process.env.DATABASE_PATH
-  ? process.env.DATABASE_PATH === ':memory:' ? ':memory:' : path.resolve(process.env.DATABASE_PATH)
-  : path.join(ROOT, 'data', 'lexitube.db');
-
-let db;
-
-export function getDb() {
-  if (db) return db;
-  if (dbPath !== ':memory:') fs.mkdirSync(path.dirname(dbPath), { recursive: true });
-  db = new DatabaseSync(dbPath);
-  if (dbPath !== ':memory:') db.exec('PRAGMA journal_mode = WAL;');
-  migrate(db);
-  db.exec('PRAGMA foreign_keys = ON;');
-  return db;
+export function resolvePath(p) {
+  if (!p) return DEFAULT_SQLITE_PATH;
+  return p === ':memory:' ? ':memory:' : path.resolve(p);
 }
 
-export function dbFile() {
-  return dbPath;
+export async function createDriver(file) {
+  const dbPath = resolvePath(file);
+  if (dbPath !== ':memory:') fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  const d = new DatabaseSync(dbPath);
+  if (dbPath !== ':memory:') d.exec('PRAGMA journal_mode = WAL;');
+  migrate(d);
+  d.exec('PRAGMA foreign_keys = ON;');
+
+  const returnsRows = (sql) => /^\s*(SELECT|WITH|PRAGMA|VALUES)\b/i.test(sql) || /\bRETURNING\b/i.test(sql);
+  const stmts = new Map();
+  const prepare = (sql) => {
+    let st = stmts.get(sql);
+    if (!st) {
+      st = d.prepare(sql);
+      if (stmts.size > 500) stmts.clear();
+      stmts.set(sql, st);
+    }
+    return st;
+  };
+
+  // node:sqlite is synchronous with one connection, so transactions are
+  // serialized with a promise chain; queries inside a transaction run directly.
+  let chain = Promise.resolve();
+  let inTx = false;
+
+  async function query(sql, params) {
+    // A query outside any transaction waits until a running one finishes.
+    if (inTx) await chain;
+    const st = prepare(sql);
+    if (returnsRows(sql)) return { rows: st.all(...params), changes: 0 };
+    const r = st.run(...params);
+    return { rows: [], changes: Number(r.changes) };
+  }
+
+  return {
+    dialect: 'sqlite',
+    file: dbPath,
+    async query(sql, params, client) {
+      if (client) {
+        const st = prepare(sql);
+        if (returnsRows(sql)) return { rows: st.all(...params), changes: 0 };
+        const r = st.run(...params);
+        return { rows: [], changes: Number(r.changes) };
+      }
+      return query(sql, params);
+    },
+    transaction(fn) {
+      const run = chain.then(async () => {
+        inTx = true;
+        d.exec('BEGIN');
+        try {
+          const out = await fn({ sqlite: true });
+          d.exec('COMMIT');
+          return out;
+        } catch (err) {
+          d.exec('ROLLBACK');
+          throw err;
+        } finally {
+          inTx = false;
+        }
+      });
+      chain = run.catch(() => {});
+      return run;
+    },
+    async exec(sqlText) {
+      d.exec(sqlText);
+    },
+    async close() {
+      d.close();
+    },
+    raw: d,
+  };
 }
 
 function tableExists(d, name) {
@@ -49,6 +111,16 @@ export function migrate(d) {
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))`);
     const cols = d.prepare('PRAGMA table_info(occurrences)').all().map((c) => c.name);
     if (!cols.includes('context_note')) d.exec('ALTER TABLE occurrences ADD COLUMN context_note TEXT');
+  }
+  if (version < 4) {
+    // v4: owner login (production) — password hash on the user row.
+    const cols = d.prepare('PRAGMA table_info(users)').all().map((c) => c.name);
+    if (!cols.includes('username')) d.exec('ALTER TABLE users ADD COLUMN username TEXT');
+    if (!cols.includes('password_hash')) d.exec('ALTER TABLE users ADD COLUMN password_hash TEXT');
+    const srcCols = d.prepare('PRAGMA table_info(sources)').all().map((c) => c.name);
+    if (!srcCols.includes('ai_cursor')) d.exec('ALTER TABLE sources ADD COLUMN ai_cursor INTEGER NOT NULL DEFAULT 0');
+    d.exec(`CREATE TABLE IF NOT EXISTS backups (id INTEGER PRIMARY KEY AUTOINCREMENT, reason TEXT NOT NULL, payload TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))`);
   }
   d.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }
@@ -181,33 +253,3 @@ function migrateV1(d, schema) {
   }
 }
 
-/** Run fn inside a transaction (re-entrant: nested calls join the outer one). */
-let depth = 0;
-export function tx(fn) {
-  const d = getDb();
-  if (depth > 0) return fn(d);
-  depth += 1;
-  d.exec('BEGIN');
-  try {
-    const out = fn(d);
-    d.exec('COMMIT');
-    return out;
-  } catch (err) {
-    d.exec('ROLLBACK');
-    throw err;
-  } finally {
-    depth -= 1;
-  }
-}
-
-export const all = (sql, ...params) => getDb().prepare(sql).all(...params);
-export const get = (sql, ...params) => getDb().prepare(sql).get(...params);
-export const run = (sql, ...params) => getDb().prepare(sql).run(...params);
-
-/** Local calendar date (YYYY-MM-DD) for a Date, using the server's time zone. */
-export function localDate(d = new Date()) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}

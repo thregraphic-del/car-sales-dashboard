@@ -2,3 +2,9 @@ node_modules/
 data/
 .env
 *.zip
+.netlify/
+.env.*
+!.env.example
+*.db
+*.db-wal
+*.db-shm

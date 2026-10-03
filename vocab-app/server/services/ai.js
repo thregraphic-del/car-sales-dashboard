@@ -7,17 +7,26 @@
 // sentence / batch never calls the API twice. When OpenRouter is unreachable
 // the app keeps working offline and retries later.
 import crypto from 'node:crypto';
-import { get, run } from './db.js';
-
-const BASE_URL = 'https://openrouter.ai/api/v1';
+import { get, run } from '../db/index.js';
+import { config } from '../config.js';
 export const OFFLINE_MESSAGE = 'شرح الذكاء الاصطناعي غير متاح — نستخدم القاموس المحلي.';
 export const OFFLINE_MESSAGE_EN = 'AI explanation is unavailable — using offline dictionary.';
 
 let pausedUntil = 0;
 let lastError = null;
 
-export const aiModel = () => (process.env.OPENROUTER_MODEL || '').trim() || 'openrouter/auto';
-export const aiConfigured = () => Boolean((process.env.OPENROUTER_API_KEY || '').trim());
+export const aiModel = () => config.ai.model();
+export const aiConfigured = () => Boolean(config.ai.apiKey());
+
+// Simple per-instance budget so a runaway client can't spend the OpenRouter credit.
+const calls = [];
+function withinBudget() {
+  const now = Date.now();
+  while (calls.length && now - calls[0] > 60000) calls.shift();
+  if (calls.length >= config.ai.maxCallsPerMinute) return false;
+  calls.push(now);
+  return true;
+}
 /** Configured and not temporarily paused after a failure. */
 export const aiAvailable = () => aiConfigured() && Date.now() >= pausedUntil;
 
@@ -47,13 +56,17 @@ function pause(ms, message) {
 
 const cacheKey = (task, input) => crypto.createHash('sha256').update(`${task}\n${input}`).digest('hex');
 
-function readCache(key) {
-  const row = get('SELECT response FROM ai_cache WHERE key = ?', key);
+async function readCache(key) {
+  const row = await get('SELECT response FROM ai_cache WHERE key = ?', key);
   return row ? JSON.parse(row.response) : null;
 }
 
-function writeCache(key, task, value) {
-  run('INSERT OR REPLACE INTO ai_cache (key, task, model, response) VALUES (?,?,?,?)', key, task, aiModel(), JSON.stringify(value));
+async function writeCache(key, task, value) {
+  await run(
+    `INSERT INTO ai_cache (key, task, model, response, created_at) VALUES (?,?,?,?,?)
+     ON CONFLICT (key) DO UPDATE SET model = excluded.model, response = excluded.response, created_at = excluded.created_at`,
+    key, task, aiModel(), JSON.stringify(value), new Date().toISOString(),
+  );
 }
 
 /** Pull the JSON object out of a model reply (handles ```json fences / extra text). */
@@ -69,21 +82,33 @@ export function extractJson(text) {
   }
 }
 
+/** POST to OpenRouter; the timeout covers the whole response body. → {status, ok, data} */
 async function post(body, timeoutMs) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  const timer = setTimeout(() => ctrl.abort(), Math.max(1000, timeoutMs));
   try {
-    return await fetch(`${BASE_URL}/chat/completions`, {
+    const res = await fetch(`${config.ai.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY.trim()}`,
+        Authorization: `Bearer ${config.ai.apiKey()}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'http://localhost',
+        'HTTP-Referer': process.env.URL || 'http://localhost',
         'X-Title': 'LexiTube',
       },
       body: JSON.stringify(body),
       signal: ctrl.signal,
     });
+    let data = null;
+    if (res.ok) {
+      try {
+        data = await res.json();
+      } catch (err) {
+        if (err.name === 'AbortError') throw err;
+      }
+    } else {
+      await res.body?.cancel().catch(() => {});
+    }
+    return { status: res.status, ok: res.ok, data };
   } finally {
     clearTimeout(timer);
   }
@@ -94,11 +119,11 @@ async function post(body, timeoutMs) {
  * Cached by (task, user input). Throws AiError (with an Arabic message) when
  * AI is not configured, paused, unreachable or returns something unusable.
  */
-export async function jsonCall({ task, system, user, schema, zod, maxTokens = 4000, timeoutMs = 60000, cache = true }) {
+export async function jsonCall({ task, system, user, schema, zod, maxTokens = 4000, timeoutMs = config.ai.timeoutMs, cache = true }) {
   if (!aiConfigured()) throw new AiError(OFFLINE_MESSAGE);
   const key = cacheKey(task, user);
   if (cache) {
-    const hit = readCache(key);
+    const hit = await readCache(key);
     if (hit) {
       try {
         return zod.parse(hit);
@@ -108,7 +133,12 @@ export async function jsonCall({ task, system, user, schema, zod, maxTokens = 40
     }
   }
   if (!aiAvailable()) throw new AiError(OFFLINE_MESSAGE);
+  if (!withinBudget()) throw new AiError('خدمة الذكاء الاصطناعي مشغولة الآن — نستخدم القاموس المحلي. حاول بعد قليل.', 429);
 
+  // On serverless hosting the whole call (including format retries) must
+  // finish before the function's time limit.
+  const limit = config.app.production ? Math.min(timeoutMs, config.ai.timeoutMs) : timeoutMs;
+  const started = Date.now();
   const messages = [
     { role: 'system', content: `${system}\n\nReply with ONLY one JSON object (no markdown) that matches this JSON Schema:\n${JSON.stringify(schema)}` },
     { role: 'user', content: user },
@@ -123,42 +153,43 @@ export async function jsonCall({ task, system, user, schema, zod, maxTokens = 40
   let lastStatus = 0;
   for (const format of formats) {
     try {
-      res = await post({ model: aiModel(), messages, max_tokens: maxTokens, temperature: 0.2, ...(format ? { response_format: format } : {}) }, timeoutMs);
-    } catch {
-      pause(2 * 60 * 1000, 'network');
+      res = await post({ model: aiModel(), messages, max_tokens: maxTokens, temperature: 0.2, ...(format ? { response_format: format } : {}) }, limit - (Date.now() - started));
+    } catch (err) {
+      if (err.name === 'AbortError' || err.name === 'TimeoutError') {
+        // Slow answer: not a reason to stop using AI for the next request.
+        lastError = 'timeout';
+        throw new AiError('تأخر رد الذكاء الاصطناعي — نستخدم القاموس المحلي.', 504);
+      }
+      pause(config.ai.pauseAfterNetworkErrorMs, 'network');
       throw new AiError(OFFLINE_MESSAGE);
     }
     lastStatus = res.status;
-    if (res.status !== 400) break;
+    if (res.status !== 400 || limit - (Date.now() - started) < 1500) break;
   }
 
   if (!res.ok) {
     if (lastStatus === 401 || lastStatus === 403) {
-      pause(10 * 60 * 1000, 'invalid key');
+      pause(config.ai.pauseAfterAuthErrorMs, 'invalid key');
       throw new AiError('مفتاح OpenRouter غير صحيح — نستخدم القاموس المحلي.');
     }
     if (lastStatus === 402) {
-      pause(10 * 60 * 1000, 'no credits');
+      pause(config.ai.pauseAfterAuthErrorMs, 'no credits');
       throw new AiError('رصيد OpenRouter غير كافٍ — نستخدم القاموس المحلي.');
     }
     if (lastStatus === 429) {
-      pause(30 * 1000, 'rate limited');
+      pause(config.ai.pauseAfterRateLimitMs, 'rate limited');
       throw new AiError('خدمة الذكاء الاصطناعي مشغولة الآن — نستخدم القاموس المحلي. حاول بعد قليل.');
     }
     if (lastStatus === 400 || lastStatus === 404) {
       lastError = `model "${aiModel()}" rejected the request (HTTP ${lastStatus})`;
       throw new AiError('النموذج المحدد في OPENROUTER_MODEL لا يقبل الطلب — نستخدم القاموس المحلي.', 503);
     }
-    pause(60 * 1000, `HTTP ${lastStatus}`);
+    pause(config.ai.pauseAfterServerErrorMs, `HTTP ${lastStatus}`);
     throw new AiError(OFFLINE_MESSAGE);
   }
 
-  let data;
-  try {
-    data = await res.json();
-  } catch {
-    throw new AiError(OFFLINE_MESSAGE);
-  }
+  const { data } = res;
+  if (!data) throw new AiError(OFFLINE_MESSAGE);
   if (data.error) {
     lastError = String(data.error.message || data.error).slice(0, 200);
     throw new AiError(OFFLINE_MESSAGE);
@@ -173,12 +204,13 @@ export async function jsonCall({ task, system, user, schema, zod, maxTokens = 40
     throw new AiError('أعاد الذكاء الاصطناعي نتيجة غير متوقعة — نستخدم القاموس المحلي.', 502);
   }
   lastError = null;
-  if (cache) writeCache(key, task, parsed);
+  if (cache) await writeCache(key, task, parsed);
   return parsed;
 }
 
 /** For tests: forget a pause. */
 export function _resetAi() {
   pausedUntil = 0;
+  calls.length = 0;
   lastError = null;
 }

@@ -4,8 +4,8 @@ import assert from 'node:assert/strict';
 import {
   matchKey, singularCandidates, lemmaCandidates, tokenize, quickTier, sameArabicMeaning, sentenceKey,
 } from '../public/js/shared/text.js';
-import { parseInput, sentenceUses } from '../server/importer.js';
-import { findSpan } from '../server/matcher.js';
+import { parseInput, sentenceUses } from '../server/services/parse-input.js';
+import { findSpan } from '../server/lib/matcher.js';
 
 test('duplicate keys ignore case, punctuation, spaces, slots and "to"', () => {
   const same = ['Figure something out', 'figure out', '  Figure-out. ', 'figure  sth  out'];

@@ -2,7 +2,7 @@
 // separable phrasal verbs, "something/someone" slots) + the offline lexicon.
 import { RICH } from './lexicon-rich.js';
 import { COMPACT } from './lexicon-compact.js';
-import { matchKey } from '../public/js/shared/text.js';
+import { matchKey } from '../../public/js/shared/text.js';
 
 const IRREGULAR = {
   be: ['be', 'is', 'are', 'am', 'was', 'were', 'been', 'being'],

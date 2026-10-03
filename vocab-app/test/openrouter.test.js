@@ -3,12 +3,10 @@
 // fallback works, and the key never reaches the browser.
 import { test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
+import { freshDatabase, startApp } from './helpers.js';
 
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lexitube-or-'));
-process.env.DATABASE_PATH = path.join(dir, 'test.db');
+const db = freshDatabase('lexitube-or-');
+delete process.env.SESSION_SECRET;
 process.env.OPENROUTER_API_KEY = 'sk-or-test-not-a-real-key';
 process.env.OPENROUTER_MODEL = 'test/model';
 
@@ -34,33 +32,42 @@ globalThis.fetch = async (url, opts) => {
       easy_example: 'Our revenue is up.', easy_example_arabic: 'إيراداتنا ارتفعت.', similar: [],
     };
   } else if (/<transcript>/.test(user)) {
-    content = { items: [] };
+    // AI word selection for one chunk: choose "health" in the first line given.
+    const first = Number(user.match(/\[(\d+)\]/)[1]);
+    content = {
+      items: /health/.test(user) ? [{
+        term: 'health', item_type: 'word', part_of_speech: 'noun', level: 'B1', band: 'useful', usefulness: 70, pronunciation: '/helθ/',
+        arabic: 'الصحة (هنا)', arabic_general: 'صحة', simple_english: 'the condition of your body', line: first, topic: 'health',
+      }] : [],
+    };
   } else {
-    content = { lines: [] };
+    // Subtitle translation: one Arabic line per numbered input line.
+    content = { lines: [...user.matchAll(/\[(\d+)\]/g)].map((m) => ({ i: Number(m[1]), ar: `ترجمة ${m[1]}` })) };
   }
   return new Response(JSON.stringify({ choices: [{ message: { content: `\`\`\`json\n${JSON.stringify(content)}\n\`\`\`` }, finish_reason: 'stop' }] }), { status: 200 });
 };
 
-let server;
+let app;
 let base;
 const call = async (url) => (await (await realFetch(base + url)).json());
+const post = async (url, body = {}) => {
+  const res = await realFetch(base + url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  return { status: res.status, body: await res.json() };
+};
 
 before(async () => {
-  const { app } = await import('../server/index.js');
-  const { seedIfEmpty } = await import('../server/seed.js');
-  seedIfEmpty();
-  await new Promise((r) => (server = app.listen(0, r)));
-  base = `http://127.0.0.1:${server.address().port}`;
+  app = await startApp();
+  ({ base } = app);
 });
-after(() => {
-  server?.close();
+after(async () => {
+  await app?.close();
   globalThis.fetch = realFetch;
-  fs.rmSync(dir, { recursive: true, force: true });
+  db.cleanup();
 });
 beforeEach(async () => {
   calls.length = 0;
   mode = 'ok';
-  (await import('../server/ai.js'))._resetAi();
+  (await import('../server/services/ai.js'))._resetAi();
 });
 
 async function demoLine(re) {
@@ -139,17 +146,63 @@ test('models without JSON-schema support fall back to JSON mode', async () => {
   assert.deepEqual(calls.map((c) => c.body.response_format?.type), ['json_schema', 'json_object']);
 });
 
-test('video analysis falls back to the offline dictionary when OpenRouter fails', async () => {
-  mode = 'down';
-  const res = await realFetch(`${base}/api/sources/youtube`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ url: 'https://youtu.be/CCCCCCCCCCC', transcript: '0:01 I was reluctant to take my health for granted.\n0:09 We had to figure it out before the deadline came.' }),
-  });
-  const r = await res.json();
-  assert.equal(res.status, 200);
-  assert.ok(r.ai_error);
-  const v = await call(`/api/sources/${r.source_id}`);
+const TRANSCRIPT = '0:01 I was reluctant to take my health for granted.\n0:09 We had to figure it out before the deadline came.';
+
+test('video analysis is instant and offline-first; AI then refines it in chunks', async () => {
+  const a = await post('/api/sources/youtube', { url: 'https://youtu.be/CCCCCCCCCCC', transcript: TRANSCRIPT });
+  assert.equal(a.status, 200);
+  assert.equal(calls.length, 0, 'analysis itself never waits for AI');
+  const id = a.body.source_id;
+  let v = await call(`/api/sources/${id}`);
   assert.equal(v.source.extractor, 'dictionary');
   assert.ok(v.items.length > 0);
+  assert.ok(!v.items.some((i) => i.term === 'health'));
+
+  const r = await post(`/api/sources/${id}/refine`);
+  assert.equal(r.body.done, true);
+  assert.equal(r.body.added, 1);
+  assert.equal(calls.length, 1);
+  v = await call(`/api/sources/${id}`);
+  assert.equal(v.source.extractor, 'ai');
+  const health = v.items.find((i) => i.term === 'health');
+  assert.equal(health.arabic, 'الصحة (هنا)', 'meaning in this sentence');
+  assert.equal(v.items[0].term, 'health', 'AI choices come first');
+  const again = await post(`/api/sources/${id}/refine`);
+  assert.equal(again.body.done, true);
+  assert.equal(calls.length, 1, 'finished sources are not sent again');
+});
+
+test('OpenRouter down during refinement: the source keeps its dictionary words', async () => {
+  const a = await post('/api/sources/youtube', { url: 'https://youtu.be/DDDDDDDDDDD', transcript: '0:01 Staying healthy is a priority for me.\n0:07 Prioritize sleep, and the rest gets easier.' });
+  mode = 'down';
+  const r = await post(`/api/sources/${a.body.source_id}/refine`);
+  assert.equal(r.body.done, true);
+  assert.equal(r.body.ai_error, 'شرح الذكاء الاصطناعي غير متاح — نستخدم القاموس المحلي.');
+  const v = await call(`/api/sources/${a.body.source_id}`);
+  assert.equal(v.source.extractor, 'dictionary');
+  assert.ok(v.items.length > 0);
+});
+
+test('Arabic subtitles are translated chunk by chunk and stored once', async () => {
+  const a = await post('/api/sources/youtube', { url: 'https://youtu.be/EEEEEEEEEEE', transcript: TRANSCRIPT });
+  const id = a.body.source_id;
+  const t = await post(`/api/sources/${id}/translation`);
+  assert.equal(t.body.complete, true);
+  assert.equal(t.body.done, 2);
+  assert.equal(t.body.total, 2);
+  const v = await call(`/api/sources/${id}`);
+  assert.deepEqual(v.lines.map((l) => l.text_ar), ['ترجمة 0', 'ترجمة 1']);
+  const n = calls.length;
+  await post(`/api/sources/${id}/translation`);
+  assert.equal(calls.length, n, 'already translated → no new call');
+  assert.equal((await call(`/api/sources/${id}/translation`)).status, 'done');
+});
+
+test('imported words without details are completed by AI in small batches', async () => {
+  const p = await post('/api/import/preview', { text: 'zorbify\nreluctant' });
+  assert.equal(calls.length, 0, 'preview is instant');
+  assert.ok(p.body.needs_ai >= 1);
+  const e = await post('/api/import/enrich', { items: p.body.items });
+  assert.equal(e.status, 200);
+  assert.equal(e.body.items.length, 2);
 });

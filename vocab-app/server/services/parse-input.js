@@ -1,7 +1,7 @@
 // Understands whatever the learner pastes — word lists, "word = معنى",
 // word + example, messy notes, or a full English text — without requiring
 // any format. Purely deterministic; AI only fills missing details later.
-import { ARABIC_RE, LATIN_RE, matchKey, lemmaCandidates } from '../public/js/shared/text.js';
+import { ARABIC_RE, LATIN_RE, matchKey, lemmaCandidates } from '../../public/js/shared/text.js';
 
 const POS_HINTS = {
   n: 'noun', noun: 'noun', v: 'verb', verb: 'verb', adj: 'adjective', adjective: 'adjective', adv: 'adverb',

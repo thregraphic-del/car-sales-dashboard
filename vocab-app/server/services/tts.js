@@ -7,28 +7,32 @@
 //   TTS_VOICE    = optional voice id/name
 import crypto from 'node:crypto';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
-import { ROOT } from './db.js';
+import { fileURLToPath } from 'node:url';
+import { config } from '../config.js';
 
-const CACHE_DIR = path.join(ROOT, 'data', 'audio-cache');
+// Serverless file systems are read-only except the temp dir.
+const CACHE_DIR = config.app.production
+  ? path.join(os.tmpdir(), 'lexitube-audio')
+  : path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'data', 'audio-cache');
 
 export function ttsConfigured() {
-  return Boolean(process.env.TTS_PROVIDER && process.env.TTS_API_KEY);
+  return Boolean(config.tts.provider && config.tts.apiKey());
 }
 
 export function ttsInfo() {
-  return { server: ttsConfigured(), provider: ttsConfigured() ? process.env.TTS_PROVIDER : null };
+  return { server: ttsConfigured(), provider: ttsConfigured() ? config.tts.provider : null };
 }
 
 async function synthesize(text, { speed, lang }) {
-  const provider = process.env.TTS_PROVIDER;
-  const key = process.env.TTS_API_KEY;
-  const voice = process.env.TTS_VOICE;
+  const { provider, voice } = config.tts;
+  const key = config.tts.apiKey();
   if (provider === 'openai') {
     const res = await fetch('https://api.openai.com/v1/audio/speech', {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: process.env.TTS_MODEL || 'gpt-4o-mini-tts', voice: voice || 'alloy', input: text, speed, response_format: 'mp3' }),
+      body: JSON.stringify({ model: config.tts.model || 'gpt-4o-mini-tts', voice: voice || 'alloy', input: text, speed, response_format: 'mp3' }),
     });
     if (!res.ok) throw new Error(`TTS provider HTTP ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
@@ -37,7 +41,7 @@ async function synthesize(text, { speed, lang }) {
     const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice || '21m00Tcm4TlvDq8ikWAM'}`, {
       method: 'POST',
       headers: { 'xi-api-key': key, 'Content-Type': 'application/json', Accept: 'audio/mpeg' },
-      body: JSON.stringify({ text, model_id: process.env.TTS_MODEL || 'eleven_multilingual_v2', voice_settings: { speed } }),
+      body: JSON.stringify({ text, model_id: config.tts.model || 'eleven_multilingual_v2', voice_settings: { speed } }),
     });
     if (!res.ok) throw new Error(`TTS provider HTTP ${res.status}`);
     return Buffer.from(await res.arrayBuffer());
@@ -63,7 +67,7 @@ async function synthesize(text, { speed, lang }) {
 export async function speak(text, { speed = 1, lang = 'en' } = {}) {
   const clean = String(text).slice(0, 400);
   const s = Math.max(0.5, Math.min(1.5, Number(speed) || 1));
-  const hash = crypto.createHash('sha1').update(`${process.env.TTS_PROVIDER}|${process.env.TTS_VOICE}|${lang}|${s}|${clean}`).digest('hex');
+  const hash = crypto.createHash('sha1').update(`${config.tts.provider}|${config.tts.voice}|${lang}|${s}|${clean}`).digest('hex');
   const file = path.join(CACHE_DIR, `${hash}.mp3`);
   if (fs.existsSync(file)) return fs.readFileSync(file);
   const audio = await synthesize(clean, { speed: s, lang });

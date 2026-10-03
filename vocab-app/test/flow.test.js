@@ -1,15 +1,13 @@
 // End-to-end API tests on a fresh temporary database (offline mode, no AI key).
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
-import os from 'node:os';
-import path from 'node:path';
+import { freshDatabase, startApp } from './helpers.js';
 
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lexitube-'));
-process.env.DATABASE_PATH = path.join(dir, 'test.db');
+const db = freshDatabase();
 delete process.env.OPENROUTER_API_KEY;
+delete process.env.SESSION_SECRET;
 
-let server;
+let app;
 let base;
 const call = async (method, url, body) => {
   const res = await fetch(base + url, { method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
@@ -25,15 +23,12 @@ const call = async (method, url, body) => {
 const words = async (q = '') => (await call('GET', `/api/words${q}`)).body;
 
 before(async () => {
-  const { app } = await import('../server/index.js');
-  const { seedIfEmpty } = await import('../server/seed.js');
-  seedIfEmpty();
-  await new Promise((r) => (server = app.listen(0, r)));
-  base = `http://127.0.0.1:${server.address().port}`;
+  app = await startApp();
+  ({ base } = app);
 });
-after(() => {
-  server?.close();
-  fs.rmSync(dir, { recursive: true, force: true });
+after(async () => {
+  await app?.close();
+  db.cleanup();
 });
 
 const TRANSCRIPT = [

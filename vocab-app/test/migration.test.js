@@ -38,13 +38,16 @@ old.exec(`
 `);
 old.close();
 
+delete process.env.DATABASE_URL;
+delete process.env.NETLIFY_DB_URL;
 process.env.DATABASE_PATH = file;
-const { getDb } = await import('../server/db.js');
-const repo = await import('../server/repo.js');
+const { driver } = await import('../server/db/index.js');
+const { listWords } = await import('../server/data/words.js');
+const { listGroups } = await import('../server/data/learning.js');
 
-test('v1 database upgrades to v2 and keeps the learner data', () => {
-  const db = getDb();
-  assert.equal(db.prepare('PRAGMA user_version').get().user_version, 3);
+test('v1 database upgrades to the current schema and keeps the learner data', async () => {
+  const db = (await driver()).raw;
+  assert.equal(db.prepare('PRAGMA user_version').get().user_version, 4);
   assert.equal(db.prepare('SELECT name FROM users WHERE id=1').get().name, 'Sara');
 
   // "figure out" + "figure something out" were the same item → merged.
@@ -59,7 +62,7 @@ test('v1 database upgrades to v2 and keeps the learner data', () => {
   assert.deepEqual(lines.map((l) => l.start_seconds), [12, 30]);
 
   // Saved words, progress and history intact; new signals derived from history.
-  const words = repo.listWords(1);
+  const words = await listWords(1);
   assert.equal(words.length, 2);
   const fig = words.find((w) => w.term === 'figure out');
   assert.equal(fig.review_count, 5);
@@ -70,13 +73,13 @@ test('v1 database upgrades to v2 and keeps the learner data', () => {
   assert.equal(db.prepare('SELECT COUNT(*) AS n FROM review_logs').get().n, 6);
 
   // Campaigns → groups (name clash resolved), membership kept.
-  const groups = repo.listGroups(1);
+  const groups = await listGroups(1);
   assert.deepEqual(groups.map((g) => g.name).sort(), ['Work', 'work (2)']);
   assert.equal(groups.find((g) => g.name === 'Work').count, 2);
 });
 
 test('migration is idempotent', async () => {
-  const { migrate } = await import('../server/db.js');
-  migrate(getDb());
-  assert.equal(repo.listWords(1).length, 2);
+  const { migrate } = await import('../server/db/sqlite.js');
+  migrate((await driver()).raw);
+  assert.equal((await listWords(1)).length, 2);
 });

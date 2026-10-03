@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { applyReview, statusOf, isDifficult, computeDifficulty } from '../server/srs.js';
-import { parseYoutubeId, parsePastedTranscript } from '../server/youtube.js';
-import { extractVocabulary, toSentences } from '../server/extractor.js';
+import { applyReview, statusOf, isDifficult, computeDifficulty } from '../server/lib/srs.js';
+import { parseYoutubeId, parsePastedTranscript } from '../server/lib/youtube.js';
+import { extractVocabulary, toSentences } from '../server/services/extractor.js';
 
 const fresh = () => ({ review_count: 0, correct_count: 0, wrong_count: 0, streak_correct: 0, lapses: 0, ease: 2.5, interval_days: 0, mastery: 0, next_review_at: null, recent: '', difficulty: 0 });
 
