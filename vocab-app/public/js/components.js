@@ -165,7 +165,7 @@ export async function openWordPanel(anchor, query, { onChange } = {}) {
   closeWordPanel();
   const el = document.createElement('div');
   el.className = 'word-pop';
-  el.innerHTML = `<div class="wp-loading"><span class="spinner"></span> ${state.config?.ai?.configured ? 'نفهم الكلمة في سياقها…' : 'جارٍ البحث…'}</div>`;
+  el.innerHTML = '<div class="wp-loading"><span class="spinner"></span> جارٍ البحث…</div>';
   document.body.appendChild(el);
   placePanel(el, anchor);
   panelEl = el;
@@ -189,9 +189,8 @@ export async function openWordPanel(anchor, query, { onChange } = {}) {
         <div class="wp-term en">${esc(info.word)} ${listenRow(info.word)}</div>
         <p class="small ink-2" style="margin-top:8px">${info.tier === 'function' ? 'كلمة نحوية شائعة — لا تحتاج حفظًا.'
           : info.tier === 'basic' ? 'كلمة أساسية (A1–A2) تعرفها على الأغلب.'
-          : 'لا نعرف معنى هذه الكلمة بدون الذكاء الاصطناعي.'}
-          ${!info.ai && info.tier !== 'function' ? '<br><span class="muted tiny">فعّل الذكاء الاصطناعي على الخادم لشرح أي كلمة في سياقها.</span>' : ''}</p>
-        ${info.error ? `<p class="tiny" style="color:var(--bad)">${esc(info.error)}</p>` : ''}
+          : 'لا يوجد معنى لهذه الكلمة في القاموس المحلي.'}</p>
+        ${info.ai_error ? `<p class="tiny muted">${esc(info.ai_error)}</p>` : ''}
         ${info.tier !== 'function' ? `<div class="wp-actions"><button class="btn sm" data-act="save-own">${icon.bookmark} احفظها بمعناك</button></div>` : ''}`;
       return;
     }
@@ -200,8 +199,15 @@ export async function openWordPanel(anchor, query, { onChange } = {}) {
       <button class="btn icon sm ghost wp-close" aria-label="إغلاق">${icon.x}</button>
       ${headHtml(info)}
       ${meaningHtml(info)}
-      ${info.contextual ? '' : info.arabic ? '<div class="tiny muted">معنى عام (ليس حسب السياق)</div>' : ''}
+      ${info.context_note ? `<p class="small ctx-note">💡 ${esc(info.context_note)}</p>` : ''}
+      ${info.contextual ? '' : info.arabic ? '<div class="tiny muted">معنى عام من القاموس (ليس حسب هذه الجملة)</div>' : ''}
+      ${info.can_explain ? '<button class="btn sm ghost explain-btn" data-act="explain">✨ اشرح معناها في هذه الجملة</button>' : ''}
+      ${info.ai_error ? `<p class="tiny muted">${esc(info.ai_error)}</p>` : ''}
       ${sentenceHtml(info.context_sentence, info.context_arabic, info.term)}
+      ${(() => {
+        const ex = (info.examples || []).find((e) => e.kind === 'example' && e.sentence !== info.context_sentence) || (info.examples || []).find((e) => e.kind === 'easy');
+        return ex ? `<div class="tiny muted" style="margin-top:8px">مثال</div><p class="en small">${highlight(ex.sentence, info.term)}</p>${ex.arabic ? `<p class="tiny ink-2">${esc(ex.arabic)}</p>` : ''}` : '';
+      })()}
       <div class="wp-actions">
         ${saved ? `<button class="btn sm saved" data-act="noop">${icon.check} محفوظة ✓</button>` : `<button class="btn sm primary" data-act="save">${icon.bookmark} حفظ</button>`}
         ${saved ? `<button class="btn sm ghost" data-act="details">التفاصيل</button>` : ''}
@@ -225,6 +231,15 @@ export async function openWordPanel(anchor, query, { onChange } = {}) {
         const r = await api.saveWord(info.vocabulary_id, info.occurrence_id);
         Object.assign(info, { state: 'saved', uv_id: r.uv_id, groups: r.groups });
         toast(r.already ? 'موجودة عندك ✓' : `تم الحفظ ✓ ${info.term}`);
+        render();
+        onChange?.(info);
+      }
+      if (act === 'explain') {
+        const btn = e.target.closest('[data-act]');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> نشرح المعنى في هذه الجملة…';
+        const groups = info.groups;
+        info = { ...(await api.lookup({ ...query, vocabulary_id: info.vocabulary_id, context: 1 })), groups: groups ?? info.groups };
         render();
         onChange?.(info);
       }

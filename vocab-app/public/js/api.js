@@ -54,6 +54,8 @@ export const api = {
   updateWord: (id, patch) => request('PATCH', `/api/words/${id}`, patch),
   setWordGroups: (id, group_ids) => request('PUT', `/api/words/${id}/groups`, { group_ids }),
   deleteWord: (id) => request('DELETE', `/api/words/${id}`),
+  deleteWords: (uv_ids) => request('POST', '/api/words/delete', { uv_ids }),
+  removeFromGroup: (id, uv_ids) => request('DELETE', `/api/groups/${id}/words`, { uv_ids }),
 
   importPreview: (text) => request('POST', '/api/import/preview', { text }),
   importSave: (items, group_ids) => request('POST', '/api/import/save', { items, group_ids }),

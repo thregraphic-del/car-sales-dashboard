@@ -322,24 +322,25 @@ export function deleteSource(id) {
 }
 
 /** Get or create the occurrence of a vocabulary item on a specific line. */
-export function occurrenceFor(vocabularyId, lineId, { contextual_meaning, sentence_ar } = {}) {
+export function occurrenceFor(vocabularyId, lineId, { contextual_meaning, sentence_ar, context_note } = {}) {
   const line = get('SELECT * FROM transcript_lines WHERE id = ?', lineId);
   if (!line) return null;
   const ex = get('SELECT * FROM occurrences WHERE source_id=? AND vocabulary_id=? AND line_id=?', line.source_id, vocabularyId, line.id);
   if (ex) {
-    if ((contextual_meaning && !ex.contextual_meaning) || (sentence_ar && !ex.sentence_ar)) {
-      run('UPDATE occurrences SET contextual_meaning = COALESCE(contextual_meaning, ?), sentence_ar = COALESCE(sentence_ar, ?) WHERE id = ?',
-        contextual_meaning || null, sentence_ar || null, ex.id);
+    if ((contextual_meaning && !ex.contextual_meaning) || (sentence_ar && !ex.sentence_ar) || (context_note && !ex.context_note)) {
+      run('UPDATE occurrences SET contextual_meaning = COALESCE(contextual_meaning, ?), sentence_ar = COALESCE(sentence_ar, ?), context_note = COALESCE(context_note, ?) WHERE id = ?',
+        contextual_meaning || null, sentence_ar || null, context_note || null, ex.id);
     }
+    if (sentence_ar && !line.text_ar) run('UPDATE transcript_lines SET text_ar = ? WHERE id = ?', sentence_ar, line.id);
     return get('SELECT * FROM occurrences WHERE id = ?', ex.id);
   }
   const v = get('SELECT * FROM vocabulary WHERE id = ?', vocabularyId);
   const sp = v ? findSpan(v.term, line.text, { pos: v.part_of_speech, type: v.item_type }) : null;
   const id = Number(run(
-    `INSERT INTO occurrences (vocabulary_id, source_id, line_id, char_start, char_end, sentence, sentence_ar, contextual_meaning, timestamp_seconds)
-     VALUES (?,?,?,?,?,?,?,?,?)`,
+    `INSERT INTO occurrences (vocabulary_id, source_id, line_id, char_start, char_end, sentence, sentence_ar, contextual_meaning, context_note, timestamp_seconds)
+     VALUES (?,?,?,?,?,?,?,?,?,?)`,
     vocabularyId, line.source_id, line.id, sp?.start ?? null, sp?.end ?? null, line.text, sentence_ar || line.text_ar || null,
-    contextual_meaning || null, line.start_seconds != null ? Math.floor(line.start_seconds) : null,
+    contextual_meaning || null, context_note || null, line.start_seconds != null ? Math.floor(line.start_seconds) : null,
   ).lastInsertRowid);
   if (sentence_ar && !line.text_ar) run('UPDATE transcript_lines SET text_ar = ? WHERE id = ?', sentence_ar, line.id);
   return get('SELECT * FROM occurrences WHERE id = ?', id);
@@ -387,6 +388,15 @@ export function dismissWord(userId, vocabularyId) {
 
 export function unsaveWord(userId, uvId) {
   run('DELETE FROM user_vocabulary WHERE id=? AND user_id=?', uvId, userId);
+}
+
+/** Remove several words at once (progress included). Returns how many. */
+export function unsaveWords(userId, uvIds) {
+  let n = 0;
+  tx(() => {
+    for (const id of uvIds) n += Number(run('DELETE FROM user_vocabulary WHERE id=? AND user_id=?', id, userId).changes);
+  });
+  return n;
 }
 
 export function resetVocabularyState(userId, vocabularyId) {

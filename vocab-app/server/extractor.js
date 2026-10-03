@@ -1,22 +1,17 @@
 // Language intelligence. Each job uses the simplest reliable tool:
 //   * deterministic: sentence splitting, tiers (function/basic), matching, timestamps
-//   * Claude (when configured): choosing learnable items, contextual Arabic,
+//   * OpenRouter AI (when OPENROUTER_API_KEY is set): choosing learnable items, contextual Arabic,
 //     looking up a clicked word, enriching imported words, translating subtitles
 // Without an AI key the offline lexicon is used and gaps stay empty (never invented).
-import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
+import { jsonCall, aiConfigured, aiAvailable, AiError } from './ai.js';
 import { matchKey } from '../public/js/shared/text.js';
 import { lexicon, lexiconPatterns, findSpan } from './matcher.js';
 
-const MODEL = process.env.CLAUDE_MODEL || 'claude-opus-5-5';
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const TOPICS = ['business', 'work', 'academic', 'daily', 'media', 'tech', 'emotions', 'health', 'travel', 'society', 'finance', 'data'];
 const TYPES = ['word', 'phrasal verb', 'idiom', 'collocation', 'expression'];
 const BANDS = ['basic', 'useful', 'advanced', 'specialized'];
-
-export function claudeConfigured() {
-  return Boolean(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN || process.env.ANTHROPIC_PROFILE);
-}
 
 export class ExtractionError extends Error {
   constructor(message, status = 502) {
@@ -63,46 +58,7 @@ const fmt = (s) => {
   return `${m}:${String(sec).padStart(2, '0')}`;
 };
 
-/* -------------------------------------------------------------- claude */
-
-async function callClaude(params) {
-  const client = new Anthropic();
-  try {
-    // Server-side refusal fallback: a declined request is re-run on another model.
-    return await client.beta.messages.stream({ ...params, betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' }).finalMessage();
-  } catch (err) {
-    if (err instanceof Anthropic.BadRequestError && /fallback/i.test(err.message)) return client.messages.stream(params).finalMessage();
-    throw err;
-  }
-}
-
-/** One structured-output call; returns parsed + zod-validated JSON. */
-async function jsonCall({ system, user, schema, zod, maxTokens = 16000, effort = 'low' }) {
-  let message;
-  try {
-    message = await callClaude({
-      model: MODEL,
-      max_tokens: maxTokens,
-      system,
-      output_config: { effort, format: { type: 'json_schema', schema } },
-      messages: [{ role: 'user', content: user }],
-    });
-  } catch (err) {
-    if (err instanceof Anthropic.AuthenticationError) throw new ExtractionError('مفتاح الذكاء الاصطناعي على الخادم غير صحيح.', 500);
-    if (err instanceof Anthropic.RateLimitError) throw new ExtractionError('خدمة الذكاء الاصطناعي مشغولة الآن. حاول بعد دقيقة.', 503);
-    if (err instanceof Anthropic.APIConnectionError) throw new ExtractionError('تعذّر الاتصال بخدمة الذكاء الاصطناعي.', 503);
-    if (err instanceof Anthropic.APIError) throw new ExtractionError('فشل التحليل بالذكاء الاصطناعي. حاول مرة أخرى.', 502);
-    throw err;
-  }
-  if (message.stop_reason === 'refusal') throw new ExtractionError('رفضت خدمة الذكاء الاصطناعي معالجة هذا النص.', 422);
-  if (message.stop_reason === 'max_tokens') throw new ExtractionError('النص طويل جدًا لمعالجته دفعة واحدة.', 422);
-  const text = message.content.filter((b) => b.type === 'text').map((b) => b.text).join('');
-  try {
-    return zod.parse(JSON.parse(text));
-  } catch {
-    throw new ExtractionError('أعادت خدمة الذكاء الاصطناعي نتيجة غير متوقعة. حاول مرة أخرى.', 502);
-  }
-}
+/* ------------------------------------------------------------------ ai */
 
 const str = { type: 'string' };
 const obj = (properties) => ({ type: 'object', additionalProperties: false, required: Object.keys(properties), properties });
@@ -154,15 +110,16 @@ For each item:
 - usefulness: 0–100 for this learner.
 Order items from most to least useful.`;
 
-async function extractWithClaude({ title, channel, lines }) {
+async function extractWithAi({ title, channel, lines }) {
   const transcript = lines.map((l) => `[${l.idx}] (${fmt(l.start)}) ${l.text}`).join('\n');
   const out = await jsonCall({
+    task: 'extract_vocabulary',
     system: EXTRACT_SYSTEM,
     user: `Title: ${title}\nChannel: ${channel || 'unknown'}\n\n<transcript>\n${transcript}\n</transcript>`,
     schema: EXTRACT_SCHEMA,
     zod: ExtractZ,
-    maxTokens: 64000,
-    effort: 'medium',
+    maxTokens: 16000,
+    timeoutMs: 180000,
   });
   const valid = new Set(lines.map((l) => l.idx));
   return out.items
@@ -221,8 +178,20 @@ function extractWithDictionary({ lines }) {
 export async function extractVocabulary({ title, channel, lines, engine = 'auto' }) {
   const wordCount = lines.reduce((n, l) => n + l.text.split(/\s+/).length, 0);
   if (wordCount < 12) throw new ExtractionError('النص قصير جدًا للتحليل.', 422);
-  const useClaude = engine === 'claude' || (engine === 'auto' && claudeConfigured());
-  let items = useClaude ? await extractWithClaude({ title, channel, lines }) : extractWithDictionary({ lines });
+  // AI when available; the offline dictionary is always the fallback.
+  let useAi = engine === 'ai' || (engine === 'auto' && aiAvailable());
+  let items;
+  let aiError = null;
+  if (useAi) {
+    try {
+      items = await extractWithAi({ title, channel, lines });
+    } catch (err) {
+      if (!(err instanceof AiError)) throw err;
+      aiError = err.message;
+      useAi = false;
+    }
+  }
+  if (!useAi) items = extractWithDictionary({ lines });
   const seen = new Set();
   items = items.filter((it) => {
     const key = matchKey(it.term);
@@ -230,7 +199,7 @@ export async function extractVocabulary({ title, channel, lines, engine = 'auto'
     seen.add(key);
     return true;
   });
-  return { items, engine: useClaude ? 'claude' : 'dictionary', word_count: wordCount };
+  return { items, engine: useAi ? 'ai' : 'dictionary', word_count: wordCount, ai_error: aiError };
 }
 
 /* ---------------------------------------------------- 2. click lookup */
@@ -238,22 +207,26 @@ export async function extractVocabulary({ title, channel, lines, engine = 'auto'
 const LOOKUP_SCHEMA = obj({
   term: str, item_type: { type: 'string', enum: TYPES }, part_of_speech: str, level: { type: 'string', enum: LEVELS },
   band: { type: 'string', enum: BANDS }, pronunciation: str, arabic: str, arabic_general: str, simple_english: str,
-  sentence_arabic: str, topic: { type: 'string', enum: TOPICS }, easy_example: str, easy_example_arabic: str, similar: SIMILAR,
+  sentence_arabic: str, context_note: str, topic: { type: 'string', enum: TOPICS }, example: str, example_arabic: str,
+  easy_example: str, easy_example_arabic: str, similar: SIMILAR,
 });
 const LookupZ = z.object({
   term: z.string().min(1), item_type: z.enum(TYPES), part_of_speech: z.string(), level: z.enum(LEVELS), band: z.enum(BANDS),
   pronunciation: z.string(), arabic: z.string(), arabic_general: z.string(), simple_english: z.string(), sentence_arabic: z.string(),
-  topic: z.enum(TOPICS), easy_example: z.string(), easy_example_arabic: z.string(), similar: SimilarZ,
+  context_note: z.string(), topic: z.enum(TOPICS), example: z.string(), example_arabic: z.string(),
+  easy_example: z.string(), easy_example_arabic: z.string(), similar: SimilarZ,
 });
 
 /** Explain one clicked word inside its sentence (result is cached by the caller). */
-export async function lookupWithClaude({ word, sentence }) {
+export async function lookupWithAi({ word, sentence }) {
   const r = await jsonCall({
-    system: 'You explain English vocabulary to an intermediate Arabic-speaking learner. Answer about the clicked word as used in the given sentence. If the clicked word is part of a phrasal verb or fixed expression in that sentence, explain the whole expression and put its dictionary form (with something/someone slots) in "term"; otherwise use the lemma. "arabic" is the meaning in this sentence; "sentence_arabic" translates the whole sentence. similar: 0–3 easier words, with a short English note when not an exact synonym (else "").',
+    task: 'word_in_context',
+    system: 'You explain English vocabulary to an intermediate Arabic-speaking learner. Answer about the clicked word AS USED IN THE GIVEN SENTENCE. If the clicked word is part of a phrasal verb or fixed expression in that sentence, explain the whole expression and put its dictionary form (with something/someone slots) in "term"; otherwise use the lemma. Fields: "arabic" = the Arabic meaning in THIS sentence (short); "arabic_general" = the most common general Arabic meaning; "context_note" = one short Arabic sentence explaining what the word means here; "sentence_arabic" = natural Arabic translation of the whole sentence; "simple_english" = a definition with easier words; "level" = CEFR A1–C2; "part_of_speech" in English; "example" = a new natural example sentence with the same meaning, "easy_example" = a very short easy one, each with Arabic translation; "similar" = 0–3 easier words, with a short English note when not an exact synonym (else "").',
     user: `Clicked word: ${word}\nSentence: ${sentence}`,
     schema: LOOKUP_SCHEMA,
     zod: LookupZ,
     maxTokens: 2000,
+    timeoutMs: 45000,
   });
   return { ...r, contextual_meaning: r.arabic, arabic: r.arabic_general || r.arabic, similar: cleanSimilar(r.similar), origin: 'ai' };
 }
@@ -282,10 +255,11 @@ const EnrichZ = z.object({
  * Fill missing details for imported words in ONE call.
  * items: [{term, arabic?, example?}] → Map(inputTerm → details)
  */
-export async function enrichWithClaude(items) {
+export async function enrichWithAi(items) {
   if (!items.length) return new Map();
   const list = items.map((it) => `- ${it.term}${it.arabic ? ` (learner's meaning: ${it.arabic})` : ''}${it.example ? ` | example: ${it.example}` : ''}`).join('\n');
   const r = await jsonCall({
+    task: 'enrich_import',
     system: 'You complete vocabulary cards for an intermediate Arabic-speaking English learner. For each input return one item (keep "input" exactly as given). "term" is the dictionary form (fix only obvious typos). If the learner gave an Arabic meaning, choose the sense that matches it; if they gave an example, choose the sense used there. If the input is not a real English word or expression, set recognized=false and leave the other text fields empty. example_arabic translates the learner\'s example when one is given, else "".',
     user: list,
     schema: ENRICH_SCHEMA,
@@ -307,8 +281,9 @@ const TRANSLATE_SCHEMA = obj({ lines: { type: 'array', items: obj({ i: { type: '
 const TranslateZ = z.object({ lines: z.array(z.object({ i: z.number().int(), ar: z.string() })) });
 
 /** Translate a batch of transcript lines → Map(idx → Arabic). */
-export async function translateWithClaude(lines, title = '') {
+export async function translateWithAi(lines, title = '') {
   const r = await jsonCall({
+    task: 'translate_lines',
     system: 'Translate English video subtitles into natural Modern Standard Arabic for a learner reading along. Translate each numbered line separately, keeping the numbering; keep the meaning faithful and concise. Use the surrounding lines for context.',
     user: `${title ? `Video: ${title}\n` : ''}${lines.map((l) => `[${l.idx}] ${l.text}`).join('\n')}`,
     schema: TRANSLATE_SCHEMA,
@@ -318,4 +293,4 @@ export async function translateWithClaude(lines, title = '') {
   return new Map(r.lines.map((l) => [l.i, l.ar]));
 }
 
-export { findSpan };
+export { findSpan, aiConfigured, aiAvailable, AiError };

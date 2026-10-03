@@ -1,4 +1,4 @@
--- LexiTube schema v2 (SQLite). PostgreSQL / Supabase version: db/postgres-schema.sql.
+-- LexiTube schema v3 (SQLite). PostgreSQL / Supabase version: db/postgres-schema.sql.
 --
 -- Layers
 --   Global knowledge : vocabulary, examples            (one row per word/phrase)
@@ -90,6 +90,7 @@ CREATE TABLE IF NOT EXISTS occurrences (
   sentence           TEXT    NOT NULL,
   sentence_ar        TEXT,
   contextual_meaning TEXT,                           -- Arabic meaning in THIS sentence
+  context_note       TEXT,                           -- short Arabic explanation of the meaning here
   timestamp_seconds  INTEGER,
   suggested          INTEGER NOT NULL DEFAULT 0,     -- shown in the source's word list
   rank               INTEGER NOT NULL DEFAULT 0,
@@ -164,6 +165,15 @@ CREATE TABLE IF NOT EXISTS word_group_items (
   user_vocabulary_id INTEGER NOT NULL REFERENCES user_vocabulary(id) ON DELETE CASCADE,
   added_at           TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   PRIMARY KEY (group_id, user_vocabulary_id)
+);
+
+-- Cache of AI answers (word in context, translations, imports): never ask twice.
+CREATE TABLE IF NOT EXISTS ai_cache (
+  key        TEXT PRIMARY KEY,                -- sha256(task + input)
+  task       TEXT NOT NULL,
+  model      TEXT,
+  response   TEXT NOT NULL,                   -- validated JSON
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_lines_source      ON transcript_lines(source_id, idx);

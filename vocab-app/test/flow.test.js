@@ -7,8 +7,7 @@ import path from 'node:path';
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'lexitube-'));
 process.env.DATABASE_PATH = path.join(dir, 'test.db');
-delete process.env.ANTHROPIC_API_KEY;
-delete process.env.ANTHROPIC_AUTH_TOKEN;
+delete process.env.OPENROUTER_API_KEY;
 
 let server;
 let base;
@@ -171,6 +170,25 @@ test('groups: learner-named, case-insensitive, one word in many groups, one voca
   assert.equal(r.status, 409);
   await call('DELETE', `/api/groups/${g1.id}`);
   assert.equal((await words()).filter((x) => x.term === 'sustainable').length, 1, 'deleting a group keeps the words');
+});
+
+test('bulk: move selected words between groups, then delete them', async () => {
+  const groups = (await call('GET', '/api/groups')).body;
+  const work = groups.find((g) => g.name === 'Work');
+  const uni = groups.find((g) => g.name === 'University');
+  const inWork = (await words(`?group_id=${work.id}`)).slice(0, 2).map((w) => w.uv_id);
+  // move = add to target + remove from current
+  await call('POST', `/api/groups/${uni.id}/words`, { uv_ids: inWork });
+  await call('DELETE', `/api/groups/${work.id}/words`, { uv_ids: inWork });
+  const now = await words();
+  for (const id of inWork) {
+    const w = now.find((x) => x.uv_id === id);
+    assert.ok(w.group_ids.includes(uni.id) && !w.group_ids.includes(work.id));
+  }
+  const before = now.length;
+  const del = (await call('POST', '/api/words/delete', { uv_ids: inWork })).body;
+  assert.equal(del.deleted, 2);
+  assert.equal((await words()).length, before - 2);
 });
 
 test('mistakes become a learning signal: missed words replay first and lead smart practice', async () => {

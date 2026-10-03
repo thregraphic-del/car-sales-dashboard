@@ -29,15 +29,19 @@ On macOS or Linux, run `./start.sh`. You can also run `npm install` and then `np
 
 | Variable | Effect |
 |---|---|
-| `ANTHROPIC_API_KEY` | Turns on context-aware extraction, click-to-explain for *any* word, completion of imported words, and Arabic subtitles. |
-| `CLAUDE_MODEL` | Optional. Overrides the default model. |
+| `OPENROUTER_API_KEY` | Turns on AI via OpenRouter (`https://openrouter.ai/api/v1`): meaning of a clicked word *in its sentence*, smarter video analysis, completion of imported words, Arabic subtitles. |
+| `OPENROUTER_MODEL` | Optional. Any OpenRouter model id. If empty, `openrouter/auto` is used. |
 | `TTS_PROVIDER`, `TTS_API_KEY`, `TTS_VOICE` | Optional higher-quality voices (`openai`, `elevenlabs`, `google`). Without them, browser voices are used. |
 | `TRANSCRIPT_API_URL`, `TRANSCRIPT_API_KEY` | Optional transcript service, used only when YouTube blocks direct caption download. |
 
-**Without an AI key** the app still works, using its curated dictionary of about 190 B1–C1 entries and the A1–A2 word lists. Some things are missing in that mode, and the UI says so instead of inventing them:
-- meanings are general, not tied to the sentence;
-- Arabic subtitles are not available;
-- words outside the lists show "no offline meaning" with a "save with your own meaning" option.
+**How AI is used:**
+- **Dictionary first.** OpenRouter is called only when the offline dictionary can't give enough (an unknown word or missing fields), or when you press **«✨ اشرح معناها في هذه الجملة»** ("explain its meaning in this sentence").
+- **Context is sent.** The clicked word is sent together with its actual sentence. The answer gives:
+  - the Arabic meaning in that sentence and a short Arabic explanation;
+  - the general Arabic meaning, a simple English definition, CEFR A1–C2 and part of speech;
+  - an example, plus the Arabic translation of the sentence.
+- **Cached.** Every successful answer is stored in the database (the `ai_cache` table plus the word/context records). The same word in the same sentence never calls the API twice.
+- **Offline fallback.** If OpenRouter is unavailable (no key, network down, out of credit, wrong model), the app keeps working with the offline dictionary and shows «شرح الذكاء الاصطناعي غير متاح — نستخدم القاموس المحلي.» ("AI explanation is unavailable — using offline dictionary.").
 
 ## How it thinks (each problem uses the simplest reliable tool)
 
@@ -46,7 +50,7 @@ On macOS or Linux, run `./start.sh`. You can also run `npm install` and then `np
 | Is this word already saved? | **Deterministic.** A normalized match key ignores case, punctuation, `something`/`someone` slots and "to", so "Figure out" and "figure something out" are the same word. Simple plurals are also merged ("reports" becomes "report"); exceptions like *news* and *analysis* are protected. |
 | Timestamps | **Taken from the transcript**, never guessed. AI only says *which line* a word is in. |
 | Word tiers | **Deterministic lists** for grammar words and A1–A2 words. AI chooses B1–C2, specialized words and phrases, in **one** call per source. |
-| Clicked word | Checked in this order: your words → curated dictionary → AI (one small call). The result is **cached** in the database, so each word is looked up once. |
+| Clicked word | Checked in this order: your words → curated dictionary → OpenRouter (only if needed, with the sentence). The result is **cached** in the database, so each word is looked up once. |
 | Arabic subtitles | Translated in batches of 60 lines in the background and stored, so each line is translated once. |
 | Difficulty | Learned from your answers. Recent mistakes weigh more than old ones, two misses in a row mark a word as difficult, and a word recovers after correct answers. |
 | What to practise | Score order: mistakes from the last 24h (freshest first) → due → difficult → new → weakest. |
@@ -67,7 +71,7 @@ Organisation       word_groups · word_group_items (many-to-many — a word in F
 
 ## Tests
 
-`npm test` runs 38 tests. They cover:
+`npm test` runs 46 tests. The OpenRouter tests simulate the API locally. They cover:
 - duplicate detection and plural handling;
 - all six import formats plus messy notes;
 - transcript preservation and timestamps;
@@ -87,7 +91,7 @@ Organisation       word_groups · word_group_items (many-to-many — a word in F
 - **One learner, no login.** Every table is keyed by `user_id`, ready for auth.
 - **Some paths could not be run in the development sandbox:**
   - YouTube caption download and the YouTube IFrame player (the network was blocked);
-  - every Claude-powered path;
+  - the real OpenRouter service (it is simulated in the tests);
   - the paid TTS providers.
 
   Pasting the transcript always works as a fallback.

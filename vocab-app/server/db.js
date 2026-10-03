@@ -7,7 +7,7 @@ import { learningSignals } from './srs.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(here, '..');
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 const dbPath = process.env.DATABASE_PATH
   ? process.env.DATABASE_PATH === ':memory:' ? ':memory:' : path.resolve(process.env.DATABASE_PATH)
@@ -38,10 +38,17 @@ export function migrate(d) {
   const version = d.prepare('PRAGMA user_version').get().user_version;
   if (version >= SCHEMA_VERSION) return;
   const schema = fs.readFileSync(path.join(ROOT, 'db', 'schema.sql'), 'utf8');
-  if (tableExists(d, 'video_vocabulary')) {
-    migrateV1(d, schema);
-  } else {
-    d.exec(schema);
+  if (version < 2) {
+    if (tableExists(d, 'video_vocabulary')) migrateV1(d, schema);
+    else d.exec(schema);
+  }
+  if (version < 3) {
+    // v3: cache of AI answers (OpenRouter)
+    d.exec(`CREATE TABLE IF NOT EXISTS ai_cache (
+      key TEXT PRIMARY KEY, task TEXT NOT NULL, model TEXT, response TEXT NOT NULL,
+      created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))`);
+    const cols = d.prepare('PRAGMA table_info(occurrences)').all().map((c) => c.name);
+    if (!cols.includes('context_note')) d.exec('ALTER TABLE occurrences ADD COLUMN context_note TEXT');
   }
   d.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }

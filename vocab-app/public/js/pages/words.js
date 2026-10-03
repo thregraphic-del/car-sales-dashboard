@@ -62,16 +62,28 @@ export async function render(view, { params }) {
       </div>` : '';
     shown = all.filter(matches);
     $('#list').innerHTML = shown.length
-      ? `<div class="row between" style="margin:4px 0 10px"><span class="small muted">${shown.length} كلمة</span><button class="link-btn" id="selectToggle">${select ? 'إلغاء التحديد' : 'تحديد كلمات'}</button></div>
+      ? `<div class="row between" style="margin:4px 0 10px"><span class="small muted">${shown.length} كلمة</span><button class="btn sm ${select ? 'primary' : ''}" id="selectToggle">${icon.check} ${select ? 'إنهاء التحديد' : 'تحديد'}</button></div>
          <div class="word-list">${shown.map((w) => wordRowHtml(w, { selectable: select, selected: selected.has(w.uv_id) })).join('')}</div>`
       : all.length
         ? emptyState('🔍', 'لا توجد كلمات هنا', f.group ? 'أضف كلمات إلى هذه المجموعة من بطاقة أي كلمة.' : 'جرّب بحثًا أو فلترًا آخر.')
         : emptyState('📚', 'لم تحفظ كلمات بعد', 'أضف فيديو أو كلمات وسنساعدك على اختيار ما يستحق.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`);
+    const allShownSelected = shown.length > 0 && shown.every((w) => selected.has(w.uv_id));
+    const inGroup = state.groups.find((x) => x.id === f.group);
+    const none = selected.size ? '' : 'disabled';
     $('#selectBar').innerHTML = select ? `
-      <div class="select-bar"><span>${selected.size} محددة</span>
+      <div class="select-bar">
+        <div class="row" style="gap:10px">
+          <button class="btn sm" id="selAll">${allShownSelected ? 'إلغاء تحديد الكل' : `تحديد الكل (${shown.length})`}</button>
+          <span>${selected.size} محددة</span>
+        </div>
         <div class="btn-row">
-          <select class="input sm-select" id="toGroup"><option value="">أضف إلى مجموعة…</option>${state.groups.map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}<option value="new">+ مجموعة جديدة</option></select>
+          <select class="input sm-select" id="toGroup" ${none}>
+            <option value="">${inGroup ? 'نقل إلى مجموعة…' : 'أضف إلى مجموعة…'}</option>
+            ${state.groups.filter((x) => x.id !== f.group).map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}
+            <option value="new">+ مجموعة جديدة</option></select>
+          ${inGroup ? `<button class="btn sm" id="removeFromGroup" ${none}>إخراج من "${esc(inGroup.name)}"</button>` : ''}
           <a class="btn sm" href="#/practice?ids=${[...selected].join(',')}" ${selected.size ? '' : 'style="pointer-events:none;opacity:.5"'}>${icon.game} تدرّب</a>
+          <button class="btn sm bad" id="deleteSelected" ${none}>${icon.trash} حذف</button>
         </div></div>` : '';
   }
 
@@ -133,6 +145,28 @@ export async function render(view, { params }) {
       return draw();
     }
     if (e.target.closest('#exportBtn')) openExport(f.group);
+    if (e.target.closest('#selAll')) {
+      const allSel = shown.every((w) => selected.has(w.uv_id));
+      shown.forEach((w) => (allSel ? selected.delete(w.uv_id) : selected.add(w.uv_id)));
+      return draw();
+    }
+    if (e.target.closest('#deleteSelected')) {
+      if (!selected.size) return;
+      if (!confirm(`حذف ${selected.size} ${selected.size === 1 ? 'كلمة' : 'كلمات'} من كلماتك؟ سيُحذف تقدّمك فيها أيضًا.`)) return;
+      const r = await api.deleteWords([...selected]);
+      toast(`حُذفت ${r.deleted} ${r.deleted === 1 ? 'كلمة' : 'كلمات'}`);
+      selected.clear();
+      select = false;
+      return reload();
+    }
+    if (e.target.closest('#removeFromGroup')) {
+      const n = selected.size;
+      await api.removeFromGroup(f.group, [...selected]);
+      toast(`أُخرجت ${n} من المجموعة — الكلمات نفسها باقية`);
+      selected.clear();
+      select = false;
+      return reload();
+    }
   });
 
   // Row click in select mode toggles selection instead of opening the card.
@@ -160,8 +194,13 @@ export async function render(view, { params }) {
         gid = (await api.createGroup(name.trim())).id;
       }
       if (!selected.size) return toast('حدد كلمات أولًا');
-      await api.addToGroup(Number(gid), [...selected]);
-      toast(`أُضيفت ${selected.size} كلمات إلى المجموعة ✓`);
+      const ids = [...selected];
+      await api.addToGroup(Number(gid), ids);
+      if (f.group) {
+        // Move = add to the new group + leave the current one.
+        await api.removeFromGroup(f.group, ids);
+        toast(`نُقلت ${ids.length} ${ids.length === 1 ? 'كلمة' : 'كلمات'} ✓`);
+      } else toast(`أُضيفت ${ids.length} ${ids.length === 1 ? 'كلمة' : 'كلمات'} إلى المجموعة ✓`);
       select = false;
       selected.clear();
       await reload();

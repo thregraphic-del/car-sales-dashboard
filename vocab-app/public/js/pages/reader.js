@@ -121,7 +121,7 @@ function lineHtml(line, marks) {
   return `
     <div class="line" data-id="${line.id}" data-start="${line.start_seconds ?? ''}">
       ${line.start_seconds != null ? `<button class="ts" data-seek="${line.start_seconds}">${fmtTime(line.start_seconds)}</button>` : '<span class="ts-spacer"></span>'}
-      <div class="line-body"><p class="line-en en">${body}</p>${line.text_ar ? `<p class="line-ar">${esc(line.text_ar)}</p>` : ''}</div>
+      <div class="line-body"><p class="line-en en">${body}</p>${line.text_ar ? `<p class="line-ar" dir="rtl">${esc(line.text_ar)}</p>` : '<p class="line-ar pending" dir="rtl">…</p>'}</div>
     </div>`;
 }
 
@@ -158,11 +158,11 @@ export async function render(view, { segments, params }) {
       <div class="reader-main">
         ${isVideo ? '<div class="player-box"><div id="player"></div></div>' : ''}
         <div class="reader-tools">
-          <label class="switch"><input type="checkbox" id="arToggle" ${showAr ? 'checked' : ''}> <span>${icon.subtitles} الترجمة العربية</span></label>
+          <label class="switch"><input type="checkbox" id="arToggle" ${showAr ? 'checked' : ''}> <span>${icon.subtitles} العربي بجانب الإنجليزي</span></label>
           ${hasTimes ? `<label class="switch"><input type="checkbox" id="followToggle" ${follow ? 'checked' : ''}> <span>متابعة تلقائية</span></label>` : ''}
           <span class="tiny muted" id="trNote"></span>
         </div>
-        <div class="transcript ${showAr ? '' : 'hide-ar'}" id="lines"></div>
+        <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}" id="lines"></div>
         <p class="tiny muted reader-hint">اضغط على أي كلمة لترى معناها في هذه الجملة. <span class="mark s-suggested">مقترحة</span> <span class="mark s-saved">محفوظة</span></p>
       </div>
       <aside class="reader-side card" id="side"></aside>
@@ -185,7 +185,7 @@ export async function render(view, { segments, params }) {
     side.innerHTML = `
       <div class="row between" style="margin-bottom:10px"><b>كلمات مقترحة</b>
         ${unsaved.length ? `<button class="btn sm" id="saveAll">${icon.bookmark} حفظ الكل (${unsaved.length})</button>` : ''}</div>
-      ${source.extractor === 'dictionary' ? '<p class="tiny muted" style="margin:-4px 0 10px">من قاموس مختار — فعّل الذكاء الاصطناعي لاختيار أدق ومعانٍ حسب السياق.</p>' : ''}
+      ${source.extractor === 'dictionary' ? '<p class="tiny muted" style="margin:-4px 0 10px">مختارة من القاموس المحلي. اضغط أي كلمة في النص لمعناها.</p>' : ''}
       <div class="side-list">${data.items.map((it) => `
         <div class="side-item ${it.user_state === 'dismissed' ? 'dim' : ''}" data-vid="${it.vocabulary_id}" data-line="${it.line_id}">
           <div style="min-width:0"><div class="row" style="gap:6px"><b class="en">${esc(it.term)}</b>${levelChip(it.level)}</div>
@@ -204,25 +204,21 @@ export async function render(view, { segments, params }) {
   drawLines();
   drawSide();
 
-  // Arabic translation state.
+  // Arabic translation: shown side by side with the English when switched on.
   const trNote = $('#trNote', view);
   const missingAr = () => data.lines.some((l) => !l.text_ar);
+  let trStatus = source.translation_status;
   const updateTrNote = (st) => {
-    const arToggle = $('#arToggle', view);
+    trStatus = st.status;
     if (!missingAr()) {
       trNote.textContent = '';
       return;
     }
     if (st.status === 'running') trNote.innerHTML = `<span class="spinner"></span> نجهّز الترجمة العربية… ${st.done}/${st.total}`;
-    else if (st.status === 'failed') trNote.innerHTML = 'تعذّرت الترجمة. <button class="link-btn" id="retryTr">أعد المحاولة</button>';
-    else if (!state.config.ai.configured) {
-      trNote.textContent = 'الترجمة الكاملة تحتاج تفعيل الذكاء الاصطناعي على الخادم.';
-      if (!data.lines.some((l) => l.text_ar)) arToggle.disabled = true;
-    } else trNote.textContent = '';
-    $('#retryTr', view)?.addEventListener('click', async () => {
-      updateTrNote(await api.startTranslation(id));
-      poll();
-    });
+    else if (st.status === 'failed') trNote.innerHTML = 'تعذّرت الترجمة الآن. <button class="link-btn" id="retryTr">أعد المحاولة</button>';
+    else if (!state.config.ai.configured) trNote.textContent = 'ترجمة المقطع بالذكاء الاصطناعي غير متاحة — نعرض المتوفر فقط.';
+    else trNote.textContent = '';
+    $('#retryTr', view)?.addEventListener('click', ensureTranslation);
   };
   const poll = async () => {
     clearTimeout(pollTimer);
@@ -231,12 +227,22 @@ export async function render(view, { segments, params }) {
       updateTrNote(st);
       const have = data.lines.filter((l) => l.text_ar).length;
       if (st.done > have) await refresh();
-      if (st.status === 'running') pollTimer = setTimeout(poll, 3000);
+      if (st.status === 'running') pollTimer = setTimeout(poll, 2500);
     } catch {
       /* ignore */
     }
   };
-  poll();
+  // Start translating when Arabic is on and lines are missing (AI only).
+  async function ensureTranslation() {
+    if (!showAr || !missingAr() || !state.config.ai.configured || trStatus === 'running') return poll();
+    try {
+      updateTrNote(await api.startTranslation(id));
+    } catch {
+      /* ignore */
+    }
+    poll();
+  }
+  ensureTranslation();
 
   // Player + sync.
   const startAt = params.t ? Number(params.t) : null;
@@ -340,6 +346,8 @@ export async function render(view, { segments, params }) {
     showAr = e.target.checked;
     setPref('reader.ar', showAr ? '1' : '0');
     linesEl.classList.toggle('hide-ar', !showAr);
+    linesEl.classList.toggle('bilingual', showAr);
+    ensureTranslation();
   });
   $('#followToggle', view)?.addEventListener('change', (e) => {
     follow = e.target.checked;

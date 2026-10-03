@@ -37,8 +37,10 @@ export async function render(view) {
       </div>
       <div class="card stack">
         <b>المحرّكات</b>
-        <div class="row between small"><span>تحليل المفردات</span><span class="chip ar-chip ${cfg.ai.configured ? 'st-mastered' : 'st-learning'}">${cfg.ai.configured ? 'Claude — سياقي' : 'قاموس محلي'}</span></div>
-        <p class="tiny muted">${cfg.ai.configured ? 'المعاني العربية تُستخرج حسب سياق كل جملة في الفيديو.' : 'لتفعيل التحليل السياقي بالذكاء الاصطناعي، اضبط ANTHROPIC_API_KEY على الخادم (ملف ‎.env). لا تُرسل المفاتيح إلى المتصفح أبدًا.'}</p>
+        <div class="row between small"><span>تحليل المفردات</span><span class="chip ar-chip ${cfg.ai.available ? 'st-mastered' : 'st-learning'}">${cfg.ai.configured ? (cfg.ai.available ? 'OpenRouter ✓' : 'OpenRouter متوقف مؤقتًا') : 'قاموس محلي'}</span></div>
+        <p class="tiny muted">${cfg.ai.configured
+          ? `القاموس المحلي أولًا، والذكاء الاصطناعي فقط عند الحاجة (والنتائج تُحفظ ولا تُطلب مرتين). النموذج: <span class="en-inline">${esc(cfg.ai.model || '')}</span>`
+          : 'شرح الذكاء الاصطناعي غير متاح — نستخدم القاموس المحلي.'}</p>
         <div class="row between small"><span>تحويل النص إلى كلام</span><span class="chip ar-chip ${cfg.tts.server ? 'st-mastered' : 'st-learning'}">${cfg.tts.server ? esc(cfg.tts.provider) : 'أصوات المتصفح'}</span></div>
         <p class="tiny muted">لأصوات أعلى جودة اضبط TTS_PROVIDER و TTS_API_KEY على الخادم.</p>
         <div class="row between small"><span>نسخة التطبيق</span><span class="chip en-inline">v${esc(cfg.app?.version || '?')}</span></div>

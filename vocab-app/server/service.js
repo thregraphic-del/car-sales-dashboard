@@ -4,8 +4,9 @@ import * as repo from './repo.js';
 import { get, all, run } from './db.js';
 import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript, TranscriptError } from './youtube.js';
 import {
-  extractVocabulary, toSentences, claudeConfigured, lookupWithClaude, enrichWithClaude, dictionaryDetails, translateWithClaude, ExtractionError,
+  extractVocabulary, toSentences, lookupWithAi, enrichWithAi, dictionaryDetails, translateWithAi, ExtractionError,
 } from './extractor.js';
+import { aiConfigured, aiAvailable, AiError, OFFLINE_MESSAGE } from './ai.js';
 import { parseInput } from './importer.js';
 import { matchKey, lemmaCandidates, quickTier, sentenceKey, singularCandidates, sameArabicMeaning, BASIC_WORDS } from '../public/js/shared/text.js';
 
@@ -42,10 +43,10 @@ export async function analyzeYoutube({ url, transcript, force }, userId) {
     ({ meta, segments, source } = await getVideoWithTranscript(youtubeId)); // throws TranscriptError
   }
   const lines = toLines(segments);
-  const { items, engine, word_count } = await extractVocabulary({ title: meta.title, channel: meta.channel, lines });
+  const { items, engine, word_count, ai_error } = await extractVocabulary({ title: meta.title, channel: meta.channel, lines });
   const sourceId = repo.saveSource({ ...meta, kind: 'youtube', transcript_source: source, extractor: engine, word_count }, lines, items, userId);
   startTranslation(sourceId);
-  return { source_id: sourceId, cached: false };
+  return { source_id: sourceId, cached: false, ai_error };
 }
 
 /** Turn pasted English text into a readable source with suggested words. */
@@ -76,7 +77,7 @@ const jobs = new Map();
 
 /** Translate untranslated lines in batches (one job per source, idempotent). */
 export function startTranslation(sourceId) {
-  if (!claudeConfigured()) {
+  if (!aiConfigured()) {
     const src = repo.getSource(sourceId);
     if (src && src.translation_status === 'none') {
       const missing = get('SELECT COUNT(*) AS n FROM transcript_lines WHERE source_id=? AND text_ar IS NULL', sourceId).n;
@@ -92,7 +93,7 @@ export function startTranslation(sourceId) {
       for (;;) {
         const batch = all('SELECT id, idx, text FROM transcript_lines WHERE source_id=? AND text_ar IS NULL ORDER BY idx LIMIT 60', sourceId);
         if (!batch.length) break;
-        const map = await translateWithClaude(batch, src?.title);
+        const map = await translateWithAi(batch, src?.title);
         let wrote = 0;
         for (const l of batch) {
           const ar = map.get(l.idx);
@@ -106,8 +107,8 @@ export function startTranslation(sourceId) {
       }
       run(`UPDATE sources SET translation_status='done' WHERE id=?`, sourceId);
     } catch (err) {
-      console.error('translation failed', sourceId, err.message);
-      run(`UPDATE sources SET translation_status='failed' WHERE id=?`, sourceId);
+      if (!(err instanceof AiError)) console.error('translation failed', sourceId, err.message);
+      run(`UPDATE sources SET translation_status=? WHERE id=?`, aiConfigured() ? 'failed' : 'unavailable', sourceId);
     } finally {
       jobs.delete(sourceId);
     }
@@ -128,11 +129,17 @@ export const _jobs = jobs;
 
 const lookupCache = new Map(); // in-flight dedupe: same click twice → one AI call
 
+const complete = (v) => !!(v && v.arabic && v.simple_english && v.level && v.part_of_speech);
+
 /**
- * Explain a word the learner clicked in a line, in context.
- * Order: phrase/word already known in DB → offline lexicon → AI (cached into DB).
+ * Explain a word the learner clicked in a line.
+ * 1. Your words / database   2. offline dictionary   3. OpenRouter — only when
+ *    the dictionary can't give enough (unknown word, missing fields), or when
+ *    the learner asks for the meaning in this exact sentence (context=true).
+ * AI answers are cached (ai_cache + vocabulary + occurrence), so a word in a
+ * given sentence is only ever sent once.
  */
-export async function lookup({ line_id, word, vocabulary_id }, userId) {
+export async function lookup({ line_id, word, vocabulary_id, context = false }, userId) {
   const line = line_id ? get('SELECT * FROM transcript_lines WHERE id=?', line_id) : null;
   const sentence = line?.text || '';
   let vocab = vocabulary_id ? get('SELECT * FROM vocabulary WHERE id=?', vocabulary_id) : null;
@@ -153,25 +160,40 @@ export async function lookup({ line_id, word, vocabulary_id }, userId) {
       }
     }
   }
-
-  let occurrence = vocab && line ? repo.occurrenceFor(vocab.id, line.id) : null;
-  const needsAi = claudeConfigured() && line && (!vocab || (!occurrence?.contextual_meaning && !vocab.arabic) || !line.text_ar);
-
-  if (needsAi && word) {
-    const key = `${line.id}:${matchKey(word)}`;
-    try {
-      if (!lookupCache.has(key)) lookupCache.set(key, lookupWithClaude({ word, sentence }).finally(() => setTimeout(() => lookupCache.delete(key), 60000)));
-      const ai = await lookupCache.get(key);
-      const { id } = repo.upsertVocabulary(ai);
-      vocab = get('SELECT * FROM vocabulary WHERE id=?', id);
-      occurrence = repo.occurrenceFor(vocab.id, line.id, { contextual_meaning: ai.contextual_meaning, sentence_ar: ai.sentence_arabic });
-    } catch (err) {
-      if (!vocab) return { found: false, word, tier, sentence, error: err.message };
+  if (vocab && !complete(vocab)) {
+    const d = dictionaryDetails(vocab.term); // fill gaps offline first
+    if (d) {
+      repo.upsertVocabulary({ ...d, term: vocab.term });
+      vocab = get('SELECT * FROM vocabulary WHERE id=?', vocab.id);
     }
   }
 
+  let occurrence = vocab && line ? repo.occurrenceFor(vocab.id, line.id) : null;
+  const needsAi = line && aiConfigured() && tier !== 'function'
+    && (!vocab || !complete(vocab) || (context && !occurrence?.contextual_meaning));
+  let aiError = null;
+
+  if (needsAi && (word || vocab)) {
+    const asked = word || vocab.term;
+    const key = `${line.id}:${matchKey(asked)}`;
+    try {
+      if (!lookupCache.has(key)) lookupCache.set(key, lookupWithAi({ word: asked, sentence }).finally(() => setTimeout(() => lookupCache.delete(key), 60000)));
+      const ai = await lookupCache.get(key);
+      const { id } = repo.upsertVocabulary(ai); // fills gaps only, never overwrites
+      vocab = get('SELECT * FROM vocabulary WHERE id=?', id);
+      occurrence = repo.occurrenceFor(vocab.id, line.id, { contextual_meaning: ai.contextual_meaning, sentence_ar: ai.sentence_arabic, context_note: ai.context_note });
+    } catch (err) {
+      if (!(err instanceof AiError)) throw err;
+      aiError = err.message;
+    }
+  }
+
+  const freshLine = line ? get('SELECT text_ar FROM transcript_lines WHERE id=?', line.id) : null;
   if (!vocab) {
-    return { found: false, word, tier, sentence, sentence_ar: line?.text_ar || null, ai: claudeConfigured() };
+    return {
+      found: false, word, tier, sentence, sentence_ar: freshLine?.text_ar || null,
+      ai: aiAvailable(), ai_error: aiError || (aiConfigured() || tier === 'function' || tier === 'basic' ? null : OFFLINE_MESSAGE),
+    };
   }
   const ex = all('SELECT kind, sentence, arabic FROM examples WHERE vocabulary_id=? ORDER BY id', vocab.id);
   const state = repo.userStateFor(userId, vocab.id);
@@ -181,9 +203,12 @@ export async function lookup({ line_id, word, vocabulary_id }, userId) {
     tier: vocab.band || tier,
     arabic: state.user_arabic || occurrence?.contextual_meaning || vocab.arabic,
     contextual: !!occurrence?.contextual_meaning,
+    context_note: occurrence?.context_note || null,
+    can_explain: !!line && aiConfigured() && !occurrence?.contextual_meaning,
+    ai_error: aiError,
     occurrence_id: occurrence?.id || null,
     context_sentence: occurrence?.sentence || sentence || null,
-    context_arabic: occurrence?.sentence_ar || line?.text_ar || null,
+    context_arabic: occurrence?.sentence_ar || freshLine?.text_ar || null,
     timestamp_seconds: occurrence?.timestamp_seconds ?? (line?.start_seconds != null ? Math.floor(line.start_seconds) : null),
     examples: ex,
     ...state,
@@ -246,9 +271,9 @@ export async function importPreview(text, userId) {
   // Fill gaps with AI in one batch call (only for words still missing details).
   let aiError = null;
   const missing = rows.filter((r) => !r.arabic || !r.level || !r.simple_english);
-  if (claudeConfigured() && missing.length) {
+  if (aiAvailable() && missing.length) {
     try {
-      const map = await enrichWithClaude(missing.map((r) => ({ term: r.input, arabic: r.meaning_from === 'you' ? r.arabic : null, example: r.examples[0]?.sentence })));
+      const map = await enrichWithAi(missing.map((r) => ({ term: r.input, arabic: r.meaning_from === 'you' ? r.arabic : null, example: r.examples[0]?.sentence })));
       for (const r of missing) {
         const ai = map.get(r.input);
         if (!ai) continue;
@@ -287,7 +312,8 @@ export async function importPreview(text, userId) {
     const view = repo.sourceView(source_id, userId);
     source = { id: source_id, title: view.source.title, items: view.items.length };
   }
-  return { items: rows, source, unclear: parsed.unclear, ai: claudeConfigured(), ai_error: aiError };
+  if (!aiError && missing.length && !aiAvailable()) aiError = OFFLINE_MESSAGE;
+  return { items: rows, source, unclear: parsed.unclear, ai: aiAvailable(), ai_error: aiError };
 }
 
 /**

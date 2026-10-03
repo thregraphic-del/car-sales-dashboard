@@ -15,7 +15,13 @@ export const TYPES = {
   translate: { name: 'اكتبها بالإنجليزية', en: 'Translation', icon: 'translate' },
   build: { name: 'ركّب الجملة', en: 'Build the sentence', icon: 'shuffle' },
   connect: { name: 'روابط الكلمات', en: 'Word connections', icon: 'puzzle' },
+  truefalse: { name: 'صح أو خطأ', en: 'True or false', icon: 'check' },
+  spell: { name: 'اكتب ما تسمع', en: 'Spelling', icon: 'speaker' },
+  scramble: { name: 'رتّب الحروف', en: 'Unscramble', icon: 'shuffle' },
+  speed: { name: 'تحدّي الدقيقة', en: '60-second challenge', icon: 'fire' },
 };
+
+const letters = (w) => w.term.replace(/\b(something|someone)\b/gi, '').replace(/\s+/g, ' ').trim();
 
 /* ------------------------------------------------------------ helpers */
 
@@ -49,12 +55,18 @@ const can = {
   fill: (w) => !!blankable(w),
   translate: (w) => !!w.arabic,
   build: (w) => !!buildable(w),
+  truefalse: (w) => !!w.arabic,
+  spell: (w) => letters(w).length >= 3 && letters(w).split(' ').length <= 3,
+  scramble: (w) => /^[a-z' -]{4,14}$/i.test(letters(w)),
+  speed: (w) => !!w.arabic,
 };
 
 /** Pick a question format suited to how well the word is known. */
 export function chooseType(w, i) {
   const weak = (w.mastery ?? 0) < 40 || w.difficult || w.review_count === 0;
-  const order = weak ? ['meaning', 'listen', 'context', 'fill'] : ['fill', 'translate', 'build', 'context', 'listen', 'meaning'];
+  const order = weak
+    ? ['meaning', 'truefalse', 'listen', 'context', 'fill']
+    : ['fill', 'translate', 'spell', 'build', 'scramble', 'context', 'listen', 'meaning'];
   const ok = order.filter((t) => can[t](w));
   return ok.length ? ok[i % ok.length] : 'listen';
 }
@@ -227,6 +239,155 @@ const KINDS = {
   }),
 };
 
+
+/* -------------------------------------------------- more review games */
+
+Object.assign(KINDS, {
+  // صح أو خطأ: is this the right meaning?
+  truefalse: (stage, w, pool) => new Promise((resolve) => {
+    const other = distractors(w, pool, 1, (x) => x.arabic)[0];
+    const showTrue = !other || Math.random() < 0.5;
+    const shown = showTrue ? w.arabic : other.arabic;
+    stage.innerHTML = `<div class="card question"><div class="prompt">هل هذا هو المعنى الصحيح؟</div>
+        <div class="q-big">${esc(w.term)}</div><div class="tf-meaning">${esc(shown)}</div></div>
+      <div class="options tf-options"><button class="option tf-yes" data-v="1">✓ صح</button><button class="option tf-no" data-v="0">✗ خطأ</button></div>
+      <div class="feedback" id="fb"></div><div class="next-wrap"><button class="btn primary hidden" id="nextBtn">التالي ←</button></div>`;
+    let done = false;
+    stage.querySelectorAll('[data-v]').forEach((b) => b.addEventListener('click', () => {
+      if (done) return;
+      done = true;
+      const ok = (b.dataset.v === '1') === showTrue;
+      stage.querySelectorAll('[data-v]').forEach((x) => (x.disabled = true));
+      b.classList.add(ok ? 'correct' : 'wrong');
+      reveal(stage, w, ok);
+      const next = stage.querySelector('#nextBtn');
+      next.classList.remove('hidden');
+      next.focus();
+      next.addEventListener('click', () => resolve(ok));
+    }));
+  }),
+
+  // اكتب ما تسمع: listen and type the word.
+  spell: (stage, w) => new Promise((resolve) => {
+    const target = letters(w);
+    setTimeout(() => speak(target).catch(() => {}), 250);
+    stage.innerHTML = `<div class="card question"><div class="prompt">استمع واكتب الكلمة</div>
+        <button class="big-play" data-say="${esc(target)}" data-rate="1" aria-label="تشغيل">${icon.speaker}</button>
+        <div style="margin-top:8px"><button class="btn sm ghost" data-say="${esc(target)}" data-rate="0.55">🐢 بطيء</button></div>
+        ${w.arabic ? `<div class="small muted" style="margin-top:8px">التلميح: ${esc(w.arabic)}</div>` : ''}</div>
+      <form id="sf" class="url-row" style="margin-top:14px"><input class="input en" id="ans" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type what you hear…"><button class="btn primary" type="submit">تحقّق</button></form>
+      <div class="btn-row" style="justify-content:center;margin-top:10px"><button class="btn sm ghost" id="skip">لا أعرف</button></div>
+      <div class="feedback" id="fb"></div><div class="next-wrap"><button class="btn primary hidden" id="nextBtn">التالي ←</button></div>`;
+    const input = stage.querySelector('#ans');
+    input.focus();
+    let done = false;
+    const finish = (ok) => {
+      if (done) return;
+      done = true;
+      input.disabled = true;
+      reveal(stage, w, ok, ok ? '' : ` — كتبتَ: <span class="en-inline">${esc(input.value || '—')}</span>`);
+      const next = stage.querySelector('#nextBtn');
+      next.classList.remove('hidden');
+      next.focus();
+      next.addEventListener('click', () => resolve(ok));
+    };
+    const norm = (x) => x.toLowerCase().replace(/[’']/g, "'").replace(/[^a-z' -]/g, '').replace(/\s+/g, ' ').trim();
+    stage.querySelector('#sf').addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (input.value.trim()) finish(norm(input.value) === norm(target));
+    });
+    stage.querySelector('#skip').addEventListener('click', () => finish(false));
+  }),
+
+  // رتّب الحروف: rebuild the word from shuffled letters.
+  scramble: (stage, w) => new Promise((resolve) => {
+    const target = letters(w);
+    let pool = shuffle([...target.replace(/ /g, '')].map((c, k) => ({ c, k })));
+    if (pool.map((p) => p.c).join('') === target.replace(/ /g, '')) pool = [...pool.slice(1), pool[0]];
+    const placed = [];
+    let checked = false;
+    const draw = () => {
+      stage.innerHTML = `<div class="card question"><div class="prompt">رتّب الحروف لتكوين الكلمة</div>
+          <div class="q-ar">${esc(w.arabic || '')}</div>${w.simple_english ? `<div class="small muted en" style="text-align:center;margin-top:6px">${esc(w.simple_english)}</div>` : ''}</div>
+        <div class="token-area letters" style="margin-top:14px">${placed.map((p, k) => `<button class="token placed" data-from="a" data-k="${k}">${esc(p.c)}</button>`).join('') || '<span class="muted small" dir="rtl">اضغط الحروف بالترتيب…</span>'}</div>
+        <div class="token-area pool letters" style="margin-top:10px">${pool.map((p, k) => `<button class="token" data-from="p" data-k="${k}">${esc(p.c)}</button>`).join('')}</div>
+        <div class="feedback" id="fb"></div>
+        <div class="btn-row" style="justify-content:center;margin-top:14px"><button class="btn" id="clear">مسح</button><button class="btn primary" id="check" ${pool.length ? 'disabled' : ''}>تحقّق</button><button class="btn primary hidden" id="nextBtn">التالي ←</button></div>`;
+      stage.querySelectorAll('.token').forEach((b) => b.addEventListener('click', () => {
+        if (checked) return;
+        const k = Number(b.dataset.k);
+        if (b.dataset.from === 'p') placed.push(...pool.splice(k, 1));
+        else pool.push(...placed.splice(k, 1));
+        draw();
+      }));
+      stage.querySelector('#clear').addEventListener('click', () => {
+        if (checked) return;
+        pool.push(...placed.splice(0));
+        draw();
+      });
+      stage.querySelector('#check').addEventListener('click', () => {
+        checked = true;
+        const ok = placed.map((p) => p.c).join('').toLowerCase() === target.replace(/ /g, '').toLowerCase();
+        reveal(stage, w, ok);
+        stage.querySelector('#check').classList.add('hidden');
+        stage.querySelector('#clear').classList.add('hidden');
+        const next = stage.querySelector('#nextBtn');
+        next.classList.remove('hidden');
+        next.addEventListener('click', () => resolve(ok));
+      });
+    };
+    draw();
+  }),
+});
+
+/** 60-second challenge: as many meanings as possible; each word scored once. */
+function speedRound(stage, words, pool, record, onProgress) {
+  return new Promise((resolve) => {
+    const usable = words.filter((w) => w.arabic);
+    const scored = new Set();
+    let left = 60;
+    let i = 0;
+    let streak = 0;
+    let points = 0;
+    stage.innerHTML = `<div class="speed-top"><span class="score-pill" id="timer">⏱ 60</span><span class="score-pill" id="pts">⭐ 0</span></div><div id="sq"></div>`;
+    const timerEl = stage.querySelector('#timer');
+    const tick = setInterval(() => {
+      left -= 1;
+      timerEl.textContent = `⏱ ${left}`;
+      onProgress?.(60 - left, 60);
+      if (left <= 0) {
+        clearInterval(tick);
+        resolve(points);
+      }
+    }, 1000);
+    const ask = () => {
+      if (left <= 0) return;
+      const w = usable[i % usable.length];
+      i += 1;
+      const opts = shuffle([w, ...distractors(w, pool, 3, (x) => x.arabic)]);
+      const q = stage.querySelector('#sq');
+      q.innerHTML = `<div class="card question" style="padding:20px"><div class="q-big">${esc(w.term)}</div></div>
+        <div class="options">${opts.map((o, k) => `<button class="option" data-k="${k}">${esc(o.arabic)}</button>`).join('')}</div>`;
+      q.querySelectorAll('.option').forEach((b) => b.addEventListener('click', () => {
+        const ok = opts[Number(b.dataset.k)].uv_id === w.uv_id;
+        b.classList.add(ok ? 'correct' : 'wrong');
+        q.querySelectorAll('.option').forEach((x) => (x.disabled = true));
+        if (ok) {
+          streak += 1;
+          points += 1 + Math.floor(streak / 3);
+        } else streak = 0;
+        stage.querySelector('#pts').textContent = `⭐ ${points}${streak >= 3 ? ` 🔥×${streak}` : ''}`;
+        if (!scored.has(w.uv_id)) {
+          scored.add(w.uv_id);
+          record(w, ok);
+        }
+        setTimeout(ask, ok ? 250 : 700);
+      }));
+    };
+    ask();
+  });
+}
+
 /** Match-the-pairs round over a set of words; resolves with Map(uv_id → correct). */
 function connectRound(stage, set) {
   return new Promise((resolve) => {
@@ -294,6 +455,10 @@ export async function runQuiz(stage, { words, distractors: pool, type = 'mixed',
   };
   const all = pool?.length >= 4 ? pool : words;
 
+  if (type === 'speed') {
+    score.points = await speedRound(stage, words, all, record, (d, t) => onProgress(d, t, score));
+    return score;
+  }
   if (type === 'connect') {
     const usable = words.filter((w) => w.arabic);
     for (let k = 0; k < usable.length; k += 6) {
@@ -319,3 +484,4 @@ export async function runQuiz(stage, { words, distractors: pool, type = 'mixed',
 }
 
 export const canPlay = (type, w) => (type === 'mixed' ? true : type === 'connect' ? !!w.arabic : can[type]?.(w));
+export const GAME_ORDER = ['connect', 'truefalse', 'speed', 'meaning', 'listen', 'spell', 'scramble', 'fill', 'context', 'build', 'translate'];

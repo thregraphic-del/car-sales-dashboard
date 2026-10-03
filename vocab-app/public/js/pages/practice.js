@@ -4,16 +4,30 @@
 import { api } from '../api.js';
 import { state, loadGroups } from '../state.js';
 import { esc, icon, emptyState } from '../ui.js';
-import { runQuiz, TYPES, canPlay } from '../quiz.js';
+import { runQuiz, TYPES, canPlay, GAME_ORDER } from '../quiz.js';
 import { runFlashcards } from '../flashcards.js';
 import { runListening } from '../listen.js';
 import { refreshStats } from '../app.js';
 
 const MODES = [
-  ['quiz', 'اختبار', 'game'],
+  ['quiz', 'اختبار', 'check'],
+  ['games', 'ألعاب', 'game'],
   ['cards', 'بطاقات', 'cards'],
   ['listen', 'استماع', 'headphones'],
 ];
+const GAME_DESC = {
+  connect: 'طابق كل كلمة مع معناها بأسرع وقت.',
+  truefalse: 'هل المعنى المعروض صحيح؟ قرار سريع.',
+  speed: 'أكبر عدد من الإجابات الصحيحة في 60 ثانية.',
+  meaning: 'اختر المعنى العربي الصحيح.',
+  listen: 'استمع للكلمة واختر ما سمعت.',
+  spell: 'استمع واكتب الكلمة بالإنجليزية.',
+  scramble: 'رتّب الحروف المبعثرة لتكوين الكلمة.',
+  fill: 'أكمل الجملة بالكلمة المناسبة.',
+  context: 'جملة حقيقية: ماذا تعني الكلمة هنا؟',
+  build: 'رتّب كلمات الجملة بالترتيب الصحيح.',
+  translate: 'اكتب الكلمة الإنجليزية من معناها العربي.',
+};
 const FOCUS = [
   ['smart', 'اختيار ذكي'],
   ['difficult', 'تحتاج تدريب'],
@@ -67,6 +81,20 @@ export async function render(view, { params }) {
     return;
   }
 
+  /* ----------------------------------------------------------- games */
+  if (mode === 'games' && type === 'mixed') {
+    stage.innerHTML = `
+      <p class="small ink-2" style="margin-bottom:12px">كل لعبة تستخدم ${words.length} ${words.length === 1 ? 'كلمة' : 'كلمات'} من كلماتك — الأخطاء الحديثة والصعبة أولًا، وكل إجابة تحدّث جدول المراجعة.</p>
+      <div class="game-grid">${GAME_ORDER.map((k) => {
+        const playable = words.filter((w) => canPlay(k, w)).length;
+        return `<a class="card game-card ${playable ? '' : 'off'}" href="${playable ? href({ ...base, mode: 'games', type: k }) : '#'}" style="text-decoration:none">
+          <div class="row between"><div class="game-icon">${icon[TYPES[k].icon]}</div><span class="tiny muted en-inline">${TYPES[k].en}</span></div>
+          <h3 style="font-size:16.5px">${TYPES[k].name}</h3><p class="small muted">${GAME_DESC[k]}</p>
+          ${playable ? '' : '<span class="tiny muted">لا توجد كلمات مناسبة هنا</span>'}</a>`;
+      }).join('')}</div>`;
+    return;
+  }
+
   /* ----------------------------------------------------------- ready */
   const start = () => {
     if (mode === 'cards') {
@@ -76,6 +104,7 @@ export async function render(view, { params }) {
       });
       return;
     }
+    if (mode === 'games') return runRound(words);
     if (mode === 'listen') {
       cleanup = runListening(stage, words);
       return;
@@ -87,7 +116,7 @@ export async function render(view, { params }) {
     const playable = list.filter((w) => canPlay(type, w));
     stage.innerHTML = `
       <div class="game-stage">
-        <div class="game-top"><span class="small muted">${type === 'mixed' ? 'أسئلة متنوعة' : TYPES[type].name}</span><span class="score-pill" id="score">✅ 0 · ❌ 0</span></div>
+        <div class="game-top"><span class="small muted">${type === 'mixed' ? 'أسئلة متنوعة' : TYPES[type].name}${mode === 'games' ? ` · <a class="link-btn" href="${href({ ...base, mode: 'games', type: undefined })}">كل الألعاب</a>` : ''}</span><span class="score-pill" id="score">✅ 0 · ❌ 0</span></div>
         <div class="bar" style="margin-bottom:18px"><span id="gbar" style="width:0%"></span></div>
         <div id="q"></div>
       </div>`;
@@ -108,13 +137,14 @@ export async function render(view, { params }) {
     summary(result);
   }
 
-  function summary({ correct, wrong, missed }) {
+  function summary({ correct, wrong, missed, points }) {
     const total = correct + wrong;
     const replay = params.replay || params.ids;
     stage.innerHTML = `
       <div class="card done-panel">
         <div class="big">${!missed.length ? '🏆' : correct >= wrong ? '👏' : '💪'}</div>
         <h2 style="margin:10px 0 4px">${correct} من ${total} صحيحة</h2>
+        ${points !== undefined ? `<p class="ink-2">⭐ نقاطك في تحدّي الدقيقة: <b>${points}</b></p>` : ''}
         ${missed.length ? `
           <div class="replay-box">
             <b>فاتتك ${missed.length} ${missed.length === 1 ? 'كلمة' : 'كلمات'}</b>
@@ -124,14 +154,15 @@ export async function render(view, { params }) {
           </div>`
           : `<p class="ink-2">${replay ? 'ممتاز — أجبت عن كل الكلمات التي أخطأت فيها.' : 'ممتاز! ستتباعد مراجعة هذه الكلمات.'}</p>`}
         <div class="btn-row" style="justify-content:center;margin-top:18px">
-          <a class="btn" href="${href({ mode: 'quiz' })}">${icon.game} جولة جديدة</a>
+          ${mode === 'games' ? `<a class="btn" href="${href({ ...base, mode: 'games', type: undefined })}">${icon.game} لعبة أخرى</a>` : ''}
+          <a class="btn" href="${href(mode === 'games' ? { ...base, mode: 'games', ids: undefined, replay: undefined } : { mode: 'quiz' })}">${icon.repeat} ${mode === 'games' ? 'العب مجددًا' : 'جولة جديدة'}</a>
           <a class="btn ghost" href="#/">انتهيت</a>
         </div>
       </div>`;
   }
 
   // Skip the "ready" screen when the learner already chose (today's session / replay).
-  if (params.session || params.replay || (params.ids && mode !== 'quiz')) {
+  if (params.session || params.replay || (params.ids && mode !== 'quiz') || mode === 'games') {
     start();
   } else {
     stage.innerHTML = `

@@ -5,7 +5,7 @@ import * as repo from './repo.js';
 import * as service from './service.js';
 import { getDb, dbFile, ROOT } from './db.js';
 import { TranscriptError } from './youtube.js';
-import { claudeConfigured } from './extractor.js';
+import { aiStatus, aiConfigured, aiModel, OFFLINE_MESSAGE_EN } from './ai.js';
 import { ttsInfo, ttsConfigured, speak } from './tts.js';
 import { seedIfEmpty, resetDatabase, seedDemo } from './seed.js';
 
@@ -40,7 +40,7 @@ const idList = (v) => (Array.isArray(v) ? v : String(v || '').split(',')).map(Nu
 app.get('/api/version', (_req, res) => res.json({ app: 'LexiTube', ...APP, pid: process.pid, started_at: STARTED }));
 app.get('/api/config', wrap(async (req) => ({
   app: APP,
-  ai: { configured: claudeConfigured() },
+  ai: aiStatus(),
   tts: ttsInfo(),
   user: repo.ensureUser(req.userId),
   database: { engine: 'sqlite', file: path.relative(ROOT, dbFile()) },
@@ -96,7 +96,9 @@ app.post('/api/sources/:id/translation', wrap(async (req) => {
 
 /* -------------------------------------------------- words in context */
 
-app.get('/api/lookup', wrap(async (req) => service.lookup({ line_id: num(req.query.line_id), word: req.query.word, vocabulary_id: num(req.query.vocabulary_id) }, req.userId)));
+app.get('/api/lookup', wrap(async (req) => service.lookup({
+  line_id: num(req.query.line_id), word: req.query.word, vocabulary_id: num(req.query.vocabulary_id), context: req.query.context === '1',
+}, req.userId)));
 
 /** Save a word. Body: {vocabulary_id, occurrence_id?, group_ids?} */
 app.post('/api/words', wrap(async (req) => {
@@ -113,6 +115,7 @@ app.post('/api/words/reset', wrap(async (req) => {
   repo.resetVocabularyState(req.userId, Number(req.body?.vocabulary_id));
   return { ok: true };
 }));
+app.post('/api/words/delete', wrap(async (req) => ({ deleted: repo.unsaveWords(req.userId, idList(req.body?.uv_ids)) })));
 app.get('/api/words', wrap(async (req) => {
   const q = req.query;
   return repo.listWords(req.userId, {
@@ -234,7 +237,7 @@ if (process.argv[1] && import.meta.url === new URL(`file://${path.resolve(proces
     console.log(`LexiTube v${APP.version} running on http://localhost:${port}`);
     console.log(`  project folder: ${ROOT}`);
     console.log(`  database: ${dbFile()}`);
-    console.log(`  AI: ${claudeConfigured() ? 'Claude (context-aware meanings, Arabic subtitles)' : 'off — offline dictionary (set ANTHROPIC_API_KEY)'}`);
+    console.log(`  AI: ${aiConfigured() ? `OpenRouter (${aiModel()}) — offline dictionary first, results cached` : OFFLINE_MESSAGE_EN}`);
     console.log(`  text-to-speech: ${ttsConfigured() ? process.env.TTS_PROVIDER : 'browser voices'}`);
   });
   // Port already taken (usually an older LexiTube still running): say exactly

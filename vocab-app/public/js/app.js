@@ -49,7 +49,7 @@ function renderNav(active) {
   $('#tabbar').innerHTML = NAV.map((n) => `<a class="${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? '<i class="dot"></i>' : ''}</a>`).join('');
   $('#sidebarFoot').innerHTML = s
     ? `<div class="row between"><span>🔥 أيام متتالية</span><b class="en-inline">${s.streak.current}</b></div>
-       <div class="tiny muted" style="margin-top:6px">${state.config?.ai?.configured ? '✨ الذكاء الاصطناعي مفعّل' : '📘 بدون ذكاء اصطناعي'}</div>
+       <div class="tiny muted" style="margin-top:6px">${state.config?.ai?.configured ? '✨ الذكاء الاصطناعي مفعّل' : '📘 القاموس المحلي'}</div>
        <div class="tiny muted en-inline" style="margin-top:4px" title="${esc(state.config?.app?.root || '')}">LexiTube v${esc(state.config?.app?.version || '?')}</div>`
     : '';
 }

@@ -44,7 +44,7 @@ const repo = await import('../server/repo.js');
 
 test('v1 database upgrades to v2 and keeps the learner data', () => {
   const db = getDb();
-  assert.equal(db.prepare('PRAGMA user_version').get().user_version, 2);
+  assert.equal(db.prepare('PRAGMA user_version').get().user_version, 3);
   assert.equal(db.prepare('SELECT name FROM users WHERE id=1').get().name, 'Sara');
 
   // "figure out" + "figure something out" were the same item → merged.
