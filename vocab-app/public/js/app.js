@@ -50,7 +50,7 @@ function renderNav(active) {
   $('#sidebarFoot').innerHTML = s
     ? `<div class="row between"><span>🔥 أيام متتالية</span><b class="en-inline">${s.streak.current}</b></div>
        <div class="tiny muted" style="margin-top:6px">${state.config?.ai?.configured ? '✨ الذكاء الاصطناعي مفعّل' : '📘 القاموس المحلي'}</div>
-       <div class="tiny muted en-inline" style="margin-top:4px" title="${esc(state.config?.app?.root || '')}">LexiTube v${esc(state.config?.app?.version || '?')}</div>`
+       <div class="tiny muted en-inline" style="margin-top:4px">LexiTube v${esc(state.config?.app?.version || '?')}</div>`
     : '';
 }
 
@@ -100,10 +100,42 @@ async function route() {
     if (typeof out === 'function') cleanup = out;
     if (!params.t && !params.line) window.scrollTo({ top: 0 });
   } catch (err) {
+    if (err.status === 401) return; // the login screen takes over
     console.error(err);
     view.innerHTML = `<div class="card empty"><div class="icon">⚠️</div><h3>تعذّر تحميل الصفحة</h3><p>${esc(err.message)}</p></div>`;
   }
   refreshStats();
+}
+
+let started = false;
+
+/** Login / first-time setup, shown instead of the app when needed. */
+async function showAuth() {
+  document.body.classList.add('auth-mode');
+  const { render } = await import('./pages/login.js');
+  await render($('#view'), {
+    onDone: () => {
+      document.body.classList.remove('auth-mode');
+      start();
+    },
+  });
+}
+
+async function start() {
+  try {
+    state.config = await api.config();
+    state.user = state.config.user;
+    await loadGroups();
+  } catch (err) {
+    if (err.status === 401) return showAuth();
+    $('#view').innerHTML = `<div class="card empty"><div class="icon">⚠️</div><h3>الخادم غير متاح</h3><p>${esc(err.message)}</p></div>`;
+    return undefined;
+  }
+  if (!started) {
+    started = true;
+    window.addEventListener('hashchange', route);
+  }
+  return route();
 }
 
 async function init() {
@@ -115,16 +147,18 @@ async function init() {
   }
   $('#menuBtn').addEventListener('click', () => document.body.classList.add('nav-open'));
   $('#scrim').addEventListener('click', () => document.body.classList.remove('nav-open'));
+  window.addEventListener('lexitube:auth', () => {
+    if (!document.body.classList.contains('auth-mode')) showAuth();
+  });
+  let auth;
   try {
-    state.config = await api.config();
-    state.user = state.config.user;
-    await loadGroups();
+    auth = await api.authStatus();
   } catch (err) {
     $('#view').innerHTML = `<div class="card empty"><div class="icon">⚠️</div><h3>الخادم غير متاح</h3><p>${esc(err.message)}</p></div>`;
     return;
   }
-  window.addEventListener('hashchange', route);
-  await route();
+  if (!auth.logged_in) await showAuth();
+  else await start();
 }
 
 init();

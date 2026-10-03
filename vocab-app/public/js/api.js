@@ -16,6 +16,10 @@ async function request(method, url, body) {
   } catch {
     /* empty body */
   }
+  if (res.status === 401 && data?.code === 'auth' && !url.startsWith('/api/auth/')) {
+    // Session expired or signed out elsewhere: show the login screen.
+    window.dispatchEvent(new CustomEvent('lexitube:auth'));
+  }
   if (!res.ok) {
     const err = new Error(data?.error || 'حدث خطأ. حاول مرة أخرى.');
     err.status = res.status;
@@ -43,7 +47,8 @@ export const api = {
   source: (id) => request('GET', `/api/sources/${id}`),
   deleteSource: (id) => request('DELETE', `/api/sources/${id}`),
   translation: (id) => request('GET', `/api/sources/${id}/translation`),
-  startTranslation: (id) => request('POST', `/api/sources/${id}/translation`),
+  translateStep: (id) => request('POST', `/api/sources/${id}/translation`),
+  refineStep: (id) => request('POST', `/api/sources/${id}/refine`),
 
   lookup: (params) => request('GET', `/api/lookup${qs(params)}`),
   saveWord: (vocabulary_id, occurrence_id, group_ids) => request('POST', '/api/words', { vocabulary_id, occurrence_id, group_ids }),
@@ -58,6 +63,7 @@ export const api = {
   removeFromGroup: (id, uv_ids) => request('DELETE', `/api/groups/${id}/words`, { uv_ids }),
 
   importPreview: (text) => request('POST', '/api/import/preview', { text }),
+  importEnrich: (items) => request('POST', '/api/import/enrich', { items }),
   importSave: (items, group_ids) => request('POST', '/api/import/save', { items, group_ids }),
 
   groups: () => request('GET', '/api/groups'),
@@ -70,5 +76,19 @@ export const api = {
   review: (uv_id, grade, source) => request('POST', '/api/review', { uv_id, grade, source }),
 
   exportUrl: (params) => `/api/export${qs(params)}`,
-  resetDemo: () => request('POST', '/api/admin/reset-demo'),
+
+  authStatus: () => request('GET', '/api/auth/status'),
+  login: (username, password) => request('POST', '/api/auth/login', { username, password }),
+  setup: (setup_code, username, password) => request('POST', '/api/auth/setup', { setup_code, username, password }),
+  logout: () => request('POST', '/api/auth/logout'),
+  changePassword: (current, password) => request('POST', '/api/auth/password', { current, password }),
+
+  dataSummary: () => request('GET', '/api/data/summary'),
+  backupUrl: () => '/api/data/backup',
+  serverBackupUrl: (id) => `/api/data/backups/${id}`,
+  importBegin: (profile) => request('POST', '/api/data/import/begin', { confirm: 'REPLACE', profile }),
+  importRows: (table, rows) => request('POST', '/api/data/import/rows', { table, rows }),
+  importFinish: () => request('POST', '/api/data/import/finish'),
+  loadDemo: () => request('POST', '/api/data/demo'),
+  resetDemo: () => request('POST', '/api/data/reset-demo'),
 };

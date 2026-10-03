@@ -22,7 +22,9 @@ export function createLocalServer() {
 
 async function main() {
   const d = await driver();
-  const seeded = await seedIfEmpty();
+  // Local single-user mode starts with demo data; with login enabled (like the
+  // public site) the account starts empty and the owner chooses.
+  const seeded = config.auth.required ? null : await seedIfEmpty();
   if (seeded) console.log('First run — demo data created:', seeded);
   const port = config.app.port;
   const server = createLocalServer().listen(port, () => {

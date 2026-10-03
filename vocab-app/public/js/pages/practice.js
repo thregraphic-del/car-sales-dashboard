@@ -15,19 +15,6 @@ const MODES = [
   ['cards', 'بطاقات', 'cards'],
   ['listen', 'استماع', 'headphones'],
 ];
-const GAME_DESC = {
-  connect: 'طابق كل كلمة مع معناها بأسرع وقت.',
-  truefalse: 'هل المعنى المعروض صحيح؟ قرار سريع.',
-  speed: 'أكبر عدد من الإجابات الصحيحة في 60 ثانية.',
-  meaning: 'اختر المعنى العربي الصحيح.',
-  listen: 'استمع للكلمة واختر ما سمعت.',
-  spell: 'استمع واكتب الكلمة بالإنجليزية.',
-  scramble: 'رتّب الحروف المبعثرة لتكوين الكلمة.',
-  fill: 'أكمل الجملة بالكلمة المناسبة.',
-  context: 'جملة حقيقية: ماذا تعني الكلمة هنا؟',
-  build: 'رتّب كلمات الجملة بالترتيب الصحيح.',
-  translate: 'اكتب الكلمة الإنجليزية من معناها العربي.',
-};
 const FOCUS = [
   ['smart', 'اختيار ذكي'],
   ['difficult', 'تحتاج تدريب'],
@@ -89,7 +76,7 @@ export async function render(view, { params }) {
         const playable = words.filter((w) => canPlay(k, w)).length;
         return `<a class="card game-card ${playable ? '' : 'off'}" href="${playable ? href({ ...base, mode: 'games', type: k }) : '#'}" style="text-decoration:none">
           <div class="row between"><div class="game-icon">${icon[TYPES[k].icon]}</div><span class="tiny muted en-inline">${TYPES[k].en}</span></div>
-          <h3 style="font-size:16.5px">${TYPES[k].name}</h3><p class="small muted">${GAME_DESC[k]}</p>
+          <h3 style="font-size:16.5px">${TYPES[k].name}</h3><p class="small muted">${TYPES[k].description}</p>
           ${playable ? '' : '<span class="tiny muted">لا توجد كلمات مناسبة هنا</span>'}</a>`;
       }).join('')}</div>`;
     return;

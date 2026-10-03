@@ -21,7 +21,9 @@ export async function createDriver(file) {
   const dbPath = resolvePath(file);
   if (dbPath !== ':memory:') fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   const d = new DatabaseSync(dbPath);
-  if (dbPath !== ':memory:') d.exec('PRAGMA journal_mode = WAL;');
+  // Rollback journal (not WAL): the .db file alone always holds all data, so
+  // copying it (backup, moving to the website) is safe even while running.
+  if (dbPath !== ':memory:') d.exec('PRAGMA journal_mode = DELETE;');
   migrate(d);
   d.exec('PRAGMA foreign_keys = ON;');
 

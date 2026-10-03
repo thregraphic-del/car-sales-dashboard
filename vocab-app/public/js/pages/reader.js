@@ -6,6 +6,9 @@ import { esc, icon, levelChip, fmtTime, fmtDuration, toast, $, emptyState } from
 import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech } from '../components.js';
 import { tokenize, quickTier, lineAt as findLine } from '../shared/text.js';
 import { refreshStats } from '../app.js';
+import { APP_CONFIG } from '../config.js';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const pref = (k, d) => {
   try {
@@ -141,7 +144,6 @@ export async function render(view, { segments, params }) {
   let follow = pref('reader.follow', '1') === '1';
   let player = null;
   let currentId = null;
-  let pollTimer = null;
   let syncTimer = null;
   let tab = 'text';
 
@@ -185,7 +187,7 @@ export async function render(view, { segments, params }) {
     side.innerHTML = `
       <div class="row between" style="margin-bottom:10px"><b>كلمات مقترحة</b>
         ${unsaved.length ? `<button class="btn sm" id="saveAll">${icon.bookmark} حفظ الكل (${unsaved.length})</button>` : ''}</div>
-      ${source.extractor === 'dictionary' ? '<p class="tiny muted" style="margin:-4px 0 10px">مختارة من القاموس المحلي. اضغط أي كلمة في النص لمعناها.</p>' : ''}
+      <p class="tiny muted" id="refineNote" style="margin:-4px 0 10px">${source.extractor === 'dictionary' ? (state.config.ai.available ? '<span class="spinner"></span> ✨ الذكاء الاصطناعي يختار كلمات أدق…' : 'مختارة من القاموس المحلي. اضغط أي كلمة في النص لمعناها.') : ''}</p>
       <div class="side-list">${data.items.map((it) => `
         <div class="side-item ${it.user_state === 'dismissed' ? 'dim' : ''}" data-vid="${it.vocabulary_id}" data-line="${it.line_id}">
           <div style="min-width:0"><div class="row" style="gap:6px"><b class="en">${esc(it.term)}</b>${levelChip(it.level)}</div>
@@ -204,45 +206,78 @@ export async function render(view, { segments, params }) {
   drawLines();
   drawSide();
 
-  // Arabic translation: shown side by side with the English when switched on.
+  // AI work runs in short steps (one request each) so it fits any hosting
+  // time limit; every finished step is saved, and the page stops when you leave.
+  let alive = true;
+  const ai = () => state.config.ai.available;
+
+  // 1) Arabic subtitles: shown side by side with the English when switched on.
   const trNote = $('#trNote', view);
   const missingAr = () => data.lines.some((l) => !l.text_ar);
-  let trStatus = source.translation_status;
-  const updateTrNote = (st) => {
-    trStatus = st.status;
-    if (!missingAr()) {
-      trNote.textContent = '';
-      return;
-    }
-    if (st.status === 'running') trNote.innerHTML = `<span class="spinner"></span> نجهّز الترجمة العربية… ${st.done}/${st.total}`;
-    else if (st.status === 'failed') trNote.innerHTML = 'تعذّرت الترجمة الآن. <button class="link-btn" id="retryTr">أعد المحاولة</button>';
-    else if (!state.config.ai.configured) trNote.textContent = 'ترجمة المقطع بالذكاء الاصطناعي غير متاحة — نعرض المتوفر فقط.';
-    else trNote.textContent = '';
+  let translating = false;
+  const setTrNote = (html) => {
+    trNote.innerHTML = html;
     $('#retryTr', view)?.addEventListener('click', ensureTranslation);
   };
-  const poll = async () => {
-    clearTimeout(pollTimer);
-    try {
-      const st = await api.translation(id);
-      updateTrNote(st);
-      const have = data.lines.filter((l) => l.text_ar).length;
-      if (st.done > have) await refresh();
-      if (st.status === 'running') pollTimer = setTimeout(poll, 2500);
-    } catch {
-      /* ignore */
-    }
-  };
-  // Start translating when Arabic is on and lines are missing (AI only).
   async function ensureTranslation() {
-    if (!showAr || !missingAr() || !state.config.ai.configured || trStatus === 'running') return poll();
-    try {
-      updateTrNote(await api.startTranslation(id));
-    } catch {
-      /* ignore */
+    if (!showAr || !missingAr() || translating) return;
+    if (!state.config.ai.configured) {
+      setTrNote('ترجمة المقطع بالذكاء الاصطناعي غير متاحة — نعرض المتوفر فقط.');
+      return;
     }
-    poll();
+    translating = true;
+    try {
+      for (let step = 0; alive && showAr && step < APP_CONFIG.maxAiSteps; step += 1) {
+        const have = data.lines.filter((l) => l.text_ar).length;
+        setTrNote(`<span class="spinner"></span> نجهّز الترجمة العربية… ${have}/${data.lines.length}`);
+        const r = await api.translateStep(id);
+        for (const { id: lineId, ar } of r.lines || []) {
+          const line = data.lines.find((l) => l.id === lineId);
+          if (line && !line.text_ar) line.text_ar = ar;
+        }
+        if (r.lines?.length) drawLines();
+        if (r.complete) {
+          if (r.ai_error && missingAr()) setTrNote(`تعذّرت الترجمة الآن. <button class="link-btn" id="retryTr">أعد المحاولة</button>`);
+          else setTrNote('');
+          break;
+        }
+        await sleep(APP_CONFIG.aiStepPauseMs);
+      }
+    } catch {
+      setTrNote('تعذّرت الترجمة الآن. <button class="link-btn" id="retryTr">أعد المحاولة</button>');
+    } finally {
+      translating = false;
+      if (!alive) return;
+      if (!missingAr()) setTrNote('');
+    }
   }
   ensureTranslation();
+
+  // 2) Smarter word choice: AI reads the transcript in chunks and adds the
+  //    useful words / expressions with their meaning in context.
+  async function refineWords() {
+    if (source.is_demo || source.extractor === 'ai' || !ai()) return;
+    const note = () => $('#refineNote', view);
+    try {
+      for (let step = 0; alive && step < APP_CONFIG.maxAiSteps; step += 1) {
+        const r = await api.refineStep(id);
+        if (!alive) return;
+        if (r.added) await refresh();
+        const n = note();
+        if (r.done) {
+          if (n) n.innerHTML = r.ai_error ? `${esc(r.ai_error)}` : '';
+          if (!r.ai_error) source.extractor = 'ai';
+          drawSide();
+          break;
+        }
+        if (n) n.innerHTML = `<span class="spinner"></span> ✨ الذكاء الاصطناعي يختار كلمات أدق… ${Math.round((100 * r.cursor) / Math.max(1, r.total))}%`;
+        await sleep(APP_CONFIG.aiStepPauseMs);
+      }
+    } catch {
+      /* the dictionary words stay; nothing lost */
+    }
+  }
+  refineWords();
 
   // Player + sync.
   const startAt = params.t ? Number(params.t) : null;
@@ -370,8 +405,8 @@ export async function render(view, { segments, params }) {
   });
 
   return () => {
+    alive = false;
     clearInterval(syncTimer);
-    clearTimeout(pollTimer);
     closeWordPanel();
     player?.destroy?.();
     void tab;

@@ -19,6 +19,7 @@ export async function render(view) {
         <h2>ابدأ بأول كلماتك</h2>
         <p class="ink-2">الصق رابط فيديو يوتيوب إنجليزي، أو كلمات، أو أي نص — وسنحوّله إلى كلمات تتعلمها وتراجعها تلقائيًا.</p>
         <a class="btn primary lg" href="#/add">${icon.plus} أضف فيديو أو نصًا</a>
+        <p class="small muted" style="margin-top:14px">عندك كلمات في النسخة المحلية؟ <a href="#/settings">انقلها من الإعدادات ← بياناتك</a></p>
       </div>`;
   } else if (left.length) {
     const parts = [

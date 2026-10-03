@@ -108,6 +108,11 @@ export async function render(view, { params }) {
     // Uncertain items start unticked: the learner decides, we don't guess.
     const items = p.items.map((it) => ({ ...it, keep: (it.status !== 'saved' && !it.unsure) || it.new_info.length > 0 }));
     let groupIds = [];
+    // Missing details are completed by AI in small batches (one short request each).
+    const needsDetails = (it) => !it.arabic || !it.level || !it.simple_english;
+    const pending = p.needs_ai ? items.filter(needsDetails) : [];
+    let enriching = pending.length > 0;
+    let enriched = 0;
     const draw = () => {
       const keepCount = items.filter((i) => i.keep).length;
       result.innerHTML = `
@@ -132,6 +137,7 @@ export async function render(view, { params }) {
         </div>` : ''}
         ${p.unclear.length ? `<div class="card soft" style="margin-top:14px"><b class="small">لم نفهم هذه الأسطر — لم نضف منها شيئًا:</b>
           <ul class="small ink-2" style="margin:6px 0 0">${p.unclear.map((l) => `<li dir="auto">${esc(l)}</li>`).join('')}</ul></div>` : ''}
+        ${enriching ? `<p class="tiny muted" style="margin-top:8px"><span class="spinner"></span> ✨ نكمل المعاني والمستويات بالذكاء الاصطناعي… ${enriched}/${pending.length}</p>` : ''}
         ${p.ai_error ? `<p class="tiny muted" style="margin-top:8px">تعذّر إكمال بعض التفاصيل بالذكاء الاصطناعي: ${esc(p.ai_error)}</p>` : ''}
         ${!items.length && !p.source ? '<div class="card empty"><h3>لم نجد كلمات أو نصًا إنجليزيًا</h3><p>جرّب كلمات إنجليزية، أو "word = معنى"، أو فقرة إنجليزية.</p></div>' : ''}`;
     };
@@ -155,10 +161,39 @@ export async function render(view, { params }) {
     };
     draw();
 
+    (async () => {
+      const size = p.enrich_batch || 10;
+      for (let k = 0; enriching && k < pending.length; k += size) {
+        const batch = pending.slice(k, k + size);
+        try {
+          const r = await api.importEnrich(batch.map(({ keep, touched, ...row }) => row));
+          r.items.forEach((fresh, n) => {
+            const it = batch[n];
+            if (it.saved_result) return;
+            const typed = it.meaning_from === 'you' ? it.arabic : null;
+            Object.assign(it, fresh, typed ? { arabic: typed, meaning_from: 'you' } : {});
+            if (!it.touched) it.keep = (it.status !== 'saved' && !it.unsure) || it.new_info.length > 0;
+          });
+          if (r.ai_error) {
+            p.ai_error = r.ai_error;
+            break;
+          }
+        } catch (err) {
+          p.ai_error = err.message;
+          break;
+        }
+        enriched = Math.min(pending.length, k + size);
+        if (!result.contains(document.activeElement) || !document.activeElement.matches('.meaning-input')) draw();
+      }
+      enriching = false;
+      if (!result.contains(document.activeElement) || !document.activeElement.matches('.meaning-input')) draw();
+    })();
+
     result.addEventListener('change', (e) => {
       const row = e.target.closest('.import-row');
       if (!row || !e.target.matches('.check')) return;
       items[Number(row.dataset.i)].keep = e.target.checked;
+      items[Number(row.dataset.i)].touched = true;
       draw();
     });
     result.addEventListener('input', (e) => {
@@ -166,6 +201,7 @@ export async function render(view, { params }) {
       const it = items[Number(e.target.dataset.i)];
       it.arabic = e.target.value.trim() || null;
       it.meaning_from = it.arabic ? 'you' : null;
+      it.touched = true;
     });
     bindGroupPicker(result, () => groupIds, async (gid, on) => {
       groupIds = on ? [...groupIds, gid] : groupIds.filter((g) => g !== gid);
@@ -175,7 +211,7 @@ export async function render(view, { params }) {
       const chosen = items.filter((i) => i.keep && !i.saved_result);
       e.target.closest('#save').disabled = true;
       try {
-        const r = await api.importSave(chosen, groupIds);
+        const r = await api.importSave(chosen.map(({ keep, touched, saved_result: _s, ...row }) => row), groupIds);
         r.results.forEach((res, k) => {
           chosen[k].saved_result = res.result;
           chosen[k].keep = false;
