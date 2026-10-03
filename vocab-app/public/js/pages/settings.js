@@ -24,7 +24,7 @@ export async function render(view) {
         <label class="field">الاسم<input class="input" id="name" value="${esc(u.name)}"></label>
         <label class="field">هدف الكلمات اليومي: <span id="goalVal" class="en-inline">${u.daily_goal}</span>
           <input type="range" id="goal" min="4" max="30" value="${u.daily_goal}" style="accent-color:var(--accent)"></label>
-        <p class="tiny muted">يطبّق الهدف الجديد على خطة الغد (خطة اليوم ثابتة؛ يمكنك إضافة 5 كلمات من صفحة تعلّم اليوم).</p>
+        <p class="tiny muted">يطبّق الهدف الجديد على خطة الغد (خطة اليوم ثابتة؛ يمكنك إضافة 5 كلمات من صفحة اليوم).</p>
         <button class="btn primary" id="saveProfile" style="justify-self:start">حفظ</button>
       </div>
       <div class="card stack">
@@ -45,9 +45,9 @@ export async function render(view) {
       </div>
       <div class="card stack">
         <b>البيانات</b>
-        <a class="btn" href="/api/export" download style="justify-self:start">${icon.download} تصدير مفرداتي (JSON)</a>
+        <p class="small ink-2">لتصدير كلماتك إلى Excel استخدم زر «تصدير» في صفحة <a href="#/words">كلماتي</a>.</p>
         <div class="divider" style="margin:6px 0"></div>
-        <p class="small ink-2">إعادة تعيين البيانات التجريبية تحذف كل شيء وتعيد إنشاء 3 فيديوهات و56 كلمة مع سجل مراجعات.</p>
+        <p class="small ink-2">إعادة تعيين البيانات التجريبية تحذف كل شيء (بما فيه كلماتك) وتعيد إنشاء الفيديوهات والكلمات التجريبية.</p>
         <button class="btn bad" id="reset" style="justify-self:start">${icon.trash} إعادة تعيين البيانات التجريبية</button>
       </div>
     </div>`;

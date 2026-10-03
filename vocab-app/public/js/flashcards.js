@@ -3,13 +3,14 @@
 import { api } from './api.js';
 import { speak } from './audio.js';
 import { esc, icon, levelChip, typeLabel, highlight, BUCKET_AR, toast } from './ui.js';
-import { bindSpeech, openVideoAt } from './components.js';
+import { bindSpeech } from './components.js';
 import { refreshStats } from './app.js';
 
 export function runFlashcards(container, words, { source = 'flashcard', onDone, doneActions = '' } = {}) {
   const queue = [...words];
   const requeued = new Set();
   const results = { hard: 0, good: 0, easy: 0 };
+  const missed = new Map();
   let idx = 0;
   let flipped = false;
   let busy = false;
@@ -37,8 +38,8 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
               <div class="row between"><div class="en"><b class="display" style="font-size:22px">${esc(w.term)}</b></div>
                 <div class="row" style="gap:4px"><button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="1" aria-label="عادي">${icon.speaker}</button>
                 <button class="btn sm ghost" data-say="${esc(w.term)}" data-rate="0.65">بطيء</button></div></div>
-              <div><div class="tiny muted">المعنى</div><div style="font-size:21px;font-weight:700">${esc(w.arabic)}</div></div>
-              <p class="en ink-2">${esc(w.simple_english)}</p>
+              <div><div class="tiny muted">المعنى</div><div style="font-size:21px;font-weight:700">${w.arabic ? esc(w.arabic) : '<span class="muted" style="font-size:15px">بدون معنى محفوظ</span>'}</div></div>
+              ${w.simple_english ? `<p class="en ink-2">${esc(w.simple_english)}</p>` : ''}
               ${w.context_sentence ? `<div class="quote"><div class="tiny muted" style="margin-bottom:4px">من الفيديو ${w.timestamp_seconds != null ? `<button class="ts-btn" data-ts style="padding:1px 7px;font-size:11.5px">▶ ${Math.floor(w.timestamp_seconds / 60)}:${String(w.timestamp_seconds % 60).padStart(2, '0')}</button>` : ''}</div>
                 <p class="en">“${highlight(w.context_sentence, w.term)}”</p>${w.context_arabic ? `<p class="small ink-2" style="margin-top:4px">${esc(w.context_arabic)}</p>` : ''}</div>` : ''}
               ${easy ? `<div><div class="tiny muted">مثال</div><p class="en">${highlight(easy.sentence, w.term)} <button class="btn icon sm ghost" data-say="${esc(easy.sentence)}" data-rate="0.9" aria-label="استمع للمثال" style="vertical-align:middle">${icon.speaker}</button></p></div>` : ''}
@@ -66,10 +67,13 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
           <div class="card soft stat"><div class="value" style="color:var(--warn)">${results.good}</div><div class="label">جيدة</div></div>
           <div class="card soft stat"><div class="value" style="color:var(--good)">${results.easy}</div><div class="label">سهلة</div></div>
         </div>
-        <div class="btn-row" style="justify-content:center;margin-top:24px">${doneActions}</div>
+        ${missed.size ? `<div class="replay-box"><b>صعبت عليك ${missed.size} ${missed.size === 1 ? 'كلمة' : 'كلمات'}</b>
+          <div class="en small" style="margin:6px 0 10px">${[...missed.values()].map((m) => esc(m.term)).join(' · ')}</div>
+          <a class="btn primary" href="#/practice?ids=${[...missed.keys()].join(',')}&mode=quiz&replay=1">${icon.repeat} تدرّب عليها الآن</a></div>` : ''}
+        <div class="btn-row" style="justify-content:center;margin-top:18px">${doneActions}</div>
         <p class="tiny muted" style="margin-top:12px">${answered} إجابة سُجّلت في قاعدة البيانات.</p>
       </div>`;
-    onDone?.(results);
+    onDone?.({ ...results, missed: [...missed.values()] });
   }
 
   function flip() {
@@ -88,6 +92,7 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
     try {
       await api.review(w.uv_id, g, source);
       results[g] += 1;
+      if (g === 'hard') missed.set(w.uv_id, w);
       if (g === 'hard' && !requeued.has(w.uv_id)) {
         // See it again a few cards later in this session.
         requeued.add(w.uv_id);
@@ -112,7 +117,8 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
     const w = queue[idx];
     if (e.target.closest('[data-ts]')) {
       e.stopPropagation();
-      return openVideoAt(w.video, w.timestamp_seconds);
+      if (w.source?.id) location.hash = `#/source/${w.source.id}?t=${w.timestamp_seconds}`;
+      return;
     }
     const g = e.target.closest('[data-g]');
     if (g) return grade(g.dataset.g);

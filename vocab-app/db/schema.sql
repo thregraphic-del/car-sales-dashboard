@@ -1,5 +1,11 @@
--- LexiTube relational schema (SQLite dialect; see db/postgres-schema.sql for the
--- equivalent PostgreSQL / Supabase version). All pages read and write these tables.
+-- LexiTube schema v2 (SQLite). PostgreSQL / Supabase version: db/postgres-schema.sql.
+--
+-- Layers
+--   Global knowledge : vocabulary, examples            (one row per word/phrase)
+--   Sources          : sources, transcript_lines       (the original text = source of truth)
+--   Context          : occurrences                     (word × source line, contextual meaning)
+--   User knowledge   : user_vocabulary, review_logs, daily_plans, daily_plan_items
+--   Organisation     : word_groups, word_group_items   (many-to-many, no copies)
 
 PRAGMA foreign_keys = ON;
 
@@ -12,101 +18,124 @@ CREATE TABLE IF NOT EXISTS users (
   created_at    TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
--- One row per analysed YouTube video.
-CREATE TABLE IF NOT EXISTS videos (
-  id               INTEGER PRIMARY KEY AUTOINCREMENT,
-  youtube_id       TEXT    NOT NULL UNIQUE,
-  url              TEXT    NOT NULL,
-  title            TEXT    NOT NULL,
-  channel          TEXT,
-  duration_seconds INTEGER,
-  thumbnail_url    TEXT,
-  transcript_source TEXT,               -- youtube-captions | pasted | demo
-  extractor        TEXT,                -- claude | dictionary | demo
-  word_count       INTEGER,
-  is_demo          INTEGER NOT NULL DEFAULT 0,
-  analyzed_at      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+-- A YouTube video or a pasted text.
+CREATE TABLE IF NOT EXISTS sources (
+  id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+  kind               TEXT    NOT NULL CHECK (kind IN ('youtube','text')),
+  youtube_id         TEXT UNIQUE,
+  url                TEXT,
+  title              TEXT    NOT NULL,
+  channel            TEXT,
+  duration_seconds   INTEGER,
+  thumbnail_url      TEXT,
+  transcript_source  TEXT,               -- youtube-captions | youtube-auto-captions | pasted | text | demo
+  extractor          TEXT,               -- claude | dictionary | demo
+  word_count         INTEGER,
+  is_demo            INTEGER NOT NULL DEFAULT 0,
+  translation_status TEXT    NOT NULL DEFAULT 'none', -- none | running | done | unavailable | failed
+  created_at         TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  analyzed_at        TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
--- Global dictionary of learnable items (single words and multi-word expressions).
+-- The original transcript / text, one sentence per row, in order.
+CREATE TABLE IF NOT EXISTS transcript_lines (
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  source_id     INTEGER NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+  idx           INTEGER NOT NULL,
+  start_seconds REAL,
+  duration      REAL,
+  text          TEXT    NOT NULL,
+  text_ar       TEXT,
+  UNIQUE (source_id, idx)
+);
+
+-- One row per learnable item. match_key makes duplicates impossible
+-- ("Figure something out" and "figure out" share the key "figure out").
 CREATE TABLE IF NOT EXISTS vocabulary (
   id              INTEGER PRIMARY KEY AUTOINCREMENT,
-  term            TEXT    NOT NULL,      -- display form, e.g. "take something for granted"
-  term_key        TEXT    NOT NULL,      -- normalised lowercase key
-  item_type       TEXT    NOT NULL DEFAULT 'word', -- word | phrasal verb | idiom | collocation | expression
+  term            TEXT    NOT NULL,
+  match_key       TEXT    NOT NULL UNIQUE,
+  item_type       TEXT    NOT NULL DEFAULT 'word',   -- word | phrasal verb | idiom | collocation | expression
   part_of_speech  TEXT,
-  level           TEXT    NOT NULL CHECK (level IN ('B1','B2','C1')),
-  usefulness      INTEGER NOT NULL DEFAULT 70,     -- 0..100
-  pronunciation   TEXT,                  -- IPA
-  arabic          TEXT    NOT NULL,      -- general Arabic meaning
-  simple_english  TEXT    NOT NULL,
-  similar_json    TEXT    NOT NULL DEFAULT '[]', -- [{word, arabic, note}] easier words
-  topic           TEXT,                  -- business | academic | daily | media | work | tech | emotions ...
-  created_at      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-  UNIQUE (term_key, part_of_speech)
+  level           TEXT CHECK (level IS NULL OR level IN ('A1','A2','B1','B2','C1','C2')),
+  band            TEXT,                              -- basic | useful | advanced | specialized
+  usefulness      INTEGER,
+  pronunciation   TEXT,
+  arabic          TEXT,                              -- general meaning (NULL = unknown, never invented)
+  simple_english  TEXT,
+  similar_json    TEXT    NOT NULL DEFAULT '[]',
+  topic           TEXT,
+  origin          TEXT,                              -- ai | dictionary | user | demo
+  created_at      TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
--- Example sentences for a vocabulary item.
 CREATE TABLE IF NOT EXISTS examples (
-  id             INTEGER PRIMARY KEY AUTOINCREMENT,
-  vocabulary_id  INTEGER NOT NULL REFERENCES vocabulary(id) ON DELETE CASCADE,
-  kind           TEXT    NOT NULL DEFAULT 'example', -- example | easy
-  sentence       TEXT    NOT NULL,
-  arabic         TEXT
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  vocabulary_id INTEGER NOT NULL REFERENCES vocabulary(id) ON DELETE CASCADE,
+  kind          TEXT    NOT NULL DEFAULT 'example',  -- example | easy | user
+  sentence      TEXT    NOT NULL,
+  sentence_key  TEXT    NOT NULL,
+  arabic        TEXT,
+  UNIQUE (vocabulary_id, sentence_key)
 );
 
--- Where an item appeared in a video: the *contextual* meaning lives here.
-CREATE TABLE IF NOT EXISTS video_vocabulary (
+-- Where an item appears: links global vocabulary to an exact source line.
+CREATE TABLE IF NOT EXISTS occurrences (
   id                 INTEGER PRIMARY KEY AUTOINCREMENT,
-  video_id           INTEGER NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
   vocabulary_id      INTEGER NOT NULL REFERENCES vocabulary(id) ON DELETE CASCADE,
-  context_sentence   TEXT    NOT NULL,
-  context_arabic     TEXT,               -- translation of the context sentence
-  contextual_meaning TEXT,               -- Arabic meaning of the item in THIS context
+  source_id          INTEGER NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
+  line_id            INTEGER REFERENCES transcript_lines(id) ON DELETE CASCADE,
+  char_start         INTEGER,
+  char_end           INTEGER,
+  sentence           TEXT    NOT NULL,
+  sentence_ar        TEXT,
+  contextual_meaning TEXT,                           -- Arabic meaning in THIS sentence
   timestamp_seconds  INTEGER,
+  suggested          INTEGER NOT NULL DEFAULT 0,     -- shown in the source's word list
   rank               INTEGER NOT NULL DEFAULT 0,
-  UNIQUE (video_id, vocabulary_id)
+  UNIQUE (source_id, vocabulary_id, line_id)
 );
 
--- A learner's personal relationship with an item (saved / dismissed + SRS state).
 CREATE TABLE IF NOT EXISTS user_vocabulary (
-  id                  INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id             INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  vocabulary_id       INTEGER NOT NULL REFERENCES vocabulary(id) ON DELETE CASCADE,
-  video_vocabulary_id INTEGER REFERENCES video_vocabulary(id) ON DELETE SET NULL,
-  source_video_id     INTEGER REFERENCES videos(id) ON DELETE SET NULL,
-  state               TEXT    NOT NULL DEFAULT 'saved' CHECK (state IN ('saved','dismissed')),
-  saved_at            TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-  review_count        INTEGER NOT NULL DEFAULT 0,
-  correct_count       INTEGER NOT NULL DEFAULT 0,
-  wrong_count         INTEGER NOT NULL DEFAULT 0,
-  streak_correct      INTEGER NOT NULL DEFAULT 0,
-  lapses              INTEGER NOT NULL DEFAULT 0,
-  ease                REAL    NOT NULL DEFAULT 2.5,
-  interval_days       REAL    NOT NULL DEFAULT 0,
-  mastery             INTEGER NOT NULL DEFAULT 0,  -- 0..100
-  last_reviewed_at    TEXT,
-  next_review_at      TEXT,
+  id                INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id           INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  vocabulary_id     INTEGER NOT NULL REFERENCES vocabulary(id) ON DELETE CASCADE,
+  occurrence_id     INTEGER REFERENCES occurrences(id) ON DELETE SET NULL, -- context it was saved from
+  source_id         INTEGER REFERENCES sources(id) ON DELETE SET NULL,
+  state             TEXT    NOT NULL DEFAULT 'saved' CHECK (state IN ('saved','dismissed')),
+  user_arabic       TEXT,                            -- the learner's own meaning
+  saved_at          TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  review_count      INTEGER NOT NULL DEFAULT 0,
+  correct_count     INTEGER NOT NULL DEFAULT 0,
+  wrong_count       INTEGER NOT NULL DEFAULT 0,
+  streak_correct    INTEGER NOT NULL DEFAULT 0,
+  lapses            INTEGER NOT NULL DEFAULT 0,
+  ease              REAL    NOT NULL DEFAULT 2.5,
+  interval_days     REAL    NOT NULL DEFAULT 0,
+  mastery           INTEGER NOT NULL DEFAULT 0,
+  difficulty        REAL    NOT NULL DEFAULT 0,      -- 0..1, learned from answers
+  recent            TEXT    NOT NULL DEFAULT '',     -- last answers, newest last: "1101"
+  last_wrong_at     TEXT,
+  last_reviewed_at  TEXT,
+  next_review_at    TEXT,
   UNIQUE (user_id, vocabulary_id)
 );
 
--- Every answer the learner gives (flashcards, games, daily learning).
 CREATE TABLE IF NOT EXISTS review_logs (
   id                 INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id            INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   user_vocabulary_id INTEGER NOT NULL REFERENCES user_vocabulary(id) ON DELETE CASCADE,
-  source             TEXT    NOT NULL,   -- flashcard | today | game:<name>
-  grade              TEXT    NOT NULL,   -- hard | good | easy
+  source             TEXT    NOT NULL,
+  grade              TEXT    NOT NULL,
   correct            INTEGER NOT NULL,
   interval_after     REAL,
   created_at         TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
--- Stable daily plan so "Today's Learning" doesn't reshuffle on every refresh.
 CREATE TABLE IF NOT EXISTS daily_plans (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  plan_date  TEXT    NOT NULL,           -- YYYY-MM-DD (server local date)
+  plan_date  TEXT    NOT NULL,
   created_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   UNIQUE (user_id, plan_date)
 );
@@ -115,31 +144,35 @@ CREATE TABLE IF NOT EXISTS daily_plan_items (
   id                 INTEGER PRIMARY KEY AUTOINCREMENT,
   plan_id            INTEGER NOT NULL REFERENCES daily_plans(id) ON DELETE CASCADE,
   user_vocabulary_id INTEGER NOT NULL REFERENCES user_vocabulary(id) ON DELETE CASCADE,
-  bucket             TEXT    NOT NULL,   -- new | review | difficult | mistakes
+  bucket             TEXT    NOT NULL,
   position           INTEGER NOT NULL,
   completed_at       TEXT,
   UNIQUE (plan_id, user_vocabulary_id)
 );
 
-CREATE TABLE IF NOT EXISTS campaigns (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  name        TEXT    NOT NULL,
-  description TEXT,
-  source_type TEXT    NOT NULL,          -- video | videos | selection | topic
-  source_ref  TEXT,                      -- e.g. topic name or video ids
-  color       TEXT,
-  created_at  TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+CREATE TABLE IF NOT EXISTS word_groups (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name       TEXT    NOT NULL,
+  color      TEXT,
+  created_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  UNIQUE (user_id, name COLLATE NOCASE)
 );
 
-CREATE TABLE IF NOT EXISTS campaign_items (
-  campaign_id        INTEGER NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
+CREATE TABLE IF NOT EXISTS word_group_items (
+  group_id           INTEGER NOT NULL REFERENCES word_groups(id) ON DELETE CASCADE,
   user_vocabulary_id INTEGER NOT NULL REFERENCES user_vocabulary(id) ON DELETE CASCADE,
-  PRIMARY KEY (campaign_id, user_vocabulary_id)
+  added_at           TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  PRIMARY KEY (group_id, user_vocabulary_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_uv_user_next   ON user_vocabulary(user_id, next_review_at);
-CREATE INDEX IF NOT EXISTS idx_uv_user_saved  ON user_vocabulary(user_id, saved_at);
-CREATE INDEX IF NOT EXISTS idx_logs_user_time ON review_logs(user_id, created_at);
-CREATE INDEX IF NOT EXISTS idx_vv_video       ON video_vocabulary(video_id);
-CREATE INDEX IF NOT EXISTS idx_examples_vocab ON examples(vocabulary_id);
+CREATE INDEX IF NOT EXISTS idx_lines_source      ON transcript_lines(source_id, idx);
+CREATE INDEX IF NOT EXISTS idx_occ_source        ON occurrences(source_id, line_id);
+CREATE INDEX IF NOT EXISTS idx_occ_vocab         ON occurrences(vocabulary_id);
+CREATE INDEX IF NOT EXISTS idx_examples_vocab    ON examples(vocabulary_id);
+CREATE INDEX IF NOT EXISTS idx_uv_user_next      ON user_vocabulary(user_id, next_review_at);
+CREATE INDEX IF NOT EXISTS idx_uv_user_saved     ON user_vocabulary(user_id, saved_at);
+CREATE INDEX IF NOT EXISTS idx_uv_user_difficult ON user_vocabulary(user_id, difficulty);
+CREATE INDEX IF NOT EXISTS idx_logs_user_time    ON review_logs(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_logs_uv           ON review_logs(user_vocabulary_id, id);
+CREATE INDEX IF NOT EXISTS idx_group_items_uv    ON word_group_items(user_vocabulary_id);

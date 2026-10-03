@@ -1,17 +1,18 @@
 import express from 'express';
 import path from 'node:path';
 import * as repo from './repo.js';
-import { getDb, get, dbFile, ROOT } from './db.js';
-import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript, TranscriptError } from './youtube.js';
-import { extractVocabulary, claudeConfigured } from './extractor.js';
+import * as service from './service.js';
+import { getDb, dbFile, ROOT } from './db.js';
+import { TranscriptError } from './youtube.js';
+import { claudeConfigured } from './extractor.js';
 import { ttsInfo, ttsConfigured, speak } from './tts.js';
-import { seedIfEmpty, resetDatabase, seedDemo, seedStreak } from './seed.js';
+import { seedIfEmpty, resetDatabase, seedDemo } from './seed.js';
 
 const app = express();
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '4mb' }));
 
-// Single-learner prototype: every request acts as user 1. The schema is
-// multi-user ready — swap this for real auth (e.g. Supabase Auth) later.
+// Single-learner prototype: every request acts as user 1. Every user table is
+// keyed by user_id, so real auth (e.g. Supabase Auth) can be added later.
 app.use((req, _res, next) => {
   req.userId = repo.DEFAULT_USER_ID;
   next();
@@ -25,146 +26,157 @@ const wrap = (fn) => async (req, res, next) => {
     next(err);
   }
 };
+const num = (v) => (v === undefined || v === null || v === '' ? undefined : Number(v));
+const idList = (v) => (Array.isArray(v) ? v : String(v || '').split(',')).map(Number).filter(Boolean);
 
 /* ------------------------------------------------------------ config */
 
 app.get('/api/config', wrap(async (req) => ({
-  ai: { configured: claudeConfigured(), engine: claudeConfigured() ? 'claude' : 'dictionary' },
+  ai: { configured: claudeConfigured() },
   tts: ttsInfo(),
   user: repo.ensureUser(req.userId),
   database: { engine: 'sqlite', file: path.relative(ROOT, dbFile()) },
 })));
 
-app.get('/api/me', wrap(async (req) => repo.ensureUser(req.userId)));
 app.patch('/api/me', wrap(async (req) => {
+  const b = req.body || {};
   const patch = {};
-  if (typeof req.body.name === 'string') patch.name = req.body.name.slice(0, 60);
-  if (req.body.daily_goal !== undefined) patch.daily_goal = Math.max(4, Math.min(40, Number(req.body.daily_goal) || 10));
-  if (req.body.speak_arabic !== undefined) patch.speak_arabic = req.body.speak_arabic ? 1 : 0;
-  if (req.body.speech_rate !== undefined) patch.speech_rate = Math.max(0.5, Math.min(1.5, Number(req.body.speech_rate) || 1));
+  if (typeof b.name === 'string') patch.name = b.name.slice(0, 60);
+  if (b.daily_goal !== undefined) patch.daily_goal = Math.max(4, Math.min(40, Number(b.daily_goal) || 10));
+  if (b.speak_arabic !== undefined) patch.speak_arabic = b.speak_arabic ? 1 : 0;
+  if (b.speech_rate !== undefined) patch.speech_rate = Math.max(0.5, Math.min(1.5, Number(b.speech_rate) || 1));
   return repo.updateUser(req.userId, patch);
 }));
 
-/* -------------------------------------------------------- dashboard */
+/* ----------------------------------------------------------- today */
 
+app.get('/api/today', wrap(async (req) => ({ plan: repo.getTodayPlan(req.userId), stats: repo.stats(req.userId) })));
+app.post('/api/today/extend', wrap(async (req) => repo.extendTodayPlan(req.userId, Number(req.body?.count) || 5)));
 app.get('/api/stats', wrap(async (req) => repo.stats(req.userId)));
-app.get('/api/progress', wrap(async (req) => repo.progress(req.userId, Number(req.query.days) || 30)));
 
-/* --------------------------------------------------------- analyzer */
+/* --------------------------------------------------------- sources */
 
-app.post('/api/analyze', wrap(async (req, res) => {
-  const { url, transcript, force } = req.body || {};
-  const youtubeId = parseYoutubeId(url);
-  if (!youtubeId) throw repo.httpError(400, 'This does not look like a YouTube video link.');
-
-  const existing = repo.findVideoByYoutubeId(youtubeId);
-  if (existing && !force && !transcript) {
-    const items = repo.videoItems(existing.id, req.userId);
-    if (items.length) return { video: existing, items, cached: true };
-  }
-
-  let meta;
-  let segments;
-  let source;
-  if (transcript && transcript.trim()) {
-    segments = parsePastedTranscript(transcript);
-    source = 'pasted';
-    try {
-      meta = await getVideoMeta(youtubeId);
-    } catch {
-      meta = { youtube_id: youtubeId, url: `https://www.youtube.com/watch?v=${youtubeId}`, title: 'YouTube video', channel: null, duration_seconds: null, thumbnail_url: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg` };
+app.post('/api/sources/youtube', wrap(async (req, res) => {
+  try {
+    return await service.analyzeYoutube(req.body || {}, req.userId);
+  } catch (err) {
+    if (err instanceof TranscriptError) {
+      res.status(422).json({ error: err.message, code: err.code, details: err.details, video: err.meta });
+      return undefined;
     }
-  } else {
-    try {
-      ({ meta, segments, source } = await getVideoWithTranscript(youtubeId));
-    } catch (err) {
-      if (err instanceof TranscriptError) {
-        res.status(422).json({ error: err.message, code: err.code, details: err.details, video: err.meta });
-        return undefined;
-      }
-      throw err;
-    }
+    throw err;
   }
-
-  const { items, engine, word_count } = await extractVocabulary({ title: meta.title, channel: meta.channel, segments });
-  if (!items.length) {
-    res.status(422).json({ error: 'No B1–C1 vocabulary worth learning was found in this transcript.', code: 'no_items', video: meta });
-    return undefined;
-  }
-  const videoId = repo.saveAnalysis({ ...meta, transcript_source: source, extractor: engine, word_count }, items);
-  return { video: repo.getVideo(videoId), items: repo.videoItems(videoId, req.userId), cached: false };
 }));
-
-app.get('/api/videos', wrap(async (req) => repo.listVideos(req.userId)));
-app.get('/api/videos/:id', wrap(async (req) => {
-  const video = repo.getVideo(Number(req.params.id));
-  if (!video) throw repo.httpError(404, 'Video not found');
-  return { video, items: repo.videoItems(video.id, req.userId) };
-}));
-
-app.post('/api/items/:vvId/save', wrap(async (req) => {
-  const uvId = repo.saveWord(req.userId, Number(req.params.vvId));
-  return repo.getWord(req.userId, uvId);
-}));
-app.post('/api/items/:vvId/dismiss', wrap(async (req) => {
-  repo.dismissWord(req.userId, Number(req.params.vvId));
+app.post('/api/sources/text', wrap(async (req) => service.analyzeText(req.body?.text, req.userId, req.body?.title)));
+app.get('/api/sources', wrap(async (req) => repo.listSources(req.userId)));
+app.get('/api/sources/:id', wrap(async (req) => repo.sourceView(Number(req.params.id), req.userId)));
+app.delete('/api/sources/:id', wrap(async (req) => {
+  repo.deleteSource(Number(req.params.id));
   return { ok: true };
 }));
-app.post('/api/items/:vvId/reset', wrap(async (req) => {
-  const vv = get('SELECT vocabulary_id FROM video_vocabulary WHERE id = ?', Number(req.params.vvId));
-  if (!vv) throw repo.httpError(404, 'Item not found');
-  const uv = get('SELECT id FROM user_vocabulary WHERE user_id=? AND vocabulary_id=?', req.userId, vv.vocabulary_id);
-  if (uv) repo.unsaveWord(req.userId, uv.id);
-  return { ok: true };
+app.get('/api/sources/:id/translation', wrap(async (req) => service.translationStatus(Number(req.params.id))));
+app.post('/api/sources/:id/translation', wrap(async (req) => {
+  const id = Number(req.params.id);
+  const src = repo.getSource(id);
+  if (src && src.translation_status === 'failed') {
+    // allow retry
+    getDb().prepare(`UPDATE sources SET translation_status='none' WHERE id=?`).run(id);
+  }
+  service.startTranslation(id);
+  return service.translationStatus(id);
 }));
 
-/* ------------------------------------------------------- vocabulary */
+/* -------------------------------------------------- words in context */
 
+app.get('/api/lookup', wrap(async (req) => service.lookup({ line_id: num(req.query.line_id), word: req.query.word, vocabulary_id: num(req.query.vocabulary_id) }, req.userId)));
+
+/** Save a word. Body: {vocabulary_id, occurrence_id?, group_ids?} */
+app.post('/api/words', wrap(async (req) => {
+  const b = req.body || {};
+  if (!b.vocabulary_id) throw repo.httpError(400, 'لا توجد كلمة للحفظ.');
+  const out = repo.saveWord(req.userId, Number(b.vocabulary_id), { occurrenceId: num(b.occurrence_id), groupIds: idList(b.group_ids) });
+  return { ...out, groups: repo.groupIdsFor(out.uv_id) };
+}));
+app.post('/api/words/dismiss', wrap(async (req) => {
+  repo.dismissWord(req.userId, Number(req.body?.vocabulary_id));
+  return { ok: true };
+}));
+app.post('/api/words/reset', wrap(async (req) => {
+  repo.resetVocabularyState(req.userId, Number(req.body?.vocabulary_id));
+  return { ok: true };
+}));
 app.get('/api/words', wrap(async (req) => {
   const q = req.query;
-  const ids = q.ids ? String(q.ids).split(',').filter(Boolean) : undefined;
   return repo.listWords(req.userId, {
-    q: q.q, level: q.level, status: q.status, video_id: q.video_id, section: q.section,
-    from: q.from, to: q.to, campaign_id: q.campaign_id, topic: q.topic, ids,
+    q: q.q, level: q.level, status: q.status, group_id: num(q.group_id), source_id: num(q.source_id), section: q.section, from: q.from, to: q.to,
+    ids: q.ids ? idList(q.ids) : undefined,
   });
 }));
 app.get('/api/words/:id', wrap(async (req) => repo.getWord(req.userId, Number(req.params.id))));
+app.patch('/api/words/:id', wrap(async (req) => repo.updateWord(req.userId, Number(req.params.id), req.body || {})));
+app.put('/api/words/:id/groups', wrap(async (req) => ({ group_ids: repo.setWordGroups(req.userId, Number(req.params.id), idList(req.body?.group_ids)) })));
 app.delete('/api/words/:id', wrap(async (req) => {
   repo.unsaveWord(req.userId, Number(req.params.id));
   return { ok: true };
 }));
-app.get('/api/topics', wrap(async (req) => repo.topics(req.userId)));
 
-/* ----------------------------------------------------------- review */
+/* ---------------------------------------------------------- import */
+
+app.post('/api/import/preview', wrap(async (req) => {
+  const text = String(req.body?.text || '');
+  if (!text.trim()) throw repo.httpError(400, 'الصق كلمات أو نصًا أولًا.');
+  if (text.length > 200000) throw repo.httpError(413, 'النص طويل جدًا. قسّمه إلى أجزاء أصغر.');
+  return service.importPreview(text, req.userId);
+}));
+app.post('/api/import/save', wrap(async (req) => ({
+  results: service.importSave(req.body?.items || [], { groupIds: idList(req.body?.group_ids) }, req.userId),
+})));
+
+/* ---------------------------------------------------------- groups */
+
+app.get('/api/groups', wrap(async (req) => repo.listGroups(req.userId)));
+app.post('/api/groups', wrap(async (req) => repo.createGroup(req.userId, req.body?.name, req.body?.color)));
+app.patch('/api/groups/:id', wrap(async (req) => repo.renameGroup(req.userId, Number(req.params.id), req.body?.name)));
+app.delete('/api/groups/:id', wrap(async (req) => {
+  repo.deleteGroup(req.userId, Number(req.params.id));
+  return { ok: true };
+}));
+app.post('/api/groups/:id/words', wrap(async (req) => {
+  repo.addToGroup(req.userId, Number(req.params.id), idList(req.body?.uv_ids));
+  return { ok: true };
+}));
+app.delete('/api/groups/:id/words', wrap(async (req) => {
+  repo.removeFromGroup(req.userId, Number(req.params.id), idList(req.body?.uv_ids));
+  return { ok: true };
+}));
+
+/* -------------------------------------------------------- practice */
+
+app.get('/api/practice', wrap(async (req) => repo.practiceSet(req.userId, {
+  ids: req.query.ids ? idList(req.query.ids) : undefined,
+  group_id: num(req.query.group_id),
+  focus: req.query.focus || 'smart',
+  size: Math.min(30, Number(req.query.size) || 10),
+})));
 
 app.post('/api/review', wrap(async (req) => {
   const { uv_id, grade, source } = req.body || {};
   if (!['hard', 'good', 'easy'].includes(grade)) throw repo.httpError(400, 'grade must be hard, good or easy');
-  const src = typeof source === 'string' && /^(flashcard|today|listening|game:[a-z-]+)$/.test(source) ? source : 'flashcard';
+  const src = typeof source === 'string' && /^(flashcard|today|listening|quiz|game:[a-z-]+)$/.test(source) ? source : 'flashcard';
   return repo.recordReview(req.userId, Number(uv_id), grade, src);
 }));
 
-app.get('/api/today', wrap(async (req) => repo.getTodayPlan(req.userId)));
-app.post('/api/today/extend', wrap(async (req) => repo.extendTodayPlan(req.userId, Number(req.body?.count) || 5)));
+/* ---------------------------------------------------------- export */
 
-app.get('/api/games/pool', wrap(async (req) => {
-  const words = repo.gamePool(req.userId, req.query.scope || 'mixed', req.query.campaign_id ? Number(req.query.campaign_id) : null);
-  // Distractors may come from any saved word.
-  const others = repo.listWords(req.userId);
-  return { words, distractors: others };
-}));
-
-/* -------------------------------------------------------- campaigns */
-
-app.get('/api/campaigns', wrap(async (req) => repo.listCampaigns(req.userId)));
-app.post('/api/campaigns', wrap(async (req) => {
-  const id = repo.createCampaign(req.userId, req.body || {});
-  return repo.getCampaign(req.userId, id);
-}));
-app.get('/api/campaigns/:id', wrap(async (req) => repo.getCampaign(req.userId, Number(req.params.id))));
-app.delete('/api/campaigns/:id', wrap(async (req) => {
-  repo.deleteCampaign(req.userId, Number(req.params.id));
-  return { ok: true };
+app.get('/api/export', wrap(async (req, res) => {
+  const rows = repo.exportRows(req.userId, req.query);
+  const stamp = new Date().toISOString().slice(0, 10);
+  if (req.query.format === 'json') {
+    res.set('Content-Disposition', `attachment; filename="lexitube-words-${stamp}.json"`);
+    return { exported_at: new Date().toISOString(), count: rows.length, words: rows };
+  }
+  res.set('Content-Type', 'text/csv; charset=utf-8').set('Content-Disposition', `attachment; filename="lexitube-words-${stamp}.csv"`).send(repo.toCsv(rows));
+  return undefined;
 }));
 
 /* -------------------------------------------------------------- tts */
@@ -179,29 +191,23 @@ app.get('/api/tts', async (req, res, next) => {
   }
 });
 
-/* ---------------------------------------------------------- admin */
-
-app.get('/api/export', wrap(async (req, res) => {
-  res.set('Content-Disposition', 'attachment; filename="lexitube-vocabulary.json"');
-  return { exported_at: new Date().toISOString(), words: repo.listWords(req.userId), campaigns: repo.listCampaigns(req.userId) };
-}));
-
 app.post('/api/admin/reset-demo', wrap(async () => {
   resetDatabase();
-  const out = seedDemo();
-  seedStreak();
-  return out;
+  return seedDemo();
 }));
 
 /* ----------------------------------------------------------- static */
 
 app.use(express.static(path.join(ROOT, 'public'), { extensions: ['html'] }));
 app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(ROOT, 'public', 'index.html')));
+app.use('/api', (_req, res) => res.status(404).json({ error: 'غير موجود' }));
 
+// Human-readable errors only — stack traces stay in the server log.
 app.use((err, _req, res, _next) => {
-  const status = err.status || 500;
+  const status = err.status || (err.type === 'entity.too.large' ? 413 : 500);
   if (status >= 500) console.error(err);
-  res.status(status).json({ error: status >= 500 && !err.expose ? err.message || 'Server error' : err.message });
+  const message = status >= 500 && !err.expose ? 'حدث خطأ غير متوقع في الخادم. حاول مرة أخرى.' : err.message;
+  res.status(status).json({ error: status === 413 && !err.message.match(/[؀-ۿ]/) ? 'النص طويل جدًا.' : message });
 });
 
 export { app };
@@ -214,7 +220,7 @@ if (process.argv[1] && import.meta.url === new URL(`file://${path.resolve(proces
   app.listen(port, () => {
     console.log(`LexiTube running on http://localhost:${port}`);
     console.log(`  database: ${dbFile()}`);
-    console.log(`  vocabulary engine: ${claudeConfigured() ? 'Claude (context-aware)' : 'offline dictionary (set ANTHROPIC_API_KEY for AI analysis)'}`);
+    console.log(`  AI: ${claudeConfigured() ? 'Claude (context-aware meanings, Arabic subtitles)' : 'off — offline dictionary (set ANTHROPIC_API_KEY)'}`);
     console.log(`  text-to-speech: ${ttsConfigured() ? process.env.TTS_PROVIDER : 'browser voices'}`);
   });
 }

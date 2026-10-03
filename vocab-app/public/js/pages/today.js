@@ -1,68 +1,77 @@
+// اليوم — "What should I learn today?" One clear next action, nothing to configure.
 import { api } from '../api.js';
-import { esc, icon, BUCKET_AR, emptyState, toast } from '../ui.js';
-import { wordRowHtml, bindWordList } from '../components.js';
-import { runFlashcards } from '../flashcards.js';
+import { state } from '../state.js';
+import { esc, icon, thumbHtml, relDate, levelChip } from '../ui.js';
 
-const BUCKET_INFO = {
-  new: 'كلمات حفظتها ولم تراجعها بعد',
-  review: 'حان موعد مراجعتها حسب التكرار المتباعد',
-  difficult: 'كلمات أخطأت فيها كثيرًا',
-  mistakes: 'أخطأت فيها في آخر مرة',
-};
+export async function render(view) {
+  const [{ plan, stats }, sources] = await Promise.all([api.today(), api.sources()]);
+  state.stats = stats;
+  const left = plan.items.filter((i) => !i.completed);
+  const hour = new Date().getHours();
+  const greet = hour < 12 ? 'صباح الخير' : 'مساء الخير';
+  const minutes = Math.max(2, Math.round(left.length * 0.5));
 
-export async function render(view, { params }) {
-  let cleanup = null;
-  const plan = await api.today();
-
-  if (!plan.total) {
-    view.innerHTML = `<div class="page-head"><div><h1>تعلّم اليوم</h1></div></div>
-      ${emptyState('🌱', 'لا توجد كلمات محفوظة بعد', 'حلّل فيديو واحفظ الكلمات المفيدة، وسنختار لك خطة يومية تلقائيًا.', `<a class="btn primary" href="#/analyzer">${icon.youtube} حلّل فيديو</a>`)}`;
-    return;
-  }
-
-  const remaining = plan.items.filter((i) => !i.completed);
-  const pct = Math.round((100 * plan.completed) / plan.total);
-
-  function overview() {
-    view.innerHTML = `
-      <div class="page-head">
-        <div><div class="eyebrow">${new Date().toLocaleDateString('ar', { weekday: 'long', day: 'numeric', month: 'long' })}</div><h1>تعلّم اليوم</h1>
-        <p>${plan.total} كلمات اخترناها تلقائيًا لك اليوم.</p></div>
+  let main;
+  if (!stats.total) {
+    main = `
+      <div class="card hero-simple">
+        <div class="hero-emoji">🌱</div>
+        <h2>ابدأ بأول كلماتك</h2>
+        <p class="ink-2">الصق رابط فيديو يوتيوب إنجليزي، أو كلمات، أو أي نص — وسنحوّله إلى كلمات تتعلمها وتراجعها تلقائيًا.</p>
+        <a class="btn primary lg" href="#/add">${icon.plus} أضف فيديو أو نصًا</a>
+      </div>`;
+  } else if (left.length) {
+    const parts = [
+      plan.counts.difficult + plan.counts.mistakes ? `${plan.counts.difficult + plan.counts.mistakes} تحتاج تدريب` : '',
+      plan.counts.review ? `${plan.counts.review} مراجعة` : '',
+      plan.counts.new ? `${plan.counts.new} جديدة` : '',
+    ].filter(Boolean).join(' · ');
+    main = `
+      <div class="card hero-simple">
+        <div class="ring sm" style="--p:${plan.total ? Math.round((100 * plan.completed) / plan.total) : 0}"><div><div class="num">${left.length}</div><div class="tiny muted">كلمات</div></div></div>
+        <div style="flex:1;min-width:220px">
+          <h2>${plan.completed ? 'تابع جلسة اليوم' : 'جلسة اليوم جاهزة'}</h2>
+          <p class="ink-2">${parts} · حوالي ${minutes} دقائق</p>
+          <div class="word-peek en">${left.slice(0, 6).map((w) => `<span>${esc(w.term)}</span>`).join('')}${left.length > 6 ? '<span class="muted">…</span>' : ''}</div>
+        </div>
+        <a class="btn primary lg" href="#/practice?session=today">ابدأ ←</a>
+      </div>`;
+  } else {
+    main = `
+      <div class="card hero-simple">
+        <div class="hero-emoji">🎉</div>
+        <div style="flex:1;min-width:220px"><h2>أنهيت جلسة اليوم</h2>
+        <p class="ink-2">${stats.due ? `ما زالت ${stats.due} كلمة جاهزة للمراجعة.` : 'كل شيء مراجَع. أضف كلمات جديدة أو العب اختبارًا سريعًا.'}</p></div>
         <div class="btn-row">
-          ${remaining.length ? `<button class="btn primary lg" id="start">${plan.completed ? 'تابع' : 'ابدأ'} (${remaining.length}) ←</button>` : ''}
+          <a class="btn primary" href="#/practice?mode=quiz">${icon.game} اختبار سريع</a>
           <button class="btn" id="more">${icon.plus} 5 كلمات إضافية</button>
         </div>
-      </div>
-      <div class="card" style="margin-bottom:18px">
-        <div class="row between"><b>التقدّم</b><span class="en-inline">${plan.completed}/${plan.total}</span></div>
-        <div class="bar" style="margin:10px 0 16px"><span style="width:${pct}%"></span></div>
-        <div class="grid cols-4">${Object.entries(plan.counts).map(([b, n]) => `
-          <div class="card soft stat"><div class="value">${n}</div><div class="label">${BUCKET_AR[b]}</div><div class="hint">${BUCKET_INFO[b]}</div></div>`).join('')}</div>
-      </div>
-      ${!remaining.length ? `<div class="alert info" style="margin-bottom:18px"><b>🎉 أنهيت خطة اليوم!</b><span>ثبّت ما تعلمته بلعبة سريعة أو أضف كلمات إضافية.</span>
-        <div class="btn-row"><a class="btn sm" href="#/games?scope=today">${icon.game} ألعاب اليوم</a><a class="btn sm" href="#/listening?scope=today">${icon.headphones} استمع</a></div></div>` : ''}
-      <div class="word-list" id="list">${plan.items.map((w) => wordRowHtml(w, { bucket: w.bucket }).replace('class="word-row', `class="word-row${w.completed ? ' dismissed' : ''}`)).join('')}</div>`;
-    view.querySelector('#start')?.addEventListener('click', start);
-    view.querySelector('#more').addEventListener('click', async () => {
-      const next = await api.extendToday(5);
-      if (next.total === plan.total) return toast('لا توجد كلمات إضافية متاحة الآن');
-      toast(`أضفنا ${next.total - plan.total} كلمات`);
-      render(view, { params });
-    });
-    bindWordList(view.querySelector('#list'), () => plan.items, { onChange: () => render(view, { params }) });
+      </div>`;
   }
 
-  function start() {
-    view.innerHTML = `<div class="page-head"><div><h1>تعلّم اليوم</h1><p>اقلب البطاقة ثم قيّم مدى سهولة الكلمة.</p></div>
-      <button class="btn ghost" id="back">إنهاء الجلسة</button></div><div id="session"></div>`;
-    view.querySelector('#back').addEventListener('click', () => render(view, { params }));
-    cleanup = runFlashcards(view.querySelector('#session'), remaining, {
-      source: 'today',
-      doneActions: `<a class="btn primary" href="#/games?scope=today">${icon.game} العب بكلمات اليوم</a><a class="btn" href="#/">الرئيسية</a>`,
-    });
-  }
+  view.innerHTML = `
+    <div class="page-head compact">
+      <div><h1>${greet}${state.user?.name && state.user.name !== 'Learner' ? `، ${esc(state.user.name)}` : ''}</h1></div>
+      ${stats.streak.current ? `<span class="streak-chip">🔥 ${stats.streak.current} ${stats.streak.current === 1 ? 'يوم' : 'أيام'}</span>` : ''}
+    </div>
+    ${main}
 
-  if (params.start && remaining.length) start();
-  else overview();
-  return () => cleanup?.();
+    ${stats.attention.length ? `
+      <div class="section-title"><h2>تحتاج انتباهك</h2><a href="#/practice?focus=difficult">تدرّب عليها ←</a></div>
+      <div class="attention">${stats.attention.map((w) => `
+        <a class="attn" href="#/practice?ids=${w.uv_id}&mode=cards"><span class="en">${esc(w.term)}</span>${levelChip(w.level)}<span class="small ink-2">${esc(w.arabic || '')}</span></a>`).join('')}
+      </div>` : ''}
+
+    ${sources.length ? `
+      <div class="section-title"><h2>تابع القراءة والمشاهدة</h2><a href="#/add">أضف جديدًا ←</a></div>
+      <div class="grid cols-3">${sources.slice(0, 3).map((s) => `
+        <a class="video-mini" href="#/source/${s.id}">${thumbHtml(s, { duration: s.duration_seconds })}
+          <div style="min-width:0"><div class="en small clamp2" style="font-weight:600">${esc(s.title)}</div>
+          <div class="tiny muted">${s.saved_count} محفوظة · ${esc(relDate(s.analyzed_at))}</div></div></a>`).join('')}
+      </div>` : ''}`;
+
+  view.querySelector('#more')?.addEventListener('click', async () => {
+    await api.extendToday(5);
+    render(view);
+  });
 }

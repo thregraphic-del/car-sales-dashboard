@@ -1,10 +1,21 @@
-# LexiTube — English vocabulary from YouTube
+# LexiTube — a personal English vocabulary system
 
-A working vocabulary-learning app for intermediate (B1–B2) Arabic-speaking learners.
+LexiTube is for intermediate Arabic-speaking learners. You watch or paste something, click the words you don't know, save the useful ones, and the app brings them back until you know them.
 
-> Paste an English YouTube link → the app reads the transcript → picks the B1–C1 words and expressions worth learning → you save the ones you want → they become your daily plan, flashcards, games, campaigns and listening practice, scheduled with spaced repetition.
+**The principle: simple outside, intelligent inside.** There are four everyday pages:
 
-The interface is in Arabic (RTL). English learning content is displayed left-to-right.
+| Page | What it answers |
+|---|---|
+| **اليوم** (Today) | What should I learn today? One "Start" button. Difficult words surface automatically. |
+| **أضف** (Add) | One box for anything: a YouTube link, a word list, `word = معنى`, messy notes, or a paragraph. |
+| **كلماتي** (My Words) | Everything I saved. Search, groups I named myself, and export. |
+| **تدرّب** (Practice) | Quiz, cards or listening. The words are chosen for you, and missed words can be replayed right away. |
+
+Opening a video or a text leads to the **reader**:
+- the full transcript, with Arabic lines under the English, synchronized with the video;
+- every meaningful word is clickable and opens an in-place panel: meaning in *this* sentence, level, audio, Save, and Add to group.
+
+The UI is Arabic (right-to-left). English content is shown left-to-right.
 
 ## التشغيل السريع (ويندوز)
 
@@ -12,56 +23,72 @@ The interface is in Arabic (RTL). English learning content is displayed left-to-
 2. ثبّت [Node.js](https://nodejs.org) الإصدار 22.13 أو أحدث (LTS).
 3. انقر مرتين على `start-windows.bat` — سيثبّت المتطلبات أول مرة ثم يفتح `http://localhost:3000`.
 
-على ماك/لينكس: `./start.sh`.
+On macOS or Linux, run `./start.sh`. You can also run `npm install` and then `npm start`.
 
-## Run it
+## Configuration (`.env`, server-side only — keys never reach the browser)
 
-```bash
-cd vocab-app
-npm install
-cp .env.example .env          # optional: add ANTHROPIC_API_KEY for AI analysis
-npm start                     # http://localhost:3000
+| Variable | Effect |
+|---|---|
+| `ANTHROPIC_API_KEY` | Turns on context-aware extraction, click-to-explain for *any* word, completion of imported words, and Arabic subtitles. |
+| `CLAUDE_MODEL` | Optional. Overrides the default model. |
+| `TTS_PROVIDER`, `TTS_API_KEY`, `TTS_VOICE` | Optional higher-quality voices (`openai`, `elevenlabs`, `google`). Without them, browser voices are used. |
+| `TRANSCRIPT_API_URL`, `TRANSCRIPT_API_KEY` | Optional transcript service, used only when YouTube blocks direct caption download. |
+
+**Without an AI key** the app still works, using its curated dictionary of about 190 B1–C1 entries and the A1–A2 word lists. Some things are missing in that mode, and the UI says so instead of inventing them:
+- meanings are general, not tied to the sentence;
+- Arabic subtitles are not available;
+- words outside the lists show "no offline meaning" with a "save with your own meaning" option.
+
+## How it thinks (each problem uses the simplest reliable tool)
+
+| Problem | Approach |
+|---|---|
+| Is this word already saved? | **Deterministic.** A normalized match key ignores case, punctuation, `something`/`someone` slots and "to", so "Figure out" and "figure something out" are the same word. Simple plurals are also merged ("reports" becomes "report"); exceptions like *news* and *analysis* are protected. |
+| Timestamps | **Taken from the transcript**, never guessed. AI only says *which line* a word is in. |
+| Word tiers | **Deterministic lists** for grammar words and A1–A2 words. AI chooses B1–C2, specialized words and phrases, in **one** call per source. |
+| Clicked word | Checked in this order: your words → curated dictionary → AI (one small call). The result is **cached** in the database, so each word is looked up once. |
+| Arabic subtitles | Translated in batches of 60 lines in the background and stored, so each line is translated once. |
+| Difficulty | Learned from your answers. Recent mistakes weigh more than old ones, two misses in a row mark a word as difficult, and a word recovers after correct answers. |
+| What to practise | Score order: mistakes from the last 24h (freshest first) → due → difficult → new → weakest. |
+
+## Data model (`db/schema.sql`, schema v2)
+
+```
+Global knowledge   vocabulary (one row per word/phrase, unique match_key) · examples (no duplicate sentences)
+Sources            sources (YouTube or text) · transcript_lines (original English + Arabic + time — source of truth)
+Context            occurrences (word × line, with the meaning in that sentence; a word can have many)
+User knowledge     user_vocabulary (saved, own meaning, SRS, difficulty, recent answers) · review_logs · daily plans
+Organisation       word_groups · word_group_items (many-to-many — a word in Finance and Work is still one row)
 ```
 
-Requires **Node.js 22.13+**, which ships the built-in `node:sqlite` database. There are no native modules to compile.
+- **Automatic upgrade:** a database from the first version upgrades itself in place. Words, reviews and campaigns are kept, and campaigns become groups. `test/migration.test.js` proves this.
+- **Re-analysis never overwrites existing meanings.** New information only fills gaps.
+- **Postgres:** `db/postgres-schema.sql` is the same model for Supabase. The server itself runs on SQLite, which is built into Node 22.
 
-On first start the database is created at `data/lexitube.db` and filled with demo data:
-- 3 videos and 56 vocabulary items (B1/B2/C1)
-- saved, unsaved and "not useful" words
-- about 250 simulated reviews, generated by running the real SRS algorithm
-- difficult and mastered words
-- 4 campaigns and a learning streak
+## Tests
 
-To reset the demo data, use `npm run seed` or Settings → Reset demo data.
+`npm test` runs 38 tests. They cover:
+- duplicate detection and plural handling;
+- all six import formats plus messy notes;
+- transcript preservation and timestamps;
+- subtitle sync;
+- click lookup;
+- explicit, idempotent saving;
+- contexts from several sources;
+- new examples added once, without overwriting meanings;
+- group membership;
+- difficulty learning, mistake replay and smart-practice order;
+- export filters;
+- error messages that never show stack traces;
+- the v1 → v2 migration.
 
-`npm test` runs the unit tests and an end-to-end API test. The end-to-end test covers the whole flow on a temporary database: analyze → save → My Vocabulary → review → campaign → games.
+## Honest limits
 
-## How it works
+- **One learner, no login.** Every table is keyed by `user_id`, ready for auth.
+- **Some paths could not be run in the development sandbox:**
+  - YouTube caption download and the YouTube IFrame player (the network was blocked);
+  - every Claude-powered path;
+  - the paid TTS providers.
 
-| Step | Where |
-|---|---|
-| Parse the YouTube URL, fetch metadata and English captions (InnerTube player, then the watch page, then an optional `TRANSCRIPT_API_URL`) | `server/youtube.js` |
-| If no transcript can be fetched, return a **clear error** (no fake results) and offer to paste the transcript manually | `server/youtube.js`, `public/js/pages/analyzer.js` |
-| Extract vocabulary with **Claude** (context-aware Arabic meanings, phrases as single items, B1–C1 only, ranked by usefulness) or, without a key, with the curated offline dictionary | `server/extractor.js` |
-| Persist videos, items, contexts, examples and the learner's progress | `db/schema.sql`, `server/repo.js` |
-| Spaced repetition: hard/good/easy, with lapses, ease, mastery and "difficult" detection | `server/srs.js` |
-| Today's plan: a stable daily mix of new, review, difficult and previously-wrong words | `repo.getTodayPlan` |
-| Games, flashcards, listening and campaigns all read the same tables, and every answer writes a `review_logs` row | `public/js/pages/*` |
-
-### Database
-
-The server runs on a relational SQLite database (`db/schema.sql`). Its tables are `users`, `videos`, `vocabulary`, `examples`, `video_vocabulary` (the contextual meaning per video), `user_vocabulary` (personal SRS state), `review_logs`, `daily_plans`, `daily_plan_items`, `campaigns` and `campaign_items`.
-
-`db/postgres-schema.sql` is the same schema for **PostgreSQL / Supabase**, with example RLS policies, so you can move to a hosted database without changing the data model. The app is single-learner today (user 1), but every table is keyed by `user_id`.
-
-### Keys and privacy
-
-All API keys (`ANTHROPIC_API_KEY`, `TTS_API_KEY`, `TRANSCRIPT_API_KEY`) are read from environment variables on the server only. The browser never sees them.
-
-- **Text-to-speech:** set `TTS_PROVIDER` to `openai`, `elevenlabs` or `google`, plus `TTS_API_KEY`. Audio is generated server-side and cached in `data/audio-cache`. Without these settings the browser's voices are used, with Normal and Slow speeds.
-
-## Notes and limits
-
-- YouTube sometimes blocks automated caption downloads, especially from cloud servers. When that happens the analyzer says so, and you can paste the transcript from YouTube (⋯ → Show transcript).
-- The offline dictionary mode can only find items in its curated list (~190 entries), and it gives general meanings. For context-dependent Arabic meanings, analysis of any vocabulary, IPA and "easier words" for every item, configure `ANTHROPIC_API_KEY`.
-- The demo videos are labelled "تجريبي" (demo) and are not real YouTube videos, so their timestamps don't open a player. Timestamps on analyzed videos open the embedded player at that moment.
+  Pasting the transcript always works as a fallback.
+- **Demo videos are not real YouTube videos.** A simulated clock drives their synchronized subtitles.

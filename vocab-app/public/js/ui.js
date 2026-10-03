@@ -40,12 +40,16 @@ export const icon = {
   ear: svg('<path d="M7 9a5 5 0 1 1 10 0c0 3-3 4-3 7a3 3 0 0 1-6 .5"/><path d="M10 9.5a2 2 0 1 1 4 0"/>'),
   download: svg('<path d="M12 3v12M7 10l5 5 5-5M4 21h16"/>'),
   menu: svg('<path d="M4 7h16M4 12h16M4 17h16"/>'),
+  doc: svg('<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 12h7M9 16h7"/>'),
+  folder: svg('<path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>'),
+  edit: svg('<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13 7 4 4"/>'),
+  subtitles: svg('<rect x="3" y="5" width="18" height="14" rx="3"/><path d="M7 12h4M13 12h4M7 15.5h10"/>'),
 };
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
-export const levelChip = (level) => `<span class="chip lvl-${esc(level)}">${esc(level)}</span>`;
+export const levelChip = (level) => (level ? `<span class="chip lvl-${esc(level)}" title="مستوى CEFR">${esc(level)}</span>` : '');
 
 export const TYPE_AR = {
   word: 'كلمة',
@@ -65,11 +69,13 @@ export const TOPIC_AR = {
 };
 export const BUCKET_AR = { new: 'جديدة', review: 'مراجعة', difficult: 'صعبة', mistakes: 'أخطاء سابقة' };
 
+/** One small, meaningful status — never a row of badges. */
 export function statusChips(w) {
-  let out = `<span class="chip ar-chip st-${w.status}">${STATUS_AR[w.status]}</span>`;
-  if (w.difficult) out += `<span class="chip ar-chip st-difficult">صعبة</span>`;
-  if (w.due) out += `<span class="chip ar-chip st-due">مستحقة للمراجعة</span>`;
-  return out;
+  if (w.difficult) return '<span class="chip ar-chip st-difficult">تحتاج تدريب</span>';
+  if (w.due) return '<span class="chip ar-chip st-due">للمراجعة</span>';
+  if (w.status === 'mastered') return '<span class="chip ar-chip st-mastered">متقنة ✓</span>';
+  if (w.status === 'new') return '<span class="chip ar-chip st-new">جديدة</span>';
+  return '';
 }
 
 export function typeLabel(w) {
@@ -197,7 +203,8 @@ export function shuffle(arr) {
   return a;
 }
 
-export function thumbHtml(video, { duration } = {}) {
-  const img = video?.thumbnail_url && !video.is_demo ? `<img src="${esc(video.thumbnail_url)}" alt="" loading="lazy">` : `<div class="play">${icon.play}</div>`;
-  return `<div class="thumb">${img}${video?.is_demo ? '<span class="demo-tag">تجريبي</span>' : ''}${duration ? `<span class="dur">${esc(fmtDuration(duration))}</span>` : ''}</div>`;
+export function thumbHtml(source, { duration } = {}) {
+  if (source?.kind === 'text') return `<div class="thumb text-thumb"><div class="play">${icon.doc}</div></div>`;
+  const img = source?.thumbnail_url && !source.is_demo ? `<img src="${esc(source.thumbnail_url)}" alt="" loading="lazy">` : `<div class="play">${icon.play}</div>`;
+  return `<div class="thumb">${img}${source?.is_demo ? '<span class="demo-tag">تجريبي</span>' : ''}${duration ? `<span class="dur">${esc(fmtDuration(duration))}</span>` : ''}</div>`;
 }

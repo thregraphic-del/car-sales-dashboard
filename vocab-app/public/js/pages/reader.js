@@ -1,0 +1,371 @@
+// Reader — watch / read a source with synchronized English + Arabic lines.
+// Every meaningful word is clickable and explained in place; nothing navigates away.
+import { api } from '../api.js';
+import { state } from '../state.js';
+import { esc, icon, levelChip, fmtTime, fmtDuration, toast, $, emptyState } from '../ui.js';
+import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech } from '../components.js';
+import { tokenize, quickTier, lineAt as findLine } from '../shared/text.js';
+import { refreshStats } from '../app.js';
+
+const pref = (k, d) => {
+  try {
+    return localStorage.getItem(k) ?? d;
+  } catch {
+    return d;
+  }
+};
+const setPref = (k, v) => {
+  try {
+    localStorage.setItem(k, v);
+  } catch {
+    /* ignore */
+  }
+};
+
+/* --------------------------------------------------------------- players */
+
+let ytApi = null;
+function loadYouTubeApi() {
+  if (ytApi) return ytApi;
+  ytApi = new Promise((resolve, reject) => {
+    if (window.YT?.Player) return resolve(window.YT);
+    const s = document.createElement('script');
+    s.src = 'https://www.youtube.com/iframe_api';
+    s.onerror = () => reject(new Error('YouTube unavailable'));
+    window.onYouTubeIframeAPIReady = () => resolve(window.YT);
+    document.head.appendChild(s);
+    setTimeout(() => reject(new Error('YouTube timeout')), 12000);
+  });
+  ytApi.catch(() => (ytApi = null));
+  return ytApi;
+}
+
+/** Real YouTube player (IFrame API). */
+async function youtubePlayer(el, videoId, start) {
+  const YT = await loadYouTubeApi();
+  return new Promise((resolve) => {
+    const p = new YT.Player(el, {
+      videoId,
+      playerVars: { playsinline: 1, rel: 0, modestbranding: 1, start: Math.floor(start || 0) },
+      events: {
+        onReady: () => resolve({
+          time: () => p.getCurrentTime?.() || 0,
+          seek: (t) => {
+            p.seekTo(t, true);
+            p.playVideo();
+          },
+          playing: () => p.getPlayerState?.() === 1,
+          destroy: () => p.destroy?.(),
+        }),
+      },
+    });
+  });
+}
+
+/** Demo videos aren't on YouTube: a simple clock drives the same sync. */
+function demoPlayer(el, duration) {
+  let t = 0;
+  let playing = false;
+  let last = performance.now();
+  el.innerHTML = `
+    <div class="demo-player">
+      <button class="big-play sm" data-dp="toggle" aria-label="تشغيل">${icon.play}</button>
+      <div style="flex:1"><div class="bar dp-bar"><span style="width:0%"></span></div>
+        <div class="row between tiny muted" style="margin-top:6px"><span class="en-inline dp-time">0:00</span><span>فيديو تجريبي — محاكاة التشغيل لعرض الترجمة المتزامنة</span><span class="en-inline">${fmtDuration(duration)}</span></div></div>
+    </div>`;
+  const btn = el.querySelector('[data-dp="toggle"]');
+  const bar = el.querySelector('.dp-bar span');
+  const timeEl = el.querySelector('.dp-time');
+  const tick = setInterval(() => {
+    const now = performance.now();
+    if (playing) t = Math.min(duration, t + (now - last) / 1000);
+    last = now;
+    if (t >= duration) playing = false;
+    bar.style.width = `${(100 * t) / duration}%`;
+    timeEl.textContent = fmtTime(t);
+    btn.innerHTML = playing ? icon.pause : icon.play;
+  }, 200);
+  btn.addEventListener('click', () => {
+    playing = !playing;
+    last = performance.now();
+  });
+  el.querySelector('.dp-bar').parentElement.addEventListener('click', (e) => {
+    const r = el.querySelector('.dp-bar').getBoundingClientRect();
+    const ratio = (r.right - e.clientX) / r.width; // RTL bar fills from the right
+    if (ratio >= 0 && ratio <= 1) t = ratio * duration;
+  });
+  return { time: () => t, seek: (s) => { t = s; playing = true; last = performance.now(); }, playing: () => playing, destroy: () => clearInterval(tick) };
+}
+
+/* ---------------------------------------------------------------- render */
+
+function lineHtml(line, marks) {
+  const own = marks.filter((m) => m.line_id === line.id).sort((a, b) => a.start - b.start || b.end - a.end);
+  const spans = [];
+  let pos = 0;
+  for (const m of own) {
+    if (m.start < pos) continue; // overlapping phrase: keep the first
+    spans.push({ from: pos, to: m.start });
+    spans.push({ mark: m });
+    pos = m.end;
+  }
+  spans.push({ from: pos, to: line.text.length });
+  const plain = (text) => tokenize(text).map((t) => {
+    if (!t.word) return esc(t.text);
+    if (quickTier(t.text) === 'function') return `<span class="fw">${esc(t.text)}</span>`;
+    return `<span class="tok" data-w="${esc(t.text)}">${esc(t.text)}</span>`;
+  }).join('');
+  const body = spans.map((s) => (s.mark
+    ? `<span class="mark ${s.mark.state === 'saved' ? 's-saved' : 's-suggested'}" data-vid="${s.mark.vocabulary_id}">${esc(line.text.slice(s.mark.start, s.mark.end))}</span>`
+    : plain(line.text.slice(s.from, s.to)))).join('');
+  return `
+    <div class="line" data-id="${line.id}" data-start="${line.start_seconds ?? ''}">
+      ${line.start_seconds != null ? `<button class="ts" data-seek="${line.start_seconds}">${fmtTime(line.start_seconds)}</button>` : '<span class="ts-spacer"></span>'}
+      <div class="line-body"><p class="line-en en">${body}</p>${line.text_ar ? `<p class="line-ar">${esc(line.text_ar)}</p>` : ''}</div>
+    </div>`;
+}
+
+export async function render(view, { segments, params }) {
+  const id = Number(segments[1]);
+  let data;
+  try {
+    data = await api.source(id);
+  } catch (err) {
+    view.innerHTML = emptyState('🔎', 'لم نجد هذا المصدر', err.message, '<a class="btn" href="#/add">أضف مصدرًا</a>');
+    return;
+  }
+  const { source } = data;
+  const isVideo = source.kind === 'youtube';
+  const hasTimes = data.lines.some((l) => l.start_seconds != null);
+  let showAr = pref('reader.ar', '1') === '1';
+  let follow = pref('reader.follow', '1') === '1';
+  let player = null;
+  let currentId = null;
+  let pollTimer = null;
+  let syncTimer = null;
+  let tab = 'text';
+
+  view.innerHTML = `
+    <div class="reader-head">
+      <a class="btn icon sm ghost" href="#/add" aria-label="رجوع">${icon.prev}</a>
+      <div style="min-width:0;flex:1"><h1 class="en reader-title" dir="auto">${esc(source.title)}</h1>
+        <div class="tiny muted en">${esc(source.channel || (source.kind === 'text' ? 'نص أضفته' : ''))}${source.duration_seconds ? ` · ${fmtDuration(source.duration_seconds)}` : ''}</div></div>
+      ${source.youtube_id && !source.is_demo ? `<a class="btn icon sm ghost" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener" aria-label="فتح في يوتيوب">${icon.link}</a>` : ''}
+      <button class="btn icon sm ghost" id="del" aria-label="حذف المصدر" title="حذف المصدر">${icon.trash}</button>
+    </div>
+    <div class="reader-tabs segmented"><button data-tab="text" class="active">${isVideo ? 'الفيديو والنص' : 'النص'}</button><button data-tab="words">كلمات مقترحة (<span id="wcount">${data.items.length}</span>)</button></div>
+    <div class="reader-grid" data-tab="text">
+      <div class="reader-main">
+        ${isVideo ? '<div class="player-box"><div id="player"></div></div>' : ''}
+        <div class="reader-tools">
+          <label class="switch"><input type="checkbox" id="arToggle" ${showAr ? 'checked' : ''}> <span>${icon.subtitles} الترجمة العربية</span></label>
+          ${hasTimes ? `<label class="switch"><input type="checkbox" id="followToggle" ${follow ? 'checked' : ''}> <span>متابعة تلقائية</span></label>` : ''}
+          <span class="tiny muted" id="trNote"></span>
+        </div>
+        <div class="transcript ${showAr ? '' : 'hide-ar'}" id="lines"></div>
+        <p class="tiny muted reader-hint">اضغط على أي كلمة لترى معناها في هذه الجملة. <span class="mark s-suggested">مقترحة</span> <span class="mark s-saved">محفوظة</span></p>
+      </div>
+      <aside class="reader-side card" id="side"></aside>
+    </div>`;
+
+  const linesEl = $('#lines', view);
+  const side = $('#side', view);
+  bindSpeech(view);
+
+  const drawLines = () => {
+    const keep = linesEl.scrollTop;
+    linesEl.innerHTML = data.lines.map((l) => lineHtml(l, data.marks)).join('') || '<p class="muted">لا يوجد نص.</p>';
+    linesEl.scrollTop = keep;
+    if (currentId) linesEl.querySelector(`.line[data-id="${currentId}"]`)?.classList.add('current');
+  };
+
+  const drawSide = () => {
+    const unsaved = data.items.filter((i) => !i.user_state);
+    $('#wcount', view).textContent = data.items.length;
+    side.innerHTML = `
+      <div class="row between" style="margin-bottom:10px"><b>كلمات مقترحة</b>
+        ${unsaved.length ? `<button class="btn sm" id="saveAll">${icon.bookmark} حفظ الكل (${unsaved.length})</button>` : ''}</div>
+      ${source.extractor === 'dictionary' ? '<p class="tiny muted" style="margin:-4px 0 10px">من قاموس مختار — فعّل الذكاء الاصطناعي لاختيار أدق ومعانٍ حسب السياق.</p>' : ''}
+      <div class="side-list">${data.items.map((it) => `
+        <div class="side-item ${it.user_state === 'dismissed' ? 'dim' : ''}" data-vid="${it.vocabulary_id}" data-line="${it.line_id}">
+          <div style="min-width:0"><div class="row" style="gap:6px"><b class="en">${esc(it.term)}</b>${levelChip(it.level)}</div>
+            <div class="small ink-2 clamp1">${esc(it.arabic || '')}</div></div>
+          ${it.user_state === 'saved' ? '<span class="saved-tick" title="محفوظة">✓</span>' : `<button class="btn sm" data-save="${it.vocabulary_id}" data-occ="${it.occurrence_id}">حفظ</button>`}
+        </div>`).join('') || '<p class="small muted">لم نجد كلمات مقترحة. اضغط على أي كلمة في النص لتفهمها وتحفظها.</p>'}</div>`;
+  };
+
+  const refresh = async () => {
+    data = await api.source(id);
+    drawLines();
+    drawSide();
+    refreshStats();
+  };
+
+  drawLines();
+  drawSide();
+
+  // Arabic translation state.
+  const trNote = $('#trNote', view);
+  const missingAr = () => data.lines.some((l) => !l.text_ar);
+  const updateTrNote = (st) => {
+    const arToggle = $('#arToggle', view);
+    if (!missingAr()) {
+      trNote.textContent = '';
+      return;
+    }
+    if (st.status === 'running') trNote.innerHTML = `<span class="spinner"></span> نجهّز الترجمة العربية… ${st.done}/${st.total}`;
+    else if (st.status === 'failed') trNote.innerHTML = 'تعذّرت الترجمة. <button class="link-btn" id="retryTr">أعد المحاولة</button>';
+    else if (!state.config.ai.configured) {
+      trNote.textContent = 'الترجمة الكاملة تحتاج تفعيل الذكاء الاصطناعي على الخادم.';
+      if (!data.lines.some((l) => l.text_ar)) arToggle.disabled = true;
+    } else trNote.textContent = '';
+    $('#retryTr', view)?.addEventListener('click', async () => {
+      updateTrNote(await api.startTranslation(id));
+      poll();
+    });
+  };
+  const poll = async () => {
+    clearTimeout(pollTimer);
+    try {
+      const st = await api.translation(id);
+      updateTrNote(st);
+      const have = data.lines.filter((l) => l.text_ar).length;
+      if (st.done > have) await refresh();
+      if (st.status === 'running') pollTimer = setTimeout(poll, 3000);
+    } catch {
+      /* ignore */
+    }
+  };
+  poll();
+
+  // Player + sync.
+  const startAt = params.t ? Number(params.t) : null;
+  if (isVideo) {
+    const box = $('#player', view);
+    if (source.is_demo) player = demoPlayer(box.parentElement, source.duration_seconds || 600);
+    else {
+      box.parentElement.innerHTML = '<div id="player"></div>';
+      youtubePlayer($('#player', view), source.youtube_id, startAt).then((p) => (player = p)).catch(() => {
+        $('.player-box', view).innerHTML = `<div class="alert info">تعذّر تحميل مشغّل يوتيوب. يمكنك القراءة هنا، أو <a href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">فتح الفيديو في يوتيوب</a>.</div>`;
+      });
+    }
+  }
+
+  const setCurrent = (lineId, { scroll = follow } = {}) => {
+    if (lineId === currentId) return;
+    linesEl.querySelector('.line.current')?.classList.remove('current');
+    currentId = lineId;
+    const el = linesEl.querySelector(`.line[data-id="${lineId}"]`);
+    if (!el) return;
+    el.classList.add('current');
+    if (scroll && !isPanelOpen()) linesEl.scrollTo({ top: el.offsetTop - linesEl.clientHeight / 3, behavior: 'smooth' });
+  };
+  const lineAt = (t) => findLine(data.lines, t);
+  if (hasTimes) {
+    syncTimer = setInterval(() => {
+      if (!player) return;
+      const l = lineAt(player.time());
+      if (l) setCurrent(l.id);
+    }, 250);
+  }
+  // Deep links: ?t=seconds or ?line=id
+  if (startAt != null) {
+    const l = lineAt(startAt);
+    if (l) setTimeout(() => setCurrent(l.id, { scroll: true }), 50);
+    if (player?.seek) player.seek(startAt);
+    else setTimeout(() => player?.seek?.(startAt), 600);
+  }
+  if (params.line) {
+    setTimeout(() => {
+      const el = linesEl.querySelector(`.line[data-id="${params.line}"]`);
+      if (el) {
+        setCurrent(Number(params.line), { scroll: true });
+        el.classList.add('flash');
+      }
+    }, 50);
+  }
+
+  /* ----------------------------------------------------------- events */
+
+  const onChange = () => refresh();
+  linesEl.addEventListener('click', (e) => {
+    const seek = e.target.closest('[data-seek]');
+    if (seek) {
+      const t = Number(seek.dataset.seek);
+      player?.seek(t);
+      setCurrent(Number(seek.closest('.line').dataset.id), { scroll: false });
+      return;
+    }
+    const line = e.target.closest('.line');
+    const mark = e.target.closest('.mark');
+    const tok = e.target.closest('.tok');
+    if (mark) openWordPanel(mark, { vocabulary_id: mark.dataset.vid, line_id: line.dataset.id }, { onChange });
+    else if (tok) openWordPanel(tok, { word: tok.dataset.w, line_id: line.dataset.id }, { onChange });
+  });
+
+  side.addEventListener('click', async (e) => {
+    const save = e.target.closest('[data-save]');
+    try {
+      if (save) {
+        e.stopPropagation();
+        save.disabled = true;
+        await api.saveWord(Number(save.dataset.save), Number(save.dataset.occ));
+        toast('تم الحفظ ✓');
+        return refresh();
+      }
+      if (e.target.closest('#saveAll')) {
+        const unsaved = data.items.filter((i) => !i.user_state);
+        for (const it of unsaved) await api.saveWord(it.vocabulary_id, it.occurrence_id);
+        toast(`تم حفظ ${unsaved.length} كلمات ✓`);
+        return refresh();
+      }
+      const item = e.target.closest('.side-item');
+      if (item) {
+        if (window.matchMedia('(max-width: 900px)').matches) switchTab('text');
+        const lineEl = linesEl.querySelector(`.line[data-id="${item.dataset.line}"]`);
+        if (lineEl) {
+          setCurrent(Number(item.dataset.line), { scroll: true });
+          const it = data.items.find((x) => String(x.vocabulary_id) === item.dataset.vid);
+          if (it?.timestamp_seconds != null) player?.seek?.(it.timestamp_seconds);
+          const target = lineEl.querySelector(`.mark[data-vid="${item.dataset.vid}"]`) || lineEl;
+          setTimeout(() => openWordPanel(target, { vocabulary_id: item.dataset.vid, line_id: item.dataset.line }, { onChange }), 350);
+        }
+      }
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  $('#arToggle', view).addEventListener('change', (e) => {
+    showAr = e.target.checked;
+    setPref('reader.ar', showAr ? '1' : '0');
+    linesEl.classList.toggle('hide-ar', !showAr);
+  });
+  $('#followToggle', view)?.addEventListener('change', (e) => {
+    follow = e.target.checked;
+    setPref('reader.follow', follow ? '1' : '0');
+  });
+  const switchTab = (t) => {
+    tab = t;
+    $('.reader-grid', view).dataset.tab = t;
+    view.querySelectorAll('.reader-tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === t));
+  };
+  view.querySelector('.reader-tabs').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-tab]');
+    if (b) switchTab(b.dataset.tab);
+  });
+  $('#del', view).addEventListener('click', async () => {
+    if (!confirm('حذف هذا المصدر ونصّه؟ كلماتك المحفوظة تبقى كما هي.')) return;
+    await api.deleteSource(id);
+    toast('تم الحذف');
+    location.hash = '#/add';
+  });
+
+  return () => {
+    clearInterval(syncTimer);
+    clearTimeout(pollTimer);
+    closeWordPanel();
+    player?.destroy?.();
+    void tab;
+  };
+}

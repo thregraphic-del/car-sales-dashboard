@@ -2,12 +2,15 @@ import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { matchKey, sentenceKey } from '../public/js/shared/text.js';
+import { learningSignals } from './srs.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(here, '..');
+export const SCHEMA_VERSION = 2;
 
 const dbPath = process.env.DATABASE_PATH
-  ? path.resolve(process.env.DATABASE_PATH)
+  ? process.env.DATABASE_PATH === ':memory:' ? ':memory:' : path.resolve(process.env.DATABASE_PATH)
   : path.join(ROOT, 'data', 'lexitube.db');
 
 let db;
@@ -16,9 +19,9 @@ export function getDb() {
   if (db) return db;
   if (dbPath !== ':memory:') fs.mkdirSync(path.dirname(dbPath), { recursive: true });
   db = new DatabaseSync(dbPath);
-  db.exec('PRAGMA journal_mode = WAL;');
+  if (dbPath !== ':memory:') db.exec('PRAGMA journal_mode = WAL;');
+  migrate(db);
   db.exec('PRAGMA foreign_keys = ON;');
-  db.exec(fs.readFileSync(path.join(ROOT, 'db', 'schema.sql'), 'utf8'));
   return db;
 }
 
@@ -26,9 +29,157 @@ export function dbFile() {
   return dbPath;
 }
 
-/** Run fn inside a transaction; rolls back on error. */
+function tableExists(d, name) {
+  return !!d.prepare(`SELECT 1 FROM sqlite_master WHERE type='table' AND name=?`).get(name);
+}
+
+/** Create the schema, or upgrade a v1 database in place without losing data. */
+export function migrate(d) {
+  const version = d.prepare('PRAGMA user_version').get().user_version;
+  if (version >= SCHEMA_VERSION) return;
+  const schema = fs.readFileSync(path.join(ROOT, 'db', 'schema.sql'), 'utf8');
+  if (tableExists(d, 'video_vocabulary')) {
+    migrateV1(d, schema);
+  } else {
+    d.exec(schema);
+  }
+  d.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+}
+
+const BAND_FOR = { A1: 'basic', A2: 'basic', B1: 'useful', B2: 'useful', C1: 'advanced', C2: 'advanced' };
+
+/**
+ * v1 → v2: videos→sources, video_vocabulary→transcript_lines+occurrences,
+ * campaigns→word_groups; vocabulary rows that are really the same item
+ * (same match key) are merged into one.
+ */
+function migrateV1(d, schema) {
+  const read = (t) => (tableExists(d, t) ? d.prepare(`SELECT * FROM ${t} ORDER BY rowid`).all() : []);
+  const legacy = {};
+  for (const t of ['users', 'videos', 'vocabulary', 'examples', 'video_vocabulary', 'user_vocabulary', 'review_logs', 'daily_plans', 'daily_plan_items', 'campaigns', 'campaign_items']) {
+    legacy[t] = read(t);
+  }
+  d.exec('PRAGMA foreign_keys = OFF');
+  d.exec('BEGIN');
+  try {
+    for (const t of ['campaign_items', 'campaigns', 'daily_plan_items', 'daily_plans', 'review_logs', 'user_vocabulary', 'video_vocabulary', 'examples', 'vocabulary', 'videos', 'users']) {
+      d.exec(`DROP TABLE IF EXISTS ${t}`);
+    }
+    d.exec(schema);
+    const ins = (sql, ...p) => Number(d.prepare(sql).run(...p).lastInsertRowid);
+
+    for (const u of legacy.users) {
+      ins(`INSERT INTO users (id, name, daily_goal, speak_arabic, speech_rate, created_at) VALUES (?,?,?,?,?,?)`,
+        u.id, u.name, u.daily_goal, u.speak_arabic, u.speech_rate, u.created_at);
+    }
+    for (const v of legacy.videos) {
+      ins(`INSERT INTO sources (id, kind, youtube_id, url, title, channel, duration_seconds, thumbnail_url, transcript_source, extractor, word_count, is_demo, created_at, analyzed_at)
+           VALUES (?,'youtube',?,?,?,?,?,?,?,?,?,?,?,?)`,
+        v.id, v.youtube_id, v.url, v.title, v.channel, v.duration_seconds, v.thumbnail_url, v.transcript_source, v.extractor, v.word_count, v.is_demo, v.analyzed_at, v.analyzed_at);
+    }
+    const vocabMap = new Map();
+    const byKey = new Map();
+    for (const v of legacy.vocabulary) {
+      const key = matchKey(v.term);
+      if (byKey.has(key)) {
+        vocabMap.set(v.id, byKey.get(key));
+        continue;
+      }
+      const id = ins(`INSERT INTO vocabulary (term, match_key, item_type, part_of_speech, level, band, usefulness, pronunciation, arabic, simple_english, similar_json, topic, origin, created_at)
+                      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        v.term, key, v.item_type, v.part_of_speech, v.level, BAND_FOR[v.level] || null, v.usefulness, v.pronunciation, v.arabic, v.simple_english, v.similar_json, v.topic, null, v.created_at);
+      byKey.set(key, id);
+      vocabMap.set(v.id, id);
+    }
+    for (const e of legacy.examples) {
+      d.prepare(`INSERT OR IGNORE INTO examples (vocabulary_id, kind, sentence, sentence_key, arabic) VALUES (?,?,?,?,?)`)
+        .run(vocabMap.get(e.vocabulary_id), e.kind, e.sentence, sentenceKey(e.sentence), e.arabic);
+    }
+    // Rebuild what we can of each transcript from the saved context sentences.
+    const occMap = new Map();
+    const byVideo = new Map();
+    for (const vv of legacy.video_vocabulary) {
+      if (!byVideo.has(vv.video_id)) byVideo.set(vv.video_id, []);
+      byVideo.get(vv.video_id).push(vv);
+    }
+    for (const [videoId, rows] of byVideo) {
+      rows.sort((a, b) => (a.timestamp_seconds ?? 0) - (b.timestamp_seconds ?? 0));
+      const lineIds = new Map();
+      for (const vv of rows) {
+        const sk = sentenceKey(vv.context_sentence);
+        if (!lineIds.has(sk)) {
+          lineIds.set(sk, ins(`INSERT INTO transcript_lines (source_id, idx, start_seconds, text, text_ar) VALUES (?,?,?,?,?)`,
+            videoId, lineIds.size, vv.timestamp_seconds, vv.context_sentence, vv.context_arabic));
+        }
+        const vocabId = vocabMap.get(vv.vocabulary_id);
+        const existing = d.prepare('SELECT id FROM occurrences WHERE source_id=? AND vocabulary_id=? AND line_id=?').get(videoId, vocabId, lineIds.get(sk));
+        const occId = existing
+          ? existing.id
+          : ins(`INSERT INTO occurrences (vocabulary_id, source_id, line_id, sentence, sentence_ar, contextual_meaning, timestamp_seconds, suggested, rank)
+                 VALUES (?,?,?,?,?,?,?,1,?)`,
+            vocabId, videoId, lineIds.get(sk), vv.context_sentence, vv.context_arabic, vv.contextual_meaning, vv.timestamp_seconds, vv.rank);
+        occMap.set(vv.id, occId);
+      }
+    }
+    const uvMap = new Map();
+    const uvByVocab = new Map();
+    for (const uv of [...legacy.user_vocabulary].sort((a, b) => b.review_count - a.review_count)) {
+      const vocabId = vocabMap.get(uv.vocabulary_id);
+      const k = `${uv.user_id}:${vocabId}`;
+      if (uvByVocab.has(k)) {
+        uvMap.set(uv.id, uvByVocab.get(k));
+        continue;
+      }
+      const id = ins(`INSERT INTO user_vocabulary (user_id, vocabulary_id, occurrence_id, source_id, state, saved_at, review_count, correct_count, wrong_count,
+                        streak_correct, lapses, ease, interval_days, mastery, last_reviewed_at, next_review_at)
+                      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        uv.user_id, vocabId, occMap.get(uv.video_vocabulary_id) ?? null, uv.source_video_id, uv.state, uv.saved_at, uv.review_count, uv.correct_count,
+        uv.wrong_count, uv.streak_correct, uv.lapses, uv.ease, uv.interval_days, uv.mastery, uv.last_reviewed_at, uv.next_review_at);
+      uvByVocab.set(k, id);
+      uvMap.set(uv.id, id);
+    }
+    for (const l of legacy.review_logs) {
+      if (!uvMap.has(l.user_vocabulary_id)) continue;
+      ins(`INSERT INTO review_logs (user_id, user_vocabulary_id, source, grade, correct, interval_after, created_at) VALUES (?,?,?,?,?,?,?)`,
+        l.user_id, uvMap.get(l.user_vocabulary_id), l.source, l.grade, l.correct, l.interval_after, l.created_at);
+    }
+    for (const p of legacy.daily_plans) ins(`INSERT INTO daily_plans (id, user_id, plan_date, created_at) VALUES (?,?,?,?)`, p.id, p.user_id, p.plan_date, p.created_at);
+    for (const i of legacy.daily_plan_items) {
+      if (!uvMap.has(i.user_vocabulary_id)) continue;
+      d.prepare(`INSERT OR IGNORE INTO daily_plan_items (plan_id, user_vocabulary_id, bucket, position, completed_at) VALUES (?,?,?,?,?)`)
+        .run(i.plan_id, uvMap.get(i.user_vocabulary_id), i.bucket, i.position, i.completed_at);
+    }
+    const groupMap = new Map();
+    for (const c of legacy.campaigns) {
+      let name = c.name;
+      for (let n = 2; d.prepare('SELECT 1 FROM word_groups WHERE user_id=? AND name=? COLLATE NOCASE').get(c.user_id, name); n += 1) name = `${c.name} (${n})`;
+      groupMap.set(c.id, ins(`INSERT INTO word_groups (user_id, name, color, created_at) VALUES (?,?,?,?)`, c.user_id, name, c.color, c.created_at));
+    }
+    for (const ci of legacy.campaign_items) {
+      if (!groupMap.has(ci.campaign_id) || !uvMap.has(ci.user_vocabulary_id)) continue;
+      d.prepare('INSERT OR IGNORE INTO word_group_items (group_id, user_vocabulary_id) VALUES (?,?)').run(groupMap.get(ci.campaign_id), uvMap.get(ci.user_vocabulary_id));
+    }
+    // Derive the new learning signals from the existing answer history.
+    for (const uv of d.prepare('SELECT * FROM user_vocabulary').all()) {
+      const logs = d.prepare('SELECT correct, created_at FROM review_logs WHERE user_vocabulary_id=? ORDER BY id').all(uv.id);
+      const sig = learningSignals(uv, logs);
+      d.prepare('UPDATE user_vocabulary SET recent=?, difficulty=?, last_wrong_at=? WHERE id=?').run(sig.recent, sig.difficulty, sig.last_wrong_at, uv.id);
+    }
+    d.exec('COMMIT');
+  } catch (err) {
+    d.exec('ROLLBACK');
+    throw err;
+  } finally {
+    d.exec('PRAGMA foreign_keys = ON');
+  }
+}
+
+/** Run fn inside a transaction (re-entrant: nested calls join the outer one). */
+let depth = 0;
 export function tx(fn) {
   const d = getDb();
+  if (depth > 0) return fn(d);
+  depth += 1;
   d.exec('BEGIN');
   try {
     const out = fn(d);
@@ -37,6 +188,8 @@ export function tx(fn) {
   } catch (err) {
     d.exec('ROLLBACK');
     throw err;
+  } finally {
+    depth -= 1;
   }
 }
 
@@ -50,13 +203,4 @@ export function localDate(d = new Date()) {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
-}
-
-export function normaliseTerm(term) {
-  return term
-    .toLowerCase()
-    .replace(/[’']/g, "'")
-    .replace(/[^a-z' -]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
 }

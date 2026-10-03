@@ -1,48 +1,17 @@
-import { api } from '../api.js';
-import { state } from '../state.js';
-import { speak, stop, wait } from '../audio.js';
-import { esc, icon, levelChip, emptyState, highlight, typeLabel } from '../ui.js';
+import { state } from './state.js';
+import { speak, stop, wait } from './audio.js';
+import { esc, icon, levelChip, highlight, typeLabel } from './ui.js';
 
-const SCOPES = [
-  ['today', 'كلمات اليوم'],
-  ['review', 'المستحقة'],
-  ['difficult', 'الصعبة'],
-  ['week', 'هذا الأسبوع'],
-  ['all', 'الكل'],
-];
 
-export async function render(view, { params }) {
-  const scope = params.scope || (params.campaign ? null : 'today');
-  let words;
-  let title = 'استمع وتعلّم';
-  if (params.campaign) {
-    const c = await api.campaign(params.campaign);
-    words = c.words;
-    title = `استماع: ${c.name}`;
-  } else if (scope === 'today') {
-    words = (await api.gamePool('today')).words;
-  } else {
-    words = await api.words({ section: scope });
-  }
-
+/** Listening mode: word → pronunciation → meaning → example, hands-free. */
+export function runListening(body, words) {
   let idx = 0;
   let rate = 1;
   let playing = false;
   let auto = true;
   let runId = 0;
   let speakArabic = !!state.user?.speak_arabic;
-
-  view.innerHTML = `
-    <div class="page-head"><div><div class="eyebrow">Listen &amp; Learn</div><h1>${esc(title)}</h1>
-      <p>الكلمة ← النطق ← المعنى ← المثال. استمع أثناء المشي أو قبل النوم.</p></div></div>
-    ${scope ? `<div class="tabs">${SCOPES.map(([k, l]) => `<a class="tab ${k === scope ? 'active' : ''}" href="#/listening?scope=${k}">${l}</a>`).join('')}</div>` : ''}
-    <div id="body"></div>`;
-  const body = view.querySelector('#body');
-  if (!words.length) {
-    body.innerHTML = emptyState('🎧', 'لا توجد كلمات هنا', 'اختر مجموعة أخرى أو احفظ كلمات جديدة.', '<a class="btn" href="#/listening?scope=all">استمع لكل الكلمات</a>');
-    return;
-  }
-
+  const view = body;
   body.innerHTML = `
     <div class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr);align-items:start" id="lg">
       <div class="stack">
@@ -80,7 +49,7 @@ export async function render(view, { params }) {
       <div class="row" style="gap:6px">${levelChip(w.level)}<span class="chip ar-chip">${esc(typeLabel(w))}</span><span class="tiny muted en-inline">${idx + 1} / ${words.length}</span></div>
       <div class="lt-step lt-term ${step >= 0 ? 'on' : ''}">${esc(w.term)}</div>
       <div class="lt-step en muted ${step >= 1 ? 'on' : ''}" style="font-size:17px">${esc(w.pronunciation || '')}</div>
-      <div class="lt-step ${step >= 2 ? 'on' : ''}"><div style="font-size:23px;font-weight:700">${esc(w.arabic)}</div><div class="en ink-2" style="text-align:center">${esc(w.simple_english)}</div></div>
+      <div class="lt-step ${step >= 2 ? 'on' : ''}"><div style="font-size:23px;font-weight:700">${esc(w.arabic || '')}</div><div class="en ink-2" style="text-align:center">${esc(w.simple_english || '')}</div></div>
       ${exText ? `<div class="lt-step quote ${step >= 3 ? 'on' : ''}" style="max-width:520px;text-align:left"><p class="en">${highlight(exText, w.term)}</p></div>` : ''}`;
     queue.innerHTML = words.map((x, k) => `<button class="${k === idx ? 'on' : ''}" data-k="${k}"><span class="en-inline">${esc(x.term)}</span><span class="tiny muted">${esc(x.level)}</span></button>`).join('');
     queue.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
@@ -103,11 +72,11 @@ export async function render(view, { params }) {
       if (!alive()) return;
       await wait(400);
       drawWord(2);
-      if (speakArabic) {
+      if (speakArabic && w.arabic) {
         await speak(w.arabic.split('/')[0], { lang: 'ar', rate });
         if (!alive()) return;
       }
-      await speak(w.simple_english, { rate });
+      if (w.simple_english) await speak(w.simple_english, { rate });
       if (!alive()) return;
       await wait(500);
       drawWord(3);
