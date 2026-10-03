@@ -28,8 +28,10 @@ export const config = {
     sessionSecret: env('SESSION_SECRET'),
     sessionDays: int('SESSION_DAYS', 60),
     cookieName: 'lt_session',
-    // Local development without SESSION_SECRET runs without login (single local user).
-    required: Boolean(env('SESSION_SECRET')),
+    // Login is always on for the public site. Locally it is off unless
+    // SESSION_SECRET is set. Without SESSION_SECRET the server generates a
+    // random signing key once and keeps it in the database (never sent out).
+    required: Boolean(process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME) || env('NODE_ENV') === 'production' || Boolean(env('SESSION_SECRET')),
   },
 
   ai: {

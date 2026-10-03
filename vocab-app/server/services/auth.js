@@ -10,6 +10,7 @@ import { promisify } from 'node:util';
 import { config } from '../config.js';
 import { httpError } from '../lib/errors.js';
 import { DEFAULT_USER_ID, ensureUser, getUser, findByUsername, setCredentials, ownerExists } from '../data/users.js';
+import { getOrCreateSetting } from '../data/settings.js';
 
 const scrypt = promisify(crypto.scrypt);
 const SCRYPT = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
@@ -35,20 +36,25 @@ const sameSecret = (a, b) => {
 };
 
 const b64 = (s) => Buffer.from(s).toString('base64url');
-const sign = (data) => crypto.createHmac('sha256', config.auth.sessionSecret).update(data).digest('base64url');
+let signingKey = null;
+async function key() {
+  if (!signingKey) signingKey = config.auth.sessionSecret || await getOrCreateSetting('session_secret', () => crypto.randomBytes(48).toString('base64url'));
+  return signingKey;
+}
+const sign = async (data) => crypto.createHmac('sha256', await key()).update(data).digest('base64url');
 const fingerprint = (hash) => crypto.createHash('sha256').update(String(hash)).digest('base64url').slice(0, 12);
 
-export function createSessionToken(user) {
+export async function createSessionToken(user) {
   const payload = b64(JSON.stringify({ uid: user.id, fp: fingerprint(user.password_hash), exp: Date.now() + config.auth.sessionDays * 86400000 }));
-  return `${payload}.${sign(payload)}`;
+  return `${payload}.${await sign(payload)}`;
 }
 
 /** The user of a valid session token, or null. */
 export async function userFromToken(token) {
-  if (!token || !config.auth.sessionSecret) return null;
+  if (!token) return null;
   const [payload, sig] = String(token).split('.');
   if (!payload || !sig) return null;
-  const expected = sign(payload);
+  const expected = await sign(payload);
   if (sig.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
   let data;
   try {

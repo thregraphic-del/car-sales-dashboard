@@ -12,19 +12,19 @@ function setCookie(res, value, maxAgeSeconds) {
   if (config.app.production) parts.push('Secure');
   res.append('Set-Cookie', parts.join('; '));
 }
-const startSession = (res, user) => setCookie(res, auth.createSessionToken(user), config.auth.sessionDays * 86400);
+const startSession = async (res, user) => setCookie(res, await auth.createSessionToken(user), config.auth.sessionDays * 86400);
 
 router.get('/status', wrap(async (req) => ({ ...await auth.status(req.user), user: publicUser(req.user) })));
 
 router.post('/setup', wrap(async (req, res) => {
   const user = await auth.setup(req.body || {}, req.ip);
-  startSession(res, user);
+  await startSession(res, user);
   return { ok: true, user: publicUser(user) };
 }));
 
 router.post('/login', wrap(async (req, res) => {
   const user = await auth.login(req.body || {}, req.ip);
-  startSession(res, user);
+  await startSession(res, user);
   return { ok: true, user: publicUser(user) };
 }));
 
@@ -36,7 +36,7 @@ router.post('/logout', wrap(async (_req, res) => {
 router.post('/password', wrap(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'سجّل الدخول أولًا.', code: 'auth' });
   const user = await auth.changePassword(req.user, req.body || {});
-  startSession(res, user);
+  await startSession(res, user);
   return { ok: true };
 }));
 

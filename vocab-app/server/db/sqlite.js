@@ -121,6 +121,7 @@ export function migrate(d) {
     if (!cols.includes('password_hash')) d.exec('ALTER TABLE users ADD COLUMN password_hash TEXT');
     const srcCols = d.prepare('PRAGMA table_info(sources)').all().map((c) => c.name);
     if (!srcCols.includes('ai_cursor')) d.exec('ALTER TABLE sources ADD COLUMN ai_cursor INTEGER NOT NULL DEFAULT 0');
+    d.exec('CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
     d.exec(`CREATE TABLE IF NOT EXISTS backups (id INTEGER PRIMARY KEY AUTOINCREMENT, reason TEXT NOT NULL, payload TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))`);
   }

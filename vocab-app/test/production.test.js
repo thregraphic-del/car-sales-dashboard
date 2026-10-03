@@ -6,7 +6,7 @@ import { freshDatabase, startApp } from './helpers.js';
 
 const db = freshDatabase('lexitube-prod-');
 process.env.NETLIFY = 'true'; // production mode
-process.env.SESSION_SECRET = 'test-session-secret-0123456789abcdef';
+delete process.env.SESSION_SECRET; // production generates its own signing key
 process.env.SETUP_CODE = 'test-setup-code';
 process.env.OPENROUTER_API_KEY = 'sk-or-secret-test-value';
 

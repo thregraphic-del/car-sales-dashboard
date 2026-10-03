@@ -12,7 +12,8 @@ export async function render(view, { onDone }) {
       <div class="card stack">
         <h2 style="margin:0">${setup ? 'إنشاء حسابك' : 'تسجيل الدخول'}</h2>
         ${setup
-          ? `<p class="small ink-2">هذا الموقع خاص بك. اكتب <b>رمز الإعداد</b> الذي أعطيتُك إياه، ثم اختر اسم مستخدم وكلمة مرور. بعد ذلك يُغلق التسجيل نهائيًا.</p>
+          ? `<p class="small ink-2">هذا الموقع خاص بك. اكتب <b>رمز الإعداد</b>، ثم اختر اسم مستخدم وكلمة مرور. بعد ذلك يُغلق التسجيل نهائيًا.</p>
+             <p class="tiny muted">تجد رمز الإعداد في حسابك على Netlify: المشروع ← Project configuration ← Environment variables ← <span class="en-inline">SETUP_CODE</span>.</p>
              ${status.setup_available ? '' : '<div class="alert warn">لم يُضبط رمز الإعداد على الخادم (SETUP_CODE).</div>'}`
           : '<p class="small ink-2">ادخل لمتابعة التعلّم من حيث توقفت.</p>'}
         <form id="authForm" autocomplete="on">

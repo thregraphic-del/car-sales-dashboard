@@ -174,6 +174,12 @@ CREATE TABLE IF NOT EXISTS backups (
   created_at TEXT NOT NULL DEFAULT to_char(now() AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
 );
 
+-- Server-only settings (generated session signing key). Never sent to the browser.
+CREATE TABLE IF NOT EXISTS app_settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
 CREATE INDEX IF NOT EXISTS idx_lines_source      ON transcript_lines(source_id, idx);
 CREATE INDEX IF NOT EXISTS idx_occ_source        ON occurrences(source_id, line_id);
 CREATE INDEX IF NOT EXISTS idx_occ_vocab         ON occurrences(vocabulary_id);
