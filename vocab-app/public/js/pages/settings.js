@@ -41,6 +41,8 @@ export async function render(view) {
         <p class="tiny muted">${cfg.ai.configured ? 'المعاني العربية تُستخرج حسب سياق كل جملة في الفيديو.' : 'لتفعيل التحليل السياقي بالذكاء الاصطناعي، اضبط ANTHROPIC_API_KEY على الخادم (ملف ‎.env). لا تُرسل المفاتيح إلى المتصفح أبدًا.'}</p>
         <div class="row between small"><span>تحويل النص إلى كلام</span><span class="chip ar-chip ${cfg.tts.server ? 'st-mastered' : 'st-learning'}">${cfg.tts.server ? esc(cfg.tts.provider) : 'أصوات المتصفح'}</span></div>
         <p class="tiny muted">لأصوات أعلى جودة اضبط TTS_PROVIDER و TTS_API_KEY على الخادم.</p>
+        <div class="row between small"><span>نسخة التطبيق</span><span class="chip en-inline">v${esc(cfg.app?.version || '?')}</span></div>
+        <div class="small"><span>مجلد المشروع الذي يعمل الآن:</span><div class="en tiny" style="word-break:break-all;background:var(--surface-2);padding:6px 8px;border-radius:8px;margin-top:4px">${esc(cfg.app?.root || '')}</div></div>
         <div class="row between small"><span>قاعدة البيانات</span><span class="chip en-inline">${esc(cfg.database.engine)} · ${esc(cfg.database.file)}</span></div>
       </div>
       <div class="card stack">

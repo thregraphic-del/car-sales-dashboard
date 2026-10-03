@@ -1,4 +1,5 @@
 import express from 'express';
+import fs from 'node:fs';
 import path from 'node:path';
 import * as repo from './repo.js';
 import * as service from './service.js';
@@ -9,6 +10,10 @@ import { ttsInfo, ttsConfigured, speak } from './tts.js';
 import { seedIfEmpty, resetDatabase, seedDemo } from './seed.js';
 
 const app = express();
+// Identity of THIS copy of the app: shown in the UI and at /api/version so it
+// is always clear which folder and version a browser is talking to.
+export const APP = { version: JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8')).version, root: ROOT, ui: 'v2-four-pages' };
+
 app.use(express.json({ limit: '4mb' }));
 
 // Single-learner prototype: every request acts as user 1. Every user table is
@@ -26,12 +31,15 @@ const wrap = (fn) => async (req, res, next) => {
     next(err);
   }
 };
+const STARTED = new Date().toISOString();
 const num = (v) => (v === undefined || v === null || v === '' ? undefined : Number(v));
 const idList = (v) => (Array.isArray(v) ? v : String(v || '').split(',')).map(Number).filter(Boolean);
 
 /* ------------------------------------------------------------ config */
 
+app.get('/api/version', (_req, res) => res.json({ app: 'LexiTube', ...APP, pid: process.pid, started_at: STARTED }));
 app.get('/api/config', wrap(async (req) => ({
+  app: APP,
   ai: { configured: claudeConfigured() },
   tts: ttsInfo(),
   user: repo.ensureUser(req.userId),
@@ -198,7 +206,12 @@ app.post('/api/admin/reset-demo', wrap(async () => {
 
 /* ----------------------------------------------------------- static */
 
-app.use(express.static(path.join(ROOT, 'public'), { extensions: ['html'] }));
+// no-cache: the browser must revalidate every file, so an update is never
+// hidden behind an old cached app.js or page module.
+app.use(express.static(path.join(ROOT, 'public'), {
+  extensions: ['html'],
+  setHeaders: (res) => res.set('Cache-Control', 'no-cache'),
+}));
 app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(ROOT, 'public', 'index.html')));
 app.use('/api', (_req, res) => res.status(404).json({ error: 'غير موجود' }));
 
@@ -217,10 +230,29 @@ if (process.argv[1] && import.meta.url === new URL(`file://${path.resolve(proces
   const seeded = seedIfEmpty();
   if (seeded) console.log('First run — demo data created:', seeded);
   const port = Number(process.env.PORT) || 3000;
-  app.listen(port, () => {
-    console.log(`LexiTube running on http://localhost:${port}`);
+  const server = app.listen(port, () => {
+    console.log(`LexiTube v${APP.version} running on http://localhost:${port}`);
+    console.log(`  project folder: ${ROOT}`);
     console.log(`  database: ${dbFile()}`);
     console.log(`  AI: ${claudeConfigured() ? 'Claude (context-aware meanings, Arabic subtitles)' : 'off — offline dictionary (set ANTHROPIC_API_KEY)'}`);
     console.log(`  text-to-speech: ${ttsConfigured() ? process.env.TTS_PROVIDER : 'browser voices'}`);
+  });
+  // Port already taken (usually an older LexiTube still running): say exactly
+  // which copy is occupying it instead of failing silently.
+  server.on('error', async (err) => {
+    if (err.code !== 'EADDRINUSE') throw err;
+    let other = null;
+    try {
+      other = await (await fetch(`http://127.0.0.1:${port}/api/version`)).json();
+    } catch {
+      /* not LexiTube, or an old version without /api/version */
+    }
+    console.error('');
+    console.error(`✖ Port ${port} is already in use — this copy (v${APP.version}) did NOT start.`);
+    if (other?.root) console.error(`  Another LexiTube v${other.version} is running from: ${other.root} (PID ${other.pid})`);
+    else console.error('  Probably an OLDER LexiTube (v1) is still running in another window.');
+    console.error('  Close the other LexiTube window (or press Ctrl+C in it), then start this one again.');
+    console.error(`  المنفذ ${port} مستخدم — أغلق نافذة LexiTube القديمة ثم شغّل هذه النسخة من جديد.`);
+    process.exit(1);
   });
 }

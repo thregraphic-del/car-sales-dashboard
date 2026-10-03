@@ -1,6 +1,6 @@
 {
   "name": "lexitube",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Learn English vocabulary from YouTube videos — built for Arabic-speaking intermediate learners.",
   "type": "module",
   "private": true,
