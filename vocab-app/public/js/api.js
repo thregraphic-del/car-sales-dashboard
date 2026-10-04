@@ -91,5 +91,7 @@ export const api = {
   importRows: (table, rows) => request('POST', '/api/data/import/rows', { table, rows }),
   importFinish: () => request('POST', '/api/data/import/finish'),
   loadDemo: () => request('POST', '/api/data/demo'),
+  aiStatus: () => request('GET', '/api/ai/status'),
+  explain: (text, line_id) => request('POST', '/api/ai/explain', { text, line_id }),
   resetDemo: () => request('POST', '/api/data/reset-demo'),
 };

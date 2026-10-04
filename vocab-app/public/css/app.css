@@ -633,3 +633,11 @@ body.auth-mode .shell { grid-template-columns: 1fr; }
 .data-counts span { background: var(--surface-2); border-radius: 8px; padding: 6px 8px; font-size: 12.5px; }
 .progress-line { height: 6px; border-radius: 4px; background: var(--surface-2); overflow: hidden; }
 .progress-line i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .2s; }
+
+/* live transcript sync + AI explain */
+.line.current { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+[dir="rtl"] .line.current, .line.current:dir(rtl) { box-shadow: inset -3px 0 0 var(--accent); }
+.line.seekable { cursor: pointer; }
+.line.has-words.current .w-said { opacity: .55; }
+.line .w-now { background: color-mix(in srgb, var(--accent-2) 35%, transparent); border-radius: 4px; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-2) 35%, transparent); }
+.explain-fab { position: absolute; z-index: 60; box-shadow: var(--shadow-sm); }

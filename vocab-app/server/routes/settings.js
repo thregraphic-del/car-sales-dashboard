@@ -2,7 +2,7 @@
 import { Router } from 'express';
 import { config } from '../config.js';
 import { wrap, str } from '../http.js';
-import { aiStatus } from '../services/ai.js';
+import { aiStatus, checkModel } from '../services/ai.js';
 import { ttsInfo } from '../services/tts.js';
 import { ensureUser, updateUser, publicUser } from '../data/users.js';
 import { dialect } from '../db/index.js';
@@ -13,6 +13,7 @@ const STARTED = new Date().toISOString();
 router.get('/version', (_req, res) => res.json({ app: config.app.name, version: config.app.version, ui: 'v3', started_at: STARTED }));
 
 router.get('/config', wrap(async (req) => ({
+  ...(await checkModel(), {}),
   app: { name: config.app.name, version: config.app.version, production: config.app.production, timezone: config.app.timezone },
   ai: aiStatus(),
   tts: ttsInfo(),

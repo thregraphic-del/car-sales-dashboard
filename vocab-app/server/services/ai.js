@@ -1,15 +1,24 @@
 // OpenRouter client (server-side only — the key never reaches the browser).
 //
-//   OPENROUTER_API_KEY   required to enable AI (read from .env)
-//   OPENROUTER_MODEL     optional, e.g. openai/gpt-4o-mini (default: openrouter/auto)
+//   OPENROUTER_API_KEY       required to enable AI (Netlify environment variable / local .env)
+//   OPENROUTER_MODEL         optional, e.g. openai/gpt-4o-mini (default: openrouter/auto)
+//   AI_DAILY_LIMIT_PER_USER  requests per learner per day (default 300; cached answers are free)
+//
+// Only the few lines a task needs are sent (a clicked word with its sentence,
+// a selected phrase, 15–25 transcript lines) — never a whole transcript.
 //
 // Every successful answer is cached in the ai_cache table, so the same word /
 // sentence / batch never calls the API twice. When OpenRouter is unreachable
 // the app keeps working offline and retries later.
 import crypto from 'node:crypto';
-import { get, run } from '../db/index.js';
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { get, all, run } from '../db/index.js';
 import { config } from '../config.js';
 export const OFFLINE_MESSAGE = 'شرح الذكاء الاصطناعي غير متاح — نستخدم القاموس المحلي.';
+export const MISSING_KEY_MESSAGE = 'الذكاء الاصطناعي غير مفعّل: لم يُضبط مفتاح OpenRouter على الخادم (OPENROUTER_API_KEY).';
+
+/** Who is asking (set per request by the app) — for the per-learner daily limit. */
+export const aiContext = new AsyncLocalStorage();
 export const OFFLINE_MESSAGE_EN = 'AI explanation is unavailable — using offline dictionary.';
 
 let pausedUntil = 0;
@@ -36,8 +45,59 @@ export function aiStatus() {
     available: aiAvailable(),
     provider: 'openrouter',
     model: aiConfigured() ? aiModel() : null,
+    model_available: aiConfigured() ? modelCheck.ok : null,
     last_error: lastError,
+    message: aiConfigured() ? null : MISSING_KEY_MESSAGE,
+    daily_limit: config.ai.dailyLimitPerUser,
   };
+}
+
+/* ---------------------------------------------------- model availability */
+
+// Is OPENROUTER_MODEL a model OpenRouter offers? (Public list, checked every 6 hours.)
+const modelCheck = { ok: null, at: 0, model: null };
+export async function checkModel({ force = false } = {}) {
+  if (!aiConfigured()) return null;
+  const model = aiModel();
+  if (!force && modelCheck.model === model && Date.now() - modelCheck.at < 6 * 3600000) return modelCheck.ok;
+  if (model === 'openrouter/auto') {
+    Object.assign(modelCheck, { ok: true, at: Date.now(), model });
+    return true;
+  }
+  try {
+    const ctrl = AbortSignal.timeout(4000);
+    const res = await fetch(`${config.ai.baseUrl}/models`, { signal: ctrl, headers: { Authorization: `Bearer ${config.ai.apiKey()}` } });
+    if (!res.ok) return modelCheck.ok;
+    const list = (await res.json())?.data || [];
+    const ok = list.some((m) => m.id === model || m.canonical_slug === model);
+    Object.assign(modelCheck, { ok, at: Date.now(), model });
+    if (!ok) lastError = `model "${model}" is not offered by OpenRouter`;
+    return ok;
+  } catch {
+    return modelCheck.ok; // unknown: don't block AI because the list couldn't be read
+  }
+}
+
+/* ----------------------------------------------------- per-learner quota */
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+/** Count one AI request for the current learner; throws when today's limit is reached. */
+async function useQuota() {
+  const userId = aiContext.getStore()?.userId;
+  const limit = config.ai.dailyLimitPerUser;
+  if (!userId || !(limit > 0)) return;
+  const rows = await all(
+    'INSERT INTO ai_usage (user_id, day, calls) VALUES (?, ?, 1) ON CONFLICT (user_id, day) DO UPDATE SET calls = ai_usage.calls + 1 RETURNING calls',
+    userId, today(),
+  );
+  if (Number(rows[0]?.calls) > limit) {
+    throw new AiError(`وصلت إلى حد استخدام الذكاء الاصطناعي اليوم (${limit} طلب). القاموس المحلي يعمل، ويتجدد الحد غدًا.`, 429, { offline: false });
+  }
+}
+
+export async function usageToday(userId) {
+  return Number((await get('SELECT calls FROM ai_usage WHERE user_id = ? AND day = ?', userId, today()))?.calls || 0);
 }
 
 export class AiError extends Error {
@@ -120,7 +180,7 @@ async function post(body, timeoutMs) {
  * AI is not configured, paused, unreachable or returns something unusable.
  */
 export async function jsonCall({ task, system, user, schema, zod, maxTokens = 4000, timeoutMs = config.ai.timeoutMs, cache = true }) {
-  if (!aiConfigured()) throw new AiError(OFFLINE_MESSAGE);
+  if (!aiConfigured()) throw new AiError(MISSING_KEY_MESSAGE);
   const key = cacheKey(task, user);
   if (cache) {
     const hit = await readCache(key);
@@ -134,6 +194,7 @@ export async function jsonCall({ task, system, user, schema, zod, maxTokens = 40
   }
   if (!aiAvailable()) throw new AiError(OFFLINE_MESSAGE);
   if (!withinBudget()) throw new AiError('خدمة الذكاء الاصطناعي مشغولة الآن — نستخدم القاموس المحلي. حاول بعد قليل.', 429);
+  await useQuota();
 
   // On serverless hosting the whole call (including format retries) must
   // finish before the function's time limit.
@@ -182,7 +243,7 @@ export async function jsonCall({ task, system, user, schema, zod, maxTokens = 40
     }
     if (lastStatus === 400 || lastStatus === 404) {
       lastError = `model "${aiModel()}" rejected the request (HTTP ${lastStatus})`;
-      throw new AiError('النموذج المحدد في OPENROUTER_MODEL لا يقبل الطلب — نستخدم القاموس المحلي.', 503);
+      throw new AiError('النموذج المحدد في OPENROUTER_MODEL غير متاح أو لا يقبل الطلب — نستخدم القاموس المحلي.', 503);
     }
     pause(config.ai.pauseAfterServerErrorMs, `HTTP ${lastStatus}`);
     throw new AiError(OFFLINE_MESSAGE);
@@ -213,4 +274,5 @@ export function _resetAi() {
   pausedUntil = 0;
   calls.length = 0;
   lastError = null;
+  Object.assign(modelCheck, { ok: null, at: 0, model: null });
 }

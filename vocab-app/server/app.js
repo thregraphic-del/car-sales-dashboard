@@ -4,6 +4,7 @@ import express from 'express';
 import { config } from './config.js';
 import { DEFAULT_USER_ID, ensureUser } from './data/users.js';
 import { userFromToken } from './services/auth.js';
+import { aiContext } from './services/ai.js';
 import { parseYoutubeId } from './lib/youtube.js';
 import authRoutes from './routes/auth.js';
 import settingsRoutes from './routes/settings.js';
@@ -14,6 +15,7 @@ import importRoutes from './routes/import.js';
 import groupRoutes from './routes/groups.js';
 import dataRoutes from './routes/data.js';
 import ttsRoutes from './routes/tts.js';
+import aiRoutes from './routes/ai.js';
 
 const PUBLIC_PATHS = new Set(['/api/version', '/api/auth/status', '/api/auth/login', '/api/auth/setup', '/api/auth/register', '/api/auth/logout']);
 
@@ -52,11 +54,11 @@ async function authenticate(req, res, next) {
       });
       await localUserReady;
       req.userId = DEFAULT_USER_ID;
-      return next();
+      return aiContext.run({ userId: req.userId }, next);
     }
     req.user = await userFromToken(readCookie(req, config.auth.cookieName));
     if (req.user) req.userId = req.user.id;
-    if (req.user || PUBLIC_PATHS.has(req.originalUrl.split('?')[0])) return next();
+    if (req.user || PUBLIC_PATHS.has(req.originalUrl.split('?')[0])) return aiContext.run({ userId: req.userId }, next);
     return res.status(401).json({ error: 'سجّل الدخول أولًا.', code: 'auth' });
   } catch (err) {
     return next(err);
@@ -97,6 +99,7 @@ export function createApp() {
   app.use('/api/groups', groupRoutes);
   app.use('/api/data', dataRoutes);
   app.use('/api/tts', ttsRoutes);
+  app.use('/api/ai', aiRoutes);
   app.use('/api', (_req, res) => res.status(404).json({ error: 'غير موجود' }));
 
   // Human-readable errors only — details stay in the server log, never in responses.

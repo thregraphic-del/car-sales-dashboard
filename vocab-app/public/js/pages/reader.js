@@ -10,7 +10,7 @@
 // seeks the video there.
 import { api } from '../api.js';
 import { state } from '../state.js';
-import { esc, icon, levelChip, fmtTime, fmtDuration, toast, $, emptyState } from '../ui.js';
+import { esc, icon, levelChip, fmtTime, fmtDuration, toast, $, emptyState, openModal } from '../ui.js';
 import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech } from '../components.js';
 import { tokenize, quickTier } from '../shared/text.js';
 import { buildTimeline, positionAt, wordIndexByChar } from '../shared/sync.js';
@@ -468,6 +468,72 @@ export async function render(view, { segments, params }) {
     }
   });
 
+  /* ------------------------------------------- explain a selection (AI) */
+
+  const explainBtn = document.createElement('button');
+  explainBtn.className = 'btn sm primary explain-fab hidden';
+  explainBtn.type = 'button';
+  explainBtn.innerHTML = '✨ اشرح بالذكاء الاصطناعي';
+  document.body.append(explainBtn);
+  let selection = null;
+  const hideExplain = () => explainBtn.classList.add('hidden');
+  const onSelect = () => setTimeout(() => {
+    const sel = window.getSelection();
+    const text = sel?.toString().replace(/\s+/g, ' ').trim() || '';
+    const lineEl = sel?.anchorNode && linesEl.contains(sel.anchorNode) ? sel.anchorNode.parentElement?.closest('.line') : null;
+    if (!lineEl || text.length < 2 || text.length > 300) return hideExplain();
+    const r = sel.getRangeAt(0).getBoundingClientRect();
+    selection = { text, lineId: Number(lineEl.dataset.id) };
+    explainBtn.style.top = `${Math.max(8, r.top + window.scrollY - 44)}px`;
+    explainBtn.style.left = `${Math.max(8, Math.min(window.innerWidth - 230, r.left + window.scrollX))}px`;
+    explainBtn.classList.remove('hidden');
+    return undefined;
+  }, 10);
+  linesEl.addEventListener('mouseup', onSelect);
+  linesEl.addEventListener('touchend', onSelect);
+  document.addEventListener('selectionchange', () => {
+    if (!window.getSelection()?.toString().trim()) setTimeout(hideExplain, 150);
+  });
+  explainBtn.addEventListener('mousedown', (e) => e.preventDefault()); // keep the selection
+  explainBtn.addEventListener('click', async () => {
+    if (!selection) return;
+    hideExplain();
+    const { text, lineId } = selection;
+    openModal(`<div class="stack"><b class="en" dir="ltr">${esc(text)}</b><p class="small muted"><span class="spinner"></span> الذكاء الاصطناعي يشرح…</p></div>`);
+    const box = document.querySelector('.modal .stack') || document.querySelector('.modal');
+    try {
+      const r = await api.explain(text, lineId);
+      const words = r.key_words || [];
+      box.innerHTML = `
+        <b class="en" dir="ltr" style="font-size:18px">${esc(text)}</b>
+        <p style="font-size:17px;margin:0">${esc(r.arabic)}</p>
+        <p class="small ink-2" style="margin:0">${esc(r.explanation)}</p>
+        ${r.simple_english ? `<p class="small en" dir="ltr" style="margin:0">${esc(r.simple_english)}</p>` : ''}
+        ${r.grammar_note ? `<p class="tiny muted" style="margin:0">📝 ${esc(r.grammar_note)}</p>` : ''}
+        ${words.length ? `<div class="stack" style="gap:8px"><b class="small">كلمات مفيدة</b>${words.map((w, i) => `
+          <div class="row between" style="gap:8px"><div><b class="en">${esc(w.term)}</b> ${levelChip(w.level)} <span class="small ink-2">${esc(w.arabic)}</span>
+            ${w.note ? `<div class="tiny muted">${esc(w.note)}</div>` : ''}</div>
+            <button class="btn sm" data-ai-save="${i}">حفظ</button></div>`).join('')}</div>` : ''}
+        <p class="tiny muted" style="margin:0">✨ OpenRouter · ${esc(state.config.ai.model || '')}</p>`;
+      box.querySelectorAll('[data-ai-save]').forEach((b) => b.addEventListener('click', async () => {
+        b.disabled = true;
+        try {
+          const w = words[Number(b.dataset.aiSave)];
+          const info = await api.lookup({ word: w.term, line_id: lineId });
+          if (!info.found) throw new Error('تعذّر حفظ هذه الكلمة.');
+          await api.saveWord(info.vocabulary_id, info.occurrence_id || undefined);
+          b.textContent = '✓ محفوظة';
+          refresh();
+        } catch (err) {
+          b.disabled = false;
+          toast(err.message);
+        }
+      }));
+    } catch (err) {
+      box.innerHTML = `<b class="en" dir="ltr">${esc(text)}</b><div class="alert" role="alert">${esc(err.message)}</div>`;
+    }
+  });
+
   $('#arToggle', view).addEventListener('change', (e) => {
     showAr = e.target.checked;
     setPref('reader.ar', showAr ? '1' : '0');
@@ -497,6 +563,7 @@ export async function render(view, { segments, params }) {
 
   return () => {
     alive = false;
+    explainBtn.remove();
     clearInterval(syncTimer);
     if (frame) cancelAnimationFrame(frame);
     closeWordPanel();

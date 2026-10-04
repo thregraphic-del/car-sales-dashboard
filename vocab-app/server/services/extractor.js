@@ -376,3 +376,30 @@ export async function translateWithAi(lines, title = '') {
 }
 
 export { findSpan, aiConfigured, aiAvailable, AiError };
+
+/* ------------------------------------------- 4. explain a selected text */
+
+const EXPLAIN_SCHEMA = obj({
+  arabic: str, explanation: str, simple_english: str, grammar_note: str,
+  key_words: { type: 'array', items: obj({ term: str, arabic: str, level: { type: 'string', enum: LEVELS }, note: str }) },
+});
+const ExplainZ = z.object({
+  arabic: z.string(), explanation: z.string(), simple_english: z.string(), grammar_note: z.string(),
+  key_words: z.array(z.object({ term: z.string(), arabic: z.string(), level: z.enum(LEVELS), note: z.string() })),
+});
+
+/**
+ * Explain a phrase or sentence the learner selected, using only that text and
+ * its own sentence as context (never the whole transcript).
+ */
+export async function explainWithAi({ text, sentence = '', title = '' }) {
+  const r = await jsonCall({
+    task: 'explain_selection',
+    system: 'You help an intermediate Arabic-speaking learner understand English. Explain ONLY the selected text, as used in its sentence. Fields: "arabic" = natural Arabic translation of the selected text in this context; "explanation" = 1–3 short Arabic sentences explaining the meaning, tone and any idiom or phrasal verb; "simple_english" = the same meaning in easy English; "grammar_note" = one short Arabic note about a useful grammar point in it, or ""; "key_words" = 0–6 words or expressions from the selection worth learning (skip very basic words), each with its dictionary form in "term", short Arabic meaning, CEFR level and a short Arabic note (or "").',
+    user: `${title ? `Video: ${title}\n` : ''}${sentence && sentence !== text ? `Sentence: ${sentence}\n` : ''}Selected text: ${text}`,
+    schema: EXPLAIN_SCHEMA,
+    zod: ExplainZ,
+    maxTokens: 900,
+  });
+  return { ...r, key_words: r.key_words.slice(0, 6) };
+}
