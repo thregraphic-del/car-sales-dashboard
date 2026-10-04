@@ -1,6 +1,6 @@
 # LexiTube on Netlify
 #   public/                 static frontend (CDN)
-#   netlify/functions/api   the API (Express app from server/app.js)
+#   netlify/functions/api   the API (Express app from server/app.js), mounted at /api/*
 #   netlify/database/       Postgres migrations, applied automatically on deploy
 
 [build]
@@ -13,12 +13,6 @@
 [functions]
   node_bundler = "esbuild"
   external_node_modules = ["pg", "@netlify/database", "@neondatabase/serverless", "ws"]
-
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
-  status = 200
-  force = true
 
 # Single-page app (hash routes) — unknown paths load the app.
 [[redirects]]
