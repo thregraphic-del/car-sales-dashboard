@@ -356,7 +356,7 @@
 
 <header class="page">
   <h1><span class="en" style="font-family: inherit;">ERD — Simplified Model</span></h1>
-  <p>نسخة مختصرة: 8 جداول و 14 علاقة بدل 16 جدول و 28 علاقة، جاهزة للتطبيق في SQL</p>
+  <p>نسخة مختصرة: 7 جداول و 8 علاقات بدل 16 جدول و 28 علاقة، جاهزة للتطبيق في SQL</p>
   <div class="hint">مرّر الماوس على أي جدول أو خط علاقة عشان يطلع لك شرح سريع. اضغط على الجدول أو الخط عشان تفتح الشرح الكامل. اضغط على مكان فاضي أو <code>Esc</code> عشان ترجع للوضع العادي.</div>
 </header>
 
@@ -383,7 +383,7 @@
     <div class="lg"><div class="sym"><span class="tag-dir">مباشرة</span></div><div class="txt"><b>Direct Relationship</b><span>علاقة موجودة مباشرة عن طريق PK/FK.</span></div></div>
     <div class="lg"><div class="sym"><span class="tag-ind" style="margin:0">غير مباشرة</span></div><div class="txt"><b>Indirect Relationship</b><span>الوصول من جدول إلى جدول ثاني عن طريق جدول أو أكثر.</span></div></div>
     <div class="lg"><div class="sym"><span class="sw" style="background:#fff;border:1px solid #c9ccd1"></span></div><div class="txt"><b>Master Data</b><span>بيانات أساسية ثابتة نسبيًا، نرجع لها كثير (منتجات، فروع، عملاء...).</span></div></div>
-    <div class="lg"><div class="sym"><span class="sw" style="background:#fbf8f1;border:1px solid #d9ccad"></span></div><div class="txt"><b>Transaction Data</b><span>بيانات حركات تزيد كل يوم (Leads ومبيعات).</span></div></div>
+    <div class="lg"><div class="sym"><span class="sw" style="background:#fbf8f1;border:1px solid #d9ccad"></span></div><div class="txt"><b>Transaction Data</b><span>بيانات حركات تزيد كل يوم (المبيعات).</span></div></div>
   </div>
 </section>
 
@@ -392,11 +392,11 @@
   <h2>وش اللي اختصرناه؟</h2>
   <div class="legend-grid">
     <div class="lg"><div class="txt"><b>Brands + Models + Products → Products</b><span>الماركة والموديل صاروا أعمدة في Products. ما نحتاج جدول لكل مستوى لأنها مجرد تصنيف للمنتج.</span></div></div>
-    <div class="lg"><div class="txt"><b>Channels + Campaigns → Sources</b><span>كل حملة تتبع قناة وحدة، فصارت Channel و CampaignName في سجل واحد. والـ Leads والمبيعات صار لها FK واحد بدل اثنين.</span></div></div>
+    <div class="lg"><div class="txt"><b>Channels + Campaigns → Sources</b><span>كل حملة تتبع قناة وحدة، فصارت Channel و CampaignName في سجل واحد، والبيع صار له FK واحد بدل اثنين.</span></div></div>
     <div class="lg"><div class="txt"><b>SaleItems → Sales</b><span>بيع السيارات = سيارة وحدة لكل عملية بيع، فصار VehicleID و SalePrice في Sales مباشرة. ProductID ما نحتاجه لأنه معروف من Vehicle.</span></div></div>
     <div class="lg"><div class="txt"><b>Payments + PaymentMethods → Sales</b><span>طريقة الدفع صارت عمود PaymentMethod في Sales (بقيم ثابتة CHECK). لو احتجت أقساط ودفعات متعددة، رجّع Payments كجدول واحد.</span></div></div>
     <div class="lg"><div class="txt"><b>InventoryTransactions + Suppliers → Vehicles</b><span>حالة السيارة وفرعها الحالي والمورد وتكلفة الشراء صارت أعمدة في Vehicles. نخسر سجل تاريخ النقل بين الفروع فقط.</span></div></div>
-    <div class="lg"><div class="txt"><b>Leads → Sales (1:0..1)</b><span>صارت 1:0..1 بدل 1:N: الـ Lead يتحول لبيع واحد كحد أقصى، وهذا يسهل حساب نسبة التحويل.</span></div></div>
+    <div class="lg"><div class="txt"><b>Leads → Removed</b><span>التحليل يركز على المبيعات الفعلية، والداشبورد ما يستخدم بيانات العملاء المحتملين. نخسر قياس نسبة التحويل ومتابعة الفرص قبل البيع.</span></div></div>
   </div>
 </section>
 
@@ -440,15 +440,15 @@ const TABLES = {
   Customers: {
     g: "master",
     desc: "يمثل العميل.",
-    why: "نحتاجه عشان نخزن بيانات العميل مرة وحدة، وترجع لها الـ Leads والمبيعات.",
+    why: "نحتاجه عشان نخزن بيانات العميل مرة وحدة، وترجع لها المبيعات.",
     kind: "جدول تعريفي يعرّف العملاء.",
-    q: "مين العملاء، ووش اهتماماتهم ومشترياتهم؟",
+    q: "مين العملاء، ووش مشترياتهم؟",
     stores: "بيانات العميل، مثل الاسم والجوال والمدينة.",
     pk: "CustomerID", fk: [],
     ex: "أحمد محمد سجل في Customers له CustomerID خاص فيه، وكل فاتورة له تحفظ نفس الـ CustomerID.",
     ind: [
       { p: ["Customers","Sales","Vehicles","Products"], t: "من Customer نقدر نوصل إلى Sales، وبعدها إلى Vehicles، ومن خلالها نعرف Products اللي اشتراها." },
-      { p: ["Customers","Leads","Sources"], t: "من Customer نقدر نوصل إلى Leads، ومن خلالها نعرف Sources اللي جا منها." }
+      { p: ["Customers","Sales","Sources"], t: "من Customer نقدر نوصل إلى Sales، ومن خلالها نعرف Sources اللي جا منها." }
     ]
   },
   Branches: {
@@ -468,7 +468,7 @@ const TABLES = {
   Employees: {
     g: "master",
     desc: "يمثل الموظف (مندوب المبيعات).",
-    why: "نحتاجه عشان نعرف مين المسؤول عن كل Lead ومين سجل كل عملية بيع.",
+    why: "نحتاجه عشان نعرف مين سجل كل عملية بيع.",
     kind: "جدول تعريفي يعرّف الموظفين.",
     q: "مين الموظفين في كل فرع، ووش أداء كل واحد؟",
     stores: "بيانات الموظف، مثل الاسم والمسمى، ومعه BranchID.",
@@ -476,35 +476,21 @@ const TABLES = {
     ex: "الموظف خالد سجل في Employees، و BranchID يشير إلى فرع جدة.",
     ind: [
       { p: ["Employees","Sales","Vehicles","Products"], t: "من Employee نقدر نوصل إلى Sales، وبعدها إلى Vehicles، ومن خلالها نعرف Products اللي باعها." },
-      { p: ["Employees","Leads","Customers"], t: "من Employee نقدر نوصل إلى Leads المسندة له، ومن خلالها نعرف Customers." }
+      { p: ["Employees","Sales","Customers"], t: "من Employee نقدر نوصل إلى Sales، ومن خلالها نعرف Customers اللي باع لهم." }
     ]
   },
   Sources: {
     g: "master",
     desc: "يمثل مصدر العميل: القناة ومعها الحملة (إذا فيه حملة).",
-    why: "نحتاجه عشان نعرف كل Lead وكل بيع جا من وين. جمعنا Channels و Campaigns في جدول واحد لأن كل حملة أصلًا تتبع قناة وحدة.",
+    why: "نحتاجه عشان نعرف كل بيع جا من وين. جمعنا Channels و Campaigns في جدول واحد لأن كل حملة أصلًا تتبع قناة وحدة.",
     kind: "جدول تعريفي يعرّف مصادر العملاء (يجمع Channels و Campaigns القديمة).",
-    q: "أي قناة أو حملة جابت أكثر Leads ومبيعات؟",
+    q: "أي قناة أو حملة جابت أكثر مبيعات؟",
     stores: "Channel و CampaignName (اختياري) و StartDate و EndDate.",
     pk: "SourceID", fk: [],
     ex: "Instagram + حملة رمضان سجل، و Instagram بدون حملة سجل ثاني، و Walk-in سجل ثالث.",
     ind: [
       { p: ["Sources","Sales","Branches"], t: "من Source نقدر نوصل إلى Sales، ومن خلالها نعرف Branches اللي استفادت من هذا المصدر." },
-      { p: ["Sources","Leads","Products"], t: "من Source نقدر نوصل إلى Leads، ومن خلالها نعرف Products اللي عليها اهتمام." }
-    ]
-  },
-  Leads: {
-    g: "tx",
-    desc: "يمثل العميل المحتمل أو فرصة البيع.",
-    why: "نحتاجه عشان نسجل اهتمام العميل قبل البيع، ونربطه بالفرع والموظف والمصدر والمنتج.",
-    kind: "ينتج عند تسجيل عميل محتمل أو فرصة بيع.",
-    q: "مين العملاء المحتملين، ووش المنتج اللي مهتمين فيه، ومين الموظف المسؤول؟",
-    stores: "LeadDate و Status، ومعه FKs تربطه بالعميل والفرع والموظف والمصدر والمنتج.",
-    pk: "LeadID", fk: ["CustomerID","BranchID","AssignedEmployeeID","SourceID","InterestedProductID"],
-    ex: "عميل مهتم بـ Tucson: يتسجل Lead فيه CustomerID للعميل، و InterestedProductID للمنتج اللي مهتم فيه.",
-    ind: [
-      { p: ["Leads","Sales","Vehicles"], t: "من Lead نقدر نوصل إلى Sale (إذا تحول لبيع)، ومن خلالها نعرف Vehicle اللي انباعت." },
-      { p: ["Leads","Products","Vehicles"], t: "من Lead نقدر نوصل إلى Product اللي مهتم فيه، ومن خلاله نعرف Vehicles المتوفرة منه." }
+      { p: ["Sources","Sales","Vehicles","Products"], t: "من Source نقدر نوصل إلى Sales، وبعدها إلى Vehicles، ومن خلالها نعرف Products اللي باعها هذا المصدر." }
     ]
   },
   Sales: {
@@ -513,12 +499,11 @@ const TABLES = {
     why: "نحتاجه عشان نسجل كل بيع. دمجنا فيه SaleItems (لأن كل بيع = سيارة وحدة) و Payments (طريقة الدفع والمبلغ صاروا أعمدة).",
     kind: "ينتج عند حدوث عملية بيع.",
     q: "وش المبيعات اللي تمت، ومن العميل والفرع والموظف، وأي سيارة انباعت وبكم؟",
-    stores: "SaleDate و SalePrice و Discount و PaymentMethod (Cash / Finance / Transfer)، ومعها FKs تربطها بالسيارة والعميل والفرع والموظف والمصدر والـ Lead.",
-    pk: "SaleID", fk: ["VehicleID","CustomerID","BranchID","SalesEmployeeID","SourceID","LeadID"],
+    stores: "SaleDate و SalePrice و Discount و PaymentMethod (Cash / Finance / Transfer)، ومعها FKs تربطها بالسيارة والعميل والفرع والموظف والمصدر.",
+    pk: "SaleID", fk: ["VehicleID","CustomerID","BranchID","SalesEmployeeID","SourceID"],
     ex: "فاتورة رقم 1001: VehicleID للسيارة، و CustomerID للعميل، و SalePrice = 125000، و PaymentMethod = Finance.",
     ind: [
-      { p: ["Sales","Vehicles","Products"], t: "من Sale نقدر نوصل إلى Vehicle، ومن خلالها نعرف Product (الماركة والموديل)." },
-      { p: ["Sales","Leads","Products"], t: "من Sale نقدر نوصل إلى Lead، ومن خلاله نعرف المنتج اللي كان العميل مهتم فيه أول." }
+      { p: ["Sales","Vehicles","Products"], t: "من Sale نقدر نوصل إلى Vehicle، ومن خلالها نعرف Product (الماركة والموديل)." }
     ]
   }
 };
@@ -528,10 +513,6 @@ const RELS = [
     m:"الـ Product الواحد يمكن أن يكون له عدة سيارات فعلية (Vehicles)، وكل Vehicle تتبع Product واحد.",
     w:"عشان نعرف كل سيارة فعلية من أي منتج (ماركة وموديل وفئة وسنة).",
     q:"أي Vehicles تتبع هذا الـ Product؟" },
-  { f:"Products", fc:"ProductID", t:"Leads", tc:"InterestedProductID", c:"1:N",
-    m:"المنتج الواحد يمكن أن يهتم فيه عدة Leads، وكل Lead مهتم بمنتج واحد.",
-    w:"عشان نعرف كل عميل محتمل مهتم بأي منتج.",
-    q:"مين الـ Leads المهتمين بهذا الـ Product؟" },
   { f:"Branches", fc:"BranchID", t:"Vehicles", tc:"BranchID", c:"1:N",
     m:"الفرع الواحد يمكن أن توجد فيه عدة سيارات حاليًا، وكل سيارة موجودة حاليًا في فرع واحد.",
     w:"عشان نعرف وين موجودة كل سيارة الآن (هذا يغني عن جدول حركات المخزون للاستخدام اليومي).",
@@ -540,43 +521,22 @@ const RELS = [
     m:"الفرع الواحد يمكن أن يكون فيه عدة موظفين، وكل موظف يتبع فرع واحد.",
     w:"عشان نعرف كل موظف يشتغل في أي فرع.",
     q:"مين الموظفين في هذا الـ Branch؟" },
-  { f:"Branches", fc:"BranchID", t:"Leads", tc:"BranchID", c:"1:N",
-    m:"الفرع الواحد يمكن أن يكون له عدة Leads، وكل Lead مرتبط بفرع واحد.",
-    w:"عشان نعرف كل Lead تابع لأي فرع.",
-    q:"وش الـ Leads المرتبطة بهذا الـ Branch؟" },
   { f:"Branches", fc:"BranchID", t:"Sales", tc:"BranchID", c:"1:N",
     m:"الفرع الواحد يمكن أن تتم فيه عدة عمليات بيع، وكل عملية بيع تتم في فرع واحد.",
     w:"عشان نعرف كل عملية بيع تمت في أي فرع.",
     q:"وش المبيعات اللي تمت في هذا الـ Branch؟" },
-  { f:"Employees", fc:"EmployeeID", t:"Leads", tc:"AssignedEmployeeID", c:"1:N",
-    m:"الموظف الواحد يمكن أن يكون مسؤولًا عن عدة Leads، وكل Lead مسند لموظف واحد.",
-    w:"عشان نعرف مين الموظف المسؤول عن متابعة كل Lead.",
-    q:"وش الـ Leads المسندة لهذا الموظف؟" },
   { f:"Employees", fc:"EmployeeID", t:"Sales", tc:"SalesEmployeeID", c:"1:N",
     m:"الموظف الواحد يمكن أن يسجل عدة عمليات بيع، وكل عملية بيع مرتبطة بموظف واحد.",
     w:"عشان نعرف مين الموظف اللي سجل كل عملية بيع.",
     q:"وش المبيعات اللي سجلها هذا الموظف؟" },
-  { f:"Customers", fc:"CustomerID", t:"Leads", tc:"CustomerID", c:"1:N",
-    m:"العميل الواحد يمكن أن يكون له عدة Leads، وكل Lead يخص عميلًا واحدًا.",
-    w:"عشان نعرف كل Lead يخص أي عميل.",
-    q:"وش الـ Leads المرتبطة بهذا العميل؟" },
   { f:"Customers", fc:"CustomerID", t:"Sales", tc:"CustomerID", c:"1:N",
     m:"العميل الواحد يمكن أن يكون لديه عدة عمليات بيع، وكل عملية بيع تخص عميلًا واحدًا.",
     w:"عشان نعرف مين العميل في كل عملية بيع، بدون ما نكرر بياناته في كل فاتورة.",
     q:"وش المبيعات الخاصة بهذا العميل؟" },
-  { f:"Sources", fc:"SourceID", t:"Leads", tc:"SourceID", c:"1:N",
-    m:"المصدر الواحد (قناة أو حملة) يمكن أن يأتي منه عدة Leads، وكل Lead جاء من مصدر واحد.",
-    w:"عشان نعرف كل Lead جاء من أي قناة أو حملة.",
-    q:"وش الـ Leads اللي جات من هذا الـ Source؟" },
   { f:"Sources", fc:"SourceID", t:"Sales", tc:"SourceID", c:"1:N",
     m:"المصدر الواحد يمكن أن تأتي منه عدة عمليات بيع، وكل عملية بيع مرتبطة بمصدر واحد.",
     w:"عشان نقيس المبيعات اللي جابتها كل قناة أو حملة.",
     q:"وش المبيعات اللي جات من هذا الـ Source؟" },
-  { f:"Leads", fc:"LeadID", t:"Sales", tc:"LeadID", c:"1:0..1",
-    m:"الـ Lead الواحد يتحول لعملية بيع وحدة كحد أقصى، أو ما يتحول أبدًا. وكل Sale ممكن يكون لها Lead واحد.",
-    w:"عشان نحسب نسبة التحويل من Lead إلى بيع.",
-    z:"قد لا يوجد: يعني ممكن يكون فيه Lead ما تحول لبيع، و LeadID في Sales يقبل NULL للعميل اللي اشترى مباشرة.",
-    q:"هل هذا الـ Lead تحول لبيع؟ وإذا نعم، أي بيع؟" },
   { f:"Vehicles", fc:"VehicleID", t:"Sales", tc:"VehicleID", c:"1:0..1",
     m:"السيارة الواحدة تنباع مرة وحدة كحد أقصى، وقد لا تنباع. وكل Sale تشير إلى سيارة واحدة.",
     w:"عشان نعرف أي سيارة بالضبط انباعت في كل عملية بيع، ونمنع بيع نفس السيارة مرتين (VehicleID في Sales يكون UNIQUE).",
@@ -587,16 +547,15 @@ RELS.forEach((r, i) => r.id = i);
 
 /* Layout: x = column (0..4, left → right), y = row (vertical units). */
 const POS = {
-  Sources:   { x: 0, y: 0.5 },
-  Employees: { x: 0, y: 2.4 },
+  Sources:   { x: 0, y: 0.3 },
+  Employees: { x: 0, y: 2.1 },
   Customers: { x: 1, y: 0   },
-  Branches:  { x: 1, y: 2.85 },
+  Branches:  { x: 1, y: 2.4 },
 
-  Leads:     { x: 2.4, y: 0.5 },
-  Sales:     { x: 2.4, y: 2.1 },
+  Sales:     { x: 2.4, y: 1.2 },
 
-  Products:  { x: 4, y: 0.5 },
-  Vehicles:  { x: 4, y: 2.4 }
+  Products:  { x: 4, y: 0.3 },
+  Vehicles:  { x: 4, y: 2.1 }
 };
 
 /* =========================================================
@@ -988,26 +947,20 @@ document.addEventListener("keydown", ev => { if (ev.key === "Escape") clearSel()
 
 /* =========================================================
    SELF-CHECK (console only): compares the model with the
-   spec — 8 tables, exactly these 14 PK → FK relations,
+   spec — 7 tables, exactly these 8 PK → FK relations,
    valid FK references, indirect paths on existing edges only.
    ========================================================= */
 const EXPECTED_RELS = [
   "Products.ProductID->Vehicles.ProductID 1:N",
-  "Products.ProductID->Leads.InterestedProductID 1:N",
   "Branches.BranchID->Vehicles.BranchID 1:N",
   "Branches.BranchID->Employees.BranchID 1:N",
-  "Branches.BranchID->Leads.BranchID 1:N",
   "Branches.BranchID->Sales.BranchID 1:N",
-  "Employees.EmployeeID->Leads.AssignedEmployeeID 1:N",
   "Employees.EmployeeID->Sales.SalesEmployeeID 1:N",
-  "Customers.CustomerID->Leads.CustomerID 1:N",
   "Customers.CustomerID->Sales.CustomerID 1:N",
-  "Sources.SourceID->Leads.SourceID 1:N",
   "Sources.SourceID->Sales.SourceID 1:N",
-  "Leads.LeadID->Sales.LeadID 1:0..1",
   "Vehicles.VehicleID->Sales.VehicleID 1:0..1"
 ];
-const EXPECTED_TABLES = ["Products","Vehicles","Customers","Branches","Employees","Sources","Leads","Sales"];
+const EXPECTED_TABLES = ["Products","Vehicles","Customers","Branches","Employees","Sources","Sales"];
 
 function selfCheck() {
   const errors = [];
@@ -1016,11 +969,11 @@ function selfCheck() {
   const key = r => `${r.f}.${r.fc}->${r.t}.${r.tc} ${r.c}`;
   const actual = RELS.map(key);
 
-  check(names.length === 8, `tables: ${names.length} (expected 8)`);
+  check(names.length === 7, `tables: ${names.length} (expected 7)`);
   EXPECTED_TABLES.forEach(n => check(names.includes(n), `missing table ${n}`));
   names.forEach(n => check(EXPECTED_TABLES.includes(n), `extra table ${n}`));
 
-  check(RELS.length === 14, `relationships: ${RELS.length} (expected 14)`);
+  check(RELS.length === 8, `relationships: ${RELS.length} (expected 8)`);
   EXPECTED_RELS.forEach(k => check(actual.includes(k), `missing relationship ${k}`));
   actual.forEach(k => check(EXPECTED_RELS.includes(k), `extra relationship ${k}`));
   check(new Set(actual).size === actual.length, "duplicate relationship");
