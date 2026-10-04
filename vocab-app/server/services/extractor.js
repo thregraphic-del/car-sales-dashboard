@@ -56,7 +56,12 @@ export function toSentences(segments) {
     if (text) out.push(timed ? { text, start, words: buf.map((w) => [Math.round(w.t * 1000), w.text]) } : { text, start });
     buf = [];
   };
+  // Auto-generated captions have no punctuation: then each caption (or a few
+  // short ones together) becomes a line, so every line keeps its own time.
+  const ends = segments.filter((g) => /[.!?]["”’)]?\s*$/.test(String(g.text || '').trim())).length;
+  const punctuated = segments.length < 3 || ends / segments.length >= 0.25;
   for (const seg of segments) {
+    if (!punctuated && buf.length >= 3) flush();
     const raw = seg.words?.length
       ? seg.words.map((w) => ({ text: String(w.text).replace(/\s+/g, ' ').trim(), t: w.t, timed: Number.isFinite(w.t) }))
       : untimedWords(seg);
