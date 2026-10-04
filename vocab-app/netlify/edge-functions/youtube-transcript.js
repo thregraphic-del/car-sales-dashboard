@@ -5,6 +5,7 @@
 // different network, so the API asks here first. Only the API may call this
 // endpoint: it must send the shared INTERNAL_API_KEY (a server-side variable).
 import { getVideoWithTranscript, parseYoutubeId } from '../../server/lib/youtube.js';
+import { probeYoutube } from '../../server/lib/youtube-probe.js';
 
 const json = (body, status = 200) => new Response(JSON.stringify(body), {
   status,
@@ -17,6 +18,7 @@ export default async (req) => {
   const url = new URL(req.url);
   const videoId = parseYoutubeId(url.searchParams.get('v'));
   if (!videoId) return json({ error: 'invalid id' }, 400);
+  if (url.searchParams.get('probe') === '1') return json(await probeYoutube(videoId));
   const budgetMs = Math.min(30000, Number(url.searchParams.get('budget')) || 25000);
   try {
     const r = await getVideoWithTranscript(videoId, { budgetMs, timeoutMs: 8000, skip: ['external'] });

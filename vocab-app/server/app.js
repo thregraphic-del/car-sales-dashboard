@@ -4,6 +4,7 @@ import express from 'express';
 import { config } from './config.js';
 import { DEFAULT_USER_ID, ensureUser } from './data/users.js';
 import { userFromToken } from './services/auth.js';
+import { parseYoutubeId } from './lib/youtube.js';
 import authRoutes from './routes/auth.js';
 import settingsRoutes from './routes/settings.js';
 import learningRoutes from './routes/learning.js';
@@ -72,6 +73,19 @@ export function createApp() {
   });
   app.use(express.json({ limit: config.limits.jsonBody }));
   app.use('/api', sameOrigin);
+  // Diagnostics for the operator (INTERNAL_API_KEY): what YouTube allows from this server.
+  app.get('/api/internal/youtube-probe', async (req, res, next) => {
+    try {
+      const key = config.youtube.internalKey();
+      if (!key || req.get('x-lexitube-key') !== key) return res.status(403).json({ error: 'forbidden' });
+      const id = parseYoutubeId(req.query.v);
+      if (!id) return res.status(400).json({ error: 'invalid id' });
+      const { probeYoutube } = await import('./lib/youtube-probe.js');
+      return res.json(await probeYoutube(id));
+    } catch (err) {
+      return next(err);
+    }
+  });
   app.use('/api', authenticate);
 
   app.use('/api/auth', authRoutes);
