@@ -15,7 +15,8 @@ router.post('/youtube', wrap(async (req, res) => {
   if (typeof b.url !== 'string' || !b.url.trim()) throw httpError(400, 'الصق رابط فيديو يوتيوب.');
   if (b.transcript && String(b.transcript).length > MAX_TRANSCRIPT) throw httpError(413, 'النص طويل جدًا. قسّمه إلى أجزاء أصغر.');
   try {
-    return await service.analyzeYoutube({ url: str(b.url, 500), transcript: b.transcript ? String(b.transcript) : '', force: Boolean(b.force) }, req.userId);
+    const origin = `${req.protocol}://${req.get('x-forwarded-host') || req.get('host')}`;
+    return await service.analyzeYoutube({ url: str(b.url, 500), transcript: b.transcript ? String(b.transcript) : '', force: Boolean(b.force), origin }, req.userId);
   } catch (err) {
     if (err instanceof TranscriptError) {
       // details: which attempts failed and why (no secrets) — shown under "تفاصيل" for troubleshooting.

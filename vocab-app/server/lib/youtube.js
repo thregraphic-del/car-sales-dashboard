@@ -14,14 +14,18 @@
 //      caption; auto-generated captions also give a time per word.
 //   3. The transcript panel (`get_transcript`), which the website shows under
 //      a video — a different path that often works when 1–2 don't.
-//   4. Optional external transcript service (TRANSCRIPT_API_URL).
+//   4. The watch page and the plain timedtext endpoint (older paths).
+//   5. Optional external transcript service (TRANSCRIPT_API_URL).
+//
+// The module only uses fetch/URL, so it also runs in a Netlify Edge Function
+// (see netlify/edge-functions/youtube-transcript.js) — YouTube often refuses
+// cloud-server addresses ("confirm you're not a bot") but not the edge network.
 //
 // Language: English captions (human first, then auto-generated); otherwise an
 // English translation of another track when YouTube offers one; otherwise the
 // original language. Every failure becomes a TranscriptError with a specific
 // Arabic message (private / removed / age-restricted / region / no captions /
 // blocked) — the UI shows it and offers to paste the transcript instead.
-import { config } from '../config.js';
 
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36';
 const WEB_VERSION = '2.20250312.04.00';
@@ -281,14 +285,35 @@ async function transcriptPanel(videoId, ms) {
   return { segs, title, channel };
 }
 
+/* ----------------------------------------------------- older direct paths */
+
+async function watchPagePlayer(videoId, ms) {
+  const res = await fetchWithTimeout(`https://www.youtube.com/watch?v=${videoId}&hl=en&bpctr=9999999999&has_verified=1`, {
+    headers: { 'User-Agent': UA, 'Accept-Language': 'en-US,en;q=0.9', Cookie: 'CONSENT=YES+1; SOCS=CAI' },
+  }, ms);
+  if (!res.ok) throw new Error(`watch page HTTP ${res.status}`);
+  const html = await res.text();
+  const m = html.match(/ytInitialPlayerResponse\s*=\s*(\{.+?\})\s*;\s*(?:var\s|<\/script>)/s);
+  if (!m) throw new Error('no player data on the watch page');
+  return JSON.parse(m[1]);
+}
+
+async function plainTimedtext(videoId, ms) {
+  for (const extra of ['', '&kind=asr']) {
+    const res = await fetchWithTimeout(`https://www.youtube.com/api/timedtext?v=${videoId}&lang=en&fmt=json3${extra}`, { headers: { 'User-Agent': UA } }, ms);
+    if (!res.ok) continue;
+    const segs = parseCaptions(await res.text(), { wordLevel: Boolean(extra) });
+    if (segs.length) return { segs, asr: Boolean(extra) };
+  }
+  throw new Error('timedtext empty');
+}
+
 /* ------------------------------------------------------------- external */
 
-async function externalTranscript(videoId) {
-  const base = config.youtube.transcriptApiUrl;
+async function externalTranscript(videoId, { transcriptApiUrl: base, transcriptApiKey: key } = {}) {
   if (!base) return null;
   const url = base.replace('{id}', encodeURIComponent(videoId));
   const headers = {};
-  const key = config.youtube.transcriptApiKey();
   if (key) headers.Authorization = `Bearer ${key}`;
   const res = await fetchWithTimeout(url, { headers }, 20000);
   if (!res.ok) throw new Error(`transcript service HTTP ${res.status}`);
@@ -327,88 +352,114 @@ function metaFrom(videoId, details, oe, extra = {}) {
 const PRIORITY = ['private', 'unavailable', 'live', 'age_restricted', 'region_blocked', 'no_captions', 'blocked', 'fetch_failed'];
 
 /**
- * Video metadata + transcript. Returns {meta, segments, source, language}.
+ * Video metadata + transcript. Returns {meta, segments, source, language, details}.
  * Throws TranscriptError with a specific, learner-facing message.
+ * options: budgetMs (all attempts), timeoutMs (one request), transcriptApiUrl/Key,
+ *          skip: ['player', 'panel', 'watch', 'timedtext', 'external'].
  */
-export async function getVideoWithTranscript(videoId, { budgetMs = config.youtube.budgetMs } = {}) {
+export async function getVideoWithTranscript(videoId, options = {}) {
+  const { budgetMs = 35000, timeoutMs = 8000, skip = [] } = options;
   const started = Date.now();
   const left = () => budgetMs - (Date.now() - started);
-  const per = () => Math.max(1500, Math.min(config.youtube.timeoutMs, left()));
+  const per = () => Math.max(1500, Math.min(timeoutMs, left()));
   const details = [];
   const codes = new Set();
   let videoDetails = null;
   let visitorData = null;
   let sawTracks = false;
 
-  for (const c of CLIENTS) {
-    if (left() < 2000) break;
-    let p;
-    try {
-      p = await playerRequest(c, videoId, visitorData, per());
-    } catch (err) {
-      details.push(`${c.name}: ${err.message}`);
-      continue;
-    }
+  const fromPlayer = async (p, name, ua) => {
     visitorData ||= p?.responseContext?.visitorData || null;
     if (p?.videoDetails?.videoId === videoId) videoDetails ||= p.videoDetails;
     const problem = classifyPlayability(p?.playabilityStatus);
     if (problem) {
       codes.add(problem);
-      details.push(`${c.name}: ${p.playabilityStatus.status} ${String(p.playabilityStatus.reason || '').slice(0, 120)}`);
-      if (problem === 'private' || problem === 'unavailable') break; // no client will see it
-      continue;
+      details.push(`${name}: ${p.playabilityStatus.status} ${String(p.playabilityStatus.reason || '').slice(0, 120)}`);
+      return null;
     }
     if (p?.videoDetails?.isLive || (p?.videoDetails?.isLiveContent && p?.videoDetails?.isUpcoming)) {
       codes.add('live');
-      details.push(`${c.name}: live`);
-      break;
+      details.push(`${name}: live`);
+      return null;
     }
-    const tracks = p?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
-    const choice = chooseTrack(tracks);
+    const choice = chooseTrack(p?.captions?.playerCaptionsTracklistRenderer?.captionTracks);
     if (!choice) {
       codes.add('no_captions');
-      details.push(`${c.name}: no caption tracks`);
-      continue;
+      details.push(`${name}: no caption tracks`);
+      return null;
     }
     sawTracks = true;
     try {
-      const segments = await fetchTrack(choice.track, choice.translate, c.ua, per());
+      const segments = await fetchTrack(choice.track, choice.translate, ua, per());
       return {
         meta: metaFrom(videoId, p.videoDetails, null),
         segments,
         source: choice.translate ? 'youtube-translated-captions' : choice.track.kind === 'asr' ? 'youtube-auto-captions' : 'youtube-captions',
         language: choice.translate ? `${choice.track.languageCode}→en` : choice.track.languageCode,
         track: trackName(choice.track),
+        via: name,
+        details,
       };
     } catch (err) {
       codes.add('fetch_failed');
-      details.push(`${c.name}: ${err.message}`);
+      details.push(`${name}: ${err.message}`);
+      return null;
+    }
+  };
+  // Only "private" or "live" from a client that can see the video is final;
+  // "unavailable" from one client often just means that client is refused.
+  const final = () => codes.has('private') || codes.has('live');
+
+  if (!skip.includes('player')) {
+    for (const c of CLIENTS) {
+      if (left() < 2000 || final()) break;
+      try {
+        const r = await fromPlayer(await playerRequest(c, videoId, visitorData, per()), c.name, c.ua);
+        if (r) return r;
+      } catch (err) {
+        details.push(`${c.name}: ${err.message}`);
+      }
     }
   }
-
-  const definitive = codes.has('private') || codes.has('unavailable') || codes.has('live');
-  if (!definitive && left() > 2500) {
+  if (!final() && !skip.includes('panel') && left() > 2500) {
     try {
       const { segs, title, channel } = await transcriptPanel(videoId, per());
-      return { meta: metaFrom(videoId, videoDetails, null, { title, channel }), segments: segs, source: 'youtube-transcript-panel', language: null };
+      return { meta: metaFrom(videoId, videoDetails, null, { title, channel }), segments: segs, source: 'youtube-transcript-panel', language: null, via: 'panel', details };
     } catch (err) {
       details.push(`transcript_panel: ${err.message}`);
     }
   }
-  if (!definitive) {
+  if (!final() && !skip.includes('watch') && left() > 2500) {
     try {
-      const segments = await externalTranscript(videoId);
-      if (segments?.length) return { meta: metaFrom(videoId, videoDetails, await oembed(videoId)), segments, source: 'transcript-service', language: null };
+      const r = await fromPlayer(await watchPagePlayer(videoId, per()), 'watch_page', UA);
+      if (r) return r;
+    } catch (err) {
+      details.push(`watch_page: ${err.message}`);
+    }
+  }
+  if (!final() && !skip.includes('timedtext') && left() > 2000) {
+    try {
+      const { segs, asr } = await plainTimedtext(videoId, per());
+      return { meta: metaFrom(videoId, videoDetails, await oembed(videoId)), segments: segs, source: asr ? 'youtube-auto-captions' : 'youtube-captions', language: 'en', via: 'timedtext', details };
+    } catch (err) {
+      details.push(`timedtext: ${err.message}`);
+    }
+  }
+  if (!final() && !skip.includes('external')) {
+    try {
+      const segments = await externalTranscript(videoId, options);
+      if (segments?.length) return { meta: metaFrom(videoId, videoDetails, await oembed(videoId)), segments, source: 'transcript-service', language: null, via: 'external', details };
     } catch (err) {
       details.push(`transcript_service: ${err.message}`);
     }
   }
 
   const oe = await oembed(videoId);
-  // oEmbed only decides when YouTube gave no specific reason.
-  const vague = [...codes].every((k) => k === 'blocked' || k === 'fetch_failed');
+  // oEmbed decides only when YouTube gave no specific reason: it answers for any public video.
+  const vague = [...codes].every((k) => k === 'blocked' || k === 'fetch_failed' || k === 'unavailable');
   if (vague && oe?.private && !videoDetails) codes.add('private');
   if (vague && oe?.missing && !videoDetails) codes.add('unavailable');
+  else if (oe?.title && codes.has('unavailable') && !codes.has('private')) codes.delete('unavailable'); // the video exists
   // "No captions" from one client is only certain when no client saw tracks.
   if (sawTracks) codes.delete('no_captions');
   if (!codes.size) codes.add('fetch_failed');

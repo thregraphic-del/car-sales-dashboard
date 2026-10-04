@@ -68,6 +68,8 @@ export const config = {
     // One request to YouTube, and all attempts together (Netlify functions may run 60 s).
     timeoutMs: int('YOUTUBE_TIMEOUT_MS', 8000),
     budgetMs: int('YOUTUBE_BUDGET_MS', 35000),
+    // Shared key for the edge transcript function (netlify/edge-functions); server-side only.
+    internalKey: () => env('INTERNAL_API_KEY'),
   },
 
   limits: {

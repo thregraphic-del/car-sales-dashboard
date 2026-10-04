@@ -8,7 +8,7 @@
 // Each chunk is stored as soon as it is done, so nothing is lost or repeated.
 import { config } from '../config.js';
 import { httpError } from '../lib/errors.js';
-import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript, MESSAGES } from '../lib/youtube.js';
+import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript, MESSAGES, TranscriptError } from '../lib/youtube.js';
 import { extractVocabulary, extractChunkWithAi, toSentences, translateWithAi, ExtractionError } from './extractor.js';
 import { aiConfigured, aiAvailable, AiError, OFFLINE_MESSAGE } from './ai.js';
 import * as sources from '../data/sources.js';
@@ -19,8 +19,41 @@ function toLines(segments) {
   return toSentences(segments).map((s, idx) => ({ idx, start: s.start, text: s.text, words: s.words }));
 }
 
+// Reasons that are the same from any network — no point asking again elsewhere.
+const FINAL = new Set(['private', 'unavailable', 'live', 'no_captions', 'age_restricted', 'region_blocked']);
+
+/**
+ * Transcript from YouTube: first through the edge function (a network YouTube
+ * rarely refuses), then directly from this server. origin = this site's URL.
+ */
+export async function fetchTranscript(videoId, origin) {
+  const yt = config.youtube;
+  const options = { budgetMs: yt.budgetMs, timeoutMs: yt.timeoutMs, transcriptApiUrl: yt.transcriptApiUrl, transcriptApiKey: yt.transcriptApiKey() };
+  const details = [];
+  if (origin && yt.internalKey()) {
+    try {
+      const ctrl = AbortSignal.timeout(Math.min(32000, yt.budgetMs));
+      const res = await fetch(`${origin}/internal/youtube-transcript?v=${encodeURIComponent(videoId)}`, { headers: { 'x-lexitube-key': yt.internalKey() }, signal: ctrl });
+      const r = res.ok ? await res.json() : { ok: false, code: 'fetch_failed', details: [`HTTP ${res.status}`] };
+      if (r.ok && r.segments?.length) return { ...r, via: `edge:${r.via || ''}` };
+      details.push(...(r.details || []).map((d) => `edge ${d}`));
+      if (FINAL.has(r.code)) throw new TranscriptError(r.code, { meta: r.meta, details });
+    } catch (err) {
+      if (err instanceof TranscriptError) throw err;
+      details.push(`edge: ${err.message}`);
+    }
+  }
+  try {
+    const r = await getVideoWithTranscript(videoId, { ...options, budgetMs: Math.max(8000, options.budgetMs - 20000) });
+    return { ...r, via: `direct:${r.via || ''}` };
+  } catch (err) {
+    if (err instanceof TranscriptError) err.details = [...details, ...(err.details || []).map((d) => `direct ${d}`)];
+    throw err;
+  }
+}
+
 /** Analyse a YouTube video (or its pasted transcript) and store it. */
-export async function analyzeYoutube({ url, transcript, force }, userId) {
+export async function analyzeYoutube({ url, transcript, force, origin }, userId) {
   const youtubeId = parseYoutubeId(url);
   if (!youtubeId) throw httpError(400, MESSAGES.invalid_url);
   const existing = await sources.findSourceByYoutubeId(youtubeId, userId);
@@ -37,7 +70,7 @@ export async function analyzeYoutube({ url, transcript, force }, userId) {
       meta = { youtube_id: youtubeId, url: `https://www.youtube.com/watch?v=${youtubeId}`, title: 'YouTube video', thumbnail_url: `https://i.ytimg.com/vi/${youtubeId}/hqdefault.jpg` };
     }
   } else {
-    ({ meta, segments, source: transcriptSource } = await getVideoWithTranscript(youtubeId)); // throws TranscriptError
+    ({ meta, segments, source: transcriptSource } = await fetchTranscript(youtubeId, origin)); // throws TranscriptError
   }
   const lines = toLines(segments);
   if (!lines.length) throw httpError(422, 'لم نجد نصًا في هذا الفيديو.');
