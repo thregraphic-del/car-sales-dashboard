@@ -8,7 +8,7 @@
 // Each chunk is stored as soon as it is done, so nothing is lost or repeated.
 import { config } from '../config.js';
 import { httpError } from '../lib/errors.js';
-import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript } from '../lib/youtube.js';
+import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript, MESSAGES } from '../lib/youtube.js';
 import { extractVocabulary, extractChunkWithAi, toSentences, translateWithAi, ExtractionError } from './extractor.js';
 import { aiConfigured, aiAvailable, AiError, OFFLINE_MESSAGE } from './ai.js';
 import * as sources from '../data/sources.js';
@@ -16,13 +16,13 @@ import * as sources from '../data/sources.js';
 const REFINE_CHUNK = 25;
 
 function toLines(segments) {
-  return toSentences(segments).map((s, idx) => ({ idx, start: s.start, text: s.text }));
+  return toSentences(segments).map((s, idx) => ({ idx, start: s.start, text: s.text, words: s.words }));
 }
 
 /** Analyse a YouTube video (or its pasted transcript) and store it. */
 export async function analyzeYoutube({ url, transcript, force }, userId) {
   const youtubeId = parseYoutubeId(url);
-  if (!youtubeId) throw httpError(400, 'هذا لا يبدو رابط فيديو يوتيوب.');
+  if (!youtubeId) throw httpError(400, MESSAGES.invalid_url);
   const existing = await sources.findSourceByYoutubeId(youtubeId, userId);
   if (existing && !force && !transcript?.trim() && await sources.lineCount(existing.id)) return { source_id: existing.id, cached: true };
   let meta;
@@ -41,7 +41,14 @@ export async function analyzeYoutube({ url, transcript, force }, userId) {
   }
   const lines = toLines(segments);
   if (!lines.length) throw httpError(422, 'لم نجد نصًا في هذا الفيديو.');
-  const { items, engine, word_count } = await extractVocabulary({ title: meta.title, channel: meta.channel, lines });
+  let items = [];
+  let engine = 'dictionary';
+  let word_count = lines.reduce((n, l) => n + l.text.split(/\s+/).length, 0);
+  try {
+    ({ items, engine, word_count } = await extractVocabulary({ title: meta.title, channel: meta.channel, lines }));
+  } catch (err) {
+    if (!(err instanceof ExtractionError) || err.status !== 422) throw err; // very short video: keep it readable anyway
+  }
   const sourceId = await sources.saveSource({ ...meta, kind: 'youtube', transcript_source: transcriptSource, extractor: engine, word_count }, lines, items, userId);
   return { source_id: sourceId, cached: false, ai: aiAvailable() };
 }

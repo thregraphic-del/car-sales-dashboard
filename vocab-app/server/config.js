@@ -44,8 +44,8 @@ export const config = {
     baseUrl: 'https://openrouter.ai/api/v1',
     apiKey: () => env('OPENROUTER_API_KEY'), // read lazily, never logged or returned
     model: () => env('OPENROUTER_MODEL', 'openrouter/auto'),
-    // Serverless functions on Netlify stop after ~10 s, so AI calls must finish first.
-    timeoutMs: int('AI_TIMEOUT_MS', process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME ? 8500 : 45000),
+    // Netlify functions stop after 60 s; one AI call must finish well before.
+    timeoutMs: int('AI_TIMEOUT_MS', process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTION_NAME ? 25000 : 45000),
     translateBatch: int('AI_TRANSLATE_BATCH', 15),
     enhanceBatch: int('AI_ENHANCE_BATCH', 40),
     pauseAfterNetworkErrorMs: 2 * 60 * 1000,
@@ -65,7 +65,9 @@ export const config = {
   youtube: {
     transcriptApiUrl: env('TRANSCRIPT_API_URL'),
     transcriptApiKey: () => env('TRANSCRIPT_API_KEY'),
-    timeoutMs: 15000,
+    // One request to YouTube, and all attempts together (Netlify functions may run 60 s).
+    timeoutMs: int('YOUTUBE_TIMEOUT_MS', 8000),
+    budgetMs: int('YOUTUBE_BUDGET_MS', 35000),
   },
 
   limits: {

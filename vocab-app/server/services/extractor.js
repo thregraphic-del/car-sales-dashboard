@@ -28,23 +28,44 @@ export class ExtractionError extends Error {
  * each keeping the start time of its first fragment. The words themselves are
  * never changed. Auto-captions without punctuation are cut at ~28 words.
  */
+/**
+ * Caption segments → sentence lines {text, start, words?}.
+ * A segment may carry word timings (seg.words = [{t, text}], t in seconds,
+ * from YouTube auto-captions). When every word of a line is timed, the line
+ * keeps them as words = [[ms, word], ...] and its text is exactly those words
+ * joined by spaces, so word i of the text is timing i.
+ */
+/** Words of a segment without word timings: times spread evenly over the segment. */
+function untimedWords(seg) {
+  const words = String(seg.text || '').replace(/\[(?:music|applause|laughter)\]/gi, ' ').replace(/>>/g, ' ').split(/\s+/).filter(Boolean);
+  const start = seg.start ?? null;
+  const dur = Number(seg.dur) > 0 ? Number(seg.dur) : 0;
+  return words.map((text, i) => ({ text, t: start === null ? null : start + (dur * i) / words.length, timed: false }));
+}
+
 export function toSentences(segments) {
   const out = [];
   let buf = [];
-  let start = null;
+  const noise = /^(?:\[(?:music|applause|laughter|silence|inaudible)\]|>>|\[[^\]]*\])$/i;
   const flush = () => {
-    const text = buf.join(' ').replace(/\s+/g, ' ').trim();
-    if (text) out.push({ text, start });
+    if (!buf.length) return;
+    const text = buf.map((w) => w.text).join(' ').replace(/\s+/g, ' ').trim();
+    const timed = buf.every((w) => w.timed);
+    const first = buf.find((w) => w.t !== null && w.t !== undefined)?.t;
+    const start = first === undefined ? null : Math.round(first * 100) / 100;
+    if (text) out.push(timed ? { text, start, words: buf.map((w) => [Math.round(w.t * 1000), w.text]) } : { text, start });
     buf = [];
-    start = null;
   };
   for (const seg of segments) {
-    const clean = String(seg.text).replace(/\[(?:music|applause|laughter)\]/gi, '').replace(/>>/g, '').trim();
-    if (!clean) continue;
-    for (const part of clean.split(/(?<=[.!?])\s+/)) {
-      if (start === null) start = seg.start ?? null;
-      buf.push(part);
-      if (/[.!?]["”’)]?$/.test(part) || buf.join(' ').split(' ').length >= 28) flush();
+    const raw = seg.words?.length
+      ? seg.words.map((w) => ({ text: String(w.text).replace(/\s+/g, ' ').trim(), t: w.t, timed: Number.isFinite(w.t) }))
+      : untimedWords(seg);
+    // A timed segment may hold several words in one piece ("of the"): split, sharing the time.
+    const tokens = raw.flatMap((w) => (w.text.includes(' ') ? w.text.split(' ').map((text) => ({ ...w, text })) : [w]))
+      .filter((w) => w.text && !noise.test(w.text));
+    for (const w of tokens) {
+      buf.push(w);
+      if (/[.!?]["”’)]?$/.test(w.text) || buf.length >= 28) flush();
     }
   }
   flush();

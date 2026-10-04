@@ -4,11 +4,9 @@ import { state, loadGroups } from '../state.js';
 import { esc, icon, levelChip, thumbHtml, relDate, toast, $ } from '../ui.js';
 import { groupPickerHtml, bindGroupPicker } from '../components.js';
 
-const isYoutube = (s) => /^\s*(https?:\/\/)?(www\.|m\.)?(youtube\.com|youtu\.be)\/\S+\s*$/i.test(s);
-const ERRORS = {
-  no_captions: 'هذا الفيديو لا يحتوي على ترجمة إنجليزية (Captions)، لذلك لا يمكن قراءته تلقائيًا.',
-  transcript_fetch_failed: 'تعذّر تنزيل نص الفيديو من يوتيوب.',
-};
+const isYoutube = (s) => /^\s*(https?:\/\/)?((www|m|music)\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)\/\S+\s*$/i.test(s);
+// Pasting the transcript is offered for every reason except a bad link.
+const PASTE_HELP = new Set(['no_captions', 'blocked', 'fetch_failed', 'age_restricted', 'region_blocked', 'transcript_fetch_failed']);
 
 export async function render(view, { params }) {
   const sources = await api.sources();
@@ -73,9 +71,12 @@ export async function render(view, { params }) {
     } catch (err) {
       stop();
       const d = err.data || {};
-      status.innerHTML = `<div class="alert" style="margin-top:14px"><b>${esc(ERRORS[d.code] || err.message)}</b>
-        ${d.code ? `<span class="small">يمكنك نسخ النص من يوتيوب (⋯ ← Show transcript) ولصقه هنا، وسنكمل كالمعتاد.</span>
-          <div><button class="btn sm" id="openManual">${icon.pen} لصق النص يدويًا</button></div>` : ''}</div>`;
+      // The server explains exactly why (private, removed, no captions, blocked…).
+      status.innerHTML = `<div class="alert" style="margin-top:14px" role="alert"><b>${esc(err.message)}</b>
+        ${d.video?.title ? `<span class="small">الفيديو: <span class="en-inline">${esc(d.video.title)}</span></span>` : ''}
+        ${PASTE_HELP.has(d.code) ? `<span class="small">يمكنك نسخ النص من يوتيوب (⋯ ← Show transcript) ولصقه هنا، وسنكمل كالمعتاد مع الفيديو والتوقيتات.</span>
+          <div><button class="btn sm" id="openManual">${icon.pen} لصق النص يدويًا</button></div>` : ''}
+        ${d.details?.length ? `<details class="tiny muted"><summary>تفاصيل تقنية</summary><div class="en" dir="ltr">${d.details.map(esc).join('<br>')}</div></details>` : ''}</div>`;
       $('#openManual', status)?.addEventListener('click', () => {
         manual.classList.remove('hidden');
         status.innerHTML = '';

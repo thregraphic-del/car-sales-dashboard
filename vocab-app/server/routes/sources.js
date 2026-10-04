@@ -18,7 +18,8 @@ router.post('/youtube', wrap(async (req, res) => {
     return await service.analyzeYoutube({ url: str(b.url, 500), transcript: b.transcript ? String(b.transcript) : '', force: Boolean(b.force) }, req.userId);
   } catch (err) {
     if (err instanceof TranscriptError) {
-      res.status(422).json({ error: err.message, code: err.code, video: err.meta });
+      // details: which attempts failed and why (no secrets) — shown under "تفاصيل" for troubleshooting.
+      res.status(err.status).json({ error: err.message, code: err.code, video: err.meta, details: (err.details || []).slice(0, 12) });
       return undefined;
     }
     throw err;

@@ -2,7 +2,7 @@
 // and the Netlify Function (netlify/functions/api.mjs).
 import express from 'express';
 import { config } from './config.js';
-import { DEFAULT_USER_ID } from './data/users.js';
+import { DEFAULT_USER_ID, ensureUser } from './data/users.js';
 import { userFromToken } from './services/auth.js';
 import authRoutes from './routes/auth.js';
 import settingsRoutes from './routes/settings.js';
@@ -39,9 +39,17 @@ function sameOrigin(req, res, next) {
   return res.status(403).json({ error: 'طلب مرفوض.' });
 }
 
+let localUserReady = null;
+
 async function authenticate(req, res, next) {
   try {
     if (!config.auth.required) {
+      // Local app without login: one learner, created on first use.
+      localUserReady ??= ensureUser(DEFAULT_USER_ID).catch((err) => {
+        localUserReady = null;
+        throw err;
+      });
+      await localUserReady;
       req.userId = DEFAULT_USER_ID;
       return next();
     }
