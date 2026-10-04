@@ -236,3 +236,24 @@ test('API: a failure returns the specific reason and the details; pasting still 
   const v = await (await realFetch(`${app.base}/api/sources/${(await pasted.json()).source_id}`)).json();
   assert.deepEqual(v.lines.map((l) => l.start_seconds), [3, 9]);
 });
+
+test('transcript service (Supadata): direct answer, long-video job, no transcript', async () => {
+  routes['api.supadata.ai/v1/youtube/transcript'] = (u) => (u.includes('LONGLONGLON')
+    ? { body: { jobId: 'job-1' } }
+    : u.includes('NOTRANSCRIP') ? { status: 404, body: { error: 'transcript-unavailable', message: 'No transcript found' } }
+      : { body: { lang: 'en', content: [{ text: 'Hello there.', offset: 1500, duration: 2000 }, { text: 'Second line.', offset: 4000, duration: 1000 }] } });
+  routes['api.supadata.ai/v1/transcript/job-1'] = () => ({ body: { status: 'completed', content: [{ text: 'From the job.', offset: 0, duration: 900 }] } });
+  const opts = { transcriptProvider: 'supadata', transcriptApiKey: 'test-key' };
+  assert.deepEqual(await yt.externalTranscript('AAAAAAAAAAA', opts), [{ start: 1.5, dur: 2, text: 'Hello there.' }, { start: 4, dur: 1, text: 'Second line.' }]);
+  assert.equal((await yt.externalTranscript('LONGLONGLON', opts))[0].text, 'From the job.');
+  await assert.rejects(yt.externalTranscript('NOTRANSCRIP', opts), (err) => err.noTranscript === true);
+  assert.equal(await yt.externalTranscript('AAAAAAAAAAA', {}), null, 'not configured → skipped');
+});
+
+test("pasted transcript in YouTube's 'Show transcript' copy format keeps the times", () => {
+  const copied = '0:00\nhello everyone and welcome\n\n0:04\nso today we talk about data\n1:02:03\nmuch later on\n';
+  const segs = yt.parsePastedTranscript(copied);
+  assert.deepEqual(segs.map((s) => [s.start, s.text]), [[0, 'hello everyone and welcome'], [4, 'so today we talk about data'], [3723, 'much later on']]);
+  const lines = toSentences(segs);
+  assert.deepEqual(lines.map((l) => l.start), [0, 4, 3723]);
+});

@@ -336,7 +336,7 @@ export async function render(view, { segments, params }) {
   const setCurrent = (lineId, { scroll = follow, force = false } = {}) => {
     if (lineId === currentId) return;
     linesEl.querySelector('.line.current')?.classList.remove('current');
-    linesEl.querySelector('.w-now')?.classList.remove('w-now');
+    linesEl.querySelectorAll('.w-now, .w-said').forEach((w) => w.classList.remove('w-now', 'w-said'));
     currentId = lineId;
     currentWord = -1;
     const el = lineId != null && linesEl.querySelector(`.line[data-id="${lineId}"]`);

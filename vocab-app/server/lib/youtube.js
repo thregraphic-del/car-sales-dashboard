@@ -38,7 +38,7 @@ export const MESSAGES = {
   region_blocked: 'هذا الفيديو غير متاح في منطقة الخادم، لذلك لا يمكن تنزيل نصه تلقائيًا. إن كان يعمل عندك، انسخ النص من «عرض النص» في يوتيوب والصقه هنا.',
   live: 'هذا بث مباشر لم ينتهِ بعد — لا يوجد له نص كامل الآن. جرّب بعد انتهاء البث.',
   no_captions: 'هذا الفيديو بلا ترجمة نصية (captions) على يوتيوب، لذلك لا يوجد نص لتحليله. اختر فيديو فيه زر CC، أو الصق النص يدويًا.',
-  blocked: 'رفض يوتيوب طلب الخادم مؤقتًا (يطلب التحقق من أنه ليس روبوتًا)، فلم نستطع تنزيل النص الآن. جرّب بعد قليل، أو افتح الفيديو في يوتيوب وانسخ النص من «عرض النص» والصقه هنا.',
+  blocked: 'يوتيوب يمنع خوادم الاستضافة من تنزيل نصوص الفيديو (يطلب التحقق من أنها ليست روبوتًا)، لذلك لم نستطع جلب النص تلقائيًا. انسخ النص من «عرض النص» في يوتيوب والصقه هنا — سيعمل الفيديو والمتابعة المباشرة كالمعتاد.',
   fetch_failed: 'تعذّر تنزيل نص الفيديو من يوتيوب الآن. تأكد أن للفيديو ترجمة (CC) وجرّب مرة أخرى، أو انسخ النص من «عرض النص» في يوتيوب والصقه هنا.',
 };
 
@@ -310,7 +310,36 @@ async function plainTimedtext(videoId, ms) {
 
 /* ------------------------------------------------------------- external */
 
-async function externalTranscript(videoId, { transcriptApiUrl: base, transcriptApiKey: key } = {}) {
+/**
+ * Transcript service with its own network access (YouTube blocks most hosting
+ * servers). provider "supadata" (https://supadata.ai, TRANSCRIPT_API_KEY), or a
+ * generic URL with {id} returning [{start, dur, text}] / {segments: [...]}.
+ */
+async function supadataTranscript(videoId, key) {
+  const headers = { 'x-api-key': key, Accept: 'application/json' };
+  let res = await fetchWithTimeout(`https://api.supadata.ai/v1/youtube/transcript?videoId=${videoId}&lang=en`, { headers }, 20000);
+  let data = await res.json().catch(() => ({}));
+  // Long videos are processed as a job: poll briefly.
+  for (let i = 0; res.ok && data.jobId && !data.content && i < 8; i += 1) {
+    await new Promise((r) => setTimeout(r, 2000));
+    res = await fetchWithTimeout(`https://api.supadata.ai/v1/transcript/${encodeURIComponent(data.jobId)}`, { headers }, 10000);
+    data = await res.json().catch(() => ({}));
+    if (data.status && data.status !== 'completed' && data.status !== 'active' && data.status !== 'queued') break;
+    if (data.result) data = data.result;
+  }
+  if (res.status === 404 || /not.?found|no transcript|unavailable/i.test(String(data.error || data.message || ''))) {
+    const err = new Error(`transcript service: ${String(data.message || data.error || 'no transcript').slice(0, 100)}`);
+    err.noTranscript = true;
+    throw err;
+  }
+  if (!res.ok) throw new Error(`transcript service HTTP ${res.status}`);
+  const content = Array.isArray(data.content) ? data.content : [];
+  return content.map((c) => ({ start: Number(c.offset || 0) / 1000, dur: Number(c.duration || 0) / 1000, text: String(c.text || '').replace(/\s+/g, ' ').trim() }))
+    .filter((s) => s.text);
+}
+
+export async function externalTranscript(videoId, { transcriptProvider: provider, transcriptApiUrl: base, transcriptApiKey: key } = {}) {
+  if (provider === 'supadata' && key) return supadataTranscript(videoId, key);
   if (!base) return null;
   const url = base.replace('{id}', encodeURIComponent(videoId));
   const headers = {};

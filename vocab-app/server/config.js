@@ -63,6 +63,10 @@ export const config = {
   },
 
   youtube: {
+    // A transcript service reaches YouTube from its own network (YouTube refuses
+    // most hosting servers): TRANSCRIPT_PROVIDER=supadata + TRANSCRIPT_API_KEY,
+    // or TRANSCRIPT_API_URL (with {id}) for any compatible service.
+    transcriptProvider: env('TRANSCRIPT_PROVIDER') || (env('TRANSCRIPT_API_KEY') && !env('TRANSCRIPT_API_URL') ? 'supadata' : ''),
     transcriptApiUrl: env('TRANSCRIPT_API_URL'),
     transcriptApiKey: () => env('TRANSCRIPT_API_KEY'),
     // One request to YouTube, and all attempts together (Netlify functions may run 60 s).

@@ -8,7 +8,7 @@
 // Each chunk is stored as soon as it is done, so nothing is lost or repeated.
 import { config } from '../config.js';
 import { httpError } from '../lib/errors.js';
-import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript, MESSAGES, TranscriptError } from '../lib/youtube.js';
+import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript, MESSAGES, TranscriptError, externalTranscript } from '../lib/youtube.js';
 import { extractVocabulary, extractChunkWithAi, toSentences, translateWithAi, ExtractionError } from './extractor.js';
 import { aiConfigured, aiAvailable, AiError, OFFLINE_MESSAGE } from './ai.js';
 import * as sources from '../data/sources.js';
@@ -28,8 +28,20 @@ const FINAL = new Set(['private', 'unavailable', 'live', 'no_captions', 'age_res
  */
 export async function fetchTranscript(videoId, origin) {
   const yt = config.youtube;
-  const options = { budgetMs: yt.budgetMs, timeoutMs: yt.timeoutMs, transcriptApiUrl: yt.transcriptApiUrl, transcriptApiKey: yt.transcriptApiKey() };
+  const options = {
+    budgetMs: yt.budgetMs, timeoutMs: yt.timeoutMs, transcriptProvider: yt.transcriptProvider, transcriptApiUrl: yt.transcriptApiUrl, transcriptApiKey: yt.transcriptApiKey(),
+  };
   const details = [];
+  // 1) A configured transcript service: the most reliable path on hosted servers.
+  if ((options.transcriptProvider && options.transcriptApiKey) || options.transcriptApiUrl) {
+    try {
+      const segments = await externalTranscript(videoId, options);
+      if (segments?.length) return { meta: await getVideoMeta(videoId), segments, source: 'transcript-service', via: 'service' };
+      details.push('service: empty transcript');
+    } catch (err) {
+      details.push(err.message.slice(0, 160));
+    }
+  }
   if (origin && yt.internalKey()) {
     try {
       const ctrl = AbortSignal.timeout(Math.min(32000, yt.budgetMs));
@@ -44,7 +56,7 @@ export async function fetchTranscript(videoId, origin) {
     }
   }
   try {
-    const r = await getVideoWithTranscript(videoId, { ...options, budgetMs: Math.max(8000, options.budgetMs - 20000) });
+    const r = await getVideoWithTranscript(videoId, { ...options, skip: ['external'], budgetMs: Math.max(8000, options.budgetMs - 20000) });
     return { ...r, via: `direct:${r.via || ''}` };
   } catch (err) {
     if (err instanceof TranscriptError) err.details = [...details, ...(err.details || []).map((d) => `direct ${d}`)];

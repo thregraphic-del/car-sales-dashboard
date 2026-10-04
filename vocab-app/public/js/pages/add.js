@@ -19,8 +19,13 @@ export async function render(view, { params }) {
         <button class="btn primary lg" id="go" disabled>${icon.sparkle} <span id="goLabel">تحليل</span></button>
       </div>
       <div id="manual" class="hidden stack" style="margin-top:14px">
-        <label class="field">الصق نص الفيديو (Transcript) من يوتيوب: ⋯ ← Show transcript
+        <label class="field">الصق نص الفيديو (Transcript) من يوتيوب
           <textarea class="input en" id="transcript" rows="6" placeholder="0:05 So today I want to talk about…"></textarea></label>
+        <ol class="tiny muted" style="margin:0;padding-inline-start:20px;line-height:1.9">
+          <li>افتح الفيديو في يوتيوب، ثم تحت الفيديو: <b>…المزيد</b> ← <b>عرض النص (Show transcript)</b>.</li>
+          <li>حدّد النص كله في لوحة النص وانسخه (مع الأوقات).</li>
+          <li>الصقه هنا واضغط «افتح الفيديو» — سيعمل الفيديو داخل LexiTube والنص يتابعه جملةً جملة.</li>
+        </ol>
       </div>
       <div id="status"></div>
     </div>
@@ -74,14 +79,12 @@ export async function render(view, { params }) {
       // The server explains exactly why (private, removed, no captions, blocked…).
       status.innerHTML = `<div class="alert" style="margin-top:14px" role="alert"><b>${esc(err.message)}</b>
         ${d.video?.title ? `<span class="small">الفيديو: <span class="en-inline">${esc(d.video.title)}</span></span>` : ''}
-        ${PASTE_HELP.has(d.code) ? `<span class="small">يمكنك نسخ النص من يوتيوب (⋯ ← Show transcript) ولصقه هنا، وسنكمل كالمعتاد مع الفيديو والتوقيتات.</span>
-          <div><button class="btn sm" id="openManual">${icon.pen} لصق النص يدويًا</button></div>` : ''}
+        ${PASTE_HELP.has(d.code) ? '<span class="small">الصق نص الفيديو في المربع أدناه (الخطوات تحته)، وسنكمل كالمعتاد مع الفيديو والتوقيتات والمتابعة المباشرة.</span>' : ''}
         ${d.details?.length ? `<details class="tiny muted"><summary>تفاصيل تقنية</summary><div class="en" dir="ltr">${d.details.map(esc).join('<br>')}</div></details>` : ''}</div>`;
-      $('#openManual', status)?.addEventListener('click', () => {
+      if (PASTE_HELP.has(d.code) && manual.classList.contains('hidden')) {
         manual.classList.remove('hidden');
-        status.innerHTML = '';
         $('#transcript', view).focus();
-      });
+      }
     }
   }
 
