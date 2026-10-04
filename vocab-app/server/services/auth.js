@@ -1,15 +1,17 @@
-// Owner-only access for the public website.
+// Accounts and sessions for the website.
 //
-// - The site has one learner (the owner). The first account is created with
-//   SETUP_CODE (a secret environment variable); after that sign-up is closed.
+// - Several learners, each with their own data. The first account becomes
+//   the administrator (it needs SETUP_CODE when that is set); later accounts
+//   register themselves (REGISTRATION: open | code | closed).
 // - Passwords are hashed with scrypt; sessions are HMAC-signed HttpOnly
-//   cookies (SESSION_SECRET). Changing the password invalidates old sessions.
+//   cookies. The signing key is SESSION_SECRET, or a random key generated
+//   once and kept in the database. Changing the password ends old sessions.
 // - Locally, without SESSION_SECRET, there is no login (single local user).
 import crypto from 'node:crypto';
 import { promisify } from 'node:util';
 import { config } from '../config.js';
 import { httpError } from '../lib/errors.js';
-import { DEFAULT_USER_ID, ensureUser, getUser, findByUsername, setCredentials, ownerExists } from '../data/users.js';
+import { getUser, findByUsername, setCredentials, ownerExists, createAccount } from '../data/users.js';
 import { getOrCreateSetting } from '../data/settings.js';
 
 const scrypt = promisify(crypto.scrypt);
@@ -62,25 +64,25 @@ export async function userFromToken(token) {
   } catch {
     return null;
   }
-  if (!data.uid || data.exp < Date.now()) return null;
+  if (!Number.isInteger(data.uid) || !(data.exp > Date.now())) return null;
   const user = await getUser(data.uid);
   if (!user?.password_hash || fingerprint(user.password_hash) !== data.fp) return null;
   return user;
 }
 
-// Slow down password guessing (per server instance; scrypt adds cost too).
+// Slow down password guessing and mass sign-ups (per server instance; scrypt adds cost too).
 const failures = new Map();
-function checkRate(key) {
-  const f = failures.get(key);
-  if (f && f.count >= 5 && Date.now() - f.at < 15 * 60000) throw httpError(429, 'محاولات كثيرة. انتظر ربع ساعة ثم حاول مرة أخرى.');
+function checkRate(k, max = 5) {
+  const f = failures.get(k);
+  if (f && f.count >= max && Date.now() - f.at < 15 * 60000) throw httpError(429, 'محاولات كثيرة. انتظر ربع ساعة ثم حاول مرة أخرى.');
 }
-function noteFailure(key) {
-  const f = failures.get(key) || { count: 0, at: 0 };
-  failures.set(key, { count: Date.now() - f.at > 15 * 60000 ? 1 : f.count + 1, at: Date.now() });
-  if (failures.size > 1000) failures.clear();
+function noteFailure(k) {
+  const f = failures.get(k) || { count: 0, at: 0 };
+  failures.set(k, { count: Date.now() - f.at > 15 * 60000 ? 1 : f.count + 1, at: Date.now() });
+  if (failures.size > 5000) failures.clear();
 }
 
-function validCredentials(username, password) {
+export function validCredentials(username, password) {
   const u = String(username || '').trim();
   const p = String(password || '');
   if (!/^[\p{L}\p{N}._@-]{3,40}$/u.test(u)) throw httpError(400, 'اسم المستخدم: من 3 إلى 40 حرفًا أو رقمًا بدون مسافات.');
@@ -89,38 +91,65 @@ function validCredentials(username, password) {
 }
 
 export async function status(user) {
+  const hasAccounts = config.auth.required ? await ownerExists() : true;
+  const reg = config.auth.registration;
   return {
     required: config.auth.required,
-    owner_exists: config.auth.required ? await ownerExists() : true,
+    owner_exists: hasAccounts,
     logged_in: !config.auth.required || Boolean(user),
-    setup_available: config.auth.required && Boolean(config.auth.setupCode),
+    // First account (administrator): needs SETUP_CODE when it is set.
+    setup_available: config.auth.required && !hasAccounts,
+    setup_code_required: config.auth.required && !hasAccounts && Boolean(config.auth.setupCode),
+    registration: config.auth.required ? (hasAccounts ? reg : 'open') : 'closed',
+    registration_code_required: config.auth.required && hasAccounts && reg === 'code',
   };
 }
 
-/** First visit: create the owner account with the setup code. */
-export async function setup({ setup_code: code, username, password }, ip) {
+/**
+ * Create an account. The first one is the administrator (SETUP_CODE when set);
+ * after that REGISTRATION decides who may sign up.
+ */
+export async function register({ username, password, name, code, setup_code: setupCode }, ip) {
   if (!config.auth.required) throw httpError(400, 'تسجيل الدخول غير مطلوب في النسخة المحلية.');
-  if (await ownerExists()) throw httpError(403, 'الحساب موجود بالفعل. سجّل الدخول.');
-  checkRate(`setup:${ip}`);
-  if (!config.auth.setupCode || !sameSecret(code || '', config.auth.setupCode)) {
-    noteFailure(`setup:${ip}`);
-    throw httpError(401, 'رمز الإعداد غير صحيح.');
+  const k = `register:${ip}`;
+  checkRate(k, 10);
+  const first = !(await ownerExists());
+  const given = String(code ?? setupCode ?? '');
+  if (first) {
+    if (config.auth.setupCode && !sameSecret(given, config.auth.setupCode)) {
+      noteFailure(k);
+      throw httpError(401, 'رمز الإعداد غير صحيح.');
+    }
+  } else if (config.auth.registration === 'closed') {
+    throw httpError(403, 'التسجيل مغلق في هذا الموقع. اطلب من المسؤول إنشاء حساب لك.');
+  } else if (config.auth.registration === 'code' && (!config.auth.registrationCode || !sameSecret(given, config.auth.registrationCode))) {
+    noteFailure(k);
+    throw httpError(401, 'رمز الدعوة غير صحيح.');
   }
   const { u, p } = validCredentials(username, password);
-  await setCredentials(DEFAULT_USER_ID, u, await hashPassword(p));
-  return ensureUser(DEFAULT_USER_ID);
+  if (await findByUsername(u)) throw httpError(409, 'اسم المستخدم مستخدم بالفعل. اختر اسمًا آخر.');
+  const displayName = String(name || '').trim().slice(0, 60) || u;
+  try {
+    return await createAccount({ username: u, passwordHash: await hashPassword(p), name: displayName });
+  } catch (err) {
+    if (/unique|duplicate/i.test(err.message)) throw httpError(409, 'اسم المستخدم مستخدم بالفعل. اختر اسمًا آخر.');
+    throw err;
+  }
 }
 
+/** Kept for the first-account screen of older clients. */
+export const setup = (body, ip) => register({ ...body, code: body.setup_code }, ip);
+
 export async function login({ username, password }, ip) {
-  const key = `login:${ip}`;
-  checkRate(key);
+  const k = `login:${ip}:${String(username || '').toLowerCase()}`;
+  checkRate(k);
   const user = username ? await findByUsername(String(username).trim()) : null;
   const ok = user?.password_hash ? await verifyPassword(String(password || ''), user.password_hash) : (await hashPassword('x'), false);
   if (!ok) {
-    noteFailure(key);
+    noteFailure(k);
     throw httpError(401, 'اسم المستخدم أو كلمة المرور غير صحيحة.');
   }
-  failures.delete(key);
+  failures.delete(k);
   return user;
 }
 
@@ -128,5 +157,5 @@ export async function changePassword(user, { current, password }) {
   if (!await verifyPassword(String(current || ''), user.password_hash)) throw httpError(401, 'كلمة المرور الحالية غير صحيحة.');
   const { p } = validCredentials(user.username, password);
   await setCredentials(user.id, user.username, await hashPassword(p));
-  return ensureUser(user.id);
+  return getUser(user.id);
 }

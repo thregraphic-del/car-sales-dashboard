@@ -14,7 +14,7 @@ import groupRoutes from './routes/groups.js';
 import dataRoutes from './routes/data.js';
 import ttsRoutes from './routes/tts.js';
 
-const PUBLIC_PATHS = new Set(['/api/version', '/api/auth/status', '/api/auth/login', '/api/auth/setup', '/api/auth/logout']);
+const PUBLIC_PATHS = new Set(['/api/version', '/api/auth/status', '/api/auth/login', '/api/auth/setup', '/api/auth/register', '/api/auth/logout']);
 
 function readCookie(req, name) {
   const header = req.headers.cookie || '';

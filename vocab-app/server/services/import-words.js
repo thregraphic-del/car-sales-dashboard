@@ -3,14 +3,13 @@
 //   preview()  — instant: parsing + your words + offline dictionary
 //   enrich()   — optional AI completion of missing details, ≤ 10 rows per call
 //   save()     — explicit save of the rows the learner kept
-import { all } from '../db/index.js';
 import { config } from '../config.js';
 import { enrichWithAi, dictionaryDetails } from './extractor.js';
 import { aiAvailable, AiError, OFFLINE_MESSAGE } from './ai.js';
 import { parseInput } from './parse-input.js';
 import { analyzeText } from './sources.js';
 import { matchKey, quickTier, sentenceKey, singularCandidates, sameArabicMeaning, BASIC_WORDS } from '../../public/js/shared/text.js';
-import { findVocabulary, upsertVocabulary, addExample } from '../data/vocabulary.js';
+import { findVocabulary, upsertVocabulary, addExample, examplesOf } from '../data/vocabulary.js';
 import { userStateFor, saveWord } from '../data/words.js';
 import { sourceView } from '../data/sources.js';
 
@@ -34,7 +33,7 @@ async function previewRow(it, userId) {
     }
   }
   const base = existing || dict || {};
-  const knownExamples = existing ? new Set((await all('SELECT sentence_key FROM examples WHERE vocabulary_id=?', existing.id)).map((r) => r.sentence_key)) : new Set();
+  const knownExamples = existing ? new Set((await examplesOf(existing.id, userId)).map((e) => sentenceKey(e.sentence))) : new Set();
   const newExamples = it.examples.filter((e) => !knownExamples.has(sentenceKey(e.sentence)));
   const newInfo = [];
   if (state.state === 'saved') {
@@ -146,8 +145,9 @@ export async function save(items, { groupIds = [] } = {}, userId) {
       level: it.level,
       band: it.band,
       pronunciation: it.pronunciation,
-      // The learner's own meaning becomes the global meaning only for brand-new words.
-      arabic: it.meaning_from === 'you' ? (before ? null : it.arabic) : it.arabic,
+      // The learner's own meaning is private (user_arabic); the shared dictionary
+      // only takes meanings from the dictionary or AI.
+      arabic: it.meaning_from === 'you' ? null : it.arabic,
       simple_english: it.simple_english,
       topic: it.topic,
       easy_example: it.easy_example,
@@ -155,8 +155,8 @@ export async function save(items, { groupIds = [] } = {}, userId) {
       origin: it.meaning_from === 'ai' ? 'ai' : it.meaning_from === 'dictionary' ? 'dictionary' : 'user',
     });
     let addedExample = false;
-    for (const ex of (it.examples || []).slice(0, 10)) addedExample = (await addExample(vocabId, ex.sentence, ex.arabic, 'user')) || addedExample;
-    const userArabic = it.meaning_from === 'you' && before && it.arabic && !sameArabicMeaning(it.arabic, before.arabic) ? it.arabic : null;
+    for (const ex of (it.examples || []).slice(0, 10)) addedExample = (await addExample(vocabId, ex.sentence, ex.arabic, 'user', userId)) || addedExample;
+    const userArabic = it.meaning_from === 'you' && it.arabic && !sameArabicMeaning(it.arabic, before?.arabic) ? it.arabic : null;
     const hadUserArabic = stateBefore.user_arabic;
     const groupsBefore = new Set(stateBefore.groups || []);
     const { uv_id, already } = await saveWord(userId, vocabId, { userArabic, groupIds });

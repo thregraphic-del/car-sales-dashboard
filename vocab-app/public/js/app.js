@@ -109,11 +109,12 @@ async function route() {
 
 let started = false;
 
-/** Login / first-time setup, shown instead of the app when needed. */
+/** Login / registration, shown instead of the app when needed (also at /login and /register). */
 async function showAuth() {
   document.body.classList.add('auth-mode');
   const { render } = await import('./pages/login.js');
   await render($('#view'), {
+    mode: /^\/register\/?$/.test(location.pathname) ? 'register' : 'login',
     onDone: () => {
       document.body.classList.remove('auth-mode');
       start();
@@ -150,6 +151,11 @@ async function init() {
   window.addEventListener('lexitube:auth', () => {
     if (!document.body.classList.contains('auth-mode')) showAuth();
   });
+  if (/^\/logout\/?$/.test(location.pathname)) {
+    await api.logout().catch(() => {});
+    location.replace('/login');
+    return;
+  }
   let auth;
   try {
     auth = await api.authStatus();
@@ -158,7 +164,10 @@ async function init() {
     return;
   }
   if (!auth.logged_in) await showAuth();
-  else await start();
+  else {
+    if (/^\/(login|register)\/?$/.test(location.pathname)) history.replaceState(null, '', `/${location.hash}`);
+    await start();
+  }
 }
 
 init();

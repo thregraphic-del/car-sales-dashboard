@@ -80,6 +80,7 @@ export const api = {
   authStatus: () => request('GET', '/api/auth/status'),
   login: (username, password) => request('POST', '/api/auth/login', { username, password }),
   setup: (setup_code, username, password) => request('POST', '/api/auth/setup', { setup_code, username, password }),
+  register: (body) => request('POST', '/api/auth/register', body),
   logout: () => request('POST', '/api/auth/logout'),
   changePassword: (current, password) => request('POST', '/api/auth/password', { current, password }),
 

@@ -1,38 +1,58 @@
 // Sources (YouTube videos and texts): full transcripts, where each item
 // occurs, and the reader view. Re-analysing keeps the learner's saved words.
+//
+// Every source belongs to one learner (sources.user_id); transcript lines and
+// contexts belong to that learner through their source. Functions that take
+// an id coming from a request also take the userId and only find the
+// learner's own rows — another learner's id behaves exactly like a missing one.
 import { all, get, run, insert, tx } from '../db/index.js';
 import { httpError } from '../lib/errors.js';
 import { findSpan } from '../lib/matcher.js';
-import { DEFAULT_USER_ID } from './users.js';
 import { upsertVocabulary, examplesFor, vocabularyPublic } from './vocabulary.js';
 
 const floorOrNull = (n) => (n !== null && n !== undefined ? Math.floor(n) : null);
 
-export async function getSource(id) {
-  return (await get('SELECT * FROM sources WHERE id = ?', id)) || null;
+export async function getSource(id, userId) {
+  return (await get('SELECT * FROM sources WHERE id = ? AND user_id = ?', id, userId)) || null;
 }
 
-export async function findSourceByYoutubeId(youtubeId) {
-  return (await get('SELECT * FROM sources WHERE youtube_id = ?', youtubeId)) || null;
+export async function findSourceByYoutubeId(youtubeId, userId) {
+  return (await get('SELECT * FROM sources WHERE youtube_id = ? AND user_id = ?', youtubeId, userId)) || null;
 }
 
-export async function listSources(userId = DEFAULT_USER_ID, limit = 50) {
+export async function listSources(userId, limit = 50) {
   return all(
     `SELECT s.*,
        (SELECT COUNT(*) FROM occurrences o WHERE o.source_id = s.id AND o.suggested = 1) AS item_count,
        (SELECT COUNT(*) FROM user_vocabulary uv WHERE uv.source_id = s.id AND uv.user_id = ? AND uv.state = 'saved') AS saved_count,
        (SELECT COUNT(*) FROM transcript_lines l WHERE l.source_id = s.id) AS line_count
-     FROM sources s ORDER BY s.analyzed_at DESC, s.id DESC LIMIT ?`,
-    userId, limit,
+     FROM sources s WHERE s.user_id = ? ORDER BY s.analyzed_at DESC, s.id DESC LIMIT ?`,
+    userId, userId, limit,
   );
 }
 
+const parseWords = (json) => {
+  if (!json) return null;
+  try {
+    const w = JSON.parse(json);
+    return Array.isArray(w) && w.length ? w : null;
+  } catch {
+    return null;
+  }
+};
+
+/** Lines of a source (already checked to be the learner's). words = [[offset_ms, text], ...] or null. */
 export async function sourceLines(sourceId) {
-  return all('SELECT id, idx, start_seconds, duration, text, text_ar FROM transcript_lines WHERE source_id = ? ORDER BY idx', sourceId);
+  const rows = await all('SELECT id, idx, start_seconds, duration, text, text_ar, words_json FROM transcript_lines WHERE source_id = ? ORDER BY idx', sourceId);
+  return rows.map(({ words_json: w, ...l }) => ({ ...l, words: parseWords(w) }));
 }
 
-export async function getLine(lineId) {
-  return (await get('SELECT * FROM transcript_lines WHERE id = ?', lineId)) || null;
+/** A transcript line of one of the learner's sources. */
+export async function getLine(lineId, userId) {
+  return (await get(
+    'SELECT l.* FROM transcript_lines l JOIN sources s ON s.id = l.source_id WHERE l.id = ? AND s.user_id = ?',
+    lineId, userId,
+  )) || null;
 }
 
 export async function lineCount(sourceId) {
@@ -135,9 +155,9 @@ async function storeItems(sourceId, lineList, items, rankBase = 0) {
  * Re-analysing replaces lines/occurrences but keeps the learner's saved
  * words and re-links them to the new lines.
  */
-export async function saveSource(meta, lines, items, userId = DEFAULT_USER_ID) {
+export async function saveSource(meta, lines, items, userId) {
   return tx(async () => {
-    let source = meta.youtube_id ? await findSourceByYoutubeId(meta.youtube_id) : null;
+    let source = meta.youtube_id ? await findSourceByYoutubeId(meta.youtube_id, userId) : null;
     const now = new Date().toISOString();
     if (source) {
       await run(
@@ -150,20 +170,20 @@ export async function saveSource(meta, lines, items, userId = DEFAULT_USER_ID) {
       await run('DELETE FROM occurrences WHERE source_id = ?', source.id);
     } else {
       const id = await insert(
-        `INSERT INTO sources (kind, youtube_id, url, title, channel, duration_seconds, thumbnail_url, transcript_source, extractor, word_count, is_demo, created_at, analyzed_at)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-        meta.kind || 'youtube', meta.youtube_id || null, meta.url || null, meta.title, meta.channel || null, meta.duration_seconds ?? null,
+        `INSERT INTO sources (user_id, kind, youtube_id, url, title, channel, duration_seconds, thumbnail_url, transcript_source, extractor, word_count, is_demo, created_at, analyzed_at)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        userId, meta.kind || 'youtube', meta.youtube_id || null, meta.url || null, meta.title, meta.channel || null, meta.duration_seconds ?? null,
         meta.thumbnail_url || null, meta.transcript_source || null, meta.extractor || null, meta.word_count ?? null, meta.is_demo ? 1 : 0, now, now,
       );
-      source = await getSource(id);
+      source = await getSource(id, userId);
     }
     const lineList = [];
     for (const [i, l] of lines.entries()) {
       const next = lines[i + 1];
       const dur = l.start !== null && l.start !== undefined && next?.start != null ? Math.max(0, next.start - l.start) : null;
       const id = await insert(
-        'INSERT INTO transcript_lines (source_id, idx, start_seconds, duration, text, text_ar) VALUES (?,?,?,?,?,?)',
-        source.id, l.idx, l.start ?? null, dur, l.text, l.text_ar || null,
+        'INSERT INTO transcript_lines (source_id, idx, start_seconds, duration, text, text_ar, words_json) VALUES (?,?,?,?,?,?,?)',
+        source.id, l.idx, l.start ?? null, l.duration ?? dur, l.text, l.text_ar || null, l.words?.length ? JSON.stringify(l.words) : null,
       );
       lineList.push({ id, ...l, start: l.start ?? null, text_ar: l.text_ar || null });
     }
@@ -186,7 +206,7 @@ export async function addItemsToSource(sourceId, items) {
  * Mark the learner's saved words wherever they appear in a source, so they
  * are highlighted and gain this sentence as an extra context.
  */
-export async function linkSavedWords(sourceId, userId = DEFAULT_USER_ID) {
+export async function linkSavedWords(sourceId, userId) {
   const lines = await all('SELECT id, start_seconds AS start, text, text_ar FROM transcript_lines WHERE source_id = ? ORDER BY idx', sourceId);
   const saved = await all(
     `SELECT uv.id AS uv_id, uv.occurrence_id, v.id AS vocabulary_id, v.term, v.part_of_speech, v.item_type
@@ -215,8 +235,8 @@ export function sourceRef(s) {
 }
 
 /** Everything the reader needs: lines, word marks and the suggested list. */
-export async function sourceView(sourceId, userId = DEFAULT_USER_ID) {
-  const source = await getSource(sourceId);
+export async function sourceView(sourceId, userId) {
+  const source = await getSource(sourceId, userId);
   if (!source) throw httpError(404, 'لم نجد هذا المصدر.');
   const lines = await sourceLines(sourceId);
   const occ = await all(
@@ -231,7 +251,7 @@ export async function sourceView(sourceId, userId = DEFAULT_USER_ID) {
     .filter((o) => o.char_start !== null && (o.suggested || o.user_state === 'saved'))
     .map((o) => ({ line_id: o.line_id, start: o.char_start, end: o.char_end, vocabulary_id: o.vocabulary_id, occurrence_id: o.id, state: o.user_state || null }));
   const seen = new Set();
-  const ex = await examplesFor([...new Set(occ.map((o) => o.vocabulary_id))]);
+  const ex = await examplesFor([...new Set(occ.map((o) => o.vocabulary_id))], userId);
   const ref = sourceRef(source);
   const items = occ
     .filter((o) => o.suggested && !seen.has(o.vocabulary_id) && seen.add(o.vocabulary_id))
@@ -251,13 +271,14 @@ export async function sourceView(sourceId, userId = DEFAULT_USER_ID) {
   return { source, lines, marks, items };
 }
 
-export async function deleteSource(id) {
-  await run('DELETE FROM sources WHERE id = ?', id);
+export async function deleteSource(id, userId) {
+  const r = await run('DELETE FROM sources WHERE id = ? AND user_id = ?', id, userId);
+  if (!r.changes) throw httpError(404, 'لم نجد هذا المصدر.');
 }
 
-/** Get or create the occurrence of a vocabulary item on a specific line. */
-export async function occurrenceFor(vocabularyId, lineId, { contextual_meaning, sentence_ar, context_note } = {}) {
-  const line = await getLine(lineId);
+/** Get or create the occurrence of a vocabulary item on a line of the learner's source. */
+export async function occurrenceFor(vocabularyId, lineId, userId, { contextual_meaning, sentence_ar, context_note } = {}) {
+  const line = await getLine(lineId, userId);
   if (!line) return null;
   const ex = await get('SELECT * FROM occurrences WHERE source_id = ? AND vocabulary_id = ? AND line_id = ?', line.source_id, vocabularyId, line.id);
   if (sentence_ar && !line.text_ar) await run('UPDATE transcript_lines SET text_ar = ? WHERE id = ? AND text_ar IS NULL', sentence_ar, line.id);

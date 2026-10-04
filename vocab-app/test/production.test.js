@@ -1,5 +1,5 @@
-// Production behaviour: owner-only login, security checks, backup and the
-// import of a local database (replace after an automatic backup).
+// Production behaviour: accounts (first = administrator), security checks,
+// backup and the import of a local database (replace after an automatic backup).
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { freshDatabase, startApp } from './helpers.js';
@@ -47,7 +47,7 @@ test('everything except login is closed before the owner signs in', async () => 
   assert.equal(s.owner_exists, false);
 });
 
-test('setup needs the setup code; then sign-up is closed', async () => {
+test('the first account needs the setup code and becomes the administrator', async () => {
   const bad = await call('POST', '/api/auth/setup', { setup_code: 'wrong', username: 'owner', password: 'a-long-password' });
   assert.equal(bad.status, 401);
   const weak = await call('POST', '/api/auth/setup', { setup_code: 'test-setup-code', username: 'owner', password: 'short' });
@@ -57,9 +57,11 @@ test('setup needs the setup code; then sign-up is closed', async () => {
   assert.match(ok.set, /HttpOnly/);
   assert.match(ok.set, /Secure/);
   assert.match(ok.set, /SameSite=Lax/);
+  assert.equal(ok.body.user.role, 'admin');
   assert.equal((await call('GET', '/api/today')).status, 200);
-  const again = await call('POST', '/api/auth/setup', { setup_code: 'test-setup-code', username: 'x2', password: 'another-password' });
-  assert.equal(again.status, 403);
+  const s = (await call('GET', '/api/auth/status')).body;
+  assert.equal(s.owner_exists, true);
+  assert.equal(s.registration, 'open');
 });
 
 test('login / logout / wrong password', async () => {
@@ -115,13 +117,20 @@ test('backup → import (replace) restores exactly the same data, with a server 
   }
   const fin = (await call('POST', '/api/data/import/finish')).body;
   assert.deepEqual(fin.counts, before, 'every row is back');
+  // Ids are re-assigned (other learners share the database); content is identical.
+  const groupNames = async () => new Map((await call('GET', '/api/groups')).body.map((g) => [g.id, g.name]));
+  const namesBefore = new Map(snap.tables.word_groups.map((g) => [g.id, g.name]));
+  const namesAfter = await groupNames();
+  const shape = (ws, names) => ws.map((w) => [w.term, w.mastery, w.review_count, w.context_sentence, w.source?.title || null, w.group_ids.map((g) => names.get(g)).sort()])
+    .sort((a, b) => a[0].localeCompare(b[0]));
   const wordsAfter = (await call('GET', '/api/words')).body;
-  assert.deepEqual(wordsAfter.map((w) => [w.uv_id, w.term, w.mastery, w.group_ids.sort()]), wordsBefore.map((w) => [w.uv_id, w.term, w.mastery, w.group_ids.sort()]));
+  assert.deepEqual(shape(wordsAfter, namesAfter), shape(wordsBefore, namesBefore));
   assert.equal((await call('GET', '/api/config')).body.user.name, 'Sara');
-  // New rows after an import get fresh ids (sequences moved past imported ids).
+  // Sending existing groups again adds nothing (names are unique per learner).
+  const again = await call('POST', '/api/data/import/rows', { table: 'word_groups', rows: snap.tables.word_groups });
+  assert.equal(again.body.inserted, 0);
   const g = await call('POST', '/api/groups', { name: 'After import' });
   assert.equal(g.status, 200);
-  assert.ok(g.body.id > Math.max(...snap.tables.word_groups.map((x) => x.id)));
   const list = (await call('GET', '/api/data/summary')).body.backups;
   assert.ok(list.some((b) => b.reason === 'before-import'));
   const stored = await call('GET', `/api/data/backups/${begin.backup_id}`);

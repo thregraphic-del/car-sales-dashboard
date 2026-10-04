@@ -56,6 +56,8 @@ export async function render(view) {
       ${cfg.auth?.required ? `<div class="card stack">
         <b>الحساب</b>
         <div class="row between small"><span>اسم المستخدم</span><span class="chip en-inline">${esc(u.username || '')}</span></div>
+        <div class="row between small"><span>نوع الحساب</span><span class="chip ar-chip">${u.role === 'admin' ? 'المسؤول' : 'متعلّم'}</span></div>
+        <p class="tiny muted">كلماتك ومجموعاتك وتقدّمك وفيديوهاتك خاصة بحسابك — لا يراها أي حساب آخر.</p>
         <form id="pwForm" class="stack" autocomplete="on">
           <input class="hidden" autocomplete="username" value="${esc(u.username || '')}" readonly>
           <label class="field">كلمة المرور الحالية<input class="input en" type="password" id="pwOld" autocomplete="current-password" required></label>
@@ -136,7 +138,7 @@ export async function render(view) {
   });
   $('#logout')?.addEventListener('click', async () => {
     await api.logout().catch(() => {});
-    location.replace(location.pathname);
+    location.replace('/login');
   });
 
   /* ---------------------------------------------------------- data */

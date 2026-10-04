@@ -35,13 +35,13 @@ router.post('/text', wrap(async (req) => {
 router.get('/', wrap(async (req) => sources.listSources(req.userId)));
 router.get('/:id', wrap(async (req) => sources.sourceView(idParam(req), req.userId)));
 router.delete('/:id', wrap(async (req) => {
-  await sources.deleteSource(idParam(req));
+  await sources.deleteSource(idParam(req), req.userId);
   return { ok: true };
 }));
 
 // AI improvement, one short chunk per request (the reader calls again until done).
-router.post('/:id/refine', wrap(async (req) => service.refineSource(idParam(req))));
-router.get('/:id/translation', wrap(async (req) => service.translationStatus(idParam(req))));
-router.post('/:id/translation', wrap(async (req) => service.translateSource(idParam(req))));
+router.post('/:id/refine', wrap(async (req) => service.refineSource(idParam(req), req.userId)));
+router.get('/:id/translation', wrap(async (req) => service.translationStatus(idParam(req), req.userId)));
+router.post('/:id/translation', wrap(async (req) => service.translateSource(idParam(req), req.userId)));
 
 export default router;

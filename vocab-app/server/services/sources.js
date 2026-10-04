@@ -23,7 +23,7 @@ function toLines(segments) {
 export async function analyzeYoutube({ url, transcript, force }, userId) {
   const youtubeId = parseYoutubeId(url);
   if (!youtubeId) throw httpError(400, 'هذا لا يبدو رابط فيديو يوتيوب.');
-  const existing = await sources.findSourceByYoutubeId(youtubeId);
+  const existing = await sources.findSourceByYoutubeId(youtubeId, userId);
   if (existing && !force && !transcript?.trim() && await sources.lineCount(existing.id)) return { source_id: existing.id, cached: true };
   let meta;
   let segments;
@@ -68,8 +68,8 @@ export async function analyzeText(text, userId, title) {
   return { source_id: sourceId, ai: aiAvailable() };
 }
 
-async function requireSource(id) {
-  const src = await sources.getSource(id);
+async function requireSource(id, userId) {
+  const src = await sources.getSource(id, userId);
   if (!src) throw httpError(404, 'لم نجد هذا المصدر.');
   return src;
 }
@@ -78,8 +78,8 @@ async function requireSource(id) {
  * One step of AI word selection. Returns progress; call again until done.
  * {done, cursor, total, added, ai_error}
  */
-export async function refineSource(sourceId) {
-  const src = await requireSource(sourceId);
+export async function refineSource(sourceId, userId) {
+  const src = await requireSource(sourceId, userId);
   const total = await sources.lineCount(sourceId);
   if (src.is_demo || src.ai_cursor >= total) return { done: true, cursor: total, total, added: 0 };
   if (!aiAvailable()) return { done: true, cursor: src.ai_cursor, total, added: 0, ai_error: OFFLINE_MESSAGE };
@@ -105,8 +105,8 @@ export async function refineSource(sourceId) {
 }
 
 /** One step of subtitle translation. {complete, total, done, status, ai_error, lines} */
-export async function translateSource(sourceId) {
-  const src = await requireSource(sourceId);
+export async function translateSource(sourceId, userId) {
+  const src = await requireSource(sourceId, userId);
   const progress = async () => {
     const c = await sources.translationCounts(sourceId);
     return { total: c.total, done: c.translated };
@@ -142,8 +142,8 @@ export async function translateSource(sourceId) {
   return { complete, ...after, status: complete ? 'done' : 'running', lines: pairs };
 }
 
-export async function translationStatus(sourceId) {
-  const src = await requireSource(sourceId);
+export async function translationStatus(sourceId, userId) {
+  const src = await requireSource(sourceId, userId);
   const c = await sources.translationCounts(sourceId);
   let { translation_status: status } = src;
   if (c.total && c.translated >= c.total) status = 'done';

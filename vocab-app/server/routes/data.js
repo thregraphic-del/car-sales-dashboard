@@ -8,19 +8,19 @@ import { seedDemo, resetDemo, hasLearningData } from '../data/demo.js';
 
 const router = Router();
 
-router.get('/summary', wrap(async () => ({ counts: await backup.counts(), backups: await backup.listBackups() })));
+router.get('/summary', wrap(async (req) => ({ counts: await backup.counts(req.userId), backups: await backup.listBackups(req.userId) })));
 
 /** Download everything as one JSON file. */
-router.get('/backup', wrap(async (_req, res) => {
-  const snap = await backup.snapshot();
+router.get('/backup', wrap(async (req, res) => {
+  const snap = await backup.snapshot(req.userId);
   const stamp = new Date().toISOString().slice(0, 10);
   res.set('Content-Disposition', `attachment; filename="lexitube-backup-${stamp}.json"`);
   return snap;
 }));
 
-router.post('/backups', wrap(async () => backup.storeBackup('manual')));
+router.post('/backups', wrap(async (req) => backup.storeBackup(req.userId, 'manual')));
 router.get('/backups/:id', wrap(async (req, res) => {
-  const payload = await backup.getBackup(idParam(req));
+  const payload = await backup.getBackup(idParam(req), req.userId);
   res.set('Content-Type', 'application/json; charset=utf-8').set('Content-Disposition', `attachment; filename="lexitube-server-backup-${req.params.id}.json"`).send(payload);
   return undefined;
 }));
@@ -35,11 +35,11 @@ router.post('/import/rows', wrap(async (req) => {
   if (!Array.isArray(rows) || rows.length > config.limits.importChunkRows) throw httpError(413, 'دفعة كبيرة جدًا.');
   return { inserted: await backup.importRows(req.userId, String(table), rows) };
 }));
-router.post('/import/finish', wrap(async () => ({ counts: await backup.finishImport() })));
+router.post('/import/finish', wrap(async (req) => ({ counts: await backup.finishImport(req.userId) })));
 
 /** Demo data: only into an empty account (never over real data). */
 router.post('/demo', wrap(async (req) => {
-  if (await hasLearningData()) throw httpError(409, 'عندك بيانات بالفعل — لن نضيف بيانات تجريبية فوقها.');
+  if (await hasLearningData(req.userId)) throw httpError(409, 'عندك بيانات بالفعل — لن نضيف بيانات تجريبية فوقها.');
   return seedDemo(req.userId);
 }));
 

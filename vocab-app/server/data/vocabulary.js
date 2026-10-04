@@ -1,6 +1,8 @@
-// Global knowledge: vocabulary items and their examples, shared by every
-// source. New information only fills gaps — existing meanings never change.
-import { all, get, run, insert } from '../db/index.js';
+// Shared knowledge: vocabulary items and their examples, used by every
+// learner. It holds no personal data: a learner's own meaning lives in
+// user_vocabulary.user_arabic and their own examples carry their user_id.
+// New information only fills gaps — existing meanings never change.
+import { all, get, run } from '../db/index.js';
 import { matchKey, singularCandidates, sentenceKey } from '../../public/js/shared/text.js';
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
@@ -77,27 +79,47 @@ export async function upsertVocabulary(item) {
   return { id, created, filled };
 }
 
-/** Add an example unless the same sentence is already stored. Returns true if added. */
-export async function addExample(vocabularyId, sentence, arabic, kind = 'example') {
+/**
+ * Add an example unless the learner can already see the same sentence.
+ * userId = null → shared example (dictionary / AI); otherwise the learner's own.
+ * Returns true if added.
+ */
+export async function addExample(vocabularyId, sentence, arabic, kind = 'example', userId = null) {
   const s = String(sentence || '').trim();
   if (!s) return false;
   const key = sentenceKey(s);
-  const dup = await get('SELECT id, arabic FROM examples WHERE vocabulary_id = ? AND sentence_key = ?', vocabularyId, key);
+  const dup = await get(
+    'SELECT id, arabic, user_id FROM examples WHERE vocabulary_id = ? AND sentence_key = ? AND (user_id IS NULL OR user_id = ?) ORDER BY user_id',
+    vocabularyId, key, userId ?? 0,
+  );
   if (dup) {
-    if (!dup.arabic && arabic) await run('UPDATE examples SET arabic = ? WHERE id = ?', arabic, dup.id);
+    // Only fill the Arabic of an example this learner owns (or a shared one from the dictionary/AI).
+    if (!dup.arabic && arabic && (dup.user_id === userId || (dup.user_id === null && userId === null))) await run('UPDATE examples SET arabic = ? WHERE id = ?', arabic, dup.id);
     return false;
   }
-  await insert('INSERT INTO examples (vocabulary_id, kind, sentence, sentence_key, arabic) VALUES (?,?,?,?,?)', vocabularyId, kind, s, key, arabic || null);
+  await run(
+    'INSERT INTO examples (vocabulary_id, kind, sentence, sentence_key, arabic, user_id) VALUES (?,?,?,?,?,?) ON CONFLICT DO NOTHING',
+    vocabularyId, kind, s, key, arabic || null, userId,
+  );
   return true;
 }
 
+/** Examples a learner can see: shared ones plus their own, oldest first. */
+export async function examplesOf(vocabularyId, userId) {
+  return all('SELECT kind, sentence, arabic FROM examples WHERE vocabulary_id = ? AND (user_id IS NULL OR user_id = ?) ORDER BY id', vocabularyId, userId ?? 0);
+}
+
 /** Examples of many vocabulary items at once → Map(vocabulary_id → [{kind, sentence, arabic}]). */
-export async function examplesFor(ids) {
+export async function examplesFor(ids, userId) {
   const map = new Map();
   if (!ids.length) return map;
   for (let i = 0; i < ids.length; i += 500) {
     const part = ids.slice(i, i + 500);
-    const rows = await all(`SELECT vocabulary_id, kind, sentence, arabic FROM examples WHERE vocabulary_id IN (${part.map(() => '?').join(',')}) ORDER BY id`, ...part);
+    const rows = await all(
+      `SELECT vocabulary_id, kind, sentence, arabic FROM examples
+       WHERE vocabulary_id IN (${part.map(() => '?').join(',')}) AND (user_id IS NULL OR user_id = ?) ORDER BY id`,
+      ...part, userId ?? 0,
+    );
     for (const r of rows) {
       if (!map.has(r.vocabulary_id)) map.set(r.vocabulary_id, []);
       map.get(r.vocabulary_id).push({ kind: r.kind, sentence: r.sentence, arabic: r.arabic });

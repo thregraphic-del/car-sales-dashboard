@@ -23,8 +23,13 @@ export const config = {
   },
 
   auth: {
-    // Owner-only site: the first account is created with SETUP_CODE, then sign-up closes.
+    // Several learners, each with their own data. The first account becomes
+    // the administrator and needs SETUP_CODE when it is set.
     setupCode: env('SETUP_CODE'),
+    // Later sign-ups: "open" (anyone with the link), "code" (needs
+    // REGISTRATION_CODE — share it with the people you invite) or "closed".
+    registration: ['open', 'code', 'closed'].includes(env('REGISTRATION')) ? env('REGISTRATION') : (env('REGISTRATION_CODE') ? 'code' : 'open'),
+    registrationCode: env('REGISTRATION_CODE'),
     sessionSecret: env('SESSION_SECRET'),
     sessionDays: int('SESSION_DAYS', 60),
     cookieName: 'lt_session',

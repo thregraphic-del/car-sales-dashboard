@@ -1,5 +1,7 @@
 // The learner's words: saving, editing, removing, and the word list with
 // its learning state (status, difficulty, due) computed in one place.
+// Every query is limited to the learner (user_vocabulary.user_id; contexts
+// only from the learner's own sources).
 import { all, get, run, insert, tx } from '../db/index.js';
 import { httpError } from '../lib/errors.js';
 import { isDifficult, statusOf, isDue } from '../lib/srs.js';
@@ -14,8 +16,15 @@ import { addToGroup, groupIdsFor } from './groups.js';
 export async function saveWord(userId, vocabularyId, { occurrenceId = null, sourceId = null, userArabic = null, groupIds = [] } = {}) {
   return tx(async () => {
     if (!await get('SELECT 1 AS x FROM vocabulary WHERE id = ?', vocabularyId)) throw httpError(404, 'لم نجد هذه الكلمة.');
-    const occ = occurrenceId ? await get('SELECT * FROM occurrences WHERE id = ? AND vocabulary_id = ?', occurrenceId, vocabularyId) : null;
-    const srcId = sourceId ?? occ?.source_id ?? null;
+    // The context must come from one of the learner's own sources.
+    const occ = occurrenceId
+      ? await get(
+        'SELECT o.* FROM occurrences o JOIN sources s ON s.id = o.source_id WHERE o.id = ? AND o.vocabulary_id = ? AND s.user_id = ?',
+        occurrenceId, vocabularyId, userId,
+      )
+      : null;
+    const ownSource = sourceId ? await get('SELECT id FROM sources WHERE id = ? AND user_id = ?', sourceId, userId) : null;
+    const srcId = ownSource?.id ?? occ?.source_id ?? null;
     const existing = await get('SELECT * FROM user_vocabulary WHERE user_id = ? AND vocabulary_id = ?', userId, vocabularyId);
     let uvId;
     let already = false;
@@ -69,7 +78,7 @@ export async function updateWord(userId, uvId, patch) {
   const uv = await get('SELECT * FROM user_vocabulary WHERE id = ? AND user_id = ?', uvId, userId);
   if (!uv) throw httpError(404, 'لم نجد هذه الكلمة.');
   if (patch.user_arabic !== undefined) await run('UPDATE user_vocabulary SET user_arabic = ? WHERE id = ?', patch.user_arabic?.trim() || null, uvId);
-  if (patch.example) await addExample(uv.vocabulary_id, patch.example, patch.example_arabic, 'user');
+  if (patch.example) await addExample(uv.vocabulary_id, patch.example, patch.example_arabic, 'user', userId);
   return getWord(userId, uvId);
 }
 
@@ -90,7 +99,7 @@ const WORD_SELECT = `
   FROM user_vocabulary uv
   JOIN vocabulary v ON v.id = uv.vocabulary_id
   LEFT JOIN occurrences o ON o.id = uv.occurrence_id
-  LEFT JOIN sources s ON s.id = uv.source_id
+  LEFT JOIN sources s ON s.id = uv.source_id AND s.user_id = uv.user_id
   WHERE uv.user_id = ? AND uv.state = 'saved'`;
 
 function toWord(r, ex, now) {
@@ -134,8 +143,8 @@ function toWord(r, ex, now) {
   };
 }
 
-async function hydrate(rows) {
-  const ex = await examplesFor([...new Set(rows.map((r) => r.vocabulary_id))]);
+async function hydrate(rows, userId) {
+  const ex = await examplesFor([...new Set(rows.map((r) => r.vocabulary_id))], userId);
   const now = new Date();
   return rows.map((r) => toWord(r, ex, now));
 }
@@ -143,21 +152,21 @@ async function hydrate(rows) {
 export async function getWord(userId, uvId) {
   const rows = await all(`${WORD_SELECT} AND uv.id = ?`, userId, uvId);
   if (!rows.length) throw httpError(404, 'لم نجد هذه الكلمة.');
-  const [w] = await hydrate(rows);
+  const [w] = await hydrate(rows, userId);
   w.history = (await all('SELECT source, grade, correct, created_at FROM review_logs WHERE user_vocabulary_id = ? ORDER BY id DESC LIMIT 20', uvId))
     .map((h) => ({ ...h, correct: !!h.correct }));
-  w.contexts = await contextsFor(w.vocabulary_id);
+  w.contexts = await contextsFor(w.vocabulary_id, userId);
   return w;
 }
 
-/** All places a word was seen (multiple contexts, newest sources first). */
-export async function contextsFor(vocabularyId, limit = 12) {
+/** All places the learner saw a word (multiple contexts, newest sources first). */
+export async function contextsFor(vocabularyId, userId, limit = 12) {
   return (await all(
     `SELECT o.id AS occurrence_id, o.sentence, o.sentence_ar, o.contextual_meaning, o.timestamp_seconds, o.line_id,
        s.id AS source_id, s.kind, s.title, s.youtube_id, s.is_demo
      FROM occurrences o JOIN sources s ON s.id = o.source_id
-     WHERE o.vocabulary_id = ? ORDER BY o.suggested DESC, s.analyzed_at DESC, o.id LIMIT ?`,
-    vocabularyId, limit,
+     WHERE o.vocabulary_id = ? AND s.user_id = ? ORDER BY o.suggested DESC, s.analyzed_at DESC, o.id LIMIT ?`,
+    vocabularyId, userId, limit,
   )).map((c) => ({ ...c, is_demo: !!c.is_demo }));
 }
 
@@ -198,7 +207,7 @@ export async function listWords(userId, filters = {}) {
   if (filters.from) and('uv.saved_at >= ?', midnightOf(filters.from).toISOString());
   if (filters.to) and('uv.saved_at < ?', midnightOf(nextDate(filters.to)).toISOString());
   sql += ' ORDER BY uv.saved_at DESC, uv.id DESC';
-  let words = await hydrate(await all(sql, ...params));
+  let words = await hydrate(await all(sql, ...params), userId);
   const st = filters.status;
   if (st === 'due') words = words.filter((w) => w.due);
   else if (st === 'difficult') words = words.filter((w) => w.difficult);

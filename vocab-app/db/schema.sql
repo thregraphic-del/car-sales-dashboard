@@ -1,9 +1,9 @@
--- LexiTube schema v4 (SQLite, local development).
+-- LexiTube schema v5 (SQLite, local development).
 -- Production uses the same model on Postgres: netlify/database/migrations/.
 --
 -- Layers
---   Global knowledge : vocabulary, examples            (one row per word/phrase)
---   Sources          : sources, transcript_lines       (the original text = source of truth)
+--   Shared knowledge : vocabulary, examples (user_id NULL) (one row per word/phrase; no personal data)
+--   Sources          : sources (per user), transcript_lines (the original text = source of truth)
 --   Context          : occurrences                     (word × source line, contextual meaning)
 --   User knowledge   : user_vocabulary, review_logs, daily_plans, daily_plan_items
 --   Organisation     : word_groups, word_group_items   (many-to-many, no copies)
@@ -16,16 +16,18 @@ CREATE TABLE IF NOT EXISTS users (
   daily_goal    INTEGER NOT NULL DEFAULT 10,
   speak_arabic  INTEGER NOT NULL DEFAULT 0,
   speech_rate   REAL    NOT NULL DEFAULT 1.0,
-  username      TEXT,                              -- owner login (production)
+  username      TEXT,                              -- login (production)
   password_hash TEXT,                              -- scrypt, never returned by the API
+  role          TEXT    NOT NULL DEFAULT 'user',   -- admin (first account) | user
   created_at    TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
 -- A YouTube video or a pasted text.
 CREATE TABLE IF NOT EXISTS sources (
   id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id            INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   kind               TEXT    NOT NULL CHECK (kind IN ('youtube','text')),
-  youtube_id         TEXT UNIQUE,
+  youtube_id         TEXT,
   url                TEXT,
   title              TEXT    NOT NULL,
   channel            TEXT,
@@ -50,6 +52,7 @@ CREATE TABLE IF NOT EXISTS transcript_lines (
   duration      REAL,
   text          TEXT    NOT NULL,
   text_ar       TEXT,
+  words_json    TEXT,              -- word timings [[offset_ms, text], ...] when YouTube provides them
   UNIQUE (source_id, idx)
 );
 
@@ -80,7 +83,7 @@ CREATE TABLE IF NOT EXISTS examples (
   sentence      TEXT    NOT NULL,
   sentence_key  TEXT    NOT NULL,
   arabic        TEXT,
-  UNIQUE (vocabulary_id, sentence_key)
+  user_id       INTEGER REFERENCES users(id) ON DELETE CASCADE -- NULL = shared; set = the learner's own example
 );
 
 -- Where an item appears: links global vocabulary to an exact source line.
@@ -183,6 +186,7 @@ CREATE TABLE IF NOT EXISTS ai_cache (
 -- Server-side backups taken before every data import (JSON snapshot).
 CREATE TABLE IF NOT EXISTS backups (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    INTEGER REFERENCES users(id) ON DELETE CASCADE,
   reason     TEXT NOT NULL,
   payload    TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
@@ -198,9 +202,30 @@ CREATE INDEX IF NOT EXISTS idx_lines_source      ON transcript_lines(source_id, 
 CREATE INDEX IF NOT EXISTS idx_occ_source        ON occurrences(source_id, line_id);
 CREATE INDEX IF NOT EXISTS idx_occ_vocab         ON occurrences(vocabulary_id);
 CREATE INDEX IF NOT EXISTS idx_examples_vocab    ON examples(vocabulary_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_examples_owner ON examples(vocabulary_id, sentence_key, COALESCE(user_id, 0));
+CREATE UNIQUE INDEX IF NOT EXISTS uq_sources_user_youtube ON sources(user_id, youtube_id);
+CREATE INDEX IF NOT EXISTS idx_sources_user ON sources(user_id, analyzed_at);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_users_username ON users(lower(username));
 CREATE INDEX IF NOT EXISTS idx_uv_user_next      ON user_vocabulary(user_id, next_review_at);
 CREATE INDEX IF NOT EXISTS idx_uv_user_saved     ON user_vocabulary(user_id, saved_at);
 CREATE INDEX IF NOT EXISTS idx_uv_user_difficult ON user_vocabulary(user_id, difficulty);
 CREATE INDEX IF NOT EXISTS idx_logs_user_time    ON review_logs(user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_logs_uv           ON review_logs(user_vocabulary_id, id);
 CREATE INDEX IF NOT EXISTS idx_group_items_uv    ON word_group_items(user_vocabulary_id);
+
+-- Daily AI requests per learner (cost control).
+CREATE TABLE IF NOT EXISTS ai_usage (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day     TEXT    NOT NULL,
+  calls   INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (user_id, day)
+);
+
+-- Old id → new id while importing a backup (ids are re-assigned per database).
+CREATE TABLE IF NOT EXISTS import_map (
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tbl     TEXT    NOT NULL,
+  old_id  TEXT    NOT NULL,
+  new_id  INTEGER NOT NULL,
+  PRIMARY KEY (user_id, tbl, old_id)
+);

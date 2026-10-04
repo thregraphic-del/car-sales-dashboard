@@ -94,9 +94,6 @@ function mulberry32(seed) {
 const HOUR = 3600 * 1000;
 const DAY = 24 * HOUR;
 const SOURCES = ['flashcard', 'today', 'quiz', 'game:choose-meaning', 'game:connections', 'game:fill-blank', 'game:listen-choose', 'game:context', 'game:translation'];
-// Learning data (not the account): emptied by resetDemo, children first.
-const LEARNING_TABLES = ['word_group_items', 'word_groups', 'daily_plan_items', 'daily_plans', 'review_logs', 'user_vocabulary', 'occurrences',
-  'transcript_lines', 'examples', 'vocabulary', 'sources'];
 
 /** Interleave the item sentences with filler lines into a full transcript. */
 function demoTranscript(video, items, rand) {
@@ -120,12 +117,16 @@ function demoTranscript(video, items, rand) {
 
 const count = async (sql) => (await get(sql)).n;
 
-/** True when the account already has words or sources (demo never goes on top). */
-export async function hasLearningData() {
-  return (await count('SELECT COUNT(*) AS n FROM user_vocabulary')) > 0 || (await count('SELECT COUNT(*) AS n FROM sources')) > 0;
+const countFor = async (sql, userId) => (await get(sql, userId)).n;
+
+/** True when the learner already has words or sources (demo never goes on top). */
+export async function hasLearningData(userId) {
+  return (await countFor('SELECT COUNT(*) AS n FROM user_vocabulary WHERE user_id = ?', userId)) > 0
+    || (await countFor('SELECT COUNT(*) AS n FROM sources WHERE user_id = ?', userId)) > 0;
 }
 
-export async function seedDemo(userId = DEFAULT_USER_ID) {
+/** Load the demo into one learner's account. */
+export async function seedDemo(userId) {
   const rand = mulberry32(20261003);
   await ensureUser(userId);
 
@@ -191,12 +192,12 @@ export async function seedDemo(userId = DEFAULT_USER_ID) {
   await seedStreak(userId, rand);
 
   return {
-    sources: await count('SELECT COUNT(*) AS n FROM sources'),
-    lines: await count('SELECT COUNT(*) AS n FROM transcript_lines'),
-    vocabulary: await count('SELECT COUNT(*) AS n FROM vocabulary'),
-    saved: await count(`SELECT COUNT(*) AS n FROM user_vocabulary WHERE state = 'saved'`),
-    reviews: await count('SELECT COUNT(*) AS n FROM review_logs'),
-    groups: await count('SELECT COUNT(*) AS n FROM word_groups'),
+    sources: await countFor('SELECT COUNT(*) AS n FROM sources WHERE user_id = ?', userId),
+    lines: await countFor('SELECT COUNT(*) AS n FROM transcript_lines l JOIN sources s ON s.id = l.source_id WHERE s.user_id = ?', userId),
+    vocabulary: await countFor('SELECT COUNT(DISTINCT vocabulary_id) AS n FROM user_vocabulary WHERE user_id = ?', userId),
+    saved: await countFor(`SELECT COUNT(*) AS n FROM user_vocabulary WHERE user_id = ? AND state = 'saved'`, userId),
+    reviews: await countFor('SELECT COUNT(*) AS n FROM review_logs WHERE user_id = ?', userId),
+    groups: await countFor('SELECT COUNT(*) AS n FROM word_groups WHERE user_id = ?', userId),
   };
 }
 
@@ -262,11 +263,21 @@ async function seedStreak(userId, rand) {
   }
 }
 
-/** Local development: wipe the learning data and load the demo again. */
-export async function resetDemo(userId = DEFAULT_USER_ID) {
+/** Remove one learner's learning data (their account and the shared dictionary stay). */
+export async function clearLearningData(userId) {
   await tx(async () => {
-    for (const t of LEARNING_TABLES) await run(`DELETE FROM ${t}`);
+    // Children go with their parents (ON DELETE CASCADE).
+    await run('DELETE FROM user_vocabulary WHERE user_id = ?', userId);
+    await run('DELETE FROM daily_plans WHERE user_id = ?', userId);
+    await run('DELETE FROM word_groups WHERE user_id = ?', userId);
+    await run('DELETE FROM sources WHERE user_id = ?', userId);
+    await run('DELETE FROM examples WHERE user_id = ?', userId);
   });
+}
+
+/** Local development: wipe the learner's data and load the demo again. */
+export async function resetDemo(userId = DEFAULT_USER_ID) {
+  await clearLearningData(userId);
   return seedDemo(userId);
 }
 

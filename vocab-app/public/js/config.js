@@ -6,5 +6,5 @@ export const APP_CONFIG = {
   // Importing a local database: rows per request.
   importChunkRows: 1000,
   // sql.js 1.10.3 (SQLite compiled to WebAssembly, served from public/vendor) — reads a local lexitube.db in the browser.
-  sqlJsBase: 'vendor/sql.js/',
+  sqlJsBase: '/vendor/sql.js/',
 };

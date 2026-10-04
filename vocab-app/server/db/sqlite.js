@@ -1,5 +1,5 @@
 // SQLite driver (local development). Uses node:sqlite, built into Node 22.
-// Opening an older database upgrades it in place (v1 → v2 → v3 → v4).
+// Opening an older database upgrades it in place (v1 → v2 → v3 → v4 → v5).
 import { DatabaseSync } from 'node:sqlite';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -9,7 +9,7 @@ import { learningSignals } from '../lib/srs.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(here, '..', '..');
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 export const DEFAULT_SQLITE_PATH = path.join(ROOT, 'data', 'lexitube.db');
 
 export function resolvePath(p) {
@@ -125,7 +125,84 @@ export function migrate(d) {
     d.exec(`CREATE TABLE IF NOT EXISTS backups (id INTEGER PRIMARY KEY AUTOINCREMENT, reason TEXT NOT NULL, payload TEXT NOT NULL,
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))`);
   }
+  if (version < 5) migrateV5(d);
   d.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
+}
+
+const columnsOf = (d, table) => d.prepare(`PRAGMA table_info(${table})`).all().map((c) => c.name);
+
+/**
+ * v4 → v5: several accounts. Sources (and through them transcripts and
+ * contexts), backups and the learner's own examples get an owner; existing
+ * rows belong to the first user. SQLite cannot drop a UNIQUE column
+ * constraint, so sources/examples/backups are rebuilt with their data.
+ */
+function migrateV5(d) {
+  d.exec('PRAGMA foreign_keys = OFF');
+  d.exec('BEGIN');
+  try {
+    if (!columnsOf(d, 'users').includes('role')) d.exec(`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'`);
+    if (!columnsOf(d, 'transcript_lines').includes('words_json')) d.exec('ALTER TABLE transcript_lines ADD COLUMN words_json TEXT');
+    const firstUser = () => {
+      const u = d.prepare('SELECT MIN(id) AS id FROM users').get()?.id;
+      if (u) return u;
+      d.prepare(`INSERT INTO users (id, name) VALUES (1, 'Learner')`).run();
+      return 1;
+    };
+    if (!columnsOf(d, 'sources').includes('user_id')) {
+      const owner = d.prepare('SELECT COUNT(*) AS n FROM sources').get().n ? firstUser() : 1;
+      d.exec(`CREATE TABLE sources_v5 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        kind TEXT NOT NULL CHECK (kind IN ('youtube','text')),
+        youtube_id TEXT, url TEXT, title TEXT NOT NULL, channel TEXT, duration_seconds INTEGER, thumbnail_url TEXT,
+        transcript_source TEXT, extractor TEXT, word_count INTEGER, is_demo INTEGER NOT NULL DEFAULT 0,
+        translation_status TEXT NOT NULL DEFAULT 'none', ai_cursor INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        analyzed_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))`);
+      d.prepare(`INSERT INTO sources_v5 (id, user_id, kind, youtube_id, url, title, channel, duration_seconds, thumbnail_url, transcript_source, extractor,
+                   word_count, is_demo, translation_status, ai_cursor, created_at, analyzed_at)
+                 SELECT id, ?, kind, youtube_id, url, title, channel, duration_seconds, thumbnail_url, transcript_source, extractor,
+                   word_count, is_demo, translation_status, ai_cursor, created_at, analyzed_at FROM sources`).run(owner);
+      d.exec('DROP TABLE sources');
+      d.exec('ALTER TABLE sources_v5 RENAME TO sources');
+    }
+    if (!columnsOf(d, 'examples').includes('user_id')) {
+      const owner = d.prepare(`SELECT COUNT(*) AS n FROM examples WHERE kind = 'user'`).get().n ? firstUser() : null;
+      d.exec(`CREATE TABLE examples_v5 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        vocabulary_id INTEGER NOT NULL REFERENCES vocabulary(id) ON DELETE CASCADE,
+        kind TEXT NOT NULL DEFAULT 'example', sentence TEXT NOT NULL, sentence_key TEXT NOT NULL, arabic TEXT,
+        user_id INTEGER REFERENCES users(id) ON DELETE CASCADE)`);
+      d.prepare(`INSERT INTO examples_v5 (id, vocabulary_id, kind, sentence, sentence_key, arabic, user_id)
+                 SELECT id, vocabulary_id, kind, sentence, sentence_key, arabic, CASE WHEN kind = 'user' THEN ? END FROM examples`).run(owner);
+      d.exec('DROP TABLE examples');
+      d.exec('ALTER TABLE examples_v5 RENAME TO examples');
+    }
+    if (!columnsOf(d, 'backups').includes('user_id')) {
+      d.exec('ALTER TABLE backups ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE');
+      if (d.prepare('SELECT COUNT(*) AS n FROM backups').get().n) d.prepare('UPDATE backups SET user_id = ?').run(firstUser());
+    }
+    // The first account with a password is the administrator.
+    d.exec(`UPDATE users SET role = 'admin' WHERE id = (SELECT MIN(id) FROM users WHERE password_hash IS NOT NULL)
+            AND NOT EXISTS (SELECT 1 FROM users WHERE role = 'admin')`);
+    d.exec(`
+      CREATE INDEX IF NOT EXISTS idx_examples_vocab ON examples(vocabulary_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_examples_owner ON examples(vocabulary_id, sentence_key, COALESCE(user_id, 0));
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_sources_user_youtube ON sources(user_id, youtube_id);
+      CREATE INDEX IF NOT EXISTS idx_sources_user ON sources(user_id, analyzed_at);
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_users_username ON users(lower(username));
+      CREATE TABLE IF NOT EXISTS ai_usage (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, day TEXT NOT NULL,
+        calls INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, day));
+      CREATE TABLE IF NOT EXISTS import_map (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, tbl TEXT NOT NULL,
+        old_id TEXT NOT NULL, new_id INTEGER NOT NULL, PRIMARY KEY (user_id, tbl, old_id));`);
+    d.exec('COMMIT');
+  } catch (err) {
+    d.exec('ROLLBACK');
+    throw err;
+  } finally {
+    d.exec('PRAGMA foreign_keys = ON');
+  }
 }
 
 const BAND_FOR = { A1: 'basic', A2: 'basic', B1: 'useful', B2: 'useful', C1: 'advanced', C2: 'advanced' };
@@ -155,9 +232,9 @@ function migrateV1(d, schema) {
         u.id, u.name, u.daily_goal, u.speak_arabic, u.speech_rate, u.created_at);
     }
     for (const v of legacy.videos) {
-      ins(`INSERT INTO sources (id, kind, youtube_id, url, title, channel, duration_seconds, thumbnail_url, transcript_source, extractor, word_count, is_demo, created_at, analyzed_at)
-           VALUES (?,'youtube',?,?,?,?,?,?,?,?,?,?,?,?)`,
-        v.id, v.youtube_id, v.url, v.title, v.channel, v.duration_seconds, v.thumbnail_url, v.transcript_source, v.extractor, v.word_count, v.is_demo, v.analyzed_at, v.analyzed_at);
+      ins(`INSERT INTO sources (id, user_id, kind, youtube_id, url, title, channel, duration_seconds, thumbnail_url, transcript_source, extractor, word_count, is_demo, created_at, analyzed_at)
+           VALUES (?,?,'youtube',?,?,?,?,?,?,?,?,?,?,?,?)`,
+        v.id, legacy.users[0]?.id ?? 1, v.youtube_id, v.url, v.title, v.channel, v.duration_seconds, v.thumbnail_url, v.transcript_source, v.extractor, v.word_count, v.is_demo, v.analyzed_at, v.analyzed_at);
     }
     const vocabMap = new Map();
     const byKey = new Map();

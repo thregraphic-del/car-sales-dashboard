@@ -1,4 +1,4 @@
-// /api/auth — owner login for the public site.
+// /api/auth — accounts for the website: register, login, logout, password.
 import { Router } from 'express';
 import { config } from '../config.js';
 import { wrap } from '../http.js';
@@ -18,6 +18,12 @@ router.get('/status', wrap(async (req) => ({ ...await auth.status(req.user), use
 
 router.post('/setup', wrap(async (req, res) => {
   const user = await auth.setup(req.body || {}, req.ip);
+  await startSession(res, user);
+  return { ok: true, user: publicUser(user) };
+}));
+
+router.post('/register', wrap(async (req, res) => {
+  const user = await auth.register(req.body || {}, req.ip);
   await startSession(res, user);
   return { ok: true, user: publicUser(user) };
 }));

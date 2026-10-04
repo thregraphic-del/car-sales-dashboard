@@ -5,7 +5,7 @@ import { config } from '../config.js';
 import { httpError } from '../lib/errors.js';
 import { applyReview, isDifficult, statusOf, isDue } from '../lib/srs.js';
 import { localDate, startOfDay, endOfTodayIso } from '../lib/time.js';
-import { DEFAULT_USER_ID, ensureUser } from './users.js';
+import { ensureUser } from './users.js';
 import { listWords } from './words.js';
 
 /* ================================================================ reviews */
@@ -86,7 +86,7 @@ async function insertPlanItems(planId, sel, offset) {
 }
 
 /** Today's plan: chosen once per day (stable), then only progress changes. */
-export async function getTodayPlan(userId = DEFAULT_USER_ID, words = null) {
+export async function getTodayPlan(userId, words = null) {
   const today = localDate();
   let plan = await get('SELECT * FROM daily_plans WHERE user_id = ? AND plan_date = ?', userId, today);
   if (!plan) {
@@ -183,7 +183,7 @@ export async function streak(userId) {
   return { current: count, studied_today: days.has(today) };
 }
 
-export async function stats(userId = DEFAULT_USER_ID) {
+export async function stats(userId) {
   const words = await listWords(userId);
   const plan = await getTodayPlan(userId, words);
   const todayStart = startOfDay(0).toISOString();
@@ -209,7 +209,7 @@ export async function stats(userId = DEFAULT_USER_ID) {
 
 /* ================================================================= groups */
 
-export async function listGroups(userId = DEFAULT_USER_ID) {
+export async function listGroups(userId) {
   const groups = await all('SELECT * FROM word_groups WHERE user_id = ? ORDER BY lower(name), id', userId);
   if (!groups.length) return [];
   const words = await listWords(userId);
