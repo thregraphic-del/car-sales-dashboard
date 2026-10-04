@@ -130,6 +130,28 @@ async function probeUrl(url) {
   });
 }
 
+const INVIDIOUS = ['https://inv.nadeko.net', 'https://yewtu.be', 'https://invidious.nerdvpn.de', 'https://inv.tux.pizza', 'https://invidious.privacyredirect.com',
+  'https://iv.melmac.space', 'https://invidious.f5.si', 'https://inv.perennialte.ch', 'https://invidious.materialio.us', 'https://youtube.alt.tyil.nl'];
+
+async function probeInvidious(base, videoId) {
+  return timed(async (signal) => {
+    const res = await fetch(`${base}/api/v1/captions/${videoId}`, { signal, headers: { 'User-Agent': UA } });
+    const text = await res.text();
+    let list = [];
+    try {
+      list = JSON.parse(text).captions || [];
+    } catch { /* not json */ }
+    const en = list.find((c) => /^en/i.test(c.languageCode) && !/auto/i.test(c.label)) || list.find((c) => /^en/i.test(c.languageCode));
+    let file = null;
+    if (en) {
+      const r = await fetch(new URL(en.url, base), { signal, headers: { 'User-Agent': UA } });
+      const vtt = await r.text();
+      file = { http: r.status, bytes: vtt.length, cues: (vtt.match(/-->/g) || []).length, label: en.label, start: vtt.slice(0, 80) };
+    }
+    return { http: res.status, tracks: list.length, labels: list.map((c) => c.label).slice(0, 6), file };
+  }, 9000);
+}
+
 /** Run every probe for one video. */
 export async function probeYoutube(videoId) {
   const players = {};
@@ -144,5 +166,9 @@ export async function probeYoutube(videoId) {
     probeUrl(`https://inv.nadeko.net/api/v1/captions/${videoId}`),
     probeUrl(`https://pipedapi.kavin.rocks/streams/${videoId}`),
   ]);
-  return { videoId, players, panel, timedtext, timedtextAsr, oembed, invidious, piped };
+  const instances = {};
+  await Promise.all(INVIDIOUS.map(async (base) => {
+    instances[base] = await probeInvidious(base, videoId);
+  }));
+  return { videoId, players, panel, timedtext, timedtextAsr, oembed, invidious, piped, instances };
 }

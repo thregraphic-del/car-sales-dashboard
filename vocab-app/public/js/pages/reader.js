@@ -1,10 +1,19 @@
 // Reader — watch / read a source with synchronized English + Arabic lines.
 // Every meaningful word is clickable and explained in place; nothing navigates away.
+//
+// Live sync: the transcript follows the real player time (YouTube IFrame API
+// getCurrentTime). A timeline built once from the caption timestamps
+// (shared/sync.js) gives the current sentence — and the current word when
+// YouTube provided word timings — by binary search on every animation frame
+// while playing; when paused it checks a few times a second so seeking still
+// moves the highlight. Clicking a sentence (outside its words) or its time
+// seeks the video there.
 import { api } from '../api.js';
 import { state } from '../state.js';
 import { esc, icon, levelChip, fmtTime, fmtDuration, toast, $, emptyState } from '../ui.js';
 import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech } from '../components.js';
-import { tokenize, quickTier, lineAt as findLine } from '../shared/text.js';
+import { tokenize, quickTier } from '../shared/text.js';
+import { buildTimeline, positionAt, wordIndexByChar } from '../shared/sync.js';
 import { refreshStats } from '../app.js';
 import { APP_CONFIG } from '../config.js';
 
@@ -43,23 +52,26 @@ function loadYouTubeApi() {
   return ytApi;
 }
 
-/** Real YouTube player (IFrame API). */
-async function youtubePlayer(el, videoId, start) {
+/** Real YouTube player (IFrame API). onState(playing) is called on play/pause/seek. */
+async function youtubePlayer(el, videoId, start, onState = () => {}) {
   const YT = await loadYouTubeApi();
   return new Promise((resolve) => {
     const p = new YT.Player(el, {
       videoId,
-      playerVars: { playsinline: 1, rel: 0, modestbranding: 1, start: Math.floor(start || 0) },
+      playerVars: { playsinline: 1, rel: 0, modestbranding: 1, start: Math.floor(start || 0), cc_load_policy: 0 },
       events: {
         onReady: () => resolve({
           time: () => p.getCurrentTime?.() || 0,
-          seek: (t) => {
+          seek: (t, { play = true } = {}) => {
             p.seekTo(t, true);
-            p.playVideo();
+            if (play) p.playVideo();
+            onState(play);
           },
           playing: () => p.getPlayerState?.() === 1,
           destroy: () => p.destroy?.(),
         }),
+        // 1 playing, 3 buffering (still moving), 2 paused, 0 ended
+        onStateChange: (e) => onState(e.data === 1 || e.data === 3),
       },
     });
   });
@@ -100,9 +112,15 @@ function demoPlayer(el, duration) {
   return { time: () => t, seek: (s) => { t = s; playing = true; last = performance.now(); }, playing: () => playing, destroy: () => clearInterval(tick) };
 }
 
+/* ------------------------------------------------------------ word spans */
+
+// data-wi on each word span = index of that word in line.words (live highlight).
+const wiAttr = (map, from) => (map && map[from] >= 0 ? ` data-wi="${map[from]}"` : '');
+
 /* ---------------------------------------------------------------- render */
 
 function lineHtml(line, marks) {
+  const wmap = line.words?.length ? wordIndexByChar(line.text) : null;
   const own = marks.filter((m) => m.line_id === line.id).sort((a, b) => a.start - b.start || b.end - a.end);
   const spans = [];
   let pos = 0;
@@ -113,17 +131,23 @@ function lineHtml(line, marks) {
     pos = m.end;
   }
   spans.push({ from: pos, to: line.text.length });
-  const plain = (text) => tokenize(text).map((t) => {
+  const plain = (text, base) => tokenize(text).map((t) => {
     if (!t.word) return esc(t.text);
-    if (quickTier(t.text) === 'function') return `<span class="fw">${esc(t.text)}</span>`;
-    return `<span class="tok" data-w="${esc(t.text)}">${esc(t.text)}</span>`;
+    const wi = wiAttr(wmap, base + t.start);
+    if (quickTier(t.text) === 'function') return `<span class="fw"${wi}>${esc(t.text)}</span>`;
+    return `<span class="tok" data-w="${esc(t.text)}"${wi}>${esc(t.text)}</span>`;
   }).join('');
+  // Inside a highlighted phrase, words still get their own span for the live highlight.
+  const markInner = (from, to) => (wmap
+    ? tokenize(line.text.slice(from, to)).map((t) => (t.word ? `<span class="w"${wiAttr(wmap, from + t.start)}>${esc(t.text)}</span>` : esc(t.text))).join('')
+    : esc(line.text.slice(from, to)));
   const body = spans.map((s) => (s.mark
-    ? `<span class="mark ${s.mark.state === 'saved' ? 's-saved' : 's-suggested'}" data-vid="${s.mark.vocabulary_id}">${esc(line.text.slice(s.mark.start, s.mark.end))}</span>`
-    : plain(line.text.slice(s.from, s.to)))).join('');
+    ? `<span class="mark ${s.mark.state === 'saved' ? 's-saved' : 's-suggested'}" data-vid="${s.mark.vocabulary_id}">${markInner(s.mark.start, s.mark.end)}</span>`
+    : plain(line.text.slice(s.from, s.to), s.from))).join('');
+  const seekable = line.start_seconds != null;
   return `
-    <div class="line" data-id="${line.id}" data-start="${line.start_seconds ?? ''}">
-      ${line.start_seconds != null ? `<button class="ts" data-seek="${line.start_seconds}">${fmtTime(line.start_seconds)}</button>` : '<span class="ts-spacer"></span>'}
+    <div class="line${seekable ? ' seekable' : ''}${wmap ? ' has-words' : ''}" data-id="${line.id}" data-start="${line.start_seconds ?? ''}">
+      ${seekable ? `<button class="ts" data-seek="${line.start_seconds}" title="انتقل إلى هذه الجملة في الفيديو">${fmtTime(line.start_seconds)}</button>` : '<span class="ts-spacer"></span>'}
       <div class="line-body"><p class="line-en en">${body}</p>${line.text_ar ? `<p class="line-ar" dir="rtl">${esc(line.text_ar)}</p>` : '<p class="line-ar pending" dir="rtl">…</p>'}</div>
     </div>`;
 }
@@ -144,7 +168,12 @@ export async function render(view, { segments, params }) {
   let follow = pref('reader.follow', '1') === '1';
   let player = null;
   let currentId = null;
+  let currentWord = -1;
   let syncTimer = null;
+  let frame = 0;
+  let playing = false;
+  let timeline = buildTimeline(data.lines);
+  let userScrollUntil = 0; // the learner is scrolling: don't pull the transcript back for a moment
   let tab = 'text';
 
   view.innerHTML = `
@@ -165,7 +194,7 @@ export async function render(view, { segments, params }) {
           <span class="tiny muted" id="trNote"></span>
         </div>
         <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}" id="lines"></div>
-        <p class="tiny muted reader-hint">اضغط على أي كلمة لترى معناها في هذه الجملة. <span class="mark s-suggested">مقترحة</span> <span class="mark s-saved">محفوظة</span></p>
+        <p class="tiny muted reader-hint">اضغط على أي كلمة لترى معناها في هذه الجملة${isVideo && hasTimes ? '، أو على الوقت / خارج الكلمات للانتقال إلى الجملة في الفيديو' : ''}. <span class="mark s-suggested">مقترحة</span> <span class="mark s-saved">محفوظة</span></p>
       </div>
       <aside class="reader-side card" id="side"></aside>
     </div>`;
@@ -179,6 +208,7 @@ export async function render(view, { segments, params }) {
     linesEl.innerHTML = data.lines.map((l) => lineHtml(l, data.marks)).join('') || '<p class="muted">لا يوجد نص.</p>';
     linesEl.scrollTop = keep;
     if (currentId) linesEl.querySelector(`.line[data-id="${currentId}"]`)?.classList.add('current');
+    currentWord = -1; // re-applied on the next tick
   };
 
   const drawSide = () => {
@@ -198,6 +228,7 @@ export async function render(view, { segments, params }) {
 
   const refresh = async () => {
     data = await api.source(id);
+    timeline = buildTimeline(data.lines);
     drawLines();
     drawSide();
     refreshStats();
@@ -286,33 +317,86 @@ export async function render(view, { segments, params }) {
     if (source.is_demo) player = demoPlayer(box.parentElement, source.duration_seconds || 600);
     else {
       box.parentElement.innerHTML = '<div id="player"></div>';
-      youtubePlayer($('#player', view), source.youtube_id, startAt).then((p) => (player = p)).catch(() => {
+      youtubePlayer($('#player', view), source.youtube_id, startAt, (isPlaying) => setPlaying(isPlaying)).then((p) => (player = p)).catch(() => {
         $('.player-box', view).innerHTML = `<div class="alert info">تعذّر تحميل مشغّل يوتيوب. يمكنك القراءة هنا، أو <a href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">فتح الفيديو في يوتيوب</a>.</div>`;
       });
     }
   }
 
-  const setCurrent = (lineId, { scroll = follow } = {}) => {
+  // Keep the current sentence comfortably in view (only scroll when it leaves the middle band).
+  const bringIntoView = (el, force = false) => {
+    if (!el || isPanelOpen() || (!force && Date.now() < userScrollUntil)) return;
+    const top = el.offsetTop - linesEl.offsetTop;
+    const view0 = linesEl.scrollTop;
+    const h = linesEl.clientHeight;
+    if (force || top < view0 + h * 0.12 || top + el.offsetHeight > view0 + h * 0.75) {
+      linesEl.scrollTo({ top: Math.max(0, top - h / 3), behavior: 'smooth' });
+    }
+  };
+  const setCurrent = (lineId, { scroll = follow, force = false } = {}) => {
     if (lineId === currentId) return;
     linesEl.querySelector('.line.current')?.classList.remove('current');
+    linesEl.querySelector('.w-now')?.classList.remove('w-now');
     currentId = lineId;
-    const el = linesEl.querySelector(`.line[data-id="${lineId}"]`);
+    currentWord = -1;
+    const el = lineId != null && linesEl.querySelector(`.line[data-id="${lineId}"]`);
     if (!el) return;
     el.classList.add('current');
-    if (scroll && !isPanelOpen()) linesEl.scrollTo({ top: el.offsetTop - linesEl.clientHeight / 3, behavior: 'smooth' });
+    if (scroll) bringIntoView(el, force);
   };
-  const lineAt = (t) => findLine(data.lines, t);
+  const setWord = (wi) => {
+    if (wi === currentWord) return;
+    currentWord = wi;
+    const el = currentId != null && linesEl.querySelector(`.line[data-id="${currentId}"]`);
+    if (!el) return;
+    el.querySelectorAll('.w-now, .w-said').forEach((w) => w.classList.remove('w-now', 'w-said'));
+    if (wi < 0) return;
+    el.querySelectorAll('[data-wi]').forEach((w) => {
+      const k = Number(w.dataset.wi);
+      if (k < wi) w.classList.add('w-said');
+      else if (k === wi) w.classList.add('w-now');
+    });
+  };
+  const lineAt = (t) => {
+    const i = positionAt(timeline, t).line;
+    return i >= 0 ? timeline[i] : null;
+  };
+  // One sync step from the real player time.
+  const tick = () => {
+    if (!player || !timeline.length) return;
+    const pos = positionAt(timeline, player.time());
+    const entry = pos.line >= 0 ? timeline[pos.line] : null;
+    setCurrent(entry ? entry.id : null);
+    setWord(pos.word);
+  };
+  const loop = () => {
+    tick();
+    frame = playing ? requestAnimationFrame(loop) : 0;
+  };
+  function setPlaying(isPlaying) {
+    playing = isPlaying;
+    linesEl.classList.toggle('is-playing', isPlaying);
+    if (isPlaying && !frame) frame = requestAnimationFrame(loop);
+    if (!isPlaying) tick();
+  }
   if (hasTimes) {
+    // Smooth rAF while playing; a slow check otherwise (seek while paused, demo player).
     syncTimer = setInterval(() => {
       if (!player) return;
-      const l = lineAt(player.time());
-      if (l) setCurrent(l.id);
-    }, 250);
+      const now = player.playing?.() ?? false;
+      if (now !== playing) setPlaying(now);
+      if (!playing) tick();
+    }, 300);
+    const markUserScroll = () => {
+      userScrollUntil = Date.now() + 4000;
+    };
+    linesEl.addEventListener('wheel', markUserScroll, { passive: true });
+    linesEl.addEventListener('touchmove', markUserScroll, { passive: true });
   }
   // Deep links: ?t=seconds or ?line=id
   if (startAt != null) {
     const l = lineAt(startAt);
-    if (l) setTimeout(() => setCurrent(l.id, { scroll: true }), 50);
+    if (l) setTimeout(() => setCurrent(l.id, { scroll: true, force: true }), 50);
     if (player?.seek) player.seek(startAt);
     else setTimeout(() => player?.seek?.(startAt), 600);
   }
@@ -320,7 +404,7 @@ export async function render(view, { segments, params }) {
     setTimeout(() => {
       const el = linesEl.querySelector(`.line[data-id="${params.line}"]`);
       if (el) {
-        setCurrent(Number(params.line), { scroll: true });
+        setCurrent(Number(params.line), { scroll: true, force: true });
         el.classList.add('flash');
       }
     }, 50);
@@ -329,19 +413,26 @@ export async function render(view, { segments, params }) {
   /* ----------------------------------------------------------- events */
 
   const onChange = () => refresh();
+  const seekToLine = (lineEl) => {
+    const t = Number(lineEl.dataset.start);
+    if (!player || lineEl.dataset.start === '' || !Number.isFinite(t)) return false;
+    player.seek(t);
+    setCurrent(Number(lineEl.dataset.id), { scroll: false });
+    tick();
+    return true;
+  };
   linesEl.addEventListener('click', (e) => {
-    const seek = e.target.closest('[data-seek]');
-    if (seek) {
-      const t = Number(seek.dataset.seek);
-      player?.seek(t);
-      setCurrent(Number(seek.closest('.line').dataset.id), { scroll: false });
+    const line = e.target.closest('.line');
+    if (!line) return;
+    if (e.target.closest('[data-seek]')) {
+      seekToLine(line);
       return;
     }
-    const line = e.target.closest('.line');
     const mark = e.target.closest('.mark');
     const tok = e.target.closest('.tok');
     if (mark) openWordPanel(mark, { vocabulary_id: mark.dataset.vid, line_id: line.dataset.id }, { onChange });
     else if (tok) openWordPanel(tok, { word: tok.dataset.w, line_id: line.dataset.id }, { onChange });
+    else if (!window.getSelection()?.toString()) seekToLine(line); // the sentence itself (not a word): jump there
   });
 
   side.addEventListener('click', async (e) => {
@@ -407,6 +498,7 @@ export async function render(view, { segments, params }) {
   return () => {
     alive = false;
     clearInterval(syncTimer);
+    if (frame) cancelAnimationFrame(frame);
     closeWordPanel();
     player?.destroy?.();
     void tab;
