@@ -1,7 +1,7 @@
 import { api } from '../api.js';
 import { state } from '../state.js';
 import { speak } from '../audio.js';
-import { esc, icon, toast } from '../ui.js';
+import { esc, icon, toast, num } from '../ui.js';
 import { refreshStats } from '../app.js';
 import { readDataFiles, importSnapshot, countsOf, TABLES } from '../data-transfer.js';
 
@@ -41,6 +41,10 @@ export async function render(view) {
         <label class="row small" style="gap:8px"><input type="checkbox" class="check" id="ar" ${u.speak_arabic ? 'checked' : ''}> نطق المعنى العربي في صفحة الاستماع</label>
         <button class="btn sm" id="test" style="justify-self:start">${icon.speaker} جرّب الصوت</button>
         <div class="field">المظهر<div class="segmented" id="theme">${[['system', 'تلقائي'], ['light', 'فاتح'], ['dark', 'داكن']].map(([k, l]) => `<button data-t="${k}" class="${k === theme ? 'active' : ''}">${l}</button>`).join('')}</div></div>
+      </div>
+      <div class="card stack" id="usageCard">
+        <b>الاستهلاك والتكلفة</b>
+        <div class="small muted">…</div>
       </div>
       <div class="card stack">
         <b>المحرّكات</b>
@@ -140,6 +144,23 @@ export async function render(view) {
     await api.logout().catch(() => {});
     location.replace('/login');
   });
+
+  /* --------------------------------------------------------- usage */
+  const usd = (n) => `$${Number(n || 0).toFixed(Number(n) && Number(n) < 0.01 ? 4 : 2)}`;
+  const tok = (u) => num(Number(u.prompt_tokens || 0) + Number(u.completion_tokens || 0));
+  const row = (label, u) => `<tr><td>${label}</td><td class="en-inline">${num(u.calls)}</td><td class="en-inline">${tok(u)}</td><td class="en-inline">${usd(u.cost)}</td><td class="en-inline">${num(u.transcripts)}</td></tr>`;
+  const head = '<tr class="muted"><th></th><th>طلبات AI</th><th>توكنز</th><th>التكلفة</th><th>فيديوهات</th></tr>';
+  api.aiUsage().then((r) => {
+    const box = document.getElementById('usageCard');
+    if (!box) return;
+    const or = r.openrouter;
+    box.innerHTML = `<b>الاستهلاك والتكلفة</b>
+      <table class="usage-table small">${head}${row('اليوم', r.me.today)}${row('هذا الشهر', r.me.month)}${row('الإجمالي', r.me.total)}</table>
+      ${r.site ? `<b class="small" style="margin-top:6px">كل الحسابات — هذا الشهر</b>
+        <table class="usage-table small">${head}${row('المجموع', r.site.month)}${r.site.users.map((u) => row(`<span class="en-inline">${esc(u.username || u.name)}</span>`, u)).join('')}${row('الإجمالي منذ البداية', r.site.total)}</table>
+        ${or ? `<div class="row between small"><span>مفتاح OpenRouter (المصروف الفعلي)</span><b class="en-inline">${usd(or.usage)}${or.limit != null ? ` / ${usd(or.limit)}` : ''}</b></div>` : ''}
+        <p class="tiny muted">«فيديوهات» = نصوص جُلبت عبر Supadata (الخطة المجانية ≈ 100 شهريًا). التكلفة كما يحسبها OpenRouter؛ الإجابات المحفوظة مجانية.</p>` : ''}`;
+  }).catch(() => {});
 
   /* ---------------------------------------------------------- data */
   let current = {};

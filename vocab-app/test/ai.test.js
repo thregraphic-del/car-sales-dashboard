@@ -112,3 +112,18 @@ test('per-learner daily limit (cached answers are free)', async () => {
   assert.match(last.body.error, /حد استخدام الذكاء الاصطناعي اليوم/);
   assert.equal((await post('limit test phrase 0')).status, 200, 'already answered → from cache');
 });
+
+test('usage report: tokens and cost from OpenRouter are counted per learner', async () => {
+  reply = () => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(GOOD) }, finish_reason: 'stop' }], usage: { prompt_tokens: 120, completion_tokens: 80, cost: 0.00042 } }), { status: 200 });
+  const before = await (await realFetch(`${app.base}/api/ai/usage`)).json();
+  ai._resetAi();
+  // The daily limit test above may have used up today's calls: allow more for this check.
+  process.env.AI_DAILY_LIMIT_PER_USER = '1000';
+  assert.equal((await post('a brand new usage phrase')).status, 200);
+  const after = await (await realFetch(`${app.base}/api/ai/usage`)).json();
+  assert.equal(after.me.today.prompt_tokens - before.me.today.prompt_tokens, 120);
+  assert.equal(after.me.today.completion_tokens - before.me.today.completion_tokens, 80);
+  assert.ok(Math.abs(after.me.today.cost - before.me.today.cost - 0.00042) < 1e-9);
+  assert.ok(after.site, 'local single user sees the site totals');
+  assert.ok(!JSON.stringify(after).includes(KEY));
+});

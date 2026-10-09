@@ -9,7 +9,7 @@ import { learningSignals } from '../lib/srs.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(here, '..', '..');
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 export const DEFAULT_SQLITE_PATH = path.join(ROOT, 'data', 'lexitube.db');
 
 export function resolvePath(p) {
@@ -126,6 +126,13 @@ export function migrate(d) {
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))`);
   }
   if (version < 5) migrateV5(d);
+  if (version < 6) {
+    // v6: tokens, cost and transcripts per learner per day.
+    const cols = columnsOf(d, 'ai_usage');
+    for (const [c, def] of [['prompt_tokens', 'INTEGER NOT NULL DEFAULT 0'], ['completion_tokens', 'INTEGER NOT NULL DEFAULT 0'], ['cost', 'REAL NOT NULL DEFAULT 0'], ['transcripts', 'INTEGER NOT NULL DEFAULT 0']]) {
+      if (!cols.includes(c)) d.exec(`ALTER TABLE ai_usage ADD COLUMN ${c} ${def}`);
+    }
+  }
   d.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }
 

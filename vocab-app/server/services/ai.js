@@ -96,6 +96,48 @@ async function useQuota() {
   }
 }
 
+/** Add tokens and cost (USD, reported by OpenRouter) to the learner's day. */
+async function recordUsage(usage) {
+  const userId = aiContext.getStore()?.userId;
+  if (!userId || !usage) return;
+  await run(
+    `INSERT INTO ai_usage (user_id, day, calls, prompt_tokens, completion_tokens, cost) VALUES (?, ?, 0, ?, ?, ?)
+     ON CONFLICT (user_id, day) DO UPDATE SET prompt_tokens = ai_usage.prompt_tokens + ?, completion_tokens = ai_usage.completion_tokens + ?, cost = ai_usage.cost + ?`,
+    userId, today(), ...[0, 1].flatMap(() => [Number(usage.prompt_tokens) || 0, Number(usage.completion_tokens) || 0, Number(usage.cost) || 0]),
+  ).catch(() => {});
+}
+
+/** One video fetched through the paid transcript service. */
+export async function recordTranscript() {
+  const userId = aiContext.getStore()?.userId;
+  if (!userId) return;
+  await run('INSERT INTO ai_usage (user_id, day, calls, transcripts) VALUES (?, ?, 0, 1) ON CONFLICT (user_id, day) DO UPDATE SET transcripts = ai_usage.transcripts + 1', userId, today()).catch(() => {});
+}
+
+const SUMS = 'COALESCE(SUM(calls),0) AS calls, COALESCE(SUM(prompt_tokens),0) AS prompt_tokens, COALESCE(SUM(completion_tokens),0) AS completion_tokens, COALESCE(SUM(cost),0) AS cost, COALESCE(SUM(transcripts),0) AS transcripts';
+
+/** Usage of one learner (today / this month / all time) and, for the administrator, everyone. */
+export async function usageReport(userId, { admin = false } = {}) {
+  const day = today();
+  const month = `${day.slice(0, 7)}-01`;
+  const one = async (from) => get(`SELECT ${SUMS} FROM ai_usage WHERE user_id = ? AND day >= ?`, userId, from);
+  const report = { me: { today: await one(day), month: await one(month), total: await one('0000') } };
+  if (admin) {
+    report.site = {
+      month: await get(`SELECT ${SUMS} FROM ai_usage WHERE day >= ?`, month),
+      total: await get(`SELECT ${SUMS} FROM ai_usage`),
+      users: await all(`SELECT u.username, u.name, ${SUMS} FROM users u JOIN ai_usage a ON a.user_id = u.id WHERE a.day >= ? GROUP BY u.id, u.username, u.name ORDER BY cost DESC`, month),
+    };
+    // The key's own spending and limit, straight from OpenRouter.
+    try {
+      const res = await fetch(`${config.ai.baseUrl}/key`, { headers: { Authorization: `Bearer ${config.ai.apiKey()}` }, signal: AbortSignal.timeout(4000) });
+      const k = res.ok ? (await res.json()).data : null;
+      if (k) report.openrouter = { usage: k.usage, limit: k.limit, limit_remaining: k.limit_remaining, is_free_tier: k.is_free_tier };
+    } catch { /* shown as unavailable */ }
+  }
+  return report;
+}
+
 export async function usageToday(userId) {
   return Number((await get('SELECT calls FROM ai_usage WHERE user_id = ? AND day = ?', userId, today()))?.calls || 0);
 }
@@ -214,7 +256,7 @@ export async function jsonCall({ task, system, user, schema, zod, maxTokens = 40
   let lastStatus = 0;
   for (const format of formats) {
     try {
-      res = await post({ model: aiModel(), messages, max_tokens: maxTokens, temperature: 0.2, ...(format ? { response_format: format } : {}) }, limit - (Date.now() - started));
+      res = await post({ model: aiModel(), messages, max_tokens: maxTokens, temperature: 0.2, usage: { include: true }, ...(format ? { response_format: format } : {}) }, limit - (Date.now() - started));
     } catch (err) {
       if (err.name === 'AbortError' || err.name === 'TimeoutError') {
         // Slow answer: not a reason to stop using AI for the next request.
@@ -265,6 +307,7 @@ export async function jsonCall({ task, system, user, schema, zod, maxTokens = 40
     throw new AiError('أعاد الذكاء الاصطناعي نتيجة غير متوقعة — نستخدم القاموس المحلي.', 502);
   }
   lastError = null;
+  await recordUsage(data.usage);
   if (cache) await writeCache(key, task, parsed);
   return parsed;
 }

@@ -5,7 +5,7 @@ import { Router } from 'express';
 import { config } from '../config.js';
 import { wrap, num } from '../http.js';
 import { httpError } from '../lib/errors.js';
-import { aiStatus, checkModel, usageToday, AiError } from '../services/ai.js';
+import { aiStatus, checkModel, usageToday, usageReport, AiError } from '../services/ai.js';
 import { explainWithAi } from '../services/extractor.js';
 import { getLine, getSource } from '../data/sources.js';
 
@@ -15,6 +15,8 @@ router.get('/status', wrap(async (req) => {
   await checkModel();
   return { ...aiStatus(), used_today: await usageToday(req.userId) };
 }));
+
+router.get('/usage', wrap(async (req) => usageReport(req.userId, { admin: req.user?.role === 'admin' || !config.auth.required })));
 
 router.post('/explain', wrap(async (req, res) => {
   const text = String(req.body?.text || '').replace(/\s+/g, ' ').trim();

@@ -47,7 +47,7 @@ const { listGroups } = await import('../server/data/learning.js');
 
 test('v1 database upgrades to the current schema and keeps the learner data', async () => {
   const db = (await driver()).raw;
-  assert.equal(db.prepare('PRAGMA user_version').get().user_version, 5);
+  assert.equal(db.prepare('PRAGMA user_version').get().user_version, 6);
   assert.equal(db.prepare('SELECT name FROM users WHERE id=1').get().name, 'Sara');
 
   // "figure out" + "figure something out" were the same item → merged.

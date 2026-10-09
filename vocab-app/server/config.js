@@ -54,7 +54,7 @@ export const config = {
     pauseAfterServerErrorMs: 60 * 1000,
     maxCallsPerMinute: int('AI_MAX_CALLS_PER_MINUTE', 30),
     // Cost control: AI requests per learner per day (answers from the cache are free).
-    dailyLimitPerUser: int('AI_DAILY_LIMIT_PER_USER', 300),
+    get dailyLimitPerUser() { return int('AI_DAILY_LIMIT_PER_USER', 300); },
     // Longest text the learner can select for "explain with AI".
     explainMaxChars: 300,
   },

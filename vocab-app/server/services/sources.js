@@ -7,6 +7,7 @@
 //   translateSource() — Arabic subtitles, ~15 lines per call
 // Each chunk is stored as soon as it is done, so nothing is lost or repeated.
 import { config } from '../config.js';
+import { recordTranscript } from './ai.js';
 import { httpError } from '../lib/errors.js';
 import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript, MESSAGES, TranscriptError, externalTranscript } from '../lib/youtube.js';
 import { extractVocabulary, extractChunkWithAi, toSentences, translateWithAi, ExtractionError } from './extractor.js';
@@ -36,7 +37,10 @@ export async function fetchTranscript(videoId, origin) {
   if ((options.transcriptProvider && options.transcriptApiKey) || options.transcriptApiUrl) {
     try {
       const segments = await externalTranscript(videoId, options);
-      if (segments?.length) return { meta: await getVideoMeta(videoId), segments, source: 'transcript-service', via: 'service' };
+      if (segments?.length) {
+        await recordTranscript();
+        return { meta: await getVideoMeta(videoId), segments, source: 'transcript-service', via: 'service' };
+      }
       details.push('service: empty transcript');
     } catch (err) {
       details.push(err.message.slice(0, 160));

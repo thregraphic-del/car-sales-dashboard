@@ -92,6 +92,7 @@ export const api = {
   importFinish: () => request('POST', '/api/data/import/finish'),
   loadDemo: () => request('POST', '/api/data/demo'),
   aiStatus: () => request('GET', '/api/ai/status'),
+  aiUsage: () => request('GET', '/api/ai/usage'),
   explain: (text, line_id) => request('POST', '/api/ai/explain', { text, line_id }),
   resetDemo: () => request('POST', '/api/data/reset-demo'),
 };

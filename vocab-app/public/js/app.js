@@ -50,12 +50,17 @@ function renderNav(active) {
   $('#sidebarFoot').innerHTML = s
     ? `<div class="row between"><span>🔥 أيام متتالية</span><b class="en-inline">${s.streak.current}</b></div>
        <div class="tiny muted" style="margin-top:6px">${state.config?.ai?.configured ? '✨ الذكاء الاصطناعي مفعّل' : '📘 القاموس المحلي'}</div>
+       ${state.usage ? `<a class="tiny muted" href="#/settings" style="display:block;margin-top:4px">💲 هذا الشهر: <span class="en-inline">$${Number(state.usage.month.cost || 0).toFixed(3)} · ${new Intl.NumberFormat('en').format(Number(state.usage.month.prompt_tokens || 0) + Number(state.usage.month.completion_tokens || 0))} tokens</span></a>` : ''}
        <div class="tiny muted en-inline" style="margin-top:4px">LexiTube v${esc(state.config?.app?.version || '?')}</div>`
     : '';
 }
 
 export async function refreshStats() {
   try {
+    api.aiUsage().then((u) => {
+      state.usage = u.site || u.me;
+      renderNav(activeNav(parseHash().base));
+    }).catch(() => {});
     state.stats = await api.stats();
     renderNav(activeNav(parseHash().base));
   } catch {

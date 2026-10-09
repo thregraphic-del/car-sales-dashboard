@@ -218,6 +218,10 @@ CREATE TABLE IF NOT EXISTS ai_usage (
   user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   day     TEXT    NOT NULL,
   calls   INTEGER NOT NULL DEFAULT 0,
+  prompt_tokens     INTEGER NOT NULL DEFAULT 0,
+  completion_tokens INTEGER NOT NULL DEFAULT 0,
+  cost              REAL    NOT NULL DEFAULT 0, -- USD, as reported by OpenRouter
+  transcripts       INTEGER NOT NULL DEFAULT 0, -- videos fetched through the transcript service
   PRIMARY KEY (user_id, day)
 );
 

@@ -653,3 +653,6 @@ body.auth-mode .shell { grid-template-columns: 1fr; }
 .line.current { background: color-mix(in srgb, var(--accent) 10%, transparent); }
 .line.current .w-now { background: #f5b301; color: #111; border-radius: 4px; box-shadow: 0 0 0 2px #f5b301; }
 .line.current .w-said { opacity: 1; color: var(--accent); }
+
+.usage-table { width: 100%; border-collapse: collapse; }
+.usage-table td, .usage-table th { padding: 4px 6px; text-align: start; border-bottom: 1px solid var(--line); font-weight: 500; }
