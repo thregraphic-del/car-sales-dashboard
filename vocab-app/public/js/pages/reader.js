@@ -70,6 +70,7 @@ async function youtubePlayer(el, videoId, start, onState = () => {}) {
           playing: () => p.getPlayerState?.() === 1,
           pause: () => p.pauseVideo?.(),
           play: () => p.playVideo?.(),
+          setRate: (r) => p.setPlaybackRate?.(r),
           destroy: () => p.destroy?.(),
         }),
         // 1 playing, 3 buffering (still moving), 2 paused, 0 ended
@@ -83,6 +84,7 @@ async function youtubePlayer(el, videoId, start, onState = () => {}) {
 function demoPlayer(el, duration) {
   let t = 0;
   let playing = false;
+  let rate = 1;
   let last = performance.now();
   el.innerHTML = `
     <div class="demo-player">
@@ -95,7 +97,7 @@ function demoPlayer(el, duration) {
   const timeEl = el.querySelector('.dp-time');
   const tick = setInterval(() => {
     const now = performance.now();
-    if (playing) t = Math.min(duration, t + (now - last) / 1000);
+    if (playing) t = Math.min(duration, t + ((now - last) / 1000) * rate);
     last = now;
     if (t >= duration) playing = false;
     bar.style.width = `${(100 * t) / duration}%`;
@@ -116,6 +118,7 @@ function demoPlayer(el, duration) {
     seek: (s, { play = true } = {}) => { t = s; playing = play; last = performance.now(); },
     playing: () => playing,
     pause: () => { playing = false; },
+    setRate: (r) => { rate = r; },
     play: () => { playing = true; last = performance.now(); },
     destroy: () => clearInterval(tick),
   };
@@ -200,6 +203,7 @@ export async function render(view, { segments, params }) {
         <div class="reader-tools">
           <label class="switch"><input type="checkbox" id="arToggle" ${showAr ? 'checked' : ''}> <span>${icon.subtitles} العربي بجانب الإنجليزي</span></label>
           ${hasTimes ? `<label class="switch"><input type="checkbox" id="followToggle" ${follow ? 'checked' : ''}> <span>متابعة تلقائية</span></label>` : ''}
+          ${isVideo ? `<div class="segmented speed" id="speed" role="group" aria-label="سرعة التشغيل"><span class="tiny muted" style="padding:0 6px">السرعة</span>${[0.5, 0.75, 0.9, 1, 1.25].map((r) => `<button type="button" data-rate="${r}" class="en-inline">${r}×</button>`).join('')}</div>` : ''}
           <span class="tiny muted" id="trNote"></span>
         </div>
         <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}" id="lines"></div>
@@ -209,6 +213,18 @@ export async function render(view, { segments, params }) {
     </div>`;
 
   const linesEl = $('#lines', view);
+  // Playback speed (slower = easier to follow), remembered.
+  let rate = Number(pref('reader.rate', '1')) || 1;
+  const showRate = () => view.querySelectorAll('#speed [data-rate]').forEach((b) => b.classList.toggle('active', Number(b.dataset.rate) === rate));
+  showRate();
+  $('#speed', view)?.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-rate]');
+    if (!b) return;
+    rate = Number(b.dataset.rate);
+    setPref('reader.rate', String(rate));
+    player?.setRate?.(rate);
+    showRate();
+  });
   // Draggable divider: bigger video ↔ more transcript (remembered).
   const mainEl = $('.reader-main', view);
   const applySplit = (pct) => {
@@ -352,10 +368,15 @@ export async function render(view, { segments, params }) {
   const startAt = params.t ? Number(params.t) : null;
   if (isVideo) {
     const box = $('#player', view);
-    if (source.is_demo) player = demoPlayer(box.parentElement, source.duration_seconds || 600);
-    else {
+    if (source.is_demo) {
+      player = demoPlayer(box.parentElement, source.duration_seconds || 600);
+      player.setRate(rate);
+    } else {
       box.parentElement.innerHTML = '<div id="player"></div>';
-      youtubePlayer($('#player', view), source.youtube_id, startAt, (isPlaying) => setPlaying(isPlaying)).then((p) => (player = p)).catch(() => {
+      youtubePlayer($('#player', view), source.youtube_id, startAt, (isPlaying) => setPlaying(isPlaying)).then((p) => {
+        player = p;
+        player.setRate?.(rate);
+      }).catch(() => {
         $('.player-box', view).innerHTML = `<div class="alert info">تعذّر تحميل مشغّل يوتيوب. يمكنك القراءة هنا، أو <a href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">فتح الفيديو في يوتيوب</a>.</div>`;
       });
     }

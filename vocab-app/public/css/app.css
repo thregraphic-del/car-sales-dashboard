@@ -668,3 +668,4 @@ img, video, iframe, svg, canvas { max-width: 100%; }
   .reader-head h1 { font-size: 17px; }
   .player-box { top: 52px; }
 }
+.speed button { padding: 5px 9px; } .speed { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; }
