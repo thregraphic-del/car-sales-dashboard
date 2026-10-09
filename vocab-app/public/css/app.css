@@ -669,3 +669,11 @@ img, video, iframe, svg, canvas { max-width: 100%; }
   .player-box { top: 52px; }
 }
 .speed button { padding: 5px 9px; } .speed { flex-wrap: nowrap; overflow-x: auto; max-width: 100%; }
+
+/* transcript font size (A− / A+) */
+.transcript { --reader-font: 16px; }
+.transcript .line-en { font-size: var(--reader-font); }
+.transcript .line-ar { font-size: calc(var(--reader-font) - 2px); }
+.fontsize button { padding: 5px 10px; font-weight: 700; }
+#voiceBtn.primary { animation: pulse 1.6s infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 25%, transparent); } }

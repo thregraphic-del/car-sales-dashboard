@@ -12,12 +12,13 @@ import { api } from '../api.js';
 import { state } from '../state.js';
 import { esc, icon, levelChip, fmtTime, fmtDuration, toast, $, emptyState, openModal } from '../ui.js';
 import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech } from '../components.js';
-import { tokenize, quickTier } from '../shared/text.js';
+import { tokenize, quickTier, normalizeArabic } from '../shared/text.js';
 import { buildTimeline, positionAt, steadyPosition, wordIndexByChar } from '../shared/sync.js';
 import { refreshStats } from '../app.js';
 import { APP_CONFIG } from '../config.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition || null;
 
 const pref = (k, d) => {
   try {
@@ -203,6 +204,10 @@ export async function render(view, { segments, params }) {
         <div class="reader-tools">
           <label class="switch"><input type="checkbox" id="arToggle" ${showAr ? 'checked' : ''}> <span>${icon.subtitles} العربي بجانب الإنجليزي</span></label>
           ${hasTimes ? `<label class="switch"><input type="checkbox" id="followToggle" ${follow ? 'checked' : ''}> <span>متابعة تلقائية</span></label>` : ''}
+          <div class="segmented fontsize" role="group" aria-label="حجم الخط"><button type="button" data-font="-1" title="خط أصغر">A−</button><button type="button" data-font="1" title="خط أكبر">A+</button></div>
+          ${isVideo && hasTimes && SpeechRec ? `<button type="button" class="btn sm ghost" id="voiceBtn" aria-pressed="false" title="قل «وقف» أو الكلمة">🎤 الأوامر الصوتية</button>
+            <div class="segmented voice-lang hidden" id="voiceLang" role="group" aria-label="لغة الكلمة"><button type="button" data-vl="en-US">EN</button><button type="button" data-vl="ar-SA">عربي</button></div>` : ''}
+          <span class="tiny muted" id="voiceNote"></span>
           ${isVideo ? `<div class="segmented speed" id="speed" role="group" aria-label="سرعة التشغيل"><span class="tiny muted" style="padding:0 6px">السرعة</span>${[0.5, 0.75, 0.9, 1, 1.25].map((r) => `<button type="button" data-rate="${r}" class="en-inline">${r}×</button>`).join('')}</div>` : ''}
           <span class="tiny muted" id="trNote"></span>
         </div>
@@ -213,6 +218,15 @@ export async function render(view, { segments, params }) {
     </div>`;
 
   const linesEl = $('#lines', view);
+  // Font size of the transcript (remembered).
+  let fontPx = Number(pref('reader.font', '16')) || 16;
+  const applyFont = () => linesEl.style.setProperty('--reader-font', `${fontPx}px`);
+  applyFont();
+  view.querySelectorAll('[data-font]').forEach((b) => b.addEventListener('click', () => {
+    fontPx = Math.max(12, Math.min(26, fontPx + Number(b.dataset.font)));
+    setPref('reader.font', String(fontPx));
+    applyFont();
+  }));
   // Playback speed (slower = easier to follow), remembered.
   let rate = Number(pref('reader.rate', '1')) || 1;
   const showRate = () => view.querySelectorAll('#speed [data-rate]').forEach((b) => b.classList.toggle('active', Number(b.dataset.rate) === rate));
@@ -486,6 +500,105 @@ export async function render(view, { segments, params }) {
   /* ----------------------------------------------------------- events */
 
   const onChange = () => refresh();
+  /* ------------------------------------------------- voice commands */
+  // Say «وقف» / "stop" to pause, then (or while playing) say a word from what
+  // you just heard — in English, or its Arabic meaning — and its details open.
+  // Short utterances only, so the video's own speech doesn't trigger anything.
+  let rec = null;
+  let voiceOn = false;
+  let voiceLang = pref('reader.voiceLang', 'en-US');
+  const STOP = /^(stop|pause|wait|hold on|وقف|اوقف|أوقف|توقف|قف|ستوب|بوز|لحظة)$/i;
+  const voiceNote = (t) => { const n = $('#voiceNote', view); if (n) n.textContent = t; };
+  const nearbyLines = () => {
+    const i = timeline.findIndex((x) => x.id === currentId);
+    const from = Math.max(0, (i < 0 ? 0 : i) - 3);
+    return timeline.slice(from, from + 5).map((x) => linesEl.querySelector(`.line[data-id="${x.id}"]`)).filter(Boolean);
+  };
+  const clean = (w) => w.toLowerCase().replace(/[^a-z']/g, '');
+  const findSpoken = (said) => {
+    const lines = nearbyLines().reverse(); // most recent first
+    if (voiceLang === 'ar-SA') {
+      const s = normalizeArabic(said);
+      for (const lineEl of lines) {
+        for (const it of data.items.filter((x) => String(x.line_id) === lineEl.dataset.id && x.arabic)) {
+          const a = normalizeArabic(it.arabic);
+          if (a && (a.includes(s) || s.includes(a))) return lineEl.querySelector(`.mark[data-vid="${it.vocabulary_id}"]`);
+        }
+      }
+      return null;
+    }
+    const words = said.split(/\s+/).map(clean).filter((w) => w.length >= 2);
+    for (const lineEl of lines) {
+      for (const el of lineEl.querySelectorAll('.mark, .tok')) {
+        const text = clean(el.textContent);
+        if (words.some((w) => w === text || (w.length >= 4 && text.startsWith(w.slice(0, -1))) || (el.classList.contains('mark') && text.includes(w) && w.length >= 4))) return el;
+      }
+    }
+    return null;
+  };
+  const onSpeech = (said) => {
+    const text = said.trim();
+    if (!text || text.split(/\s+/).length > 3) return; // the video talking, not you
+    if (STOP.test(text.replace(/[.!؟?،,]/g, ''))) {
+      if (player?.playing?.()) {
+        resumeAfterWord = true;
+        player.pause();
+      }
+      voiceNote(`⏸ متوقف — قل الكلمة ${voiceLang === 'ar-SA' ? 'بالعربي' : 'بالإنجليزي'}`);
+      return;
+    }
+    const el = findSpoken(text);
+    if (el) {
+      voiceNote(`🎤 «${text}»`);
+      el.click(); // pauses, moves the video to the word and opens its details
+    } else voiceNote(`🎤 «${text}» — لم أجدها في الجمل الأخيرة`);
+  };
+  const startVoice = () => {
+    rec = new SpeechRec();
+    rec.lang = voiceLang;
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.maxAlternatives = 3;
+    rec.onresult = (e) => {
+      for (let i = e.resultIndex; i < e.results.length; i += 1) if (e.results[i].isFinal) onSpeech(e.results[i][0].transcript);
+    };
+    rec.onerror = (e) => {
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+        voiceOn = false;
+        voiceNote('اسمح للمتصفح باستخدام الميكروفون لتعمل الأوامر الصوتية.');
+        updateVoiceUi();
+      }
+    };
+    rec.onend = () => { if (voiceOn && alive) setTimeout(() => { try { rec.start(); } catch { /* already running */ } }, 250); };
+    rec.start();
+  };
+  const updateVoiceUi = () => {
+    const b = $('#voiceBtn', view);
+    if (!b) return;
+    b.classList.toggle('primary', voiceOn);
+    b.setAttribute('aria-pressed', String(voiceOn));
+    $('#voiceLang', view).classList.toggle('hidden', !voiceOn);
+    view.querySelectorAll('[data-vl]').forEach((x) => x.classList.toggle('active', x.dataset.vl === voiceLang));
+  };
+  $('#voiceBtn', view)?.addEventListener('click', () => {
+    voiceOn = !voiceOn;
+    if (voiceOn) {
+      startVoice();
+      voiceNote('🎤 أسمعك: قل «وقف» أو الكلمة (يُفضَّل استخدام سماعة).');
+    } else {
+      rec?.abort();
+      rec = null;
+      voiceNote('');
+    }
+    updateVoiceUi();
+  });
+  view.querySelectorAll('[data-vl]').forEach((b) => b.addEventListener('click', () => {
+    voiceLang = b.dataset.vl;
+    setPref('reader.voiceLang', voiceLang);
+    if (rec) { voiceOn = false; rec.abort(); voiceOn = true; startVoice(); }
+    updateVoiceUi();
+  }));
+
   const seekToLine = (lineEl) => {
     const t = Number(lineEl.dataset.start);
     if (!player || lineEl.dataset.start === '' || !Number.isFinite(t)) return false;
@@ -510,7 +623,7 @@ export async function render(view, { segments, params }) {
     // A word: the video goes to it and waits (paused) while its meaning is open;
     // closing the meaning (or saving) continues playback if it was playing.
     if (mark || tok) {
-      if (player && !isPanelOpen()) resumeAfterWord = player.playing?.() ?? false;
+      if (player && !isPanelOpen()) resumeAfterWord = resumeAfterWord || (player.playing?.() ?? false);
       if (player && entry?.words?.[wi]) {
         player.seek(Math.max(0, entry.words[wi].start - 0.15), { play: false });
         setCurrent(entry.id, { scroll: false });
@@ -661,6 +774,8 @@ export async function render(view, { segments, params }) {
 
   return () => {
     alive = false;
+    voiceOn = false;
+    rec?.abort();
     explainBtn.remove();
     clearInterval(syncTimer);
     if (frame) cancelAnimationFrame(frame);
