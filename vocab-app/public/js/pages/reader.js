@@ -120,7 +120,7 @@ const wiAttr = (map, from) => (map && map[from] >= 0 ? ` data-wi="${map[from]}"`
 /* ---------------------------------------------------------------- render */
 
 function lineHtml(line, marks) {
-  const wmap = line.words?.length ? wordIndexByChar(line.text) : null;
+  const wmap = wordIndexByChar(line.text); // word i ↔ timing i (real or estimated)
   const own = marks.filter((m) => m.line_id === line.id).sort((a, b) => a.start - b.start || b.end - a.end);
   const spans = [];
   let pos = 0;
@@ -146,7 +146,7 @@ function lineHtml(line, marks) {
     : plain(line.text.slice(s.from, s.to), s.from))).join('');
   const seekable = line.start_seconds != null;
   return `
-    <div class="line${seekable ? ' seekable' : ''}${wmap ? ' has-words' : ''}" data-id="${line.id}" data-start="${line.start_seconds ?? ''}">
+    <div class="line${seekable ? ' seekable has-words' : ''}" data-id="${line.id}" data-start="${line.start_seconds ?? ''}">
       ${seekable ? `<button class="ts" data-seek="${line.start_seconds}" title="انتقل إلى هذه الجملة في الفيديو">${fmtTime(line.start_seconds)}</button>` : '<span class="ts-spacer"></span>'}
       <div class="line-body"><p class="line-en en">${body}</p>${line.text_ar ? `<p class="line-ar" dir="rtl">${esc(line.text_ar)}</p>` : '<p class="line-ar pending" dir="rtl">…</p>'}</div>
     </div>`;
@@ -187,19 +187,48 @@ export async function render(view, { segments, params }) {
     <div class="reader-tabs segmented"><button data-tab="text" class="active">${isVideo ? 'الفيديو والنص' : 'النص'}</button><button data-tab="words">كلمات مقترحة (<span id="wcount">${data.items.length}</span>)</button></div>
     <div class="reader-grid" data-tab="text">
       <div class="reader-main">
-        ${isVideo ? '<div class="player-box"><div id="player"></div></div>' : ''}
+        ${isVideo ? '<div class="player-box"><div id="player"></div></div><div class="split" id="split" role="separator" aria-orientation="horizontal" title="اسحب لتكبير الفيديو أو النص"><span></span></div>' : ''}
         <div class="reader-tools">
           <label class="switch"><input type="checkbox" id="arToggle" ${showAr ? 'checked' : ''}> <span>${icon.subtitles} العربي بجانب الإنجليزي</span></label>
           ${hasTimes ? `<label class="switch"><input type="checkbox" id="followToggle" ${follow ? 'checked' : ''}> <span>متابعة تلقائية</span></label>` : ''}
           <span class="tiny muted" id="trNote"></span>
         </div>
         <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}" id="lines"></div>
-        <p class="tiny muted reader-hint">اضغط على أي كلمة لترى معناها في هذه الجملة${isVideo && hasTimes ? '، أو على الوقت / خارج الكلمات للانتقال إلى الجملة في الفيديو' : ''}. <span class="mark s-suggested">مقترحة</span> <span class="mark s-saved">محفوظة</span></p>
+        <p class="tiny muted reader-hint">${isVideo && hasTimes ? 'اضغط أي كلمة لينتقل الفيديو إليها، واضغطها مرة ثانية لمعناها. اسحب الفاصل تحت الفيديو لتكبيره أو تصغيره.' : 'اضغط على أي كلمة لترى معناها في هذه الجملة.'} <span class="mark s-suggested">مقترحة</span> <span class="mark s-saved">محفوظة</span></p>
       </div>
       <aside class="reader-side card" id="side"></aside>
     </div>`;
 
   const linesEl = $('#lines', view);
+  // Draggable divider: bigger video ↔ more transcript (remembered).
+  const mainEl = $('.reader-main', view);
+  const applySplit = (pct) => {
+    const p = Math.max(30, Math.min(100, pct));
+    mainEl.style.setProperty('--pw', `${p}%`);
+    const box = $('.player-box', view);
+    if (box) mainEl.style.setProperty('--ph', `${Math.round(box.getBoundingClientRect().height)}px`);
+    return p;
+  };
+  let splitPct = applySplit(Number(pref('reader.split', '100')));
+  $('#split', view)?.addEventListener('pointerdown', (e) => {
+    const box = $('.player-box', view);
+    const startY = e.clientY;
+    const startH = box.getBoundingClientRect().height;
+    const full = mainEl.getBoundingClientRect().width * (9 / 16);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    box.style.pointerEvents = 'none';
+    const move = (ev) => {
+      splitPct = applySplit(((startH + ev.clientY - startY) / full) * 100);
+    };
+    const up = () => {
+      box.style.pointerEvents = '';
+      setPref('reader.split', String(Math.round(splitPct)));
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  });
   const side = $('#side', view);
   bindSpeech(view);
 
@@ -362,11 +391,16 @@ export async function render(view, { segments, params }) {
     return i >= 0 ? timeline[i] : null;
   };
   // One sync step from the real player time.
+  let lastT = null;
   const tick = () => {
     if (!player || !timeline.length) return;
-    const pos = positionAt(timeline, player.time());
+    const t = player.time();
+    // A jump (seek on the YouTube bar, or a click here) brings the transcript along at once.
+    const jumped = lastT !== null && Math.abs(t - lastT) > 2;
+    lastT = t;
+    const pos = positionAt(timeline, t);
     const entry = pos.line >= 0 ? timeline[pos.line] : null;
-    setCurrent(entry ? entry.id : null);
+    setCurrent(entry ? entry.id : null, { force: jumped });
     setWord(pos.word);
   };
   const loop = () => {
@@ -428,11 +462,23 @@ export async function render(view, { segments, params }) {
       seekToLine(line);
       return;
     }
+    if (window.getSelection()?.toString()) return; // selecting text for "explain"
     const mark = e.target.closest('.mark');
     const tok = e.target.closest('.tok');
+    const wEl = e.target.closest('[data-wi]');
+    const entry = timeline.find((x) => String(x.id) === line.dataset.id);
+    const wi = wEl ? Number(wEl.dataset.wi) : -1;
+    // A word: the video jumps to it. Clicking the word being spoken (2nd click) explains it.
+    if (player && entry?.words?.[wi] && !(wEl.classList.contains('w-now') && (mark || tok))) {
+      player.seek(Math.max(0, entry.words[wi].start - 0.15));
+      setCurrent(entry.id, { scroll: false });
+      lastT = null;
+      tick();
+      return;
+    }
     if (mark) openWordPanel(mark, { vocabulary_id: mark.dataset.vid, line_id: line.dataset.id }, { onChange });
     else if (tok) openWordPanel(tok, { word: tok.dataset.w, line_id: line.dataset.id }, { onChange });
-    else if (!window.getSelection()?.toString()) seekToLine(line); // the sentence itself (not a word): jump there
+    else seekToLine(line); // the sentence itself (not a word): jump there
   });
 
   side.addEventListener('click', async (e) => {

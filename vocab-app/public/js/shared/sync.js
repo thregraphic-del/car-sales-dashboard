@@ -22,8 +22,27 @@ export function buildTimeline(lines) {
         start: ms / 1000,
         end: k + 1 < l.words.length ? l.words[k + 1][0] / 1000 : Math.max(end, ms / 1000 + 0.3),
       }))
-      : null;
-    return { id: l.id, start, end, words };
+      : estimateWords(l.text, start, end);
+    return { id: l.id, start, end, words, estimated: !l.words?.length };
+  });
+}
+
+/**
+ * Without word timings, spread the sentence's time over its words in
+ * proportion to their length (speech takes longer for longer words), leaving
+ * a short tail for the pause before the next sentence.
+ */
+export function estimateWords(text, start, end) {
+  const words = String(text || '').split(/\s+/).filter(Boolean);
+  if (!words.length) return null;
+  const span = Math.max(0.3, (end - start) * 0.92);
+  const weight = words.map((w) => w.replace(/[^\p{L}\p{N}]/gu, '').length + 2);
+  const total = weight.reduce((a, b) => a + b, 0);
+  let t = start;
+  return words.map((_, k) => {
+    const s = t;
+    t += (span * weight[k]) / total;
+    return { start: s, end: t };
   });
 }
 

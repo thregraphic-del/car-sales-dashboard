@@ -641,3 +641,15 @@ body.auth-mode .shell { grid-template-columns: 1fr; }
 .line.has-words.current .w-said { opacity: .55; }
 .line .w-now { background: color-mix(in srgb, var(--accent-2) 35%, transparent); border-radius: 4px; box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-2) 35%, transparent); }
 .explain-fab { position: absolute; z-index: 60; box-shadow: var(--shadow-sm); }
+
+/* resizable video / transcript */
+.reader-main { --pw: 100%; }
+.player-box { width: var(--pw); margin-inline: auto; margin-bottom: 0; }
+.page-reader .reader-main:has(.split) .transcript { max-height: max(240px, calc(100vh - var(--ph, 360px) - 190px)); }
+.split { height: 18px; display: grid; place-items: center; cursor: row-resize; touch-action: none; margin: 2px 0 8px; }
+.split span { width: 56px; height: 5px; border-radius: 3px; background: var(--line); transition: background .15s; }
+.split:hover span, .split:active span { background: var(--accent); }
+/* live word: the spoken word stands out in a different colour */
+.line.current { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.line.current .w-now { background: #f5b301; color: #111; border-radius: 4px; box-shadow: 0 0 0 2px #f5b301; }
+.line.current .w-said { opacity: 1; color: var(--accent); }

@@ -35,7 +35,12 @@ test('word-level highlighting follows the word timings', () => {
   assert.equal(wordIndexAt(second, 39.5), -1);
   assert.equal(wordIndexAt(second, 41.2), 4); // "important"
   assert.equal(wordIndexAt(second, 43.5), 10); // "question."
-  assert.equal(wordIndexAt(tl[0], 33), -1, 'no word timings → sentence only');
+  // No word timings: words are spread over the sentence by length.
+  const est = tl[0];
+  assert.equal(est.estimated, true);
+  assert.equal(wordIndexAt(est, 30), 0);
+  assert.equal(wordIndexAt(est, 37.5), est.words.length - 1, 'last word near the end');
+  for (let k = 1; k < est.words.length; k += 1) assert.ok(est.words[k].start > est.words[k - 1].start);
   assert.deepEqual(positionAt(tl, 42.5), { line: 1, word: 7 }); // "asking"
   assert.deepEqual(positionAt(tl, 2), { line: -1, word: -1 });
 });
