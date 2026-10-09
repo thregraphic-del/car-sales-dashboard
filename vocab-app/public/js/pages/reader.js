@@ -208,7 +208,9 @@ export async function render(view, { segments, params }) {
           ${isVideo && hasTimes && SpeechRec ? `<button type="button" class="btn sm ghost" id="voiceBtn" aria-pressed="false" title="قل «وقف» أو الكلمة">🎤 الأوامر الصوتية</button>
             <div class="segmented voice-lang hidden" id="voiceLang" role="group" aria-label="لغة الكلمة"><button type="button" data-vl="en-US">EN</button><button type="button" data-vl="ar-SA">عربي</button></div>` : ''}
           <span class="tiny muted" id="voiceNote"></span>
-          ${isVideo ? `<div class="segmented speed" id="speed" role="group" aria-label="سرعة التشغيل"><span class="tiny muted" style="padding:0 6px">السرعة</span>${[0.5, 0.75, 0.9, 1, 1.25].map((r) => `<button type="button" data-rate="${r}" class="en-inline">${r}×</button>`).join('')}</div>` : ''}
+          ${isVideo ? `<div class="speed-pick" id="speed"><button type="button" class="btn sm ghost en-inline" id="speedBtn" aria-haspopup="true" aria-expanded="false" title="سرعة التشغيل">⏱ <span id="speedVal">1×</span></button>
+            <div class="speed-menu hidden" role="menu">${[0.5, 0.75, 0.9, 1, 1.25].map((r) => `<button type="button" role="menuitem" data-rate="${r}" class="en-inline">${r}×</button>`).join('')}</div></div>` : ''}
+          <button type="button" class="btn icon sm ghost" id="focusBtn" aria-pressed="false" title="توسيع: إخفاء التفاصيل والتركيز على النص"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
           <span class="tiny muted" id="trNote"></span>
         </div>
         <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}" id="lines"></div>
@@ -229,16 +231,47 @@ export async function render(view, { segments, params }) {
   }));
   // Playback speed (slower = easier to follow), remembered.
   let rate = Number(pref('reader.rate', '1')) || 1;
-  const showRate = () => view.querySelectorAll('#speed [data-rate]').forEach((b) => b.classList.toggle('active', Number(b.dataset.rate) === rate));
+  const speedMenu = $('#speed .speed-menu', view);
+  const toggleSpeed = (open) => {
+    speedMenu?.classList.toggle('hidden', !open);
+    $('#speedBtn', view)?.setAttribute('aria-expanded', String(open));
+  };
+  const showRate = () => {
+    view.querySelectorAll('#speed [data-rate]').forEach((b) => b.classList.toggle('active', Number(b.dataset.rate) === rate));
+    const v = $('#speedVal', view);
+    if (v) v.textContent = `${rate}×`;
+  };
   showRate();
+  const closeSpeed = (e) => { if (!e.target.closest?.('#speed')) toggleSpeed(false); };
+  document.addEventListener('click', closeSpeed);
   $('#speed', view)?.addEventListener('click', (e) => {
+    if (e.target.closest('#speedBtn')) { toggleSpeed(speedMenu.classList.contains('hidden')); return; }
     const b = e.target.closest('[data-rate]');
     if (!b) return;
+    toggleSpeed(false);
     rate = Number(b.dataset.rate);
     setPref('reader.rate', String(rate));
     player?.setRate?.(rate);
     showRate();
   });
+  // Focus mode: hide everything but the video and the transcript (toggle).
+  let focusFs = false;
+  const setFocus = (on) => {
+    document.body.classList.toggle('reader-focus', on);
+    const b = $('#focusBtn', view);
+    b?.setAttribute('aria-pressed', String(on));
+    b?.classList.toggle('primary', on);
+    if (b) b.title = on ? 'إظهار تفاصيل الموقع' : 'توسيع: إخفاء التفاصيل والتركيز على النص';
+    if (on && document.documentElement.requestFullscreen && !document.fullscreenElement) {
+      document.documentElement.requestFullscreen().then(() => { focusFs = true; }).catch(() => {});
+    } else if (!on && focusFs && document.fullscreenElement) {
+      focusFs = false;
+      document.exitFullscreen().catch(() => {});
+    }
+  };
+  $('#focusBtn', view)?.addEventListener('click', () => setFocus(!document.body.classList.contains('reader-focus')));
+  const onFsChange = () => { if (focusFs && !document.fullscreenElement) { focusFs = false; setFocus(false); } };
+  document.addEventListener('fullscreenchange', onFsChange);
   // Draggable divider: bigger video ↔ more transcript (remembered).
   const mainEl = $('.reader-main', view);
   const applySplit = (pct) => {
@@ -774,6 +807,9 @@ export async function render(view, { segments, params }) {
 
   return () => {
     alive = false;
+    document.removeEventListener('click', closeSpeed);
+    document.removeEventListener('fullscreenchange', onFsChange);
+    setFocus(false);
     voiceOn = false;
     rec?.abort();
     explainBtn.remove();
