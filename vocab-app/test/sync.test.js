@@ -70,3 +70,37 @@ test('a long transcript stays fast (binary search)', () => {
   assert.ok(performance.now() - t0 < 200);
   assert.equal(big[lineIndexAt(big, 3001)].id, 1000);
 });
+
+test('highlight only moves forward: overlapping caption times and clock jitter', async () => {
+  const { steadyPosition } = await import('../public/js/shared/sync.js');
+  // Line 2 got a later start than line 3 (overlapping auto-captions).
+  const tl2 = buildTimeline([
+    { id: 1, start_seconds: 10, text: 'one two three' },
+    { id: 2, start_seconds: 16, text: 'four five' },
+    { id: 3, start_seconds: 14, text: 'six seven' },
+  ]);
+  assert.deepEqual(tl2.map((x) => x.id), [1, 2, 3], 'reading order kept');
+  assert.deepEqual(tl2.map((x) => x.start), [10, 16, 16], 'times never go back');
+  // Walking through time, the line index never decreases.
+  let prev = null;
+  const seen = [];
+  for (let t = 9; t < 20; t += 0.1) {
+    prev = steadyPosition(tl2, t, prev, { playing: true });
+    seen.push(prev.line);
+  }
+  assert.ok(seen.every((v, i) => i === 0 || v >= seen[i - 1]));
+  // Jitter (0.3 s back) keeps the highlight; a real seek back moves it.
+  const at = steadyPosition(tl, 42, null);
+  assert.deepEqual(steadyPosition(tl, 41.7, at, { playing: true }), at);
+  assert.equal(tl[steadyPosition(tl, 31, at, { playing: true }).line].id, 11);
+});
+
+test('server: overlapping captions give lines in time order', async () => {
+  const { toSentences } = await import('../server/services/extractor.js');
+  const lines = toSentences([
+    { start: 0, dur: 6, text: 'so today we will talk about' },
+    { start: 2, dur: 6, text: 'learning faster and better' },
+    { start: 4, dur: 6, text: 'with some simple tricks' },
+  ]);
+  for (let i = 1; i < lines.length; i += 1) assert.ok(lines[i].start >= lines[i - 1].start, JSON.stringify(lines));
+});

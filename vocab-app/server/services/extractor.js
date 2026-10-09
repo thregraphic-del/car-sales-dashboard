@@ -60,11 +60,14 @@ export function toSentences(segments) {
   // short ones together) becomes a line, so every line keeps its own time.
   const ends = segments.filter((g) => /[.!?]["”’)]?\s*$/.test(String(g.text || '').trim())).length;
   const punctuated = segments.length < 3 || ends / segments.length >= 0.25;
-  for (const seg of segments) {
+  for (const [si, seg] of segments.entries()) {
+    // Auto-captions overlap: a caption "lasts" only until the next one starts.
+    const nextStart = segments[si + 1]?.start;
+    const dur = Number.isFinite(nextStart) && Number.isFinite(seg.start) && Number(seg.dur) > 0 ? Math.max(0, Math.min(seg.dur, nextStart - seg.start)) : seg.dur;
     if (!punctuated && buf.length >= 3) flush();
     const raw = seg.words?.length
       ? seg.words.map((w) => ({ text: String(w.text).replace(/\s+/g, ' ').trim(), t: w.t, timed: Number.isFinite(w.t) }))
-      : untimedWords(seg);
+      : untimedWords({ ...seg, dur });
     // A timed segment may hold several words in one piece ("of the"): split, sharing the time.
     const tokens = raw.flatMap((w) => (w.text.includes(' ') ? w.text.split(' ').map((text) => ({ ...w, text })) : [w]))
       .filter((w) => w.text && !noise.test(w.text));
@@ -74,6 +77,13 @@ export function toSentences(segments) {
     }
   }
   flush();
+  // Lines in reading order always start at or after the line before.
+  let floor = -Infinity;
+  for (const l of out) {
+    if (l.start === null || l.start === undefined) continue;
+    if (l.start < floor) l.start = floor;
+    floor = l.start;
+  }
   return out;
 }
 

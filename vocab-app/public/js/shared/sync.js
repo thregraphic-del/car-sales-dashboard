@@ -9,7 +9,15 @@
  * → [{ id, start, end, words: [{ start, end }] | null }] (seconds)
  */
 export function buildTimeline(lines) {
-  const timed = lines.filter((l) => Number.isFinite(l.start_seconds)).sort((a, b) => a.start_seconds - b.start_seconds);
+  // Reading order, never re-sorted: a sentence can't be "before" the one above it.
+  // Overlapping captions can give a later start to an earlier line — times are
+  // made non-decreasing so the highlight only ever moves down while playing.
+  let floor = -Infinity;
+  const timed = lines.filter((l) => Number.isFinite(l.start_seconds))
+    .map((l) => {
+      floor = Math.max(floor, l.start_seconds);
+      return { ...l, start_seconds: floor };
+    });
   return timed.map((l, i) => {
     const next = timed[i + 1];
     const start = l.start_seconds;
@@ -84,6 +92,20 @@ export function wordIndexAt(entry, t) {
 export function positionAt(timeline, t) {
   const line = lineIndexAt(timeline, t);
   return { line, word: line >= 0 ? wordIndexAt(timeline[line], t) : -1 };
+}
+
+/**
+ * Smooth playback position: while playing, a tiny step back in the player's
+ * clock (jitter, buffering) must not pull the highlight back up. Only a real
+ * seek (more than `jump` seconds back) moves it backwards.
+ */
+export function steadyPosition(timeline, t, prev, { playing = true, jump = 1.5 } = {}) {
+  const pos = positionAt(timeline, t);
+  if (!playing || !prev || prev.line < 0 || prev.t === undefined) return { ...pos, t };
+  const back = prev.t - t;
+  if (back > 0 && back < jump) return prev; // jitter: stay where we are
+  if (pos.line === prev.line && pos.word < prev.word && back < jump) return { ...prev, t };
+  return { ...pos, t };
 }
 
 /**

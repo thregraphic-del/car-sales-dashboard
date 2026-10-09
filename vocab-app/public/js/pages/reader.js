@@ -13,7 +13,7 @@ import { state } from '../state.js';
 import { esc, icon, levelChip, fmtTime, fmtDuration, toast, $, emptyState, openModal } from '../ui.js';
 import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech } from '../components.js';
 import { tokenize, quickTier } from '../shared/text.js';
-import { buildTimeline, positionAt, wordIndexByChar } from '../shared/sync.js';
+import { buildTimeline, positionAt, steadyPosition, wordIndexByChar } from '../shared/sync.js';
 import { refreshStats } from '../app.js';
 import { APP_CONFIG } from '../config.js';
 
@@ -364,11 +364,17 @@ export async function render(view, { segments, params }) {
   // Keep the current sentence comfortably in view (only scroll when it leaves the middle band).
   const bringIntoView = (el, force = false) => {
     if (!el || isPanelOpen() || (!force && Date.now() < userScrollUntil)) return;
-    const top = el.offsetTop - linesEl.offsetTop;
+    // Position inside the transcript box, measured on screen (independent of offsetParent).
+    const box = linesEl.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    const top = r.top - box.top + linesEl.scrollTop;
     const view0 = linesEl.scrollTop;
     const h = linesEl.clientHeight;
-    if (force || top < view0 + h * 0.12 || top + el.offsetHeight > view0 + h * 0.75) {
-      linesEl.scrollTo({ top: Math.max(0, top - h / 3), behavior: 'smooth' });
+    // Keep the spoken sentence about a third of the way down; scroll only when it
+    // leaves the comfortable band, so the text moves steadily down with the speech.
+    if (force || top < view0 + h * 0.08 || top + r.height > view0 + h * 0.7) {
+      const target = Math.max(0, Math.min(top - h * 0.3, linesEl.scrollHeight - h));
+      if (Math.abs(target - view0) > 4) linesEl.scrollTo({ top: target, behavior: force ? 'auto' : 'smooth' });
     }
   };
   const setCurrent = (lineId, { scroll = follow, force = false } = {}) => {
@@ -401,6 +407,7 @@ export async function render(view, { segments, params }) {
   };
   // One sync step from the real player time.
   let lastT = null;
+  let steady = null; // last shown position (keeps the highlight moving forward)
   let resumeAfterWord = false;
   const tick = () => {
     if (!player || !timeline.length) return;
@@ -408,7 +415,8 @@ export async function render(view, { segments, params }) {
     // A jump (seek on the YouTube bar, or a click here) brings the transcript along at once.
     const jumped = lastT !== null && Math.abs(t - lastT) > 2;
     lastT = t;
-    const pos = positionAt(timeline, t);
+    const pos = steadyPosition(timeline, t, jumped ? null : steady, { playing });
+    steady = pos;
     const entry = pos.line >= 0 ? timeline[pos.line] : null;
     setCurrent(entry ? entry.id : null, { force: jumped });
     setWord(pos.word);
