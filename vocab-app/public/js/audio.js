@@ -17,15 +17,65 @@ function loadVoices() {
   return voicesReady;
 }
 
+// Novelty / low-quality system voices (macOS, iOS) that mispronounce normal speech.
+const NOVELTY = /albert|bad news|bahh|bells|boing|bubbles|cellos|good news|jester|organ|superstar|trinoids|whisper|wobble|zarvox|fred|junior|ralph|kathy|grandma|grandpa|eddy|flo|reed|rocko|sandy|shelley|espeak/i;
+const GOOD = {
+  en: /natural|neural|premium|enhanced|siri|google us english|samantha|aria|jenny|guy|ava|allison|susan|zira|daniel|karen|moira|serena/i,
+  ar: /natural|neural|premium|enhanced|siri|google|majed|maged|tarik|laila|hamed|zariyah|salma|shakir|naayf|hoda/i,
+};
+
+/** Best installed voice for a language: native locale, natural-sounding, never a novelty voice. */
 function pickVoice(voices, lang) {
-  const prefs = lang === 'ar' ? ['ar-SA', 'ar'] : ['en-US', 'en-GB', 'en'];
-  for (const p of prefs) {
-    const natural = voices.find((v) => v.lang?.startsWith(p) && /natural|neural|premium|enhanced|google/i.test(v.name));
-    if (natural) return natural;
-    const any = voices.find((v) => v.lang?.startsWith(p));
-    if (any) return any;
+  const locales = lang === 'ar' ? ['ar-SA', 'ar-EG', 'ar-AE', 'ar'] : ['en-US', 'en-GB', 'en-AU', 'en'];
+  const score = (v) => {
+    const l = (v.lang || '').replace('_', '-');
+    const li = locales.findIndex((p) => l.toLowerCase().startsWith(p.toLowerCase()));
+    if (li < 0 || NOVELTY.test(v.name)) return -1;
+    return (GOOD[lang === 'ar' ? 'ar' : 'en'].test(v.name) ? 100 : 0) + (v.localService === false ? 5 : 0) + (v.default ? 3 : 0) + (10 - li);
+  };
+  let best = null;
+  let top = -1;
+  for (const v of voices) {
+    const sc = score(v);
+    if (sc > top) { top = sc; best = v; }
   }
-  return null;
+  return best;
+}
+
+/** Arabic meaning → a short, clean phrase a voice reads naturally. */
+export function arabicForSpeech(text) {
+  return String(text || '').split(/[/؛;|]/)[0].replace(/\([^)]*\)|\[[^\]]*\]/g, ' ').replace(/[«»"“”…]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+// Real recorded pronunciation of single English words (free dictionary API).
+const recorded = new Map();
+function recordedUrl(word) {
+  const w = String(word || '').trim().toLowerCase();
+  if (!/^[a-z][a-z'-]{0,30}$/.test(w)) return Promise.resolve(null);
+  if (!recorded.has(w)) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 2500);
+    recorded.set(w, fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(w)}`, { signal: ctrl.signal })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list) => {
+        const urls = list.flatMap((e) => e.phonetics || []).map((p) => p.audio).filter((a) => /^https:\/\//.test(a || ''));
+        return urls.find((a) => /-us\.mp3$/.test(a)) || urls.find((a) => /-(uk|au)\.mp3$/.test(a)) || urls[0] || null;
+      })
+      .catch(() => null)
+      .finally(() => clearTimeout(t)));
+  }
+  return recorded.get(w);
+}
+
+function playUrl(url, rate) {
+  const audio = new Audio(url);
+  audio.playbackRate = rate;
+  currentAudio = audio;
+  return new Promise((resolve, reject) => {
+    audio.onended = resolve;
+    audio.onerror = reject;
+    audio.play().catch(reject);
+  });
 }
 
 export function stop() {
@@ -42,15 +92,19 @@ export async function speak(text, { rate = 1, lang = 'en' } = {}) {
   stop();
   const base = state.user?.speech_rate || 1;
   const finalRate = Math.max(0.5, Math.min(1.5, rate * base));
+  if (lang === 'ar') text = arabicForSpeech(text) || text;
+  if (lang === 'en' && !/\s/.test(text.trim())) {
+    const url = await recordedUrl(text);
+    if (url) {
+      try {
+        await playUrl(url, finalRate);
+        return;
+      } catch { /* fall back */ }
+    }
+  }
   if (state.config?.tts?.server) {
     try {
-      const audio = new Audio(`/api/tts?${new URLSearchParams({ text, speed: finalRate, lang })}`);
-      currentAudio = audio;
-      await new Promise((resolve, reject) => {
-        audio.onended = resolve;
-        audio.onerror = reject;
-        audio.play().catch(reject);
-      });
+      await playUrl(`/api/tts?${new URLSearchParams({ text, speed: 1, lang })}`, finalRate);
       return;
     } catch {
       /* fall back to browser voice */
@@ -63,7 +117,8 @@ export async function speak(text, { rate = 1, lang = 'en' } = {}) {
     const voice = pickVoice(voices, lang);
     if (voice) u.voice = voice;
     u.lang = voice?.lang || (lang === 'ar' ? 'ar-SA' : 'en-US');
-    u.rate = finalRate;
+    u.rate = lang === 'ar' ? finalRate * 0.9 : finalRate; // Arabic a little slower = clearer
+    u.pitch = 1;
     u.onend = resolve;
     u.onerror = resolve;
     speechSynthesis.speak(u);

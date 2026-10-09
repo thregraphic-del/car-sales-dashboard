@@ -11,6 +11,7 @@ export function runListening(body, words) {
   let auto = true;
   let runId = 0;
   let speakArabic = !!state.user?.speak_arabic;
+  let speakExample = (() => { try { return localStorage.getItem('listen.exampleAr') !== '0'; } catch { return true; } })();
   const view = body;
   body.innerHTML = `
     <div class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr);align-items:start" id="lg">
@@ -27,6 +28,7 @@ export function runListening(body, words) {
           <div class="row wrap" style="justify-content:center;gap:18px;margin-top:14px">
             <label class="row small" style="gap:6px"><input type="checkbox" class="check" id="auto" checked> انتقال تلقائي للكلمة التالية</label>
             <label class="row small" style="gap:6px"><input type="checkbox" class="check" id="ar" ${speakArabic ? 'checked' : ''}> نطق المعنى العربي</label>
+            <label class="row small" style="gap:6px"><input type="checkbox" class="check" id="exar" ${speakExample ? 'checked' : ''}> نطق ترجمة المثال</label>
           </div>
         </div>
       </div>
@@ -45,12 +47,13 @@ export function runListening(body, words) {
     const w = words[idx];
     const ex = w.examples?.find((e) => e.kind === 'easy') || w.examples?.[0];
     const exText = ex?.sentence || w.context_sentence;
+    const exAr = ex?.sentence ? ex.arabic : w.context_arabic;
     player.innerHTML = `
       <div class="row" style="gap:6px">${levelChip(w.level)}<span class="chip ar-chip">${esc(typeLabel(w))}</span><span class="tiny muted en-inline">${idx + 1} / ${words.length}</span></div>
       <div class="lt-step lt-term ${step >= 0 ? 'on' : ''}">${esc(w.term)}</div>
       <div class="lt-step en muted ${step >= 1 ? 'on' : ''}" style="font-size:17px">${esc(w.pronunciation || '')}</div>
       <div class="lt-step ${step >= 2 ? 'on' : ''}"><div style="font-size:23px;font-weight:700">${esc(w.arabic || '')}</div><div class="en ink-2" style="text-align:center">${esc(w.simple_english || '')}</div></div>
-      ${exText ? `<div class="lt-step quote ${step >= 3 ? 'on' : ''}" style="max-width:520px;text-align:left"><p class="en">${highlight(exText, w.term)}</p></div>` : ''}`;
+      ${exText ? `<div class="lt-step quote ${step >= 3 ? 'on' : ''}" style="max-width:520px;text-align:left"><p class="en">${highlight(exText, w.term)}</p>${exAr ? `<p class="ink-2" dir="rtl" style="text-align:right;margin-top:6px">${esc(exAr)}</p>` : ''}</div>` : ''}`;
     queue.innerHTML = words.map((x, k) => `<button class="${k === idx ? 'on' : ''}" data-k="${k}"><span class="en-inline">${esc(x.term)}</span><span class="tiny muted">${esc(x.level)}</span></button>`).join('');
     queue.querySelector('.on')?.scrollIntoView({ block: 'nearest' });
   }
@@ -82,6 +85,13 @@ export function runListening(body, words) {
       drawWord(3);
       if (exText) await speak(exText, { rate });
       if (!alive()) return;
+      const exAr = ex?.sentence ? ex.arabic : w.context_arabic;
+      if (exText && speakExample && exAr) {
+        await wait(350);
+        if (!alive()) return;
+        await speak(exAr, { lang: 'ar', rate });
+        if (!alive()) return;
+      }
       await wait(1200);
       if (!alive()) return;
       if (auto && playing && idx < words.length - 1) {
@@ -132,6 +142,7 @@ export function runListening(body, words) {
   });
   body.querySelector('#auto').addEventListener('change', (e) => (auto = e.target.checked));
   body.querySelector('#ar').addEventListener('change', (e) => (speakArabic = e.target.checked));
+  body.querySelector('#exar').addEventListener('change', (e) => { speakExample = e.target.checked; try { localStorage.setItem('listen.exampleAr', speakExample ? '1' : '0'); } catch { /* private mode */ } });
   queue.addEventListener('click', (e) => {
     const b = e.target.closest('[data-k]');
     if (b) go(Number(b.dataset.k));
