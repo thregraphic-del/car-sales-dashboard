@@ -127,9 +127,13 @@ export function bindGroupPicker(root, getSelected, onToggle) {
 /* ------------------------------------------------- in-context word panel */
 
 let panelEl = null;
+let panelOnClose = null;
 export function closeWordPanel() {
   panelEl?.remove();
   panelEl = null;
+  const cb = panelOnClose;
+  panelOnClose = null;
+  cb?.();
   document.removeEventListener('keydown', onPanelKey);
   document.removeEventListener('pointerdown', onOutside, true);
 }
@@ -161,8 +165,10 @@ function placePanel(el, anchor) {
  * Show a word in context without leaving the page.
  * query: {line_id, word, vocabulary_id}; onChange(info) after save/groups.
  */
-export async function openWordPanel(anchor, query, { onChange } = {}) {
+export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
+  panelOnClose = null; // switching to another word is not "closing"
   closeWordPanel();
+  panelOnClose = onClose || null;
   const el = document.createElement('div');
   el.className = 'word-pop';
   el.innerHTML = '<div class="wp-loading"><span class="spinner"></span> جارٍ البحث…</div>';
@@ -233,6 +239,7 @@ export async function openWordPanel(anchor, query, { onChange } = {}) {
         toast(r.already ? 'موجودة عندك ✓' : `تم الحفظ ✓ ${info.term}`);
         render();
         onChange?.(info);
+        if (onClose) setTimeout(() => panelEl === el && closeWordPanel(), 900); // back to the video
       }
       if (act === 'explain') {
         const btn = e.target.closest('[data-act]');

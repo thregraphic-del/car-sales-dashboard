@@ -68,6 +68,8 @@ async function youtubePlayer(el, videoId, start, onState = () => {}) {
             onState(play);
           },
           playing: () => p.getPlayerState?.() === 1,
+          pause: () => p.pauseVideo?.(),
+          play: () => p.playVideo?.(),
           destroy: () => p.destroy?.(),
         }),
         // 1 playing, 3 buffering (still moving), 2 paused, 0 ended
@@ -109,7 +111,14 @@ function demoPlayer(el, duration) {
     const ratio = (r.right - e.clientX) / r.width; // RTL bar fills from the right
     if (ratio >= 0 && ratio <= 1) t = ratio * duration;
   });
-  return { time: () => t, seek: (s) => { t = s; playing = true; last = performance.now(); }, playing: () => playing, destroy: () => clearInterval(tick) };
+  return {
+    time: () => t,
+    seek: (s, { play = true } = {}) => { t = s; playing = play; last = performance.now(); },
+    playing: () => playing,
+    pause: () => { playing = false; },
+    play: () => { playing = true; last = performance.now(); },
+    destroy: () => clearInterval(tick),
+  };
 }
 
 /* ------------------------------------------------------------ word spans */
@@ -194,7 +203,7 @@ export async function render(view, { segments, params }) {
           <span class="tiny muted" id="trNote"></span>
         </div>
         <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}" id="lines"></div>
-        <p class="tiny muted reader-hint">${isVideo && hasTimes ? 'اضغط أي كلمة لينتقل الفيديو إليها، واضغطها مرة ثانية لمعناها. اسحب الفاصل تحت الفيديو لتكبيره أو تصغيره.' : 'اضغط على أي كلمة لترى معناها في هذه الجملة.'} <span class="mark s-suggested">مقترحة</span> <span class="mark s-saved">محفوظة</span></p>
+        <p class="tiny muted reader-hint">${isVideo && hasTimes ? 'اضغط أي كلمة: يقف الفيديو عندها ويظهر معناها، ويكمل حين تغلقها أو تحفظها. اسحب الفاصل تحت الفيديو لتكبيره أو تصغيره.' : 'اضغط على أي كلمة لترى معناها في هذه الجملة.'} <span class="mark s-suggested">مقترحة</span> <span class="mark s-saved">محفوظة</span></p>
       </div>
       <aside class="reader-side card" id="side"></aside>
     </div>`;
@@ -392,6 +401,7 @@ export async function render(view, { segments, params }) {
   };
   // One sync step from the real player time.
   let lastT = null;
+  let resumeAfterWord = false;
   const tick = () => {
     if (!player || !timeline.length) return;
     const t = player.time();
@@ -468,17 +478,30 @@ export async function render(view, { segments, params }) {
     const wEl = e.target.closest('[data-wi]');
     const entry = timeline.find((x) => String(x.id) === line.dataset.id);
     const wi = wEl ? Number(wEl.dataset.wi) : -1;
-    // A word: the video jumps to it. Clicking the word being spoken (2nd click) explains it.
-    if (player && entry?.words?.[wi] && !(wEl.classList.contains('w-now') && (mark || tok))) {
-      player.seek(Math.max(0, entry.words[wi].start - 0.15));
-      setCurrent(entry.id, { scroll: false });
-      lastT = null;
-      tick();
+    // A word: the video goes to it and waits (paused) while its meaning is open;
+    // closing the meaning (or saving) continues playback if it was playing.
+    if (mark || tok) {
+      if (player && !isPanelOpen()) resumeAfterWord = player.playing?.() ?? false;
+      if (player && entry?.words?.[wi]) {
+        player.seek(Math.max(0, entry.words[wi].start - 0.15), { play: false });
+        setCurrent(entry.id, { scroll: false });
+        lastT = null;
+        tick();
+      }
+      player?.pause?.();
+      const onClose = () => {
+        if (resumeAfterWord && alive) player?.play?.();
+        resumeAfterWord = false;
+      };
+      if (mark) openWordPanel(mark, { vocabulary_id: mark.dataset.vid, line_id: line.dataset.id }, { onChange, onClose });
+      else openWordPanel(tok, { word: tok.dataset.w, line_id: line.dataset.id }, { onChange, onClose });
       return;
     }
-    if (mark) openWordPanel(mark, { vocabulary_id: mark.dataset.vid, line_id: line.dataset.id }, { onChange });
-    else if (tok) openWordPanel(tok, { word: tok.dataset.w, line_id: line.dataset.id }, { onChange });
-    else seekToLine(line); // the sentence itself (not a word): jump there
+    if (player && entry?.words?.[wi]) {
+      player.seek(Math.max(0, entry.words[wi].start - 0.15)); // a small word (the, of…): jump there
+      return;
+    }
+    seekToLine(line); // the sentence itself (not a word): jump there
   });
 
   side.addEventListener('click', async (e) => {
