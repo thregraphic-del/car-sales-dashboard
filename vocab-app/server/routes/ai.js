@@ -6,7 +6,7 @@ import { config } from '../config.js';
 import { wrap, num } from '../http.js';
 import { httpError } from '../lib/errors.js';
 import { aiStatus, checkModel, usageToday, usageReport, AiError } from '../services/ai.js';
-import { explainWithAi } from '../services/extractor.js';
+import { explainWithAi, formsWithAi } from '../services/extractor.js';
 import { getLine, getSource } from '../data/sources.js';
 
 const router = Router();
@@ -31,6 +31,18 @@ router.post('/explain', wrap(async (req, res) => {
   } catch (err) {
     if (!(err instanceof AiError)) throw err;
     res.status(err.status || 503).json({ ok: false, error: err.message, ai: aiStatus() });
+    return undefined;
+  }
+}));
+
+router.get('/forms', wrap(async (req, res) => {
+  const word = String(req.query.word || '').toLowerCase().replace(/[^a-z' -]/g, '').replace(/\s+/g, ' ').trim();
+  if (!word || word.length > 40) throw httpError(400, 'كلمة غير صالحة.');
+  try {
+    return { ok: true, word, ...(await formsWithAi(word)) };
+  } catch (err) {
+    if (!(err instanceof AiError)) throw err;
+    res.status(err.status || 503).json({ ok: false, error: err.message });
     return undefined;
   }
 }));

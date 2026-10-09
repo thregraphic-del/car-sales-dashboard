@@ -413,3 +413,26 @@ export async function explainWithAi({ text, sentence = '', title = '' }) {
   });
   return { ...r, key_words: r.key_words.slice(0, 6) };
 }
+
+const POS = ['فعل', 'اسم', 'صفة', 'ظرف', 'اسم فاعل', 'أخرى'];
+const FORMS_SCHEMA = obj({
+  base: str,
+  forms: { type: 'array', items: obj({ pos: { type: 'string', enum: POS }, form: str, arabic: str, example: str, example_ar: str }) },
+});
+const FormsZ = z.object({
+  base: z.string(),
+  forms: z.array(z.object({ pos: z.enum(POS), form: z.string(), arabic: z.string(), example: z.string(), example_ar: z.string() })),
+});
+
+/** Word family: the word as verb / noun / adjective / adverb…, each with an example. Cached per word. */
+export async function formsWithAi(word) {
+  const r = await jsonCall({
+    task: 'word_forms',
+    system: 'You help an Arabic-speaking learner of English. Give the word family of the given English word: its common forms as a verb (فعل), noun (اسم), adjective (صفة), adverb (ظرف), person noun (اسم فاعل, e.g. teacher) or other (أخرى). Include only real, commonly used forms (2–7), the given word\'s own form first. "base" = dictionary form. For each: "form" = the English form (for verbs add past and past participle like "decide (decided, decided)" when irregular or useful), "arabic" = short Arabic meaning, "example" = one short natural English example sentence using that form, "example_ar" = its Arabic translation.',
+    user: `Word: ${word}`,
+    schema: FORMS_SCHEMA,
+    zod: FormsZ,
+    maxTokens: 700,
+  });
+  return { base: r.base, forms: r.forms.filter((f) => f.form).slice(0, 7) };
+}

@@ -165,6 +165,23 @@ function placePanel(el, anchor) {
  * Show a word in context without leaving the page.
  * query: {line_id, word, vocabulary_id}; onChange(info) after save/groups.
  */
+const formsMemo = new Map();
+function loadForms(term) {
+  const key = String(term || '').toLowerCase();
+  if (!formsMemo.has(key)) formsMemo.set(key, api.wordForms(key).catch((err) => { formsMemo.delete(key); throw err; }));
+  return formsMemo.get(key);
+}
+
+/** "All forms of the word": verb / noun / adjective… each with an example. */
+function formsHtml(forms) {
+  if (!forms) return '';
+  if (forms.loading) return '<div class="wp-forms tiny muted"><span class="spinner"></span> نجلب صيغ الكلمة…</div>';
+  if (forms.error || !forms.forms?.length) return forms.error ? `<p class="tiny muted wp-forms">صيغ الكلمة: ${esc(forms.error)}</p>` : '';
+  return `<details class="wp-forms" open><summary class="tiny muted">صيغ الكلمة (فعل، اسم، صفة…)</summary>
+    ${forms.forms.map((f) => `<div class="wf"><span class="wf-pos">${esc(f.pos)}</span><b class="en" dir="ltr">${esc(f.form)}</b> <span class="small ink-2">${esc(f.arabic)}</span>
+      ${f.example ? `<p class="en small" dir="ltr">${esc(f.example)}</p>${f.example_ar ? `<p class="tiny ink-2">${esc(f.example_ar)}</p>` : ''}` : ''}</div>`).join('')}</details>`;
+}
+
 export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
   panelOnClose = null; // switching to another word is not "closing"
   closeWordPanel();
@@ -218,9 +235,15 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
         ${saved ? `<button class="btn sm saved" data-act="noop">${icon.check} محفوظة ✓</button>` : `<button class="btn sm primary" data-act="save">${icon.bookmark} حفظ</button>`}
         ${saved ? `<button class="btn sm ghost" data-act="details">التفاصيل</button>` : ''}
       </div>
+      ${formsHtml(forms)}
       ${saved ? `<div class="wp-groups"><div class="tiny muted" style="margin-bottom:6px">المجموعات</div>${groupPickerHtml(info.groups || [])}</div>` : ''}`;
   };
+  let forms = info.found ? { loading: true } : null;
   render();
+  if (forms) {
+    loadForms(info.term).then((r) => { forms = r; }, (err) => { forms = { error: err.message }; })
+      .finally(() => { if (panelEl === el) render(); });
+  }
 
   bindGroupPicker(el, () => info.groups || [], async (gid, on) => {
     const next = on ? [...(info.groups || []), gid] : (info.groups || []).filter((g) => g !== gid);

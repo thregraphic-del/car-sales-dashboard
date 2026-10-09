@@ -160,3 +160,21 @@ test('a video is translated once: re-adding it, or another learner adding it, co
   assert.ok((await sourceLines(other)).every((l) => l.text_ar?.startsWith('ترجمة')));
   assert.equal(chats(), used);
 });
+
+test('word forms: verb/noun/adjective with examples, cached, input sanitised', async () => {
+  reply = ok({ base: 'decide', forms: [
+    { pos: 'فعل', form: 'decide', arabic: 'يقرر', example: 'I decided to stay.', example_ar: 'قررت البقاء.' },
+    { pos: 'اسم', form: 'decision', arabic: 'قرار', example: 'It was a hard decision.', example_ar: 'كان قرارًا صعبًا.' },
+    { pos: 'صفة', form: 'decisive', arabic: 'حاسم', example: 'She is decisive.', example_ar: 'هي حاسمة.' },
+  ] });
+  const get = async (w) => { const r = await realFetch(`${app.base}/api/ai/forms?word=${encodeURIComponent(w)}`); return { status: r.status, body: await r.json() }; };
+  const r = await get('Decide');
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body.forms.map((f) => f.pos), ['فعل', 'اسم', 'صفة']);
+  assert.equal(r.body.forms[1].example, 'It was a hard decision.');
+  assert.match(calls.find((c) => c.u.endsWith('/chat/completions')).body.messages.at(-1).content, /Word: decide$/);
+  calls = [];
+  assert.equal((await get('decide')).status, 200);
+  assert.equal(calls.filter((c) => c.u.endsWith('/chat/completions')).length, 0, 'cached');
+  assert.equal((await get('<<>>')).status, 400);
+});

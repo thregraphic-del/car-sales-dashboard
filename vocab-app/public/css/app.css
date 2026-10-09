@@ -701,3 +701,11 @@ body.reader-focus .player-box { top: 0; }
 body.reader-focus .page-reader .reader-main:has(.split) .transcript { max-height: max(240px, calc(100vh - var(--ph, 360px) - 90px)); }
 body.reader-focus .page-reader .transcript { max-height: calc(100vh - 90px); }
 .reader-tools > span:empty { display: none; }
+
+/* Word family in the word panel */
+.wp-forms { margin-top: 10px; border-top: 1px solid var(--line); padding-top: 8px; }
+.wp-forms summary { cursor: pointer; margin-bottom: 4px; }
+.wf { padding: 6px 0; border-bottom: 1px dashed var(--line); }
+.wf:last-child { border-bottom: 0; }
+.wf p { margin: 3px 0 0; }
+.wf-pos { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); margin-inline-end: 6px; }

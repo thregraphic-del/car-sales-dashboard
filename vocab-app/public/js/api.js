@@ -93,6 +93,7 @@ export const api = {
   loadDemo: () => request('POST', '/api/data/demo'),
   aiStatus: () => request('GET', '/api/ai/status'),
   aiUsage: () => request('GET', '/api/ai/usage'),
+  wordForms: (word) => request('GET', `/api/ai/forms${qs({ word })}`),
   explain: (text, line_id) => request('POST', '/api/ai/explain', { text, line_id }),
   resetDemo: () => request('POST', '/api/data/reset-demo'),
 };
