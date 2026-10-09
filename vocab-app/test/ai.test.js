@@ -127,3 +127,36 @@ test('usage report: tokens and cost from OpenRouter are counted per learner', as
   assert.ok(after.site, 'local single user sees the site totals');
   assert.ok(!JSON.stringify(after).includes(KEY));
 });
+
+test('a video is translated once: re-adding it, or another learner adding it, costs no new AI calls', async () => {
+  // OpenRouter mock: translate every "[idx] text" line it is sent.
+  reply = () => {
+    const sent = calls.at(-1).body.messages.at(-1).content;
+    const lines = [...sent.matchAll(/^\[(\d+)\] (.*)$/gm)].map((m) => ({ i: Number(m[1]), ar: `ترجمة ${m[1]}` }));
+    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ lines }) }, finish_reason: 'stop' }] }), { status: 200 });
+  };
+  process.env.AI_DAILY_LIMIT_PER_USER = '1000';
+  const T = '0:01 First sentence here.\n0:05 Second sentence here.\n0:09 Third sentence here.';
+  const add = async (body) => (await realFetch(`${app.base}/api/sources/youtube`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })).json();
+  const step = async (id) => (await realFetch(`${app.base}/api/sources/${id}/translation`, { method: 'POST' })).json();
+  const chats = () => calls.filter((c) => c.u.endsWith('/chat/completions')).length;
+  ai._resetAi();
+  const { source_id: id } = await add({ url: 'https://youtu.be/TRANSLATE01', transcript: T });
+  for (let k = 0; k < 5 && !(await step(id)).complete; k += 1);
+  const used = chats();
+  assert.ok(used >= 1, 'first time: translated by AI');
+  // Re-adding the same video (even with the transcript pasted again) keeps the subtitles.
+  await add({ url: 'https://www.youtube.com/watch?v=TRANSLATE01', transcript: T });
+  const again = await step(id);
+  assert.equal(again.complete, true);
+  assert.equal(chats(), used, 'no new AI call');
+  const v = await (await realFetch(`${app.base}/api/sources/${id}`)).json();
+  assert.ok(v.lines.every((l) => l.text_ar?.startsWith('ترجمة')));
+  // Another learner adding the same video gets the existing subtitles.
+  const { ensureUser } = await import('../server/data/users.js');
+  const { saveSource, sourceLines } = await import('../server/data/sources.js');
+  await ensureUser(77);
+  const other = await saveSource({ kind: 'youtube', youtube_id: 'TRANSLATE01', title: 'x' }, v.lines.map((l, i) => ({ idx: i, start: l.start_seconds, text: l.text })), [], 77);
+  assert.ok((await sourceLines(other)).every((l) => l.text_ar?.startsWith('ترجمة')));
+  assert.equal(chats(), used);
+});

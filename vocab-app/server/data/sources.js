@@ -158,6 +158,7 @@ async function storeItems(sourceId, lineList, items, rankBase = 0) {
 export async function saveSource(meta, lines, items, userId) {
   return tx(async () => {
     let source = meta.youtube_id ? await findSourceByYoutubeId(meta.youtube_id, userId) : null;
+    const keepAr = new Map();
     const now = new Date().toISOString();
     if (source) {
       await run(
@@ -166,6 +167,8 @@ export async function saveSource(meta, lines, items, userId) {
         meta.url || null, meta.title, meta.channel || null, meta.duration_seconds ?? null, meta.thumbnail_url || null, meta.transcript_source || null,
         meta.extractor || null, meta.word_count ?? null, now, source.id,
       );
+      // Keep this source's own translations for sentences that stay the same.
+      for (const r of await all('SELECT text, text_ar FROM transcript_lines WHERE source_id = ? AND text_ar IS NOT NULL', source.id)) keepAr.set(r.text.trim(), r.text_ar);
       await run('DELETE FROM transcript_lines WHERE source_id = ?', source.id); // cascades to line occurrences
       await run('DELETE FROM occurrences WHERE source_id = ?', source.id);
     } else {
@@ -177,8 +180,20 @@ export async function saveSource(meta, lines, items, userId) {
       );
       source = await getSource(id, userId);
     }
+    // Arabic subtitles already made for this video (by anyone — they hold no personal
+    // data) are reused for identical sentences, so a video is never translated twice.
+    const known = new Map();
+    if (meta.youtube_id) {
+      const rows = await all(
+        `SELECT l.text, l.text_ar FROM transcript_lines l JOIN sources s ON s.id = l.source_id
+         WHERE s.youtube_id = ? AND l.text_ar IS NOT NULL AND s.id <> ?`, meta.youtube_id, source.id,
+      );
+      for (const r of rows) known.set(r.text.trim(), r.text_ar);
+    }
+    for (const [k, v] of keepAr) known.set(k, v);
     const lineList = [];
-    for (const [i, l] of lines.entries()) {
+    for (let [i, l] of lines.entries()) { // eslint-disable-line prefer-const
+      if (!l.text_ar && known.has(l.text.trim())) l = { ...l, text_ar: known.get(l.text.trim()) };
       const next = lines[i + 1];
       const dur = l.start !== null && l.start !== undefined && next?.start != null ? Math.max(0, next.start - l.start) : null;
       const id = await insert(
