@@ -155,9 +155,9 @@ export async function render(view) {
     if (!box) return;
     const or = r.openrouter;
     box.innerHTML = `<b>الاستهلاك والتكلفة</b>
-      <table class="usage-table small">${head}${row('اليوم', r.me.today)}${row('هذا الشهر', r.me.month)}${row('الإجمالي', r.me.total)}</table>
+      <div class="usage-wrap"><table class="usage-table small">${head}${row('اليوم', r.me.today)}${row('هذا الشهر', r.me.month)}${row('الإجمالي', r.me.total)}</table></div>
       ${r.site ? `<b class="small" style="margin-top:6px">كل الحسابات — هذا الشهر</b>
-        <table class="usage-table small">${head}${row('المجموع', r.site.month)}${r.site.users.map((u) => row(`<span class="en-inline">${esc(u.username || u.name)}</span>`, u)).join('')}${row('الإجمالي منذ البداية', r.site.total)}</table>
+        <div class="usage-wrap"><table class="usage-table small">${head}${row('المجموع', r.site.month)}${r.site.users.map((u) => row(`<span class="en-inline">${esc(u.username || u.name)}</span>`, u)).join('')}${row('الإجمالي منذ البداية', r.site.total)}</table></div>
         ${or ? `<div class="row between small"><span>مفتاح OpenRouter (المصروف الفعلي)</span><b class="en-inline">${usd(or.usage)}${or.limit != null ? ` / ${usd(or.limit)}` : ''}</b></div>` : ''}
         <p class="tiny muted">«فيديوهات» = نصوص جُلبت عبر Supadata (الخطة المجانية ≈ 100 شهريًا). التكلفة كما يحسبها OpenRouter؛ الإجابات المحفوظة مجانية.</p>` : ''}`;
   }).catch(() => {});
