@@ -540,7 +540,7 @@ export async function render(view, { segments, params }) {
   let rec = null;
   let voiceOn = false;
   let voiceLang = pref('reader.voiceLang', 'en-US');
-  const STOP = /(^|\s)(stop|pause|wait|hold on|وقف|اوقف|أوقف|توقف|وقّف|قف|ستوب|بوز|لحظة|لحظه)(\s|$)/i;
+  const STOP = /(^|\s)(stop|pause|waqf|wakf|woof|وقف|اوقف|أوقف|توقف|وقّف|قف|ستوب|بوز|لحظة|لحظه)(\s|$)/i;
   const voiceNote = (t) => { const n = $('#voiceNote', view); if (n) n.textContent = t; };
   const nearbyLines = () => {
     const i = timeline.findIndex((x) => x.id === currentId);
@@ -569,24 +569,38 @@ export async function render(view, { segments, params }) {
     }
     return null;
   };
-  const onSpeech = (alternatives) => {
-    const text = alternatives[0].trim().replace(/[.!؟?،,]/g, '');
-    if (!text) return;
-    if (text.split(/\s+/).length > 4) { voiceNote('🎤 أسمع كلامًا طويلًا (صوت الفيديو؟) — قل «وقف» أو كلمة واحدة.'); return; }
-    if (alternatives.some((a) => STOP.test(a.trim().replace(/[.!؟?،,]/g, '')))) {
-      if (player?.playing?.()) {
-        resumeAfterWord = true;
-        player.pause();
-      }
-      voiceNote(`⏸ متوقف — قل الكلمة ${voiceLang === 'ar-SA' ? 'بالعربي' : 'بالإنجليزي'}`);
-      return;
+  const tidy = (t) => String(t || '').trim().replace(/[.!؟?،,]/g, '').replace(/\s+/g, ' ');
+  // The microphone also hears the video, so "stop" is looked for in the last
+  // few words of anything heard — as soon as it is heard (not only at the end).
+  let lastStop = 0;
+  const heardStop = (alternatives) => alternatives.some((a) => STOP.test(tidy(a).split(' ').slice(-4).join(' ')));
+  const doStop = () => {
+    if (Date.now() - lastStop < 1500) return;
+    lastStop = Date.now();
+    if (player?.playing?.()) {
+      resumeAfterWord = true;
+      player.pause();
     }
+    voiceNote(`⏸ متوقف — قل الكلمة ${voiceLang === 'ar-SA' ? 'بالعربي' : 'بالإنجليزي'}`);
+    // Start listening afresh so the next word isn't mixed with the video's speech.
+    try { rec?.abort(); } catch { /* restarts in onend */ }
+  };
+  const onSpeech = (alternatives) => {
+    const text = tidy(alternatives[0]);
+    if (!text) return;
+    if (heardStop(alternatives)) return doStop();
+    const playing = player?.playing?.();
+    const n = text.split(' ').length;
+    if (n > 4 && playing) { voiceNote('🎤 أسمع صوت الفيديو — قل «stop» أو «وقف» أولًا، ثم الكلمة.'); return; }
     let el = null;
-    for (const a of alternatives) if (!el) el = findSpoken(a.trim().replace(/[.!؟?،,]/g, ''));
+    for (const a of alternatives) {
+      const words = tidy(a).split(' ');
+      if (!el) el = findSpoken(words.slice(-3).join(' ')); // the word you said is at the end
+    }
     if (el) {
-      voiceNote(`🎤 «${text}»`);
+      voiceNote(`🎤 «${text.split(' ').slice(-3).join(' ')}»`);
       el.click(); // pauses, moves the video to the word and opens its details
-    } else voiceNote(`🎤 «${text}» — لم أجدها في الجمل الأخيرة`);
+    } else voiceNote(`🎤 «${text.split(' ').slice(-4).join(' ')}» — لم أجدها في الجمل القريبة`);
   };
   const startVoice = () => {
     rec = new SpeechRec();
@@ -594,12 +608,14 @@ export async function render(view, { segments, params }) {
     rec.continuous = true;
     rec.interimResults = true;
     rec.maxAlternatives = 3;
-    rec.onstart = () => voiceNote(`🎤 أسمعك (${voiceLang === 'ar-SA' ? 'عربي' : 'English'}): قل «${voiceLang === 'ar-SA' ? 'وقف' : 'stop'}» أو الكلمة.`);
+    rec.onstart = () => Date.now() - lastStop > 3000 && voiceNote(`🎤 أسمعك (${voiceLang === 'ar-SA' ? 'عربي' : 'English'}): قل «${voiceLang === 'ar-SA' ? 'وقف' : 'stop'}» أو الكلمة.`);
     rec.onresult = (e) => {
       for (let i = e.resultIndex; i < e.results.length; i += 1) {
         const r = e.results[i];
-        if (r.isFinal) onSpeech([...r].map((x) => x.transcript));
-        else if (r[0].transcript.trim().split(/\s+/).length <= 4) voiceNote(`🎤 «${r[0].transcript.trim()}…»`);
+        const alts = [...r].map((x) => x.transcript);
+        if (r.isFinal) onSpeech(alts);
+        else if (heardStop(alts)) doStop();
+        else if (!player?.playing?.()) voiceNote(`🎤 «${tidy(alts[0]).split(' ').slice(-4).join(' ')}…»`);
       }
     };
     rec.onerror = (e) => {
