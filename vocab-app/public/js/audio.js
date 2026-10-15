@@ -3,18 +3,17 @@
 import { state } from './state.js';
 
 let currentAudio = null;
-let voicesReady = null;
 
-function loadVoices() {
-  if (!('speechSynthesis' in window)) return Promise.resolve([]);
-  if (voicesReady) return voicesReady;
-  voicesReady = new Promise((resolve) => {
-    const v = speechSynthesis.getVoices();
-    if (v.length) return resolve(v);
-    speechSynthesis.onvoiceschanged = () => resolve(speechSynthesis.getVoices());
-    setTimeout(() => resolve(speechSynthesis.getVoices()), 1500);
-  });
-  return voicesReady;
+let voiceList = [];
+function currentVoices() {
+  if (!('speechSynthesis' in window)) return [];
+  const v = speechSynthesis.getVoices();
+  if (v.length) voiceList = v;
+  return voiceList;
+}
+if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+  currentVoices();
+  speechSynthesis.addEventListener?.('voiceschanged', currentVoices);
 }
 
 // Novelty / low-quality system voices (macOS, iOS) that mispronounce normal speech.
@@ -49,6 +48,11 @@ export function arabicForSpeech(text) {
 
 // Real recorded pronunciation of single English words (free dictionary API).
 const recorded = new Map();
+const recordedReady = new Map(); // word → url | null, once known
+/** Look up (in the background) the recorded pronunciation of these words. */
+export function prefetchPronunciation(words) {
+  for (const w of words || []) recordedUrl(w);
+}
 function recordedUrl(word) {
   const w = String(word || '').trim().toLowerCase();
   if (!/^[a-z][a-z'-]{0,30}$/.test(w)) return Promise.resolve(null);
@@ -62,6 +66,7 @@ function recordedUrl(word) {
         return urls.find((a) => /-us\.mp3$/.test(a)) || urls.find((a) => /-(uk|au)\.mp3$/.test(a)) || urls[0] || null;
       })
       .catch(() => null)
+      .then((url) => { recordedReady.set(w, url); return url; })
       .finally(() => clearTimeout(t)));
   }
   return recorded.get(w);
@@ -78,49 +83,64 @@ function playUrl(url, rate) {
   });
 }
 
+let speaking = null; // keep the utterance referenced (Chrome drops events of collected ones)
+
 export function stop() {
   if (currentAudio) {
     currentAudio.pause();
     currentAudio = null;
   }
-  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  if ('speechSynthesis' in window && (speechSynthesis.speaking || speechSynthesis.pending)) speechSynthesis.cancel();
 }
 
-/** Speak text. rate: 1 = normal, 0.7 = slow. Resolves when finished. */
-export async function speak(text, { rate = 1, lang = 'en' } = {}) {
-  if (!text) return;
+/**
+ * Speak text. rate: 1 = normal, 0.7 = slow. Resolves when finished.
+ * Speech starts synchronously (no network wait first) so phones accept it as
+ * part of the tap that asked for it.
+ */
+export function speak(text, { rate = 1, lang = 'en' } = {}) {
+  if (!text) return Promise.resolve();
   stop();
   const base = state.user?.speech_rate || 1;
   const finalRate = Math.max(0.5, Math.min(1.5, rate * base));
   if (lang === 'ar') text = arabicForSpeech(text) || text;
-  if (lang === 'en' && !/\s/.test(text.trim())) {
-    const url = await recordedUrl(text);
-    if (url) {
-      try {
-        await playUrl(url, finalRate);
-        return;
-      } catch { /* fall back */ }
-    }
+  const single = lang === 'en' && !/\s/.test(text.trim());
+  const key = text.trim().toLowerCase();
+  if (single) {
+    if (recordedReady.has(key)) {
+      const url = recordedReady.get(key);
+      if (url) return playUrl(url, finalRate).catch(() => browserSpeak(text, lang, finalRate));
+    } else recordedUrl(key); // ready for next time
   }
   if (state.config?.tts?.server) {
-    try {
-      await playUrl(`/api/tts?${new URLSearchParams({ text, speed: 1, lang })}`, finalRate);
-      return;
-    } catch {
-      /* fall back to browser voice */
-    }
+    return playUrl(`/api/tts?${new URLSearchParams({ text, speed: 1, lang })}`, finalRate).catch(() => browserSpeak(text, lang, finalRate));
   }
-  if (!('speechSynthesis' in window)) throw new Error('Speech is not supported in this browser');
-  const voices = await loadVoices();
-  await new Promise((resolve) => {
+  return browserSpeak(text, lang, finalRate);
+}
+
+function browserSpeak(text, lang, rate) {
+  if (!('speechSynthesis' in window)) return Promise.reject(new Error('Speech is not supported in this browser'));
+  return new Promise((resolve) => {
     const u = new SpeechSynthesisUtterance(text);
-    const voice = pickVoice(voices, lang);
+    const voice = pickVoice(currentVoices(), lang);
     if (voice) u.voice = voice;
     u.lang = voice?.lang || (lang === 'ar' ? 'ar-SA' : 'en-US');
-    u.rate = lang === 'ar' ? finalRate * 0.9 : finalRate; // Arabic a little slower = clearer
+    u.rate = lang === 'ar' ? rate * 0.9 : rate; // Arabic a little slower = clearer
     u.pitch = 1;
-    u.onend = resolve;
-    u.onerror = resolve;
+    let done = false;
+    // Some phones never fire "end": don't let the listening game wait forever.
+    const guard = setTimeout(() => finish(), 2500 + (text.length * 110) / rate);
+    function finish() {
+      if (done) return;
+      done = true;
+      clearTimeout(guard);
+      if (speaking === u) speaking = null;
+      resolve();
+    }
+    u.onend = finish;
+    u.onerror = finish;
+    speaking = u;
+    if (speechSynthesis.paused) speechSynthesis.resume();
     speechSynthesis.speak(u);
   });
 }

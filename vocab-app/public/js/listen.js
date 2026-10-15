@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { speak, stop, wait } from './audio.js';
+import { speak, stop, wait, prefetchPronunciation } from './audio.js';
 import { esc, icon, levelChip, highlight, typeLabel } from './ui.js';
 
 
@@ -13,6 +13,7 @@ export function runListening(body, words) {
   let speakArabic = !!state.user?.speak_arabic;
   let speakExample = (() => { try { return localStorage.getItem('listen.exampleAr') !== '0'; } catch { return true; } })();
   const view = body;
+  prefetchPronunciation(words.map((w) => w.term));
   body.innerHTML = `
     <div class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr);align-items:start" id="lg">
       <div class="stack">

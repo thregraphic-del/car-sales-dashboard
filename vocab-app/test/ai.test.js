@@ -87,6 +87,16 @@ test('explain: failures give clear Arabic messages', async () => {
   }
   assert.equal((await post('')).status, 400);
   assert.equal((await post('x'.repeat(301))).status, 413);
+  // Out of credit: later requests (AI paused) keep telling the learner why.
+  ai._resetAi();
+  reply = () => new Response('{}', { status: 402 });
+  await post('first after top-up check');
+  calls = [];
+  const again = await post('second while paused');
+  assert.match(again.body.error, /رصيد OpenRouter خلص/);
+  assert.equal(calls.length, 0, 'paused: no new API call');
+  const st = await (await realFetch(`${app.base}/api/ai/status`)).json();
+  assert.match(st.message, /رصيد/);
 });
 
 test('explain: missing OPENROUTER_API_KEY', async () => {

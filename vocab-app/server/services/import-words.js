@@ -5,7 +5,7 @@
 //   save()     — explicit save of the rows the learner kept
 import { config } from '../config.js';
 import { enrichWithAi, dictionaryDetails } from './extractor.js';
-import { aiAvailable, AiError, OFFLINE_MESSAGE } from './ai.js';
+import { aiAvailable, AiError, OFFLINE_MESSAGE, unavailableMessage } from './ai.js';
 import { parseInput } from './parse-input.js';
 import { analyzeText } from './sources.js';
 import { matchKey, quickTier, sentenceKey, singularCandidates, sameArabicMeaning, BASIC_WORDS } from '../../public/js/shared/text.js';
@@ -83,7 +83,7 @@ export async function preview(text, userId) {
     ai: aiAvailable(),
     needs_ai: aiAvailable() ? pending : 0,
     enrich_batch: ENRICH_BATCH,
-    ai_error: pending && !aiAvailable() ? OFFLINE_MESSAGE : null,
+    ai_error: pending && !aiAvailable() ? unavailableMessage() : null,
   };
 }
 
@@ -92,7 +92,7 @@ export async function enrich(rows) {
   const list = (Array.isArray(rows) ? rows : []).slice(0, ENRICH_BATCH);
   const missing = list.filter(needsDetails);
   if (!missing.length) return { items: list, ai_error: null };
-  if (!aiAvailable()) return { items: list, ai_error: OFFLINE_MESSAGE };
+  if (!aiAvailable()) return { items: list, ai_error: unavailableMessage() };
   let map;
   try {
     map = await enrichWithAi(missing.map((r) => ({ term: r.input, arabic: r.meaning_from === 'you' ? r.arabic : null, example: r.examples?.[0]?.sentence })));

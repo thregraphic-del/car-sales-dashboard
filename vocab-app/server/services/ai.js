@@ -23,6 +23,7 @@ export const OFFLINE_MESSAGE_EN = 'AI explanation is unavailable — using offli
 
 let pausedUntil = 0;
 let lastError = null;
+let pauseMessage = null; // what the learner sees while AI is paused
 
 export const aiModel = () => config.ai.model();
 export const aiConfigured = () => Boolean(config.ai.apiKey());
@@ -47,7 +48,7 @@ export function aiStatus() {
     model: aiConfigured() ? aiModel() : null,
     model_available: aiConfigured() ? modelCheck.ok : null,
     last_error: lastError,
-    message: aiConfigured() ? null : MISSING_KEY_MESSAGE,
+    message: aiConfigured() ? (aiAvailable() ? null : unavailableMessage()) : MISSING_KEY_MESSAGE,
     daily_limit: config.ai.dailyLimitPerUser,
   };
 }
@@ -151,10 +152,14 @@ export class AiError extends Error {
   }
 }
 
-function pause(ms, message) {
+function pause(ms, message, learnerMessage = null) {
   pausedUntil = Date.now() + ms;
   lastError = message;
+  pauseMessage = learnerMessage;
 }
+
+/** The reason AI can't be used right now, in the learner's words. */
+export const unavailableMessage = () => (aiConfigured() ? (Date.now() < pausedUntil && pauseMessage) || OFFLINE_MESSAGE : MISSING_KEY_MESSAGE);
 
 const cacheKey = (task, input) => crypto.createHash('sha256').update(`${task}\n${input}`).digest('hex');
 
@@ -234,7 +239,7 @@ export async function jsonCall({ task, system, user, schema, zod, maxTokens = 40
       }
     }
   }
-  if (!aiAvailable()) throw new AiError(OFFLINE_MESSAGE);
+  if (!aiAvailable()) throw new AiError(unavailableMessage());
   if (!withinBudget()) throw new AiError('خدمة الذكاء الاصطناعي مشغولة الآن — نستخدم القاموس المحلي. حاول بعد قليل.', 429);
   await useQuota();
 
@@ -272,12 +277,14 @@ export async function jsonCall({ task, system, user, schema, zod, maxTokens = 40
 
   if (!res.ok) {
     if (lastStatus === 401 || lastStatus === 403) {
-      pause(config.ai.pauseAfterAuthErrorMs, 'invalid key');
-      throw new AiError('مفتاح OpenRouter غير صحيح — نستخدم القاموس المحلي.');
+      const msg = 'مفتاح OpenRouter غير صحيح — نستخدم القاموس المحلي.';
+      pause(config.ai.pauseAfterAuthErrorMs, 'invalid key', msg);
+      throw new AiError(msg);
     }
     if (lastStatus === 402) {
-      pause(config.ai.pauseAfterAuthErrorMs, 'no credits');
-      throw new AiError('رصيد OpenRouter غير كافٍ — نستخدم القاموس المحلي.');
+      const msg = 'رصيد OpenRouter خلص — اشحن الرصيد من openrouter.ai لتعمل الترجمة والشرح. القاموس المحلي يعمل.';
+      pause(config.ai.pauseAfterAuthErrorMs, 'no credits', msg);
+      throw new AiError(msg);
     }
     if (lastStatus === 429) {
       pause(config.ai.pauseAfterRateLimitMs, 'rate limited');
@@ -315,6 +322,7 @@ export async function jsonCall({ task, system, user, schema, zod, maxTokens = 40
 /** For tests: forget a pause. */
 export function _resetAi() {
   pausedUntil = 0;
+  pauseMessage = null;
   calls.length = 0;
   lastError = null;
   Object.assign(modelCheck, { ok: null, at: 0, model: null });

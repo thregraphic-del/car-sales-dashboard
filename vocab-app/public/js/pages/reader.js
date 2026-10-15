@@ -369,7 +369,7 @@ export async function render(view, { segments, params }) {
         }
         if (r.lines?.length) drawLines();
         if (r.complete) {
-          if (r.ai_error && missingAr()) setTrNote(`تعذّرت الترجمة الآن. <button class="link-btn" id="retryTr">أعد المحاولة</button>`);
+          if (r.ai_error && missingAr()) setTrNote(`تعذّرت الترجمة: ${esc(r.ai_error)} <button class="link-btn" id="retryTr">أعد المحاولة</button>`);
           else setTrNote('');
           break;
         }
@@ -540,7 +540,7 @@ export async function render(view, { segments, params }) {
   let rec = null;
   let voiceOn = false;
   let voiceLang = pref('reader.voiceLang', 'en-US');
-  const STOP = /^(stop|pause|wait|hold on|وقف|اوقف|أوقف|توقف|قف|ستوب|بوز|لحظة)$/i;
+  const STOP = /(^|\s)(stop|pause|wait|hold on|وقف|اوقف|أوقف|توقف|وقّف|قف|ستوب|بوز|لحظة|لحظه)(\s|$)/i;
   const voiceNote = (t) => { const n = $('#voiceNote', view); if (n) n.textContent = t; };
   const nearbyLines = () => {
     const i = timeline.findIndex((x) => x.id === currentId);
@@ -569,10 +569,11 @@ export async function render(view, { segments, params }) {
     }
     return null;
   };
-  const onSpeech = (said) => {
-    const text = said.trim();
-    if (!text || text.split(/\s+/).length > 3) return; // the video talking, not you
-    if (STOP.test(text.replace(/[.!؟?،,]/g, ''))) {
+  const onSpeech = (alternatives) => {
+    const text = alternatives[0].trim().replace(/[.!؟?،,]/g, '');
+    if (!text) return;
+    if (text.split(/\s+/).length > 4) { voiceNote('🎤 أسمع كلامًا طويلًا (صوت الفيديو؟) — قل «وقف» أو كلمة واحدة.'); return; }
+    if (alternatives.some((a) => STOP.test(a.trim().replace(/[.!؟?،,]/g, '')))) {
       if (player?.playing?.()) {
         resumeAfterWord = true;
         player.pause();
@@ -580,7 +581,8 @@ export async function render(view, { segments, params }) {
       voiceNote(`⏸ متوقف — قل الكلمة ${voiceLang === 'ar-SA' ? 'بالعربي' : 'بالإنجليزي'}`);
       return;
     }
-    const el = findSpoken(text);
+    let el = null;
+    for (const a of alternatives) if (!el) el = findSpoken(a.trim().replace(/[.!؟?،,]/g, ''));
     if (el) {
       voiceNote(`🎤 «${text}»`);
       el.click(); // pauses, moves the video to the word and opens its details
@@ -590,20 +592,38 @@ export async function render(view, { segments, params }) {
     rec = new SpeechRec();
     rec.lang = voiceLang;
     rec.continuous = true;
-    rec.interimResults = false;
+    rec.interimResults = true;
     rec.maxAlternatives = 3;
+    rec.onstart = () => voiceNote(`🎤 أسمعك (${voiceLang === 'ar-SA' ? 'عربي' : 'English'}): قل «${voiceLang === 'ar-SA' ? 'وقف' : 'stop'}» أو الكلمة.`);
     rec.onresult = (e) => {
-      for (let i = e.resultIndex; i < e.results.length; i += 1) if (e.results[i].isFinal) onSpeech(e.results[i][0].transcript);
+      for (let i = e.resultIndex; i < e.results.length; i += 1) {
+        const r = e.results[i];
+        if (r.isFinal) onSpeech([...r].map((x) => x.transcript));
+        else if (r[0].transcript.trim().split(/\s+/).length <= 4) voiceNote(`🎤 «${r[0].transcript.trim()}…»`);
+      }
     };
     rec.onerror = (e) => {
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') {
+      const fatal = {
+        'not-allowed': 'اسمح للمتصفح باستخدام الميكروفون (من رمز القفل بجانب الرابط) لتعمل الأوامر الصوتية.',
+        'service-not-allowed': 'هذا المتصفح لا يسمح بالتعرّف على الصوت — جرّب Chrome أو Safari أو Edge.',
+        'audio-capture': 'لم نجد ميكروفونًا يعمل في جهازك.',
+        network: 'التعرّف على الصوت يحتاج اتصالًا بالإنترنت، أو أن هذا المتصفح لا يدعمه — جرّب Chrome أو Safari.',
+        'language-not-supported': 'لغة التعرّف غير مدعومة في هذا المتصفح — جرّب EN.',
+      }[e.error];
+      if (fatal) {
         voiceOn = false;
-        voiceNote('اسمح للمتصفح باستخدام الميكروفون لتعمل الأوامر الصوتية.');
+        voiceNote(fatal);
         updateVoiceUi();
       }
     };
     rec.onend = () => { if (voiceOn && alive) setTimeout(() => { try { rec.start(); } catch { /* already running */ } }, 250); };
-    rec.start();
+    try {
+      rec.start();
+    } catch {
+      voiceOn = false;
+      voiceNote('تعذّر تشغيل الميكروفون — أعد المحاولة.');
+      updateVoiceUi();
+    }
   };
   const updateVoiceUi = () => {
     const b = $('#voiceBtn', view);
@@ -616,8 +636,8 @@ export async function render(view, { segments, params }) {
   $('#voiceBtn', view)?.addEventListener('click', () => {
     voiceOn = !voiceOn;
     if (voiceOn) {
+      voiceNote('🎤 نشغّل الميكروفون…');
       startVoice();
-      voiceNote('🎤 أسمعك: قل «وقف» أو الكلمة (يُفضَّل استخدام سماعة).');
     } else {
       rec?.abort();
       rec = null;

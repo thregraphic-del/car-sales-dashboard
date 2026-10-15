@@ -11,7 +11,7 @@ import { recordTranscript } from './ai.js';
 import { httpError } from '../lib/errors.js';
 import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript, MESSAGES, TranscriptError, externalTranscript } from '../lib/youtube.js';
 import { extractVocabulary, extractChunkWithAi, toSentences, translateWithAi, ExtractionError } from './extractor.js';
-import { aiConfigured, aiAvailable, AiError, OFFLINE_MESSAGE } from './ai.js';
+import { aiConfigured, aiAvailable, AiError, OFFLINE_MESSAGE, unavailableMessage } from './ai.js';
 import * as sources from '../data/sources.js';
 
 const REFINE_CHUNK = 25;
@@ -138,7 +138,7 @@ export async function refineSource(sourceId, userId) {
   const src = await requireSource(sourceId, userId);
   const total = await sources.lineCount(sourceId);
   if (src.is_demo || src.ai_cursor >= total) return { done: true, cursor: total, total, added: 0 };
-  if (!aiAvailable()) return { done: true, cursor: src.ai_cursor, total, added: 0, ai_error: OFFLINE_MESSAGE };
+  if (!aiAvailable()) return { done: true, cursor: src.ai_cursor, total, added: 0, ai_error: unavailableMessage() };
   const lines = await sources.linesFrom(sourceId, src.ai_cursor, REFINE_CHUNK);
   if (!lines.length) {
     await sources.setAiCursor(sourceId, total, 'ai');
@@ -176,7 +176,7 @@ export async function translateSource(sourceId, userId) {
     await sources.setTranslationStatus(sourceId, 'unavailable');
     return { complete: true, ...before, status: 'unavailable', ai_error: OFFLINE_MESSAGE };
   }
-  if (!aiAvailable()) return { complete: true, ...before, status: src.translation_status, ai_error: OFFLINE_MESSAGE };
+  if (!aiAvailable()) return { complete: true, ...before, status: src.translation_status, ai_error: unavailableMessage() };
   const batch = await sources.untranslatedLines(sourceId, config.ai.translateBatch);
   let map;
   try {
