@@ -35,6 +35,7 @@ function connectRound(stage, set) {
       selR = null;
     };
     stage.querySelectorAll('.match-item').forEach((el) => el.addEventListener('click', () => {
+      if (el.classList.contains('done')) return;
       if (el.dataset.side === 'L') {
         selL?.classList.remove('sel');
         selL = el;
@@ -59,8 +60,10 @@ export default {
     const usable = words.filter((w) => w.arabic);
     for (let k = 0; k < usable.length; k += 6) {
       onProgress(k, usable.length, score);
-      const set = usable.slice(k, k + 6);
+      // Never leave a single word for a last round on its own.
+      const set = usable.length - (k + 6) === 1 ? usable.slice(k, k + 7) : usable.slice(k, k + 6);
       if (set.length < 2) break;
+      if (set.length === 7) k += 1;
       const res = await connectRound(stage, set);
       for (const w of set) await record(w, res.get(w.uv_id) !== false);
     }

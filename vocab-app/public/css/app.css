@@ -709,3 +709,48 @@ body.reader-focus .page-reader .transcript { max-height: calc(100vh - 90px); }
 .wf:last-child { border-bottom: 0; }
 .wf p { margin: 3px 0 0; }
 .wf-pos { display: inline-block; font-size: 11px; font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); margin-inline-end: 6px; }
+
+/* Arabic follows the transcript font size in every layout */
+.transcript .line-ar, .transcript.bilingual .line-ar { font-size: calc(var(--reader-font) - 1px); }
+.line.current .line-ar { color: var(--ink); }
+.line.current .aw.w-said { color: var(--accent); }
+.line.current .aw.w-now { color: var(--accent); font-weight: 700; text-decoration: underline; text-decoration-color: #f5b301; text-decoration-thickness: 3px; text-underline-offset: 6px; }
+.aw { transition: color .2s; }
+
+/* Playback mode */
+.mode-menu { min-width: 150px; }
+.mode-menu button { text-align: start; white-space: nowrap; }
+.mode-note { color: var(--accent); font-weight: 700; }
+.mode-note:empty { display: none; }
+
+/* Phone turned sideways: video on one side, transcript beside it */
+@media (orientation: landscape) and (max-height: 560px) {
+  body:has(.page-reader) .mobile-bar, body:has(.page-reader) .tabbar { display: none; }
+  body:has(.page-reader) .main { padding: 6px 10px 6px; }
+  .page-reader .reader-head, .page-reader .reader-tabs, .page-reader .reader-hint, .page-reader .split { display: none; }
+  .view.page-reader .reader-grid { grid-template-columns: minmax(0, 1fr); }
+  .view.page-reader .reader-grid .reader-side { display: none; }
+  .page-reader .reader-main:has(.player-box) {
+    display: grid; grid-template-columns: minmax(0, 46%) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr);
+    column-gap: 12px; align-items: start;
+  }
+  .page-reader .reader-main:has(.player-box) .player-box { grid-column: 1; grid-row: 1 / span 2; width: 100% !important; position: sticky; top: 6px; margin: 0; }
+  .page-reader .reader-main:has(.player-box) .reader-tools { grid-column: 2; grid-row: 1; gap: 6px; margin-bottom: 4px; font-size: 12px; }
+  .page-reader .reader-main:has(.player-box) .reader-tools .switch { font-size: 12px; }
+  .page-reader .reader-main:has(.player-box) .transcript { grid-column: 2; grid-row: 2; max-height: calc(100vh - 70px) !important; }
+}
+
+/* Word panel: base form and per-form save */
+.wp-base { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 6px 0 8px; padding: 8px 10px; border-radius: 12px; background: var(--accent-soft); }
+.wp-base b { font-size: 18px; color: var(--accent); }
+.wf-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.wf-save { margin-top: 6px; }
+
+/* Game feedback: the sentence and its translation */
+.fb-ex { margin-top: 10px; padding-top: 8px; border-top: 1px dashed color-mix(in srgb, currentColor 25%, transparent); text-align: start; }
+.fb-ex p { margin: 2px 0; }
+.fb-ar { color: var(--ink-2); font-size: 14.5px; margin-top: 4px; }
+@media (orientation: landscape) and (max-height: 560px) {
+  .page-reader .transcript.bilingual .line-body { grid-template-columns: 1fr; gap: 2px; }
+  .page-reader .transcript.bilingual .line-ar { border-left: 0; padding-left: 0; }
+}

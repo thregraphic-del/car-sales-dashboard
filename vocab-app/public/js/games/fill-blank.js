@@ -1,5 +1,5 @@
 // Game: املأ الفراغ (Fill in the blank)
-import { esc, highlight } from '../ui.js';
+import { esc } from '../ui.js';
 import { blankable, distractors, choice } from './shared.js';
 
 export default {
@@ -19,7 +19,7 @@ export default {
         ${w.arabic ? `<div class="small muted" style="margin-top:8px">التلميح: ${esc(w.arabic)}</div>` : ''}`,
       options: distractors(w, pool, 3, (x) => x.term.toLowerCase()),
       text: (o) => `<span class="en-inline">${esc(o.term)}</span>`,
-      after: `<div class="en small" style="margin-top:6px">${highlight(b.sentence, w.term)}</div>`,
+      sentence: b.sentence,
     });
   },
 };

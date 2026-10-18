@@ -1,7 +1,7 @@
 // Game: ركّب الجملة (Build the sentence)
 import { speak } from '../audio.js';
 import { esc, shuffle, highlight } from '../ui.js';
-import { buildable } from './shared.js';
+import { buildable, arabicFor } from './shared.js';
 
 export default {
   key: 'build',
@@ -43,7 +43,7 @@ export default {
         const ok = placed.map((p) => p.t).join(' ') === sentence;
         const fb = stage.querySelector('#fb');
         fb.className = `feedback show ${ok ? 'ok' : 'no'}`;
-        fb.innerHTML = `<b>${ok ? 'الترتيب صحيح ✓' : 'الترتيب الصحيح:'}</b><div class="en" style="margin-top:4px">${highlight(sentence, w.term)}</div>`;
+        fb.innerHTML = `<b>${ok ? 'الترتيب صحيح ✓' : 'الترتيب الصحيح:'}</b><div class="en" style="margin-top:4px">${highlight(sentence, w.term)}</div>${arabicFor(w, sentence) ? `<div class="fb-ar" dir="rtl">${esc(arabicFor(w, sentence))}</div>` : ''}`;
         speak(sentence, { rate: 0.9 }).catch(() => {});
         stage.querySelector('#check').classList.add('hidden');
         stage.querySelector('#clear').classList.add('hidden');

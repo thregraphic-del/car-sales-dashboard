@@ -161,7 +161,7 @@ function lineHtml(line, marks) {
   return `
     <div class="line${seekable ? ' seekable has-words' : ''}" data-id="${line.id}" data-start="${line.start_seconds ?? ''}">
       ${seekable ? `<button class="ts" data-seek="${line.start_seconds}" title="انتقل إلى هذه الجملة في الفيديو">${fmtTime(line.start_seconds)}</button>` : '<span class="ts-spacer"></span>'}
-      <div class="line-body"><p class="line-en en">${body}</p>${line.text_ar ? `<p class="line-ar" dir="rtl">${esc(line.text_ar)}</p>` : '<p class="line-ar pending" dir="rtl">…</p>'}</div>
+      <div class="line-body"><p class="line-en en">${body}</p>${line.text_ar ? `<p class="line-ar" dir="rtl">${seekable ? line.text_ar.split(/(\s+)/).map((w) => (/\S/.test(w) ? `<span class="aw">${esc(w)}</span>` : w)).join('') : esc(line.text_ar)}</p>` : '<p class="line-ar pending" dir="rtl">…</p>'}</div>
     </div>`;
 }
 
@@ -210,7 +210,10 @@ export async function render(view, { segments, params }) {
           <span class="tiny muted" id="voiceNote"></span>
           ${isVideo ? `<div class="speed-pick" id="speed"><button type="button" class="btn sm ghost en-inline" id="speedBtn" aria-haspopup="true" aria-expanded="false" title="سرعة التشغيل">⏱ <span id="speedVal">1×</span></button>
             <div class="speed-menu hidden" role="menu">${[0.5, 0.75, 0.9, 1, 1.25].map((r) => `<button type="button" role="menuitem" data-rate="${r}" class="en-inline">${r}×</button>`).join('')}</div></div>` : ''}
+          ${isVideo && hasTimes ? `<div class="speed-pick" id="mode"><button type="button" class="btn sm ghost" id="modeBtn" aria-haspopup="true" aria-expanded="false" title="طريقة التشغيل"><span id="modeVal">▶ عادي</span></button>
+            <div class="speed-menu mode-menu hidden" role="menu"><button type="button" role="menuitem" data-mode="normal">▶ عادي</button><button type="button" role="menuitem" data-mode="gap">⏸ فاصل بين الجمل</button><button type="button" role="menuitem" data-mode="shadow">🗣 ردّد ورائي</button></div></div>` : ''}
           <button type="button" class="btn icon sm ghost" id="focusBtn" aria-pressed="false" title="توسيع: إخفاء التفاصيل والتركيز على النص"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+          <span class="tiny mode-note" id="modeNote"></span>
           <span class="tiny muted" id="trNote"></span>
         </div>
         <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}" id="lines"></div>
@@ -228,7 +231,18 @@ export async function render(view, { segments, params }) {
     fontPx = Math.max(12, Math.min(26, fontPx + Number(b.dataset.font)));
     setPref('reader.font', String(fontPx));
     applyFont();
+    recenter();
   }));
+  // After a font change or rotating the phone, bring the spoken sentence back into view.
+  function recenter() {
+    requestAnimationFrame(() => {
+      const el = currentId != null && linesEl.querySelector(`.line[data-id="${currentId}"]`);
+      if (el) bringIntoView(el, true);
+    });
+  }
+  let resizeTimer = 0;
+  const onResize = () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(recenter, 250); };
+  window.addEventListener('resize', onResize);
   // Playback speed (slower = easier to follow), remembered.
   let rate = Number(pref('reader.rate', '1')) || 1;
   const speedMenu = $('#speed .speed-menu', view);
@@ -462,6 +476,16 @@ export async function render(view, { segments, params }) {
     const el = currentId != null && linesEl.querySelector(`.line[data-id="${currentId}"]`);
     if (!el) return;
     el.querySelectorAll('.w-now, .w-said').forEach((w) => w.classList.remove('w-now', 'w-said'));
+    // Arabic follows the same progress through the sentence (word order differs, so it is proportional).
+    const ar = el.querySelectorAll('.aw');
+    if (ar.length) {
+      const total = el.querySelectorAll('[data-wi]').length || 1;
+      const upto = wi < 0 ? -1 : Math.min(ar.length - 1, Math.floor(((wi + 0.5) / total) * ar.length));
+      ar.forEach((a, k) => {
+        a.classList.toggle('w-said', k < upto);
+        a.classList.toggle('w-now', k === upto);
+      });
+    }
     if (wi < 0) return;
     el.querySelectorAll('[data-wi]').forEach((w) => {
       const k = Number(w.dataset.wi);
@@ -477,6 +501,67 @@ export async function render(view, { segments, params }) {
   let lastT = null;
   let steady = null; // last shown position (keeps the highlight moving forward)
   let resumeAfterWord = false;
+  // Playback modes: a short pause after each sentence, or "repeat after me"
+  // (a silence as long as the sentence, so the learner can say it, then it continues).
+  let playMode = pref('reader.mode', 'normal');
+  let gapTimer = 0;
+  let gapTick = 0;
+  let gapDoneFor = null;
+  let prevEntry = null;
+  const modeNote = (t) => { const n = $('#modeNote', view); if (n) n.textContent = t; };
+  const cancelGap = () => {
+    const was = Boolean(gapTimer);
+    clearTimeout(gapTimer);
+    clearInterval(gapTick);
+    gapTimer = 0;
+    gapTick = 0;
+    modeNote('');
+    return was;
+  };
+  function startGap(entry) {
+    gapDoneFor = entry.id;
+    const ms = playMode === 'shadow'
+      ? Math.max(1500, ((entry.end - entry.start) * 1000) / (rate || 1) + 600)
+      : 1200;
+    player.pause();
+    const until = Date.now() + ms;
+    const show = () => {
+      const left = Math.max(0, Math.ceil((until - Date.now()) / 1000));
+      modeNote(playMode === 'shadow' ? `🗣 ردّد الجملة الآن… ${left}` : '⏸ …');
+    };
+    show();
+    gapTick = setInterval(show, 250);
+    gapTimer = setTimeout(() => {
+      cancelGap();
+      if (alive && !isPanelOpen()) player.play();
+    }, ms);
+  }
+  const showMode = () => {
+    const labels = { normal: '▶ عادي', gap: '⏸ فاصل', shadow: '🗣 ردّد ورائي' };
+    const v = $('#modeVal', view);
+    if (v) v.textContent = labels[playMode] || labels.normal;
+    view.querySelectorAll('#mode [data-mode]').forEach((b) => b.classList.toggle('active', b.dataset.mode === playMode));
+    $('#modeBtn', view)?.classList.toggle('primary', playMode !== 'normal');
+  };
+  const modeMenu = $('#mode .speed-menu', view);
+  const toggleMode = (open) => {
+    modeMenu?.classList.toggle('hidden', !open);
+    $('#modeBtn', view)?.setAttribute('aria-expanded', String(open));
+  };
+  const closeMode = (e) => { if (!e.target.closest?.('#mode')) toggleMode(false); };
+  document.addEventListener('click', closeMode);
+  $('#mode', view)?.addEventListener('click', (e) => {
+    if (e.target.closest('#modeBtn')) { toggleMode(modeMenu.classList.contains('hidden')); return; }
+    const b = e.target.closest('[data-mode]');
+    if (!b) return;
+    toggleMode(false);
+    playMode = b.dataset.mode;
+    setPref('reader.mode', playMode);
+    gapDoneFor = null;
+    if (cancelGap() && alive) player?.play?.();
+    showMode();
+  });
+  showMode();
   const tick = () => {
     if (!player || !timeline.length) return;
     const t = player.time();
@@ -488,6 +573,17 @@ export async function render(view, { segments, params }) {
     const entry = pos.line >= 0 ? timeline[pos.line] : null;
     setCurrent(entry ? entry.id : null, { force: jumped });
     setWord(pos.word);
+    if (jumped) gapDoneFor = null; // after a seek, pause again at the end of the sentence reached
+    if (playMode !== 'normal' && playing && entry && !gapTimer) {
+      if (gapDoneFor !== entry.id && t >= entry.end - 0.25) startGap(entry);
+      else if (!jumped && prevEntry && prevEntry.id !== entry.id && gapDoneFor !== prevEntry.id && entry.start >= prevEntry.end - 0.01 && t - entry.start < 1) {
+        // The clock stepped past the end of the last sentence: go back to its end and pause there.
+        player.seek(Math.max(0, entry.start - 0.05), { play: false });
+        lastT = null;
+        startGap(prevEntry);
+      }
+    }
+    prevEntry = entry;
   };
   const loop = () => {
     tick();
@@ -671,6 +767,8 @@ export async function render(view, { segments, params }) {
   const seekToLine = (lineEl) => {
     const t = Number(lineEl.dataset.start);
     if (!player || lineEl.dataset.start === '' || !Number.isFinite(t)) return false;
+    if (cancelGap()) player.play?.();
+    gapDoneFor = null;
     player.seek(t);
     setCurrent(Number(lineEl.dataset.id), { scroll: false });
     tick();
@@ -692,7 +790,8 @@ export async function render(view, { segments, params }) {
     // A word: the video goes to it and waits (paused) while its meaning is open;
     // closing the meaning (or saving) continues playback if it was playing.
     if (mark || tok) {
-      if (player && !isPanelOpen()) resumeAfterWord = resumeAfterWord || (player.playing?.() ?? false);
+      const inGap = cancelGap();
+      if (player && !isPanelOpen()) resumeAfterWord = resumeAfterWord || inGap || (player.playing?.() ?? false);
       if (player && entry?.words?.[wi]) {
         player.seek(Math.max(0, entry.words[wi].start - 0.15), { play: false });
         setCurrent(entry.id, { scroll: false });
@@ -844,6 +943,9 @@ export async function render(view, { segments, params }) {
   return () => {
     alive = false;
     document.removeEventListener('click', closeSpeed);
+    document.removeEventListener('click', closeMode);
+    window.removeEventListener('resize', onResize);
+    cancelGap();
     document.removeEventListener('fullscreenchange', onFsChange);
     setFocus(false);
     voiceOn = false;

@@ -172,14 +172,27 @@ function loadForms(term) {
   return formsMemo.get(key);
 }
 
-/** "All forms of the word": verb / noun / adjective… each with an example. */
-function formsHtml(forms) {
+const formTerm = (f) => String(f.form || '').split('(')[0].trim();
+const POS_EN = { 'فعل': 'verb', 'اسم': 'noun', 'صفة': 'adjective', 'ظرف': 'adverb', 'اسم فاعل': 'noun' };
+
+/** The simplest (dictionary) form, shown right under the word. */
+function baseHtml(forms, term) {
+  if (!forms?.base) return '';
+  const same = forms.base.toLowerCase() === String(term || '').toLowerCase();
+  return `<div class="wp-base"><span class="tiny muted">${same ? 'أبسط صيغة' : 'أصل الكلمة (أبسط صيغة)'}</span>
+    <b class="en" dir="ltr">${esc(forms.base)}</b> ${listenRow(forms.base)}</div>`;
+}
+
+/** "All forms of the word": verb / noun / adjective… each with an example and its own Save. */
+function formsHtml(forms, savedForms = new Set()) {
   if (!forms) return '';
   if (forms.loading) return '<div class="wp-forms tiny muted"><span class="spinner"></span> نجلب صيغ الكلمة…</div>';
   if (forms.error || !forms.forms?.length) return forms.error ? `<p class="tiny muted wp-forms">صيغ الكلمة: ${esc(forms.error)}</p>` : '';
   return `<details class="wp-forms" open><summary class="tiny muted">صيغ الكلمة (فعل، اسم، صفة…)</summary>
-    ${forms.forms.map((f) => `<div class="wf"><span class="wf-pos">${esc(f.pos)}</span><b class="en" dir="ltr">${esc(f.form)}</b> <span class="small ink-2">${esc(f.arabic)}</span>
-      ${f.example ? `<p class="en small" dir="ltr">${esc(f.example)}</p>${f.example_ar ? `<p class="tiny ink-2">${esc(f.example_ar)}</p>` : ''}` : ''}</div>`).join('')}</details>`;
+    ${forms.forms.map((f, k) => `<div class="wf"><div class="wf-head"><span class="wf-pos">${esc(f.pos)}</span><b class="en" dir="ltr">${esc(f.form)}</b> ${listenRow(formTerm(f))}</div>
+      <div class="small ink-2">${esc(f.arabic)}</div>
+      ${f.example ? `<p class="en small" dir="ltr">${esc(f.example)}</p>${f.example_ar ? `<p class="tiny ink-2">${esc(f.example_ar)}</p>` : ''}` : ''}
+      ${savedForms.has(k) ? `<button class="btn sm saved wf-save" disabled>${icon.check} محفوظة</button>` : `<button class="btn sm ghost wf-save" data-form="${k}">${icon.bookmark} حفظ هذه الصيغة</button>`}</div>`).join('')}</details>`;
 }
 
 export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
@@ -213,14 +226,17 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
         <p class="small ink-2" style="margin-top:8px">${info.tier === 'function' ? 'كلمة نحوية شائعة — لا تحتاج حفظًا.'
           : info.tier === 'basic' ? 'كلمة أساسية (A1–A2) تعرفها على الأغلب.'
           : 'لا يوجد معنى لهذه الكلمة في القاموس المحلي.'}</p>
+        ${baseHtml(forms, info.word)}
         ${info.ai_error ? `<p class="tiny muted">${esc(info.ai_error)}</p>` : ''}
-        ${info.tier !== 'function' ? `<div class="wp-actions"><button class="btn sm" data-act="save-own">${icon.bookmark} احفظها بمعناك</button></div>` : ''}`;
+        ${info.tier !== 'function' ? `<div class="wp-actions"><button class="btn sm" data-act="save-own">${icon.bookmark} احفظها بمعناك</button></div>` : ''}
+        ${formsHtml(forms, savedForms)}`;
       return;
     }
     const saved = info.state === 'saved';
     el.innerHTML = `
       <button class="btn icon sm ghost wp-close" aria-label="إغلاق">${icon.x}</button>
       ${headHtml(info)}
+      ${baseHtml(forms, info.term)}
       ${meaningHtml(info)}
       ${info.context_note ? `<p class="small ctx-note">💡 ${esc(info.context_note)}</p>` : ''}
       ${info.contextual ? '' : info.arabic ? '<div class="tiny muted">معنى عام من القاموس (ليس حسب هذه الجملة)</div>' : ''}
@@ -235,13 +251,15 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
         ${saved ? `<button class="btn sm saved" data-act="noop">${icon.check} محفوظة ✓</button>` : `<button class="btn sm primary" data-act="save">${icon.bookmark} حفظ</button>`}
         ${saved ? `<button class="btn sm ghost" data-act="details">التفاصيل</button>` : ''}
       </div>
-      ${formsHtml(forms)}
+      ${formsHtml(forms, savedForms)}
       ${saved ? `<div class="wp-groups"><div class="tiny muted" style="margin-bottom:6px">المجموعات</div>${groupPickerHtml(info.groups || [])}</div>` : ''}`;
   };
-  let forms = info.found ? { loading: true } : null;
+  const formsWord = info.found ? info.term : info.word;
+  let forms = formsWord && info.tier !== 'function' && state.config?.ai?.configured ? { loading: true } : null;
+  const savedForms = new Set();
   render();
   if (forms) {
-    loadForms(info.term).then((r) => { forms = r; }, (err) => { forms = { error: err.message }; })
+    loadForms(formsWord).then((r) => { forms = r; }, (err) => { forms = { error: err.message }; })
       .finally(() => { if (panelEl === el) render(); });
   }
 
@@ -254,6 +272,23 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
 
   el.addEventListener('click', async (e) => {
     if (e.target.closest('.wp-close')) return closeWordPanel();
+    const fb = e.target.closest('.wf-save[data-form]');
+    if (fb && forms?.forms) {
+      const k = Number(fb.dataset.form);
+      const f = forms.forms[k];
+      fb.disabled = true;
+      try {
+        const r = await api.importSave([{ term: formTerm(f), arabic: f.arabic, meaning_from: 'ai', part_of_speech: POS_EN[f.pos] || null, examples: f.example ? [{ sentence: f.example, arabic: f.example_ar || null }] : [] }]);
+        savedForms.add(k);
+        toast(r.results?.[0]?.result === 'unchanged' ? `موجودة عندك ✓ ${formTerm(f)}` : `تم الحفظ ✓ ${formTerm(f)}`);
+        render();
+        onChange?.(info);
+      } catch (err) {
+        fb.disabled = false;
+        toast(err.message);
+      }
+      return;
+    }
     const act = e.target.closest('[data-act]')?.dataset.act;
     try {
       if (act === 'save') {

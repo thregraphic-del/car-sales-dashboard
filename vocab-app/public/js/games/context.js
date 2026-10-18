@@ -17,6 +17,6 @@ export default {
       <div class="prompt" style="margin-top:12px">ماذا تعني <b class="en-inline">${esc(w.term)}</b> هنا؟</div>`,
     options: distractors(w, pool, 3, (x) => x.arabic),
     text: (o) => esc(o.arabic),
-    after: w.context_arabic ? `<div class="small" style="margin-top:6px">${esc(w.context_arabic)}</div>` : '',
+    sentence: w.context_sentence,
   }),
 };
