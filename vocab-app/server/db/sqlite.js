@@ -9,7 +9,7 @@ import { learningSignals } from '../lib/srs.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(here, '..', '..');
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 export const DEFAULT_SQLITE_PATH = path.join(ROOT, 'data', 'lexitube.db');
 
 export function resolvePath(p) {
@@ -132,6 +132,10 @@ export function migrate(d) {
     for (const [c, def] of [['prompt_tokens', 'INTEGER NOT NULL DEFAULT 0'], ['completion_tokens', 'INTEGER NOT NULL DEFAULT 0'], ['cost', 'REAL NOT NULL DEFAULT 0'], ['transcripts', 'INTEGER NOT NULL DEFAULT 0']]) {
       if (!cols.includes(c)) d.exec(`ALTER TABLE ai_usage ADD COLUMN ${c} ${def}`);
     }
+  }
+  if (version < 7) {
+    // v7: where the learner stopped in each video.
+    if (!columnsOf(d, 'sources').includes('progress_seconds')) d.exec('ALTER TABLE sources ADD COLUMN progress_seconds REAL');
   }
   d.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }

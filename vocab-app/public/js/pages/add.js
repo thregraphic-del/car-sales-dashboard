@@ -1,8 +1,9 @@
 // أضف — one box for everything: a YouTube link, a word list, notes or a text.
 import { api } from '../api.js';
 import { state, loadGroups } from '../state.js';
-import { esc, icon, levelChip, thumbHtml, relDate, toast, $ } from '../ui.js';
+import { esc, icon, levelChip, thumbHtml, relDate, toast, fmtTime, $ } from '../ui.js';
 import { groupPickerHtml, bindGroupPicker } from '../components.js';
+import { attachButtonHtml, bindAttach, packsHtml, bindPacks, suggestionsHtml, bindSuggestions } from '../add-extras.js';
 
 const isYoutube = (s) => /^\s*(https?:\/\/)?((www|m|music)\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)\/\S+\s*$/i.test(s);
 // Pasting the transcript is offered for every reason except a bad link.
@@ -16,7 +17,7 @@ export async function render(view, { params }) {
       <textarea class="input add-input" id="input" dir="auto" rows="4" placeholder="https://www.youtube.com/watch?v=…&#10;&#10;أو مثلًا:&#10;accurate = دقيق&#10;The report is accurate."></textarea>
       <div class="row between wrap" style="gap:10px;margin-top:12px">
         <span class="tiny muted" id="hint">لا تحتاج تنسيقًا معيّنًا — سنفهم الكلمات والمعاني والأمثلة تلقائيًا.</span>
-        <button class="btn primary lg" id="go" disabled>${icon.sparkle} <span id="goLabel">تحليل</span></button>
+        <div class="row" style="gap:8px">${attachButtonHtml()}<button class="btn primary lg" id="go" disabled>${icon.sparkle} <span id="goLabel">تحليل</span></button></div>
       </div>
       <div id="manual" class="hidden stack" style="margin-top:14px">
         <label class="field">الصق نص الفيديو (Transcript) من يوتيوب
@@ -30,11 +31,13 @@ export async function render(view, { params }) {
       <div id="status"></div>
     </div>
     <div id="result"></div>
+    ${packsHtml()}
+    ${suggestionsHtml()}
     ${sources.length ? `<div class="section-title"><h2>مصادرك</h2></div>
     <div class="grid cols-3" id="sources">${sources.map((s) => `
       <a class="video-mini" href="#/source/${s.id}">${thumbHtml(s, { duration: s.duration_seconds })}
         <div style="min-width:0"><div class="en small clamp2" style="font-weight:600">${esc(s.title)}</div>
-        <div class="tiny muted">${s.saved_count} محفوظة من ${s.item_count} · ${esc(relDate(s.analyzed_at))}</div></div></a>`).join('')}</div>` : ''}`;
+        <div class="tiny muted">${s.saved_count} محفوظة من ${s.item_count} · ${esc(relDate(s.analyzed_at))}${s.progress_seconds > 5 ? ` · <span class="resume-chip">▶ ${fmtTime(s.progress_seconds)}</span>` : ''}</div></div></a>`).join('')}</div>` : ''}`;
 
   const input = $('#input', view);
   const go = $('#go', view);
@@ -54,6 +57,16 @@ export async function render(view, { params }) {
   input.addEventListener('input', update);
   if (params.text) input.value = params.text;
   update();
+  bindAttach(view, { input, go, status });
+  bindPacks(view);
+  bindSuggestions(view, {
+    onPick: (url) => {
+      input.value = url;
+      update();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      go.click();
+    },
+  });
 
   const steps = (labels) => {
     status.innerHTML = `<div class="loading-steps">${labels.map((s, i) => `<div class="loading-step ${i === 0 ? 'active' : ''}" data-step="${i}"><span class="dot"></span>${s}</div>`).join('')}</div>`;

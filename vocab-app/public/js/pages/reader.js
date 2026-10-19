@@ -427,14 +427,19 @@ export async function render(view, { segments, params }) {
 
   // Player + sync.
   const startAt = params.t ? Number(params.t) : null;
+  // Continue where the learner stopped last time (unless a link asks for a moment).
+  const saved = Number(source.progress_seconds) || 0;
+  const resumeAt = isVideo && hasTimes && startAt == null && !params.line && saved > 5
+    && (!source.duration_seconds || saved < source.duration_seconds - 10) ? saved : null;
   if (isVideo) {
     const box = $('#player', view);
     if (source.is_demo) {
       player = demoPlayer(box.parentElement, source.duration_seconds || 600);
       player.setRate(rate);
+      if (resumeAt != null) player.seek(resumeAt, { play: false });
     } else {
       box.parentElement.innerHTML = '<div id="player"></div>';
-      youtubePlayer($('#player', view), source.youtube_id, startAt, (isPlaying) => setPlaying(isPlaying)).then((p) => {
+      youtubePlayer($('#player', view), source.youtube_id, startAt ?? resumeAt, (isPlaying) => setPlaying(isPlaying)).then((p) => {
         player = p;
         player.setRate?.(rate);
       }).catch(() => {
@@ -590,6 +595,7 @@ export async function render(view, { segments, params }) {
     frame = playing ? requestAnimationFrame(loop) : 0;
   };
   function setPlaying(isPlaying) {
+    if (playing && !isPlaying && !gapTimer) setTimeout(() => saveProgress(), 0);
     playing = isPlaying;
     linesEl.classList.toggle('is-playing', isPlaying);
     if (isPlaying && !frame) frame = requestAnimationFrame(loop);
@@ -616,6 +622,31 @@ export async function render(view, { segments, params }) {
     if (player?.seek) player.seek(startAt);
     else setTimeout(() => player?.seek?.(startAt), 600);
   }
+  if (resumeAt != null) {
+    const l = lineAt(resumeAt);
+    if (l) setTimeout(() => setCurrent(l.id, { scroll: true, force: true }), 50);
+    const note = document.createElement('div');
+    note.className = 'resume-note';
+    note.innerHTML = `▶ تكمل من حيث توقفت (<span class="en-inline">${fmtTime(resumeAt)}</span>) <button type="button" class="link-btn" data-restart>ابدأ من البداية</button>`;
+    linesEl.before(note);
+    note.querySelector('[data-restart]').addEventListener('click', () => {
+      player?.seek?.(0, { play: false });
+      lastT = null;
+      tick();
+      note.remove();
+    });
+    setTimeout(() => note.remove(), 15000);
+  }
+  // Remember the position: while playing, on pause, and when leaving.
+  let savedAt = resumeAt ?? saved;
+  const saveProgress = (keepalive = false) => {
+    if (!isVideo || !player?.time) return;
+    const t = player.time();
+    if (!Number.isFinite(t) || Math.abs(t - savedAt) < 3) return;
+    savedAt = t;
+    api.saveProgress(id, t, keepalive);
+  };
+  const progressTimer = isVideo ? setInterval(() => { if (playing) saveProgress(); }, 10000) : 0;
   if (params.line) {
     setTimeout(() => {
       const el = linesEl.querySelector(`.line[data-id="${params.line}"]`);
@@ -942,6 +973,8 @@ export async function render(view, { segments, params }) {
 
   return () => {
     alive = false;
+    clearInterval(progressTimer);
+    saveProgress(true);
     document.removeEventListener('click', closeSpeed);
     document.removeEventListener('click', closeMode);
     window.removeEventListener('resize', onResize);

@@ -16,6 +16,11 @@ export async function getSource(id, userId) {
   return (await get('SELECT * FROM sources WHERE id = ? AND user_id = ?', id, userId)) || null;
 }
 
+/** Remember where the learner stopped watching. */
+export async function setProgress(id, userId, seconds) {
+  await run('UPDATE sources SET progress_seconds = ? WHERE id = ? AND user_id = ?', seconds, id, userId);
+}
+
 export async function findSourceByYoutubeId(youtubeId, userId) {
   return (await get('SELECT * FROM sources WHERE youtube_id = ? AND user_id = ?', youtubeId, userId)) || null;
 }

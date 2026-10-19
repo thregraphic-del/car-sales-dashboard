@@ -188,3 +188,78 @@ test('word forms: verb/noun/adjective with examples, cached, input sanitised', a
   assert.equal(calls.filter((c) => c.u.endsWith('/chat/completions')).length, 0, 'cached');
   assert.equal((await get('<<>>')).status, 400);
 });
+
+const postJson = async (path, body) => {
+  const res = await realFetch(`${app.base}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  return { status: res.status, body: await res.json() };
+};
+
+test('story: uses the learner\'s words and returns sentences with Arabic', async () => {
+  reply = ok({ title: 'A Busy Day', title_ar: 'يوم مزدحم', sentences: [{ en: 'Sara was reluctant to start.', ar: 'كانت سارة مترددة في البدء.' }, { en: 'Then she figured it out.', ar: 'ثم فهمت الأمر.' }] });
+  const words = await (await realFetch(`${app.base}/api/words`)).json();
+  if (words.length < 3) return; // demo data has saved words
+  const r = await postJson('/api/ai/story', {});
+  assert.equal(r.status, 200);
+  assert.equal(r.body.sentences.length, 2);
+  assert.equal(r.body.sentences[0].ar, 'كانت سارة مترددة في البدء.');
+  assert.ok(r.body.words.length >= 3 && r.body.words.length <= 10);
+  const sent = calls.find((c) => c.u.endsWith('/chat/completions')).body.messages.at(-1).content;
+  assert.ok(r.body.words.every((w) => sent.includes(w.term)), 'the story is asked with the learner\'s words');
+});
+
+test('extract: photo and PDF are sent as attachments; result is cleaned', async () => {
+  reply = ok({ items: [{ term: 'accurate', arabic: 'دقيق', level: 'B1' }, { term: 'Accurate', arabic: 'دقيق', level: 'B1' }, { term: 'رقم', arabic: 'x', level: 'A1' }, { term: 'figure out', arabic: 'يفهم', level: 'B1' }] });
+  const img = await postJson('/api/ai/extract', { kind: 'image', data: 'data:image/jpeg;base64,/9j/AAAA', name: 'page.jpg' });
+  assert.equal(img.status, 200);
+  assert.deepEqual(img.body.items.map((i) => i.term), ['accurate', 'figure out']);
+  const msg = calls.find((c) => c.u.endsWith('/chat/completions')).body.messages.at(-1).content;
+  assert.equal(msg[1].type, 'image_url');
+  calls = [];
+  const pdf = await postJson('/api/ai/extract', { kind: 'pdf', data: 'data:application/pdf;base64,JVBERi0x', name: 'words.pdf' });
+  assert.equal(pdf.status, 200);
+  const body = calls.find((c) => c.u.endsWith('/chat/completions')).body;
+  assert.equal(body.messages.at(-1).content[1].type, 'file');
+  assert.equal(body.plugins[0].id, 'file-parser');
+  assert.equal((await postJson('/api/ai/extract', { kind: 'exe', data: 'x' })).status, 400);
+  assert.equal((await postJson('/api/ai/extract', { kind: 'image', data: 'data:text/html;base64,AAAA' })).status, 400);
+});
+
+test('video ideas: only videos that exist on YouTube are shown; search links keep the length', async () => {
+  reply = ok({
+    topics: [{ query: 'how to focus at work', label_ar: 'التركيز في العمل' }],
+    videos: [
+      { title: 'Real talk', channel: 'TED', youtube_id: 'AAAAAAAAAAA', minutes: 12, why_ar: 'مناسب' },
+      { title: 'Made up', channel: 'X', youtube_id: 'BBBBBBBBBBB', minutes: 9, why_ar: 'مناسب' },
+      { title: 'Bad id', channel: 'X', youtube_id: 'short', minutes: 9, why_ar: '' },
+    ],
+  });
+  const before = globalThis.fetch;
+  globalThis.fetch = async (url, opts) => {
+    const u = String(url);
+    if (u.startsWith('https://www.youtube.com/oembed')) {
+      return u.includes('AAAAAAAAAAA')
+        ? new Response(JSON.stringify({ title: 'The real title', author_name: 'TED' }), { status: 200 })
+        : new Response('Not Found', { status: 404 });
+    }
+    return before(url, opts);
+  };
+  try {
+    const res = await realFetch(`${app.base}/api/ai/suggest-videos?duration=medium`);
+    const r = await res.json();
+    assert.equal(res.status, 200);
+    assert.deepEqual(r.videos.map((v) => v.youtube_id), ['AAAAAAAAAAA']);
+    assert.equal(r.videos[0].title, 'The real title');
+    assert.match(r.topics[0].url, /search_query=how%20to%20focus%20at%20work&sp=EgIYAw/);
+  } finally {
+    globalThis.fetch = before;
+  }
+});
+
+test('watch progress: saved per video and returned with the source', async () => {
+  const put = (id, seconds) => realFetch(`${app.base}/api/sources/${id}/progress`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seconds }) });
+  assert.equal((await put(1, 123.45)).status, 200);
+  const v = await (await realFetch(`${app.base}/api/sources/1`)).json();
+  assert.equal(Number(v.source.progress_seconds), 123.5);
+  assert.equal((await put(1, -5)).status, 400);
+  assert.equal((await put(99999, 10)).status, 404);
+});

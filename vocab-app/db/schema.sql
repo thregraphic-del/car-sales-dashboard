@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS sources (
   is_demo            INTEGER NOT NULL DEFAULT 0,
   translation_status TEXT    NOT NULL DEFAULT 'none', -- none | running | done | unavailable | failed
   ai_cursor          INTEGER NOT NULL DEFAULT 0,      -- next line idx for AI word selection (chunked)
+  progress_seconds   REAL,                            -- where the learner stopped watching
   created_at         TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   analyzed_at        TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );

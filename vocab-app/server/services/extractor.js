@@ -436,3 +436,84 @@ export async function formsWithAi(word) {
   });
   return { base: r.base, forms: r.forms.filter((f) => f.form).slice(0, 7) };
 }
+
+/* ------------------------------------------- words from a photo or a PDF */
+
+const FILE_SCHEMA = obj({
+  items: { type: 'array', items: obj({ term: str, arabic: str, level: { type: 'string', enum: LEVELS } }) },
+});
+const FileZ = z.object({ items: z.array(z.object({ term: z.string(), arabic: z.string(), level: z.enum(LEVELS) })) });
+
+/**
+ * Read the English words in an attached photo or PDF.
+ * kind: 'image' (data URL) | 'pdf' (data URL).
+ */
+export async function extractFromFileWithAi({ kind, data, name = 'file.pdf' }) {
+  const attachments = kind === 'image'
+    ? [{ type: 'image_url', image_url: { url: data } }]
+    : [{ type: 'file', file: { filename: name, file_data: data } }];
+  const r = await jsonCall({
+    task: 'extract_file',
+    system: 'You help an intermediate Arabic-speaking learner of English. Read the attached photo or document. If it is a list of words (a vocabulary list, notes, a page of a word book), return every English word or expression in it, in order. If it is running text, return the English words and expressions worth learning for an intermediate learner (skip very basic words like "the", "is", "good"), up to 80. Use the dictionary form (e.g. "decide", not "decided"; keep phrasal verbs and idioms whole). "arabic" = a short natural Arabic meaning; if the document already gives an Arabic meaning, use it. "level" = CEFR level. Return at most 150 items. If there is no English text, return an empty list.',
+    user: `Attached ${kind === 'image' ? 'photo' : 'document'}: ${name}`,
+    attachments,
+    extra: kind === 'pdf' ? { plugins: [{ id: 'file-parser', pdf: { engine: 'pdf-text' } }] } : {},
+    schema: FILE_SCHEMA,
+    zod: FileZ,
+    maxTokens: 6000,
+  });
+  const seen = new Set();
+  return r.items.filter((it) => {
+    const k = it.term.trim().toLowerCase();
+    if (!k || seen.has(k) || !/[a-z]/i.test(k)) return false;
+    seen.add(k);
+    return true;
+  }).slice(0, 150);
+}
+
+/* ------------------------------------------------------- a short story */
+
+const STORY_SCHEMA = obj({
+  title: str, title_ar: str,
+  sentences: { type: 'array', items: obj({ en: str, ar: str }) },
+});
+const StoryZ = z.object({ title: z.string(), title_ar: z.string(), sentences: z.array(z.object({ en: z.string(), ar: z.string() })) });
+
+/** A short, natural story that uses the learner's words, with an Arabic line under each sentence. */
+export async function storyWithAi({ words, level = 'B1' }) {
+  const list = words.slice(0, 12).map((w) => `${w.term}${w.arabic ? ` (${w.arabic})` : ''}`).join('\n');
+  const r = await jsonCall({
+    task: 'story',
+    system: `You write short stories for an Arabic-speaking learner of English at about ${level} level. Write one coherent, interesting story of 10–16 sentences that uses EVERY given word or expression naturally (in the sense of its Arabic meaning), each at least once, in any grammatical form. Keep sentences clear (8–20 words), everyday vocabulary around the target words, no lists. "title" = short English title; "title_ar" = its Arabic; "sentences" = the story in order, each with a natural Arabic translation "ar".`,
+    user: `Words:\n${list}`,
+    schema: STORY_SCHEMA,
+    zod: StoryZ,
+    maxTokens: 2500,
+    cache: false,
+  });
+  return { ...r, sentences: r.sentences.filter((s) => s.en.trim()).slice(0, 20) };
+}
+
+/* ---------------------------------------------------- video suggestions */
+
+const SUGGEST_SCHEMA = obj({
+  topics: { type: 'array', items: obj({ query: str, label_ar: str }) },
+  videos: { type: 'array', items: obj({ title: str, channel: str, youtube_id: str, minutes: { type: 'number' }, why_ar: str }) },
+});
+const SuggestZ = z.object({
+  topics: z.array(z.object({ query: z.string(), label_ar: z.string() })),
+  videos: z.array(z.object({ title: z.string(), channel: z.string(), youtube_id: z.string(), minutes: z.number(), why_ar: z.string() })),
+});
+
+/** Ideas for the next videos: similar topics and length, for an intermediate learner. */
+export async function suggestVideosWithAi({ titles, duration, day, fresh = false }) {
+  const span = { short: 'under 5 minutes', medium: '5 to 20 minutes', long: 'over 20 minutes' }[duration] || '5 to 20 minutes';
+  return jsonCall({
+    task: 'suggest_videos',
+    system: 'You recommend YouTube videos for an intermediate Arabic-speaking learner of English. Recommend real, popular, well-known videos with clear English and English captions (TED, TED-Ed, Kurzgesagt, BBC Learning English, Vox, popular educational channels, etc.) on topics similar to the videos the learner watched, matching the requested length. "youtube_id" = the 11-character video id only if you are confident it is correct, else an empty string. "minutes" = approximate length. "why_ar" = one short Arabic sentence on why it suits the learner. Also give 6 short YouTube search queries ("query", English) on related topics with an Arabic label ("label_ar"). Up to 10 videos.',
+    user: `Requested length: ${span}\nDate: ${day}${fresh ? `\nVariant: ${Date.now()}` : ''}\nVideos the learner watched recently:\n${titles.length ? titles.map((t) => `- ${t}`).join('\n') : '- (none yet: suggest varied general-interest topics)'}`,
+    schema: SUGGEST_SCHEMA,
+    zod: SuggestZ,
+    maxTokens: 1800,
+  });
+}

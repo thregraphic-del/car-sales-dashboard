@@ -754,3 +754,36 @@ body.reader-focus .page-reader .transcript { max-height: calc(100vh - 90px); }
   .page-reader .transcript.bilingual .line-body { grid-template-columns: 1fr; gap: 2px; }
   .page-reader .transcript.bilingual .line-ar { border-left: 0; padding-left: 0; }
 }
+
+.resume-note { margin: 0 0 8px; padding: 8px 12px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); font-size: 13.5px; font-weight: 600; }
+.resume-chip { color: var(--accent); font-weight: 700; direction: ltr; unicode-bidi: isolate; }
+
+/* Add page: packs and video ideas */
+.packs { margin-bottom: 8px; }
+.pack-card { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; border: 1px solid var(--line); text-align: start; font: inherit; color: inherit; }
+.pack-card:hover { border-color: var(--accent); }
+.pack-icon { font-size: 28px; line-height: 1; }
+.pack-cats { max-height: 46vh; overflow: auto; border: 1px solid var(--line); border-radius: 12px; padding: 4px 10px; }
+.pack-cat { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.pack-cat:last-child { border-bottom: 0; }
+.pack-cat summary { cursor: pointer; }
+.pack-words { display: flex; flex-wrap: wrap; gap: 6px 14px; padding: 8px 0 4px; font-size: 13px; }
+.sug-card { align-items: flex-start; }
+.sug-thumb { width: 120px; aspect-ratio: 16/9; object-fit: cover; border-radius: 10px; flex: none; background: var(--surface-2); }
+.topic-chip { text-decoration: none; }
+#attachBtn { cursor: pointer; }
+@media (max-width: 640px) { .sug-thumb { width: 96px; } }
+
+/* Story mode */
+.story-words { gap: 6px; margin: 12px 0; }
+.story-controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 6px 0 14px; }
+.story-controls .big-play { width: 56px; height: 56px; }
+.story-lines { display: flex; flex-direction: column; gap: 4px; }
+.story-line { padding: 10px 12px; border-radius: 12px; cursor: pointer; transition: background .2s; }
+.story-line:hover { background: var(--surface-2); }
+.story-line.current { background: var(--accent-soft); }
+.story-line p { margin: 0; }
+.story-line .en { font-size: 17px; line-height: 1.7; }
+.story-ar { color: var(--ink-2); font-size: 15px; margin-top: 2px !important; }
+.story-lines.hide-ar .story-ar { display: none; }
+.story-word { background: color-mix(in srgb, #f5b301 30%, transparent); color: inherit; border-radius: 4px; padding: 0 2px; font-weight: 600; }

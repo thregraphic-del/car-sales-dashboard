@@ -353,7 +353,7 @@ export async function externalTranscript(videoId, { transcriptProvider: provider
 
 /* --------------------------------------------------------------- metadata */
 
-async function oembed(videoId) {
+export async function oembed(videoId) {
   try {
     const res = await fetchWithTimeout(`https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`)}`, {}, 5000);
     if (res.status === 401 || res.status === 403) return { private: true };

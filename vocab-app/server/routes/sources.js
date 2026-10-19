@@ -46,4 +46,13 @@ router.post('/:id/refine', wrap(async (req) => service.refineSource(idParam(req)
 router.get('/:id/translation', wrap(async (req) => service.translationStatus(idParam(req), req.userId)));
 router.post('/:id/translation', wrap(async (req) => service.translateSource(idParam(req), req.userId)));
 
+router.put('/:id/progress', wrap(async (req) => {
+  const id = idParam(req);
+  const seconds = Number(req.body?.seconds);
+  if (!Number.isFinite(seconds) || seconds < 0 || seconds > 86400) throw httpError(400, 'وقت غير صالح.');
+  if (!(await sources.getSource(id, req.userId))) throw httpError(404, 'المصدر غير موجود.');
+  await sources.setProgress(id, req.userId, Math.round(seconds * 10) / 10);
+  return { ok: true };
+}));
+
 export default router;

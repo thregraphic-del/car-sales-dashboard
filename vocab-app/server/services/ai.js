@@ -226,9 +226,9 @@ async function post(body, timeoutMs) {
  * Cached by (task, user input). Throws AiError (with an Arabic message) when
  * AI is not configured, paused, unreachable or returns something unusable.
  */
-export async function jsonCall({ task, system, user, schema, zod, maxTokens = 4000, timeoutMs = config.ai.timeoutMs, cache = true }) {
+export async function jsonCall({ task, system, user, attachments = null, extra = {}, schema, zod, maxTokens = 4000, timeoutMs = config.ai.timeoutMs, cache = true }) {
   if (!aiConfigured()) throw new AiError(MISSING_KEY_MESSAGE);
-  const key = cacheKey(task, user);
+  const key = cacheKey(task, attachments ? `${user}\n${JSON.stringify(attachments)}` : user);
   if (cache) {
     const hit = await readCache(key);
     if (hit) {
@@ -249,7 +249,7 @@ export async function jsonCall({ task, system, user, schema, zod, maxTokens = 40
   const started = Date.now();
   const messages = [
     { role: 'system', content: `${system}\n\nReply with ONLY one JSON object (no markdown) that matches this JSON Schema:\n${JSON.stringify(schema)}` },
-    { role: 'user', content: user },
+    { role: 'user', content: attachments ? [{ type: 'text', text: user }, ...attachments] : user },
   ];
   // Not every model supports strict JSON schema; fall back to plain JSON mode.
   const formats = [
@@ -261,7 +261,7 @@ export async function jsonCall({ task, system, user, schema, zod, maxTokens = 40
   let lastStatus = 0;
   for (const format of formats) {
     try {
-      res = await post({ model: aiModel(), messages, max_tokens: maxTokens, temperature: 0.2, usage: { include: true }, ...(format ? { response_format: format } : {}) }, limit - (Date.now() - started));
+      res = await post({ model: aiModel(), messages, max_tokens: maxTokens, temperature: 0.2, usage: { include: true }, ...extra, ...(format ? { response_format: format } : {}) }, limit - (Date.now() - started));
     } catch (err) {
       if (err.name === 'AbortError' || err.name === 'TimeoutError') {
         // Slow answer: not a reason to stop using AI for the next request.

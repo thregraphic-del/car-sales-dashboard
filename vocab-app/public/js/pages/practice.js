@@ -7,6 +7,7 @@ import { esc, icon, emptyState } from '../ui.js';
 import { runQuiz, TYPES, canPlay, GAME_ORDER } from '../quiz.js';
 import { runFlashcards } from '../flashcards.js';
 import { runListening } from '../listen.js';
+import { runStory } from '../story.js';
 import { refreshStats } from '../app.js';
 
 const MODES = [
@@ -14,6 +15,7 @@ const MODES = [
   ['games', 'ألعاب', 'game'],
   ['cards', 'بطاقات', 'cards'],
   ['listen', 'استماع', 'headphones'],
+  ['story', 'قصة', 'book'],
 ];
 const FOCUS = [
   ['smart', 'اختيار ذكي'],
@@ -36,7 +38,10 @@ export async function render(view, { params }) {
   let words;
   let distractors;
   let label = null;
-  if (params.session === 'today') {
+  if (mode === 'story') {
+    words = [];
+    distractors = [];
+  } else if (params.session === 'today') {
     const { plan } = await api.today();
     words = plan.items.filter((i) => !i.completed);
     distractors = (await api.practice({ size: 1 })).distractors;
@@ -57,10 +62,15 @@ export async function render(view, { params }) {
       <div class="segmented mode-tabs">${MODES.map(([k, l, ic]) => `<a class="${k === mode ? 'active' : ''}" href="${href({ ...base, mode: k })}">${icon[ic]} ${l}</a>`).join('')}</div>
     </div>
     ${label ? `<div class="chip-row"><span class="gchip on">${esc(label)}</span><a class="link-btn" href="${href({ mode })}">✕ اختيار ذكي بدلًا منها</a></div>`
-      : `<div class="chip-row">${FOCUS.map(([k, l]) => `<a class="tab ${k === focus ? 'active' : ''}" href="${href({ ...base, focus: k })}">${l}</a>`).join('')}
+      : `<div class="chip-row">${mode === 'story' ? `<a class="tab active" href="${href({ mode })}">كلماتي الأخيرة</a>` : FOCUS.map(([k, l]) => `<a class="tab ${k === focus ? 'active' : ''}" href="${href({ ...base, focus: k })}">${l}</a>`).join('')}
         ${state.groups.length ? `<span class="tiny muted" style="margin-inline-start:6px">أو مجموعة:</span>${state.groups.map((g) => `<a class="gchip" href="${href({ mode, group: g.id })}">${esc(g.name)}</a>`).join('')}` : ''}</div>`}
     <div id="stage"></div>`;
   const stage = view.querySelector('#stage');
+
+  if (mode === 'story') {
+    const stopStory = runStory(stage, { groupId: group, label: groupObj ? `مجموعة «${groupObj.name}»` : 'كلماتك الأخيرة' });
+    return () => stopStory();
+  }
 
   if (!words.length) {
     stage.innerHTML = emptyState('✨', focus === 'due' ? 'لا شيء للمراجعة الآن' : 'لا توجد كلمات هنا', 'جرّب الاختيار الذكي، أو أضف كلمات جديدة.',
