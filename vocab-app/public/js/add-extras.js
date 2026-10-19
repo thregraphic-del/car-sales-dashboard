@@ -148,24 +148,37 @@ async function savePack(pack, mode, onProgress) {
   };
   const prefix = pack.key === 'common-1000' ? 'أشهر 1000 · ' : '';
   const single = mode === 'single' ? await groupFor(pack.name) : null;
-  let done = 0;
-  let added = 0;
+  const jobs = [];
   for (const c of categories) {
     const gid = single ?? await groupFor(`${prefix}${c.name}`);
     for (let i = 0; i < c.list.length; i += 50) {
-      const chunk = c.list.slice(i, i + 50).map((w) => ({
-        term: w.term,
-        arabic: w.arabic,
-        meaning_from: 'dictionary',
-        level: c.level,
-        item_type: pack.key === 'phrasal-100' ? 'phrasal verb' : 'word',
-      }));
-      const r = await api.importSave(chunk, [gid]);
-      added += r.results.filter((x) => x.result === 'added').length;
-      done += chunk.length;
-      onProgress(done, total);
+      jobs.push({
+        gid,
+        items: c.list.slice(i, i + 50).map((w) => ({
+          term: w.term,
+          arabic: w.arabic,
+          meaning_from: 'dictionary',
+          level: c.level,
+          item_type: pack.key === 'phrasal-100' ? 'phrasal verb' : 'word',
+        })),
+      });
     }
   }
+  // A few batches at a time: fast, without overloading the server.
+  let done = 0;
+  let added = 0;
+  let next = 0;
+  const worker = async () => {
+    while (next < jobs.length) {
+      const job = jobs[next];
+      next += 1;
+      const r = await api.importSave(job.items, [job.gid]);
+      added += r.results.filter((x) => x.result === 'added').length;
+      done += job.items.length;
+      onProgress(done, total);
+    }
+  };
+  await Promise.all([worker(), worker(), worker()]);
   await loadGroups?.();
   return { total, added };
 }
