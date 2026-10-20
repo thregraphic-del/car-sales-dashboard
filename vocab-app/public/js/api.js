@@ -48,6 +48,7 @@ export const api = {
   saveProgress: (id, seconds, keepalive = false) => fetch(`/api/sources/${id}/progress`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seconds }), keepalive }).catch(() => {}),
   deleteSource: (id) => request('DELETE', `/api/sources/${id}`),
   translation: (id) => request('GET', `/api/sources/${id}/translation`),
+  alignStep: (id, from) => request('POST', `/api/sources/${id}/align`, { from }),
   translateStep: (id) => request('POST', `/api/sources/${id}/translation`),
   refineStep: (id) => request('POST', `/api/sources/${id}/refine`),
 
@@ -95,7 +96,8 @@ export const api = {
   aiStatus: () => request('GET', '/api/ai/status'),
   aiUsage: () => request('GET', '/api/ai/usage'),
   extractWords: (kind, data, name) => request('POST', '/api/ai/extract', { kind, data, name }),
-  story: (group_id) => request('POST', '/api/ai/story', group_id ? { group_id } : {}),
+  suggestWords: (body) => request('POST', '/api/ai/suggest-words', body),
+  story: (opts = {}) => request('POST', '/api/ai/story', opts),
   suggestVideos: (duration, fresh) => request('GET', `/api/ai/suggest-videos${qs({ duration, fresh: fresh ? 1 : undefined })}`),
   wordForms: (word) => request('GET', `/api/ai/forms${qs({ word })}`),
   explain: (text, line_id) => request('POST', '/api/ai/explain', { text, line_id }),

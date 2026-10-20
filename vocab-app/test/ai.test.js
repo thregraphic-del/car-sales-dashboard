@@ -173,9 +173,9 @@ test('a video is translated once: re-adding it, or another learner adding it, co
 
 test('word forms: verb/noun/adjective with examples, cached, input sanitised', async () => {
   reply = ok({ base: 'decide', forms: [
-    { pos: 'فعل', form: 'decide', arabic: 'يقرر', example: 'I decided to stay.', example_ar: 'قررت البقاء.' },
-    { pos: 'اسم', form: 'decision', arabic: 'قرار', example: 'It was a hard decision.', example_ar: 'كان قرارًا صعبًا.' },
-    { pos: 'صفة', form: 'decisive', arabic: 'حاسم', example: 'She is decisive.', example_ar: 'هي حاسمة.' },
+    { pos: 'فعل', word: 'decide', form: 'decide', arabic: 'يقرر', example: 'I decided to stay.', example_ar: 'قررت البقاء.' },
+    { pos: 'اسم', word: 'decision', form: 'decision', arabic: 'قرار', example: 'It was a hard decision.', example_ar: 'كان قرارًا صعبًا.' },
+    { pos: 'صفة', word: 'decisive', form: 'decisive', arabic: 'حاسم', example: 'She is decisive.', example_ar: 'هي حاسمة.' },
   ] });
   const get = async (w) => { const r = await realFetch(`${app.base}/api/ai/forms?word=${encodeURIComponent(w)}`); return { status: r.status, body: await r.json() }; };
   const r = await get('Decide');
@@ -262,4 +262,56 @@ test('watch progress: saved per video and returned with the source', async () =>
   assert.equal(Number(v.source.progress_seconds), 123.5);
   assert.equal((await put(1, -5)).status, 400);
   assert.equal((await put(99999, 10)).status, 404);
+});
+
+test('alignment: phrases map exactly onto the line; a bad split keeps the normal layout', async () => {
+  const v = await (await realFetch(`${app.base}/api/sources/2`)).json();
+  const [a, b] = v.lines;
+  const split = (t) => {
+    const ws = t.split(/\s+/);
+    return [{ en: ws.slice(0, 2).join(' '), ar: 'الأولى' }, { en: ws.slice(2).join(' '), ar: 'الثانية' }];
+  };
+  reply = ok({ lines: [{ i: a.idx, chunks: split(a.text) }, { i: b.idx, chunks: [{ en: 'totally different words', ar: 'x' }] }] });
+  const r = await postJson(`/api/sources/2/align`, { from: a.idx });
+  assert.equal(r.status, 200);
+  const ra = r.body.lines.find((l) => l.id === a.id);
+  const rb = r.body.lines.find((l) => l.id === b.id);
+  assert.equal(ra.align.length, 2);
+  assert.equal(ra.align[0][0], 0);
+  assert.equal(ra.align[1][1], a.text.length);
+  assert.equal(a.text.slice(ra.align[0][0], ra.align[0][1]).trim(), a.text.split(/\s+/).slice(0, 2).join(' '));
+  assert.equal(rb.align, null, 'words changed by the AI → no alignment');
+  const again = await (await realFetch(`${app.base}/api/sources/2`)).json();
+  assert.deepEqual(again.lines.find((l) => l.id === a.id).align, ra.align, 'stored');
+  assert.equal(again.lines.find((l) => l.id === b.id).align, null);
+  calls = [];
+  const next = await postJson(`/api/sources/2/align`, { from: a.idx });
+  const asked = calls.find((c) => c.u.endsWith('/chat/completions'))?.body.messages.at(-1).content || '';
+  assert.ok(!asked.includes(`[${a.idx}] `) && !asked.includes(`[${b.idx}] `), 'aligned (or failed) lines are not asked again');
+  assert.equal(next.status, 200);
+});
+
+test('suggest words: never returns words the learner already has', async () => {
+  const mine = await (await realFetch(`${app.base}/api/words`)).json();
+  const have = mine[0].term;
+  reply = ok({ items: [
+    { term: have, arabic: 'x', level: 'B1', example: '', example_ar: '' },
+    { term: 'meticulous', arabic: 'دقيق جدًا', level: 'C1', example: 'She is meticulous about details.', example_ar: 'هي دقيقة جدًا في التفاصيل.' },
+    { term: 'Meticulous', arabic: 'دقيق', level: 'C1', example: '', example_ar: '' },
+  ] });
+  const r = await postJson('/api/ai/suggest-words', { count: 10, topic: 'business' });
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body.items.map((i) => i.term), ['meticulous']);
+  const asked = calls.find((c) => c.u.endsWith('/chat/completions')).body.messages.at(-1).content;
+  assert.match(asked, /Field: business/);
+  assert.ok(asked.includes(have), 'existing words are listed to avoid');
+});
+
+test('story: last week / number of words', async () => {
+  reply = ok({ title: 'T', title_ar: 'ع', sentences: [{ en: 'One.', ar: 'واحد.' }] });
+  const r = await postJson('/api/ai/story', { count: 20 });
+  assert.equal(r.status, 200);
+  assert.ok(r.body.words.length <= 20);
+  const w = await postJson('/api/ai/story', { range: 'week', count: 30 });
+  assert.ok([200, 400].includes(w.status));
 });

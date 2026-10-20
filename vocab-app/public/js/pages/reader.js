@@ -135,15 +135,13 @@ const wiAttr = (map, from) => (map && map[from] >= 0 ? ` data-wi="${map[from]}"`
 function lineHtml(line, marks) {
   const wmap = wordIndexByChar(line.text); // word i ↔ timing i (real or estimated)
   const own = marks.filter((m) => m.line_id === line.id).sort((a, b) => a.start - b.start || b.end - a.end);
-  const spans = [];
-  let pos = 0;
+  const kept = [];
+  let last = 0;
   for (const m of own) {
-    if (m.start < pos) continue; // overlapping phrase: keep the first
-    spans.push({ from: pos, to: m.start });
-    spans.push({ mark: m });
-    pos = m.end;
+    if (m.start < last) continue; // overlapping phrase: keep the first
+    kept.push(m);
+    last = m.end;
   }
-  spans.push({ from: pos, to: line.text.length });
   const plain = (text, base) => tokenize(text).map((t) => {
     if (!t.word) return esc(t.text);
     const wi = wiAttr(wmap, base + t.start);
@@ -154,14 +152,45 @@ function lineHtml(line, marks) {
   const markInner = (from, to) => (wmap
     ? tokenize(line.text.slice(from, to)).map((t) => (t.word ? `<span class="w"${wiAttr(wmap, from + t.start)}>${esc(t.text)}</span>` : esc(t.text))).join('')
     : esc(line.text.slice(from, to)));
-  const body = spans.map((s) => (s.mark
-    ? `<span class="mark ${s.mark.state === 'saved' ? 's-saved' : 's-suggested'}" data-vid="${s.mark.vocabulary_id}">${markInner(s.mark.start, s.mark.end)}</span>`
-    : plain(line.text.slice(s.from, s.to), s.from))).join('');
+  // The text between two character positions (a highlighted phrase may be cut at a phrase border).
+  const renderRange = (from, to) => {
+    let out = '';
+    let pos = from;
+    for (const m of kept) {
+      if (m.end <= from || m.start >= to) continue;
+      const s = Math.max(m.start, from);
+      const e = Math.min(m.end, to);
+      if (s > pos) out += plain(line.text.slice(pos, s), pos);
+      out += `<span class="mark ${m.state === 'saved' ? 's-saved' : 's-suggested'}" data-vid="${m.vocabulary_id}">${markInner(s, e)}</span>`;
+      pos = e;
+    }
+    if (pos < to) out += plain(line.text.slice(pos, to), pos);
+    return out;
+  };
   const seekable = line.start_seconds != null;
+  const wordsIn = (from, to) => {
+    let lo = -1;
+    let hi = -1;
+    for (let i = from; i < to; i += 1) {
+      const w = wmap[i];
+      if (w >= 0) {
+        if (lo < 0) lo = w;
+        hi = w;
+      }
+    }
+    return [lo, hi];
+  };
+  // Phrase by phrase: each English phrase with its Arabic on the same row.
+  const body = line.align?.length
+    ? `<div class="line-body chunked">${line.align.map(([from, to, ar], k) => {
+      const [w0, w1] = wordsIn(from, to);
+      return `<div class="chunk" data-c="${k}" data-w0="${w0}" data-w1="${w1}"><p class="c-en en">${renderRange(from, to)}</p><p class="c-ar" dir="rtl">${esc(ar)}</p></div>`;
+    }).join('')}</div>`
+    : `<div class="line-body"><p class="line-en en">${renderRange(0, line.text.length)}</p>${line.text_ar ? `<p class="line-ar" dir="rtl">${seekable ? line.text_ar.split(/(\s+)/).map((w) => (/\S/.test(w) ? `<span class="aw">${esc(w)}</span>` : w)).join('') : esc(line.text_ar)}</p>` : '<p class="line-ar pending" dir="rtl">…</p>'}</div>`;
   return `
     <div class="line${seekable ? ' seekable has-words' : ''}" data-id="${line.id}" data-start="${line.start_seconds ?? ''}">
       ${seekable ? `<button class="ts" data-seek="${line.start_seconds}" title="انتقل إلى هذه الجملة في الفيديو">${fmtTime(line.start_seconds)}</button>` : '<span class="ts-spacer"></span>'}
-      <div class="line-body"><p class="line-en en">${body}</p>${line.text_ar ? `<p class="line-ar" dir="rtl">${seekable ? line.text_ar.split(/(\s+)/).map((w) => (/\S/.test(w) ? `<span class="aw">${esc(w)}</span>` : w)).join('') : esc(line.text_ar)}</p>` : '<p class="line-ar pending" dir="rtl">…</p>'}</div>
+      ${body}
     </div>`;
 }
 
@@ -211,7 +240,7 @@ export async function render(view, { segments, params }) {
           ${isVideo ? `<div class="speed-pick" id="speed"><button type="button" class="btn sm ghost en-inline" id="speedBtn" aria-haspopup="true" aria-expanded="false" title="سرعة التشغيل">⏱ <span id="speedVal">1×</span></button>
             <div class="speed-menu hidden" role="menu">${[0.5, 0.75, 0.9, 1, 1.25].map((r) => `<button type="button" role="menuitem" data-rate="${r}" class="en-inline">${r}×</button>`).join('')}</div></div>` : ''}
           ${isVideo && hasTimes ? `<div class="speed-pick" id="mode"><button type="button" class="btn sm ghost" id="modeBtn" aria-haspopup="true" aria-expanded="false" title="طريقة التشغيل"><span id="modeVal">▶ عادي</span></button>
-            <div class="speed-menu mode-menu hidden" role="menu"><button type="button" role="menuitem" data-mode="normal">▶ عادي</button><button type="button" role="menuitem" data-mode="gap">⏸ فاصل بين الجمل</button><button type="button" role="menuitem" data-mode="shadow">🗣 ردّد ورائي</button></div></div>` : ''}
+            <div class="speed-menu mode-menu hidden" role="menu"><button type="button" role="menuitem" data-mode="normal">▶ عادي</button><button type="button" role="menuitem" data-mode="gap">⏸ فاصل بين الجمل</button><label class="gap-len" title="مدة التوقف بعد كل جملة"><span class="tiny muted">مدة الفاصل</span><input type="range" id="gapRange" min="200" max="3000" step="100"><b class="tiny en-inline" id="gapVal"></b></label><button type="button" role="menuitem" data-mode="shadow">🗣 ردّد ورائي</button></div></div>` : ''}
           <button type="button" class="btn icon sm ghost" id="focusBtn" aria-pressed="false" title="توسيع: إخفاء التفاصيل والتركيز على النص"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
           <span class="tiny mode-note" id="modeNote"></span>
           <span class="tiny muted" id="trNote"></span>
@@ -365,6 +394,42 @@ export async function render(view, { segments, params }) {
     trNote.innerHTML = html;
     $('#retryTr', view)?.addEventListener('click', ensureTranslation);
   };
+  // Phrase-by-phrase alignment (English ↔ Arabic on the same row), from where the learner is.
+  let aligning = false;
+  const redrawLine = (line) => {
+    const el = linesEl.querySelector(`.line[data-id="${line.id}"]`);
+    if (!el) return;
+    const wasCurrent = el.classList.contains('current');
+    el.outerHTML = lineHtml(line, data.marks);
+    if (wasCurrent) {
+      linesEl.querySelector(`.line[data-id="${line.id}"]`)?.classList.add('current');
+      currentWord = -1;
+    }
+  };
+  async function ensureAlignment() {
+    if (!showAr || aligning || !hasTimes || !state.config.ai.available) return;
+    aligning = true;
+    try {
+      for (let step = 0; alive && showAr && step < 60; step += 1) {
+        const cur = data.lines.find((l) => l.id === currentId);
+        const r = await api.alignStep(id, cur ? cur.idx : 0);
+        for (const a of r.lines || []) {
+          const line = data.lines.find((l) => l.id === a.id);
+          if (!line) continue;
+          line.align = a.align;
+          if (!line.text_ar && a.ar) line.text_ar = a.ar;
+          redrawLine(line);
+        }
+        if (r.complete || r.ai_error) break;
+        await sleep(300);
+      }
+    } catch {
+      /* keep the normal layout */
+    } finally {
+      aligning = false;
+    }
+  }
+
   async function ensureTranslation() {
     if (!showAr || !missingAr() || translating) return;
     if (!state.config.ai.configured) {
@@ -397,7 +462,7 @@ export async function render(view, { segments, params }) {
       if (!missingAr()) setTrNote('');
     }
   }
-  ensureTranslation();
+  ensureAlignment().then(() => ensureTranslation());
 
   // 2) Smarter word choice: AI reads the transcript in chunks and adds the
   //    useful words / expressions with their meaning in context.
@@ -466,6 +531,7 @@ export async function render(view, { segments, params }) {
   };
   const setCurrent = (lineId, { scroll = follow, force = false } = {}) => {
     if (lineId === currentId) return;
+    linesEl.querySelectorAll('.c-now, .c-said').forEach((c) => c.classList.remove('c-now', 'c-said'));
     linesEl.querySelector('.line.current')?.classList.remove('current');
     linesEl.querySelectorAll('.w-now, .w-said').forEach((w) => w.classList.remove('w-now', 'w-said'));
     currentId = lineId;
@@ -481,6 +547,13 @@ export async function render(view, { segments, params }) {
     const el = currentId != null && linesEl.querySelector(`.line[data-id="${currentId}"]`);
     if (!el) return;
     el.querySelectorAll('.w-now, .w-said').forEach((w) => w.classList.remove('w-now', 'w-said'));
+    // Phrase rows: the phrase being spoken lights up in English and Arabic together.
+    el.querySelectorAll('.chunk').forEach((c) => {
+      const w0 = Number(c.dataset.w0);
+      const w1 = Number(c.dataset.w1);
+      c.classList.toggle('c-now', wi >= 0 && wi >= w0 && wi <= w1);
+      c.classList.toggle('c-said', wi >= 0 && w1 >= 0 && w1 < wi);
+    });
     // Arabic follows the same progress through the sentence (word order differs, so it is proportional).
     const ar = el.querySelectorAll('.aw');
     if (ar.length) {
@@ -509,6 +582,7 @@ export async function render(view, { segments, params }) {
   // Playback modes: a short pause after each sentence, or "repeat after me"
   // (a silence as long as the sentence, so the learner can say it, then it continues).
   let playMode = pref('reader.mode', 'normal');
+  let gapMs = Math.max(200, Math.min(3000, Number(pref('reader.gapMs', '800')) || 800));
   let gapTimer = 0;
   let gapTick = 0;
   let gapDoneFor = null;
@@ -527,7 +601,7 @@ export async function render(view, { segments, params }) {
     gapDoneFor = entry.id;
     const ms = playMode === 'shadow'
       ? Math.max(1500, ((entry.end - entry.start) * 1000) / (rate || 1) + 600)
-      : 1200;
+      : gapMs;
     player.pause();
     const until = Date.now() + ms;
     const show = () => {
@@ -541,8 +615,13 @@ export async function render(view, { segments, params }) {
       if (alive && !isPanelOpen()) player.play();
     }, ms);
   }
+  const secs = () => `${(gapMs / 1000).toFixed(1)}ث`;
   const showMode = () => {
-    const labels = { normal: '▶ عادي', gap: '⏸ فاصل', shadow: '🗣 ردّد ورائي' };
+    const labels = { normal: '▶ عادي', gap: `⏸ فاصل ${secs()}`, shadow: '🗣 ردّد ورائي' };
+    const gv = $('#gapVal', view);
+    if (gv) gv.textContent = secs();
+    const gr = $('#gapRange', view);
+    if (gr && Number(gr.value) !== gapMs) gr.value = String(gapMs);
     const v = $('#modeVal', view);
     if (v) v.textContent = labels[playMode] || labels.normal;
     view.querySelectorAll('#mode [data-mode]').forEach((b) => b.classList.toggle('active', b.dataset.mode === playMode));
@@ -564,6 +643,15 @@ export async function render(view, { segments, params }) {
     setPref('reader.mode', playMode);
     gapDoneFor = null;
     if (cancelGap() && alive) player?.play?.();
+    showMode();
+  });
+  $('#gapRange', view)?.addEventListener('input', (e) => {
+    gapMs = Number(e.target.value);
+    setPref('reader.gapMs', String(gapMs));
+    if (playMode !== 'gap') {
+      playMode = 'gap';
+      setPref('reader.mode', playMode);
+    }
     showMode();
   });
   showMode();
@@ -949,7 +1037,7 @@ export async function render(view, { segments, params }) {
     setPref('reader.ar', showAr ? '1' : '0');
     linesEl.classList.toggle('hide-ar', !showAr);
     linesEl.classList.toggle('bilingual', showAr);
-    ensureTranslation();
+    ensureAlignment().then(() => ensureTranslation());
   });
   $('#followToggle', view)?.addEventListener('change', (e) => {
     follow = e.target.checked;

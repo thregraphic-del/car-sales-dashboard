@@ -9,7 +9,7 @@ import { learningSignals } from '../lib/srs.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(here, '..', '..');
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 export const DEFAULT_SQLITE_PATH = path.join(ROOT, 'data', 'lexitube.db');
 
 export function resolvePath(p) {
@@ -136,6 +136,10 @@ export function migrate(d) {
   if (version < 7) {
     // v7: where the learner stopped in each video.
     if (!columnsOf(d, 'sources').includes('progress_seconds')) d.exec('ALTER TABLE sources ADD COLUMN progress_seconds REAL');
+  }
+  if (version < 8) {
+    // v8: phrase-by-phrase English/Arabic alignment of each line.
+    if (!columnsOf(d, 'transcript_lines').includes('align_json')) d.exec('ALTER TABLE transcript_lines ADD COLUMN align_json TEXT');
   }
   d.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }

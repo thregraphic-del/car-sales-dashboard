@@ -63,9 +63,13 @@ export async function render(view, { params }) {
     </div>
     ${label ? `<div class="chip-row"><span class="gchip on">${esc(label)}</span><a class="link-btn" href="${href({ mode })}">✕ اختيار ذكي بدلًا منها</a></div>`
       : `<div class="chip-row">${mode === 'story' ? `<a class="tab active" href="${href({ mode })}">كلماتي الأخيرة</a>` : FOCUS.map(([k, l]) => `<a class="tab ${k === focus ? 'active' : ''}" href="${href({ ...base, focus: k })}">${l}</a>`).join('')}
-        ${state.groups.length ? `<span class="tiny muted" style="margin-inline-start:6px">أو مجموعة:</span>${state.groups.map((g) => `<a class="gchip" href="${href({ mode, group: g.id })}">${esc(g.name)}</a>`).join('')}` : ''}</div>`}
+        ${state.groups.length > 6 ? `<select class="input sm group-select" id="groupSelect" aria-label="مجموعة"><option value="">أو اختر مجموعة…</option>${state.groups.map((g) => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>`
+    : state.groups.length ? `<span class="tiny muted" style="margin-inline-start:6px">أو مجموعة:</span>${state.groups.map((g) => `<a class="gchip" href="${href({ mode, group: g.id })}">${esc(g.name)}</a>`).join('')}` : ''}</div>`}
     <div id="stage"></div>`;
   const stage = view.querySelector('#stage');
+  view.querySelector('#groupSelect')?.addEventListener('change', (e) => {
+    if (e.target.value) location.hash = href({ mode, group: e.target.value });
+  });
 
   if (mode === 'story') {
     const stopStory = runStory(stage, { groupId: group, label: groupObj ? `مجموعة «${groupObj.name}»` : 'كلماتك الأخيرة' });

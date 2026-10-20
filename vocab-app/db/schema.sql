@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS transcript_lines (
   text          TEXT    NOT NULL,
   text_ar       TEXT,
   words_json    TEXT,              -- word timings [[offset_ms, text], ...] when YouTube provides them
+  align_json    TEXT,              -- phrase alignment [[from, to, arabic], ...]
   UNIQUE (source_id, idx)
 );
 

@@ -417,18 +417,18 @@ export async function explainWithAi({ text, sentence = '', title = '' }) {
 const POS = ['فعل', 'اسم', 'صفة', 'ظرف', 'اسم فاعل', 'أخرى'];
 const FORMS_SCHEMA = obj({
   base: str,
-  forms: { type: 'array', items: obj({ pos: { type: 'string', enum: POS }, form: str, arabic: str, example: str, example_ar: str }) },
+  forms: { type: 'array', items: obj({ pos: { type: 'string', enum: POS }, word: str, form: str, arabic: str, example: str, example_ar: str }) },
 });
 const FormsZ = z.object({
   base: z.string(),
-  forms: z.array(z.object({ pos: z.enum(POS), form: z.string(), arabic: z.string(), example: z.string(), example_ar: z.string() })),
+  forms: z.array(z.object({ pos: z.enum(POS), word: z.string(), form: z.string(), arabic: z.string(), example: z.string(), example_ar: z.string() })),
 });
 
 /** Word family: the word as verb / noun / adjective / adverb…, each with an example. Cached per word. */
 export async function formsWithAi(word) {
   const r = await jsonCall({
-    task: 'word_forms',
-    system: 'You help an Arabic-speaking learner of English. Give the word family of the given English word: its common forms as a verb (فعل), noun (اسم), adjective (صفة), adverb (ظرف), person noun (اسم فاعل, e.g. teacher) or other (أخرى). Include only real, commonly used forms (2–7), the given word\'s own form first. "base" = dictionary form. For each: "form" = the English form (for verbs add past and past participle like "decide (decided, decided)" when irregular or useful), "arabic" = short Arabic meaning, "example" = one short natural English example sentence using that form, "example_ar" = its Arabic translation.',
+    task: 'word_forms_v2',
+    system: 'You help an Arabic-speaking learner of English. Give the word family of the given English word: its common forms as a verb (فعل), noun (اسم), adjective (صفة), adverb (ظرف), person noun (اسم فاعل, e.g. teacher) or other (أخرى). Include only real, commonly used forms (2–7), the given word\'s own form first. "base" = the shortest dictionary form (one word when possible, e.g. "decide" for "decision-making"). For each: "word" = that form alone as a single dictionary headword to save (e.g. "decision", no slashes, brackets or extra forms), "form" = the English form (for verbs add past and past participle like "decide (decided, decided)" when irregular or useful), "arabic" = short Arabic meaning, "example" = one short natural English example sentence using that form, "example_ar" = its Arabic translation.',
     user: `Word: ${word}`,
     schema: FORMS_SCHEMA,
     zod: FormsZ,
@@ -481,17 +481,19 @@ const StoryZ = z.object({ title: z.string(), title_ar: z.string(), sentences: z.
 
 /** A short, natural story that uses the learner's words, with an Arabic line under each sentence. */
 export async function storyWithAi({ words, level = 'B1' }) {
-  const list = words.slice(0, 12).map((w) => `${w.term}${w.arabic ? ` (${w.arabic})` : ''}`).join('\n');
+  const list = words.slice(0, 30).map((w) => `${w.term}${w.arabic ? ` (${w.arabic})` : ''}`).join('\n');
+  const n = Math.min(30, words.length);
+  const [lo, hi] = n <= 12 ? [10, 16] : [Math.round(n * 0.8), Math.min(36, n + 6)];
   const r = await jsonCall({
     task: 'story',
-    system: `You write short stories for an Arabic-speaking learner of English at about ${level} level. Write one coherent, interesting story of 10–16 sentences that uses EVERY given word or expression naturally (in the sense of its Arabic meaning), each at least once, in any grammatical form. Keep sentences clear (8–20 words), everyday vocabulary around the target words, no lists. "title" = short English title; "title_ar" = its Arabic; "sentences" = the story in order, each with a natural Arabic translation "ar".`,
+    system: `You write short stories for an Arabic-speaking learner of English at about ${level} level. Write one coherent, interesting story of ${lo}–${hi} sentences that uses EVERY given word or expression naturally (in the sense of its Arabic meaning), each at least once, in any grammatical form. Keep sentences clear (8–20 words), everyday vocabulary around the target words, no lists. "title" = short English title; "title_ar" = its Arabic; "sentences" = the story in order, each with a natural Arabic translation "ar".`,
     user: `Words:\n${list}`,
     schema: STORY_SCHEMA,
     zod: StoryZ,
-    maxTokens: 2500,
+    maxTokens: Math.min(9000, 150 * hi + 800),
     cache: false,
   });
-  return { ...r, sentences: r.sentences.filter((s) => s.en.trim()).slice(0, 20) };
+  return { ...r, sentences: r.sentences.filter((s) => s.en.trim()).slice(0, 40) };
 }
 
 /* ---------------------------------------------------- video suggestions */
@@ -515,5 +517,45 @@ export async function suggestVideosWithAi({ titles, duration, day, fresh = false
     schema: SUGGEST_SCHEMA,
     zod: SuggestZ,
     maxTokens: 1800,
+  });
+}
+
+/* ------------------------------------- phrase-by-phrase Arabic alignment */
+
+const ALIGN_SCHEMA = obj({
+  lines: { type: 'array', items: obj({ i: { type: 'integer' }, chunks: { type: 'array', items: obj({ en: str, ar: str }) } }) },
+});
+const AlignZ = z.object({ lines: z.array(z.object({ i: z.number().int(), chunks: z.array(z.object({ en: z.string(), ar: z.string() })) })) });
+
+/** For each line: short meaning units with their Arabic, in order. → Map(idx → chunks) */
+export async function alignWithAi(lines, title = '') {
+  const r = await jsonCall({
+    task: 'align_lines',
+    system: 'You help an Arabic-speaking learner follow English video subtitles phrase by phrase. For each numbered line, split the English into consecutive short meaning units of about 2–6 words (keep phrasal verbs, idioms and names together). Copy the English words EXACTLY and in order: do not add, drop, reorder or change any word (punctuation may stay attached). Give each unit its Arabic meaning ("ar") so that reading the Arabic units in order gives a natural, faithful Modern Standard Arabic translation of the line. Keep the numbering in "i".',
+    user: `${title ? `Video: ${title}\n` : ''}${lines.map((l) => `[${l.idx}] ${l.text}`).join('\n')}`,
+    schema: ALIGN_SCHEMA,
+    zod: AlignZ,
+    maxTokens: Math.min(16000, 220 * lines.length + 800),
+  });
+  return new Map(r.lines.map((l) => [l.i, l.chunks]));
+}
+
+/* ------------------------------------------------- new words to learn */
+
+const SUGGEST_WORDS_SCHEMA = obj({
+  items: { type: 'array', items: obj({ term: str, arabic: str, level: { type: 'string', enum: LEVELS }, example: str, example_ar: str }) },
+});
+const SuggestWordsZ = z.object({ items: z.array(z.object({ term: z.string(), arabic: z.string(), level: z.enum(LEVELS), example: z.string(), example_ar: z.string() })) });
+
+/** Useful words in a field, avoiding words the learner already has. */
+export async function suggestWordsWithAi({ count, topic = '', level = '', avoid = [] }) {
+  return jsonCall({
+    task: 'suggest_words',
+    system: 'You suggest English vocabulary for an Arabic-speaking learner of English. Suggest useful, commonly used words and expressions (single words, phrasal verbs, collocations) for the requested field and level, varied, in dictionary form, none of the listed words to avoid. "arabic" = short natural Arabic meaning; "example" = one natural example sentence (8–16 words); "example_ar" = its Arabic translation.',
+    user: `Number of items: ${count}\nField: ${topic || 'general everyday English'}\nLevel: ${level || 'B1–B2'}\nVariant: ${Date.now()}\nAvoid: ${avoid.slice(0, 400).join(', ') || '(none)'}`,
+    schema: SUGGEST_WORDS_SCHEMA,
+    zod: SuggestWordsZ,
+    maxTokens: Math.min(12000, 160 * count + 600),
+    cache: false,
   });
 }

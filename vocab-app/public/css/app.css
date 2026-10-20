@@ -787,3 +787,38 @@ body.reader-focus .page-reader .transcript { max-height: calc(100vh - 90px); }
 .story-ar { color: var(--ink-2); font-size: 15px; margin-top: 2px !important; }
 .story-lines.hide-ar .story-ar { display: none; }
 .story-word { background: color-mix(in srgb, #f5b301 30%, transparent); color: inherit; border-radius: 4px; padding: 0 2px; font-weight: 600; }
+
+/* Phrase by phrase: English phrase and its Arabic on the same row */
+.line-body.chunked { display: flex; flex-direction: column; gap: 2px; }
+.chunk { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; direction: ltr; align-items: baseline; padding: 2px 8px; border-radius: 8px; transition: background .2s, color .2s; }
+.chunk p { margin: 0; }
+.chunk .c-en { font-size: var(--reader-font); line-height: 1.6; }
+.chunk .c-ar { direction: rtl; text-align: right; font-size: calc(var(--reader-font) - 1px); line-height: 1.6; color: var(--ink-2); border-left: 1px solid var(--line); padding-left: 12px; }
+.line.current .chunk.c-said .c-ar { color: var(--accent); }
+.line.current .chunk.c-now { background: color-mix(in srgb, #f5b301 22%, transparent); }
+.line.current .chunk.c-now .c-ar { color: var(--ink); font-weight: 700; }
+.transcript.hide-ar .line-body.chunked { display: block; }
+.transcript.hide-ar .chunk { display: inline; padding: 0; background: none; }
+.transcript.hide-ar .chunk .c-en { display: inline; }
+.transcript.hide-ar .chunk .c-en::after { content: ' '; }
+.transcript.hide-ar .chunk .c-ar { display: none; }
+@media (max-width: 640px) { .chunk { gap: 8px; padding: 2px 4px; } .chunk .c-ar { padding-left: 8px; } }
+.gap-len { display: flex; align-items: center; gap: 6px; padding: 4px 10px 8px; white-space: nowrap; }
+.gap-len input { width: 110px; accent-color: var(--accent); }
+.suggest-words { margin-top: 14px; }
+.sw-list { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; max-height: 420px; overflow: auto; }
+.sw-item { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
+.sw-item .check { margin-top: 4px; }
+.gchip.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.input.sm { padding: 6px 10px; font-size: 13.5px; height: auto; }
+
+/* Look-alike words game */
+.sim-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-top: 14px; }
+.sim-group { padding: 14px; }
+.sim-row { display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 10px; padding: 4px 0; border-bottom: 1px dashed var(--line); }
+.sim-row:last-child { border-bottom: 0; }
+.sim-term { font-size: 20px; font-weight: 600; letter-spacing: .02em; }
+.sim-same { color: var(--accent); background: var(--accent-soft); border-radius: 4px; padding: 0 1px; }
+.sim-diff { color: #b42318; background: color-mix(in srgb, #f5b301 35%, transparent); border-radius: 3px; padding: 0 1px; font-weight: 800; }
+.sim-compare { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.group-select { max-width: 240px; }

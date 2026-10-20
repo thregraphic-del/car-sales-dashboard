@@ -6,7 +6,8 @@ import { config } from '../config.js';
 import { wrap, num } from '../http.js';
 import { httpError } from '../lib/errors.js';
 import { aiStatus, checkModel, usageToday, usageReport, AiError } from '../services/ai.js';
-import { explainWithAi, formsWithAi, extractFromFileWithAi, storyWithAi, suggestVideosWithAi } from '../services/extractor.js';
+import { explainWithAi, formsWithAi, extractFromFileWithAi, storyWithAi, suggestVideosWithAi, suggestWordsWithAi } from '../services/extractor.js';
+import { matchKey } from '../../public/js/shared/text.js';
 import { listWords } from '../data/words.js';
 import { listSources } from '../data/sources.js';
 import { oembed } from '../lib/youtube.js';
@@ -77,13 +78,37 @@ router.post('/extract', wrap(async (req, res) => {
 // A short story with the learner's recent words or a group.
 router.post('/story', wrap(async (req, res) => {
   const groupId = num(req.body?.group_id);
-  let words = await listWords(req.userId, groupId ? { group_id: groupId } : {});
-  if (groupId) words = words.sort(() => Math.random() - 0.5);
-  words = words.slice(0, 10);
-  if (words.length < 3) throw httpError(400, groupId ? 'هذه المجموعة فيها أقل من 3 كلمات.' : 'احفظ 3 كلمات على الأقل لنكتب قصة منها.');
+  const range = req.body?.range === 'week' ? 'week' : 'recent';
+  const count = [10, 20, 30].includes(Number(req.body?.count)) ? Number(req.body.count) : 10;
+  let words = await listWords(req.userId, groupId ? { group_id: groupId } : range === 'week' ? { section: 'week' } : {});
+  if (groupId || range === 'week') words = words.sort(() => Math.random() - 0.5);
+  words = words.slice(0, count);
+  if (words.length < 3) {
+    throw httpError(400, groupId ? 'هذه المجموعة فيها أقل من 3 كلمات.' : range === 'week' ? 'حفظت أقل من 3 كلمات هذا الأسبوع.' : 'احفظ 3 كلمات على الأقل لنكتب قصة منها.');
+  }
   return withAi(res, async () => {
     const story = await storyWithAi({ words });
     return { ok: true, ...story, words: words.map((w) => ({ uv_id: w.uv_id, term: w.term, arabic: w.user_arabic || w.arabic || '' })) };
+  });
+}));
+
+// New words to learn: how many, which field — never words the learner already has.
+router.post('/suggest-words', wrap(async (req, res) => {
+  const count = Math.max(5, Math.min(50, Number(req.body?.count) || 20));
+  const topic = String(req.body?.topic || '').replace(/\s+/g, ' ').trim().slice(0, 60);
+  const level = ['A2', 'B1', 'B2', 'C1'].includes(req.body?.level) ? req.body.level : '';
+  const mine = await listWords(req.userId);
+  const have = new Set(mine.map((w) => matchKey(w.term)));
+  return withAi(res, async () => {
+    const r = await suggestWordsWithAi({ count: Math.ceil(count * 1.3), topic, level, avoid: mine.map((w) => w.term) });
+    const seen = new Set();
+    const items = r.items.filter((it) => {
+      const k = matchKey(it.term);
+      if (!k || have.has(k) || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    }).slice(0, count);
+    return { ok: true, items };
   });
 }));
 

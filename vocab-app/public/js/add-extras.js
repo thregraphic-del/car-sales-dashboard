@@ -271,3 +271,80 @@ export function bindSuggestions(view, { onPick }) {
   $('#sugMore', view)?.addEventListener('click', () => load(true));
   load();
 }
+
+/* ------------------------------------------------ suggest new words */
+
+const FIELDS = ['عام', 'عمل وإدارة', 'سفر', 'تقنية', 'طب وصحة', 'دراسة', 'مشاعر وعلاقات', 'أكاديمي', 'مال واقتصاد', 'رياضة'];
+const FIELD_EN = { 'عام': 'general everyday English', 'عمل وإدارة': 'business and management', 'سفر': 'travel', 'تقنية': 'technology', 'طب وصحة': 'medicine and health', 'دراسة': 'school and study', 'مشاعر وعلاقات': 'feelings and relationships', 'أكاديمي': 'academic English', 'مال واقتصاد': 'money and economy', 'رياضة': 'sports' };
+
+export const suggestWordsHtml = () => `
+  <div class="card suggest-words">
+    <div class="row between wrap" style="gap:8px"><b>✨ اقترح لي كلمات جديدة</b><span class="tiny muted">كلمات ليست عندك في «كلماتي»</span></div>
+    <div class="row wrap" style="gap:10px;margin-top:10px">
+      <label class="small">العدد <select class="input sm" id="swCount"><option>10</option><option selected>20</option><option>30</option><option>50</option></select></label>
+      <label class="small">المستوى <select class="input sm" id="swLevel"><option value="">أي مستوى</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option></select></label>
+      <input class="input sm" id="swTopic" placeholder="المجال (اختياري) مثل: تسويق" style="flex:1;min-width:150px">
+    </div>
+    <div class="row wrap" style="gap:6px;margin-top:8px">${FIELDS.map((f) => `<button type="button" class="gchip" data-field="${esc(f)}">${esc(f)}</button>`).join('')}</div>
+    <div class="btn-row" style="margin-top:12px"><button class="btn primary" id="swGo">اقترح</button></div>
+    <div id="swBox"></div>
+  </div>`;
+
+export function bindSuggestWords(view) {
+  const box = $('#swBox', view);
+  if (!box) return;
+  const topicEl = $('#swTopic', view);
+  view.querySelectorAll('[data-field]').forEach((b) => b.addEventListener('click', () => {
+    view.querySelectorAll('[data-field]').forEach((x) => x.classList.toggle('on', x === b && !b.classList.contains('on')));
+    topicEl.value = b.classList.contains('on') ? b.dataset.field : '';
+  }));
+  $('#swGo', view).addEventListener('click', async () => {
+    if (!state.config?.ai?.configured) {
+      box.innerHTML = '<p class="tiny muted">الاقتراحات تحتاج الذكاء الاصطناعي.</p>';
+      return;
+    }
+    const btn = $('#swGo', view);
+    btn.disabled = true;
+    box.innerHTML = '<p class="tiny muted" style="margin-top:10px"><span class="spinner"></span> نختار كلمات جديدة لك…</p>';
+    const topic = topicEl.value.trim();
+    try {
+      const r = await api.suggestWords({ count: Number($('#swCount', view).value), level: $('#swLevel', view).value, topic: FIELD_EN[topic] || topic });
+      const items = r.items;
+      if (!items.length) {
+        box.innerHTML = '<p class="tiny muted" style="margin-top:10px">لم نجد كلمات جديدة — جرّب مجالًا آخر.</p>';
+        return;
+      }
+      box.innerHTML = `
+        <div class="sw-list">${items.map((it, k) => `<label class="sw-item"><input type="checkbox" class="check" data-k="${k}" checked>
+          <div style="min-width:0"><b class="en-inline">${esc(it.term)}</b> <span class="chip">${esc(it.level)}</span> <span class="ink-2">${esc(it.arabic)}</span>
+          ${it.example ? `<div class="en small" dir="ltr">${esc(it.example)}</div><div class="tiny muted">${esc(it.example_ar)}</div>` : ''}</div></label>`).join('')}</div>
+        <div class="btn-row" style="margin-top:10px"><button class="btn primary" id="swSave">احفظ المحدد في كلماتي</button><button class="btn ghost" id="swAll">تحديد/إلغاء الكل</button></div>`;
+      $('#swAll', view).addEventListener('click', () => {
+        const boxes = [...box.querySelectorAll('input[data-k]')];
+        const all = boxes.every((x) => x.checked);
+        boxes.forEach((x) => { x.checked = !all; });
+      });
+      $('#swSave', view).addEventListener('click', async () => {
+        const chosen = [...box.querySelectorAll('input[data-k]:checked')].map((x) => items[Number(x.dataset.k)]);
+        if (!chosen.length) return toast('اختر كلمة واحدة على الأقل');
+        const save = $('#swSave', view);
+        save.disabled = true;
+        try {
+          const res = await api.importSave(chosen.map((it) => ({
+            term: it.term, arabic: it.arabic, level: it.level, meaning_from: 'ai',
+            examples: it.example ? [{ sentence: it.example, arabic: it.example_ar || null }] : [],
+          })));
+          toast(`تم حفظ ${res.results.filter((x) => x.result !== 'unchanged').length} كلمة ✓`);
+          box.innerHTML = '<p class="small" style="margin-top:10px">✓ حُفظت في «كلماتي». <a href="#/words">افتحها</a> أو اضغط «اقترح» لكلمات أخرى.</p>';
+        } catch (err) {
+          save.disabled = false;
+          toast(err.message);
+        }
+      });
+    } catch (err) {
+      box.innerHTML = `<p class="tiny muted" style="margin-top:10px">${esc(err.message)}</p>`;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}

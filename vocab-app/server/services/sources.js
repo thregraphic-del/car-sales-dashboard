@@ -10,7 +10,8 @@ import { config } from '../config.js';
 import { recordTranscript } from './ai.js';
 import { httpError } from '../lib/errors.js';
 import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript, MESSAGES, TranscriptError, externalTranscript } from '../lib/youtube.js';
-import { extractVocabulary, extractChunkWithAi, toSentences, translateWithAi, ExtractionError } from './extractor.js';
+import { extractVocabulary, extractChunkWithAi, toSentences, translateWithAi, alignWithAi, ExtractionError } from './extractor.js';
+import { chunkRanges } from '../lib/align.js';
 import { aiConfigured, aiAvailable, AiError, OFFLINE_MESSAGE, unavailableMessage } from './ai.js';
 import * as sources from '../data/sources.js';
 
@@ -205,4 +206,30 @@ export async function translationStatus(sourceId, userId) {
   if (c.total && c.translated >= c.total) status = 'done';
   else if (!aiConfigured() && status !== 'done') status = 'unavailable';
   return { status, total: c.total, done: c.translated, ai: aiAvailable() };
+}
+
+/**
+ * Align the next few lines phrase by phrase (English ↔ Arabic), starting near
+ * where the learner is. Lines the AI can't split exactly are marked as done
+ * with an empty alignment, so they keep the normal layout and aren't retried.
+ */
+export async function alignSource(sourceId, userId, fromIdx = 0) {
+  const src = await requireSource(sourceId, userId);
+  const batch = await sources.unalignedLines(sourceId, Math.max(0, Number(fromIdx) || 0), 8);
+  if (!batch.length) return { complete: true, lines: [] };
+  if (!aiAvailable()) return { complete: true, lines: [], ai_error: unavailableMessage() };
+  let map;
+  try {
+    map = await alignWithAi(batch, src.title);
+  } catch (err) {
+    if (!(err instanceof AiError)) throw err;
+    return { complete: true, lines: [], ai_error: err.message };
+  }
+  const rows = batch.map((l) => {
+    const align = chunkRanges(l.text, map.get(l.idx)) || [];
+    return { id: l.id, align, ar: align.length ? align.map((c) => c[2]).join(' ') : null };
+  });
+  await sources.storeAlignments(rows);
+  const c = await sources.alignCounts(sourceId);
+  return { complete: c.aligned >= c.total, lines: rows.map((r) => ({ id: r.id, align: r.align.length ? r.align : null, ar: r.ar })) };
 }

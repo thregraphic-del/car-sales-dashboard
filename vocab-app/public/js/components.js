@@ -172,7 +172,7 @@ function loadForms(term) {
   return formsMemo.get(key);
 }
 
-const formTerm = (f) => String(f.form || '').split('(')[0].trim();
+const formTerm = (f) => String(f.word || f.form || '').split(/[(/,]/)[0].trim();
 const POS_EN = { 'فعل': 'verb', 'اسم': 'noun', 'صفة': 'adjective', 'ظرف': 'adverb', 'اسم فاعل': 'noun' };
 
 /** The simplest (dictionary) form, shown right under the word. */
@@ -189,10 +189,10 @@ function formsHtml(forms, savedForms = new Set()) {
   if (forms.loading) return '<div class="wp-forms tiny muted"><span class="spinner"></span> نجلب صيغ الكلمة…</div>';
   if (forms.error || !forms.forms?.length) return forms.error ? `<p class="tiny muted wp-forms">صيغ الكلمة: ${esc(forms.error)}</p>` : '';
   return `<details class="wp-forms" open><summary class="tiny muted">صيغ الكلمة (فعل، اسم، صفة…)</summary>
-    ${forms.forms.map((f, k) => `<div class="wf"><div class="wf-head"><span class="wf-pos">${esc(f.pos)}</span><b class="en" dir="ltr">${esc(f.form)}</b> ${listenRow(formTerm(f))}</div>
+    ${forms.forms.map((f, k) => `<div class="wf"><div class="wf-head"><span class="wf-pos">${esc(f.pos)}</span><b class="en" dir="ltr">${esc(formTerm(f))}</b>${f.form && f.form.trim() !== formTerm(f) ? ` <span class="tiny muted en-inline">${esc(f.form)}</span>` : ''} ${listenRow(formTerm(f))}</div>
       <div class="small ink-2">${esc(f.arabic)}</div>
       ${f.example ? `<p class="en small" dir="ltr">${esc(f.example)}</p>${f.example_ar ? `<p class="tiny ink-2">${esc(f.example_ar)}</p>` : ''}` : ''}
-      ${savedForms.has(k) ? `<button class="btn sm saved wf-save" disabled>${icon.check} محفوظة</button>` : `<button class="btn sm ghost wf-save" data-form="${k}">${icon.bookmark} حفظ هذه الصيغة</button>`}</div>`).join('')}</details>`;
+      ${savedForms.has(k) ? `<button class="btn sm saved wf-save" disabled>${icon.check} محفوظة</button>` : `<button class="btn sm ghost wf-save" data-form="${k}">${icon.bookmark} احفظ «${esc(formTerm(f))}» ككلمة مستقلة</button>`}</div>`).join('')}</details>`;
 }
 
 export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {

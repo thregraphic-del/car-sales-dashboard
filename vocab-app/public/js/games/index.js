@@ -3,6 +3,7 @@
 //      (or round(stage, ctx) for a game that runs a whole round, like speed.js)
 //   2. import it below and add it to GAMES — it then appears on the Practice page.
 import connections from './connections.js';
+import similar from './similar.js';
 import trueFalse from './true-false.js';
 import speed from './speed.js';
 import meaning from './meaning.js';
@@ -15,7 +16,7 @@ import buildSentence from './build-sentence.js';
 import translate from './translate.js';
 
 /** In display order. */
-export const GAMES = [connections, trueFalse, speed, meaning, listen, spelling, unscramble, fillBlank, context, buildSentence, translate];
+export const GAMES = [connections, similar, trueFalse, speed, meaning, listen, spelling, unscramble, fillBlank, context, buildSentence, translate];
 export const GAME_BY_KEY = Object.fromEntries(GAMES.map((g) => [g.key, g]));
 
 /** Question formats for mixed rounds: recognition while a word is weak, recall once it is stronger. */

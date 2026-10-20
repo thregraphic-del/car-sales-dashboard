@@ -48,8 +48,41 @@ const parseWords = (json) => {
 
 /** Lines of a source (already checked to be the learner's). words = [[offset_ms, text], ...] or null. */
 export async function sourceLines(sourceId) {
-  const rows = await all('SELECT id, idx, start_seconds, duration, text, text_ar, words_json FROM transcript_lines WHERE source_id = ? ORDER BY idx', sourceId);
-  return rows.map(({ words_json: w, ...l }) => ({ ...l, words: parseWords(w) }));
+  const rows = await all('SELECT id, idx, start_seconds, duration, text, text_ar, words_json, align_json FROM transcript_lines WHERE source_id = ? ORDER BY idx', sourceId);
+  return rows.map(({ words_json: w, align_json: a, ...l }) => ({ ...l, words: parseWords(w), align: parseAlign(a) }));
+}
+
+/** [[from, to, arabic], ...] or null. */
+export const parseAlign = (json) => {
+  if (!json) return null;
+  try {
+    const a = JSON.parse(json);
+    return Array.isArray(a) && a.length ? a : null;
+  } catch {
+    return null;
+  }
+};
+
+/** Lines still without a phrase alignment, from line index `fromIdx` on (then from the start). */
+export async function unalignedLines(sourceId, fromIdx, limit) {
+  const after = await all('SELECT id, idx, text, text_ar FROM transcript_lines WHERE source_id = ? AND align_json IS NULL AND idx >= ? ORDER BY idx LIMIT ?', sourceId, fromIdx, limit);
+  if (after.length) return after;
+  return all('SELECT id, idx, text, text_ar FROM transcript_lines WHERE source_id = ? AND align_json IS NULL ORDER BY idx LIMIT ?', sourceId, limit);
+}
+
+export async function alignCounts(sourceId) {
+  const r = await get('SELECT COUNT(*) AS total, COUNT(align_json) AS aligned FROM transcript_lines WHERE source_id = ?', sourceId);
+  return { total: Number(r.total), aligned: Number(r.aligned) };
+}
+
+/** rows: [{id, align, ar}] — the Arabic line is filled from the phrases when missing. */
+export async function storeAlignments(rows) {
+  await tx(async () => {
+    for (const r of rows) {
+      await run('UPDATE transcript_lines SET align_json = ? WHERE id = ?', JSON.stringify(r.align), r.id);
+      if (r.ar) await run('UPDATE transcript_lines SET text_ar = ? WHERE id = ? AND text_ar IS NULL', r.ar, r.id);
+    }
+  });
 }
 
 /** A transcript line of one of the learner's sources. */
@@ -173,7 +206,7 @@ export async function saveSource(meta, lines, items, userId) {
         meta.extractor || null, meta.word_count ?? null, now, source.id,
       );
       // Keep this source's own translations for sentences that stay the same.
-      for (const r of await all('SELECT text, text_ar FROM transcript_lines WHERE source_id = ? AND text_ar IS NOT NULL', source.id)) keepAr.set(r.text.trim(), r.text_ar);
+      for (const r of await all('SELECT text, text_ar, align_json FROM transcript_lines WHERE source_id = ? AND text_ar IS NOT NULL', source.id)) keepAr.set(r.text.trim(), { ar: r.text_ar, align: r.align_json });
       await run('DELETE FROM transcript_lines WHERE source_id = ?', source.id); // cascades to line occurrences
       await run('DELETE FROM occurrences WHERE source_id = ?', source.id);
     } else {
@@ -190,20 +223,25 @@ export async function saveSource(meta, lines, items, userId) {
     const known = new Map();
     if (meta.youtube_id) {
       const rows = await all(
-        `SELECT l.text, l.text_ar FROM transcript_lines l JOIN sources s ON s.id = l.source_id
+        `SELECT l.text, l.text_ar, l.align_json FROM transcript_lines l JOIN sources s ON s.id = l.source_id
          WHERE s.youtube_id = ? AND l.text_ar IS NOT NULL AND s.id <> ?`, meta.youtube_id, source.id,
       );
-      for (const r of rows) known.set(r.text.trim(), r.text_ar);
+      for (const r of rows) {
+        const prev = known.get(r.text.trim());
+        if (!prev || (!prev.align && r.align_json)) known.set(r.text.trim(), { ar: r.text_ar, align: r.align_json });
+      }
     }
     for (const [k, v] of keepAr) known.set(k, v);
     const lineList = [];
     for (let [i, l] of lines.entries()) { // eslint-disable-line prefer-const
-      if (!l.text_ar && known.has(l.text.trim())) l = { ...l, text_ar: known.get(l.text.trim()) };
+      const k = known.get(l.text.trim());
+      if (k && !l.text_ar) l = { ...l, text_ar: k.ar };
+      const align = k?.align && k.ar === l.text_ar ? k.align : null;
       const next = lines[i + 1];
       const dur = l.start !== null && l.start !== undefined && next?.start != null ? Math.max(0, next.start - l.start) : null;
       const id = await insert(
-        'INSERT INTO transcript_lines (source_id, idx, start_seconds, duration, text, text_ar, words_json) VALUES (?,?,?,?,?,?,?)',
-        source.id, l.idx, l.start ?? null, l.duration ?? dur, l.text, l.text_ar || null, l.words?.length ? JSON.stringify(l.words) : null,
+        'INSERT INTO transcript_lines (source_id, idx, start_seconds, duration, text, text_ar, words_json, align_json) VALUES (?,?,?,?,?,?,?,?)',
+        source.id, l.idx, l.start ?? null, l.duration ?? dur, l.text, l.text_ar || null, l.words?.length ? JSON.stringify(l.words) : null, align,
       );
       lineList.push({ id, ...l, start: l.start ?? null, text_ar: l.text_ar || null });
     }

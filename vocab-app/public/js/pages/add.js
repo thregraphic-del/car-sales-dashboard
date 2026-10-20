@@ -3,7 +3,7 @@ import { api } from '../api.js';
 import { state, loadGroups } from '../state.js';
 import { esc, icon, levelChip, thumbHtml, relDate, toast, fmtTime, $ } from '../ui.js';
 import { groupPickerHtml, bindGroupPicker } from '../components.js';
-import { attachButtonHtml, bindAttach, packsHtml, bindPacks, suggestionsHtml, bindSuggestions } from '../add-extras.js';
+import { attachButtonHtml, bindAttach, packsHtml, bindPacks, suggestionsHtml, bindSuggestions, suggestWordsHtml, bindSuggestWords } from '../add-extras.js';
 
 const isYoutube = (s) => /^\s*(https?:\/\/)?((www|m|music)\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)\/\S+\s*$/i.test(s);
 // Pasting the transcript is offered for every reason except a bad link.
@@ -32,6 +32,7 @@ export async function render(view, { params }) {
     </div>
     <div id="result"></div>
     ${packsHtml()}
+    ${suggestWordsHtml()}
     ${suggestionsHtml()}
     ${sources.length ? `<div class="section-title"><h2>مصادرك</h2></div>
     <div class="grid cols-3" id="sources">${sources.map((s) => `
@@ -59,6 +60,7 @@ export async function render(view, { params }) {
   update();
   bindAttach(view, { input, go, status });
   bindPacks(view);
+  bindSuggestWords(view);
   bindSuggestions(view, {
     onPick: (url) => {
       input.value = url;

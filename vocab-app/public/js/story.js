@@ -52,17 +52,32 @@ export function runStory(stage, { groupId = null, label = 'كلماتك الأخ
   let rate = 1;
   let readAr = pref('story.readAr', '0') === '1';
   let showAr = pref('story.showAr', '1') === '1';
+  let range = pref('story.range', 'recent') === 'week' ? 'week' : 'recent';
+  let count = [10, 20, 30].includes(Number(pref('story.count', '10'))) ? Number(pref('story.count', '10')) : 10;
 
   const intro = () => {
     stage.innerHTML = `
       <div class="card story-intro">
         <div class="row" style="gap:12px;align-items:flex-start"><div class="pack-icon">📖</div>
-          <div><b>قصة من ${esc(label)}</b>
+          <div><b>قصة من ${groupId ? esc(label) : 'كلماتك'}</b>
           <p class="small ink-2" style="margin:4px 0 0">نكتب لك قصة قصيرة تستخدم كلماتك، مع ترجمة كل جملة تحتها، ونقرؤها لك جملةً جملة.</p></div></div>
+        ${groupId ? '' : `<div class="row wrap" style="gap:12px;margin-top:12px">
+          <div class="segmented" id="storyRange"><button data-range="recent" class="${range === 'recent' ? 'active' : ''}">آخر كلماتي</button><button data-range="week" class="${range === 'week' ? 'active' : ''}">كلمات هذا الأسبوع</button></div>
+          <div class="segmented" id="storyCount">${[10, 20, 30].map((n) => `<button data-count="${n}" class="${n === count ? 'active' : ''}">${n} كلمة</button>`).join('')}</div></div>`}
         <div class="btn-row" style="margin-top:14px"><button class="btn primary" id="makeStory">✨ اكتب القصة</button></div>
         <div id="storyStatus" class="small" style="margin-top:10px"></div>
       </div>`;
     stage.querySelector('#makeStory').addEventListener('click', make);
+    stage.querySelectorAll('[data-range]').forEach((b) => b.addEventListener('click', () => {
+      range = b.dataset.range;
+      setPref('story.range', range);
+      stage.querySelectorAll('[data-range]').forEach((x) => x.classList.toggle('active', x === b));
+    }));
+    stage.querySelectorAll('[data-count]').forEach((b) => b.addEventListener('click', () => {
+      count = Number(b.dataset.count);
+      setPref('story.count', String(count));
+      stage.querySelectorAll('[data-count]').forEach((x) => x.classList.toggle('active', x === b));
+    }));
   };
 
   async function make() {
@@ -71,7 +86,7 @@ export function runStory(stage, { groupId = null, label = 'كلماتك الأخ
     if (btn) btn.disabled = true;
     if (st) st.innerHTML = '<span class="spinner"></span> نكتب القصة بكلماتك…';
     try {
-      story = await api.story(groupId);
+      story = await api.story(groupId ? { group_id: groupId } : { range, count });
       idx = 0;
       draw();
     } catch (err) {
