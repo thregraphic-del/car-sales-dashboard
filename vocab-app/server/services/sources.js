@@ -11,7 +11,7 @@ import { recordTranscript } from './ai.js';
 import { httpError } from '../lib/errors.js';
 import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript, MESSAGES, TranscriptError, externalTranscript } from '../lib/youtube.js';
 import { extractVocabulary, extractChunkWithAi, toSentences, translateWithAi, alignWithAi, ExtractionError } from './extractor.js';
-import { chunkRanges } from '../lib/align.js';
+import { chunkRanges, batchRanges } from '../lib/align.js';
 import { aiConfigured, aiAvailable, AiError, OFFLINE_MESSAGE, unavailableMessage } from './ai.js';
 import * as sources from '../data/sources.js';
 
@@ -225,18 +225,17 @@ export async function alignSource(sourceId, userId, fromIdx = 0, skip = 0) {
     if (!(err instanceof AiError)) throw err;
     return { complete: true, lines: [], ai_error: err.message };
   }
-  // The AI sometimes renumbers the lines: each line is tried by its number, then by its place.
+  // Line by line first; when the AI moved words between lines (a sentence running
+  // over two lines) or renumbered them, the whole batch is laid over the words in order.
   const inOrder = [...map.values()];
+  const whole = batchRanges(batch, inOrder);
+  const answered = map.size > 0;
   const rows = [];
   for (const [k, l] of batch.entries()) {
-    const tries = [map.get(l.idx), map.size === batch.length ? inOrder[k] : null].filter(Boolean);
-    if (!tries.length) continue; // not answered: tried again next time
-    let align = null;
-    for (const chunks of tries) {
-      align = chunkRanges(l.text, chunks);
-      if (align) break;
-    }
-    rows.push({ id: l.id, align: align || 'x', ar: align ? align.map((c) => c[2]).join(' ') : null });
+    const own = map.get(l.idx) ? chunkRanges(l.text, map.get(l.idx)) : null;
+    const align = own || whole[k] || (map.size === batch.length ? chunkRanges(l.text, inOrder[k]) : null);
+    if (!align && !answered) continue; // not answered: tried again next time
+    rows.push({ id: l.id, align: align || 'y', ar: align ? align.map((c) => c[2]).filter(Boolean).join(' ') : null });
   }
   await sources.storeAlignments(rows);
   const c = await sources.alignCounts(sourceId);
