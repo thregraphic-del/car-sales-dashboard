@@ -531,7 +531,7 @@ const AlignZ = z.object({ lines: z.array(z.object({ i: z.number().int(), chunks:
 export async function alignWithAi(lines, title = '') {
   const r = await jsonCall({
     task: 'align_lines',
-    system: 'You help an Arabic-speaking learner follow English video subtitles phrase by phrase. For each numbered line, split the English into consecutive short meaning units of about 2–6 words (keep phrasal verbs, idioms and names together). Copy the English words EXACTLY and in order: do not add, drop, reorder or change any word (punctuation may stay attached). Give each unit its Arabic meaning ("ar") so that reading the Arabic units in order gives a natural, faithful Modern Standard Arabic translation of the line. Keep the numbering in "i".',
+    system: 'You help an Arabic-speaking learner follow English video subtitles phrase by phrase, like parallel subtitles. For each numbered line, split the English into consecutive short units of about 2–7 words: always break at commas, full stops, question marks, dashes and at every "‖" (where the speaker pauses; never include "‖" in the output), and otherwise at natural meaning boundaries (keep phrasal verbs, idioms and names together). Copy the English words EXACTLY and in order: do not add, drop, reorder or change any word (punctuation may stay attached). Give each unit its Arabic meaning ("ar") so that reading the Arabic units in order gives a natural, faithful Modern Standard Arabic translation of the line. Keep the numbering in "i".',
     user: `${title ? `Video: ${title}\n` : ''}${lines.map((l) => `[${l.idx}] ${l.text}`).join('\n')}`,
     schema: ALIGN_SCHEMA,
     zod: AlignZ,

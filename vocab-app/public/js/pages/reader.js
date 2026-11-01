@@ -409,10 +409,18 @@ export async function render(view, { segments, params }) {
   async function ensureAlignment() {
     if (!showAr || aligning || !hasTimes || !state.config.ai.available) return;
     aligning = true;
-    try {
-      for (let step = 0; alive && showAr && step < 60; step += 1) {
+    let complete = false;
+    // Three batches at a time, starting where the learner is, so the visible lines are ready first.
+    const worker = async (offset) => {
+      for (let step = 0; alive && showAr && !complete && step < 40; step += 1) {
         const cur = data.lines.find((l) => l.id === currentId);
-        const r = await api.alignStep(id, cur ? cur.idx : 0);
+        const from = (cur ? cur.idx : 0) + offset;
+        let r;
+        try {
+          r = await api.alignStep(id, from);
+        } catch {
+          return;
+        }
         for (const a of r.lines || []) {
           const line = data.lines.find((l) => l.id === a.id);
           if (!line) continue;
@@ -420,11 +428,14 @@ export async function render(view, { segments, params }) {
           if (!line.text_ar && a.ar) line.text_ar = a.ar;
           redrawLine(line);
         }
-        if (r.complete || r.ai_error) break;
-        await sleep(300);
+        if (r.complete || r.ai_error || !r.lines?.length) {
+          complete = true;
+          return;
+        }
       }
-    } catch {
-      /* keep the normal layout */
+    };
+    try {
+      await Promise.all([worker(0), worker(10), worker(20)]);
     } finally {
       aligning = false;
     }
@@ -901,6 +912,18 @@ export async function render(view, { segments, params }) {
       return;
     }
     if (window.getSelection()?.toString()) return; // selecting text for "explain"
+    const chunkAr = e.target.closest('.c-ar');
+    if (chunkAr && player) {
+      const entry0 = timeline.find((x) => String(x.id) === line.dataset.id);
+      const w0 = Number(chunkAr.closest('.chunk')?.dataset.w0);
+      const t0 = entry0?.words?.[w0]?.start ?? entry0?.start;
+      if (Number.isFinite(t0)) {
+        player.seek(Math.max(0, t0 - 0.1));
+        lastT = null;
+        tick();
+      }
+      return;
+    }
     const mark = e.target.closest('.mark');
     const tok = e.target.closest('.tok');
     const wEl = e.target.closest('[data-wi]');

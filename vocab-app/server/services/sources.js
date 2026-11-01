@@ -215,12 +215,12 @@ export async function translationStatus(sourceId, userId) {
  */
 export async function alignSource(sourceId, userId, fromIdx = 0) {
   const src = await requireSource(sourceId, userId);
-  const batch = await sources.unalignedLines(sourceId, Math.max(0, Number(fromIdx) || 0), 8);
+  const batch = await sources.unalignedLines(sourceId, Math.max(0, Number(fromIdx) || 0), 10);
   if (!batch.length) return { complete: true, lines: [] };
   if (!aiAvailable()) return { complete: true, lines: [], ai_error: unavailableMessage() };
   let map;
   try {
-    map = await alignWithAi(batch, src.title);
+    map = await alignWithAi(batch.map((l) => ({ ...l, text: withPauses(l) })), src.title);
   } catch (err) {
     if (!(err instanceof AiError)) throw err;
     return { complete: true, lines: [], ai_error: err.message };
@@ -232,4 +232,19 @@ export async function alignSource(sourceId, userId, fromIdx = 0) {
   await sources.storeAlignments(rows);
   const c = await sources.alignCounts(sourceId);
   return { complete: c.aligned >= c.total, lines: rows.map((r) => ({ id: r.id, align: r.align.length ? r.align : null, ar: r.ar })) };
+}
+
+/** The line with "‖" where the speaker pauses (from word timings), so phrases break there. */
+function withPauses(line) {
+  const w = line.words;
+  if (!w || w.length < 3) return line.text;
+  const words = line.text.split(/(\s+)/);
+  const ms = w.map(([t]) => Number(t));
+  let k = -1;
+  return words.map((part) => {
+    if (!/\S/.test(part)) return part;
+    k += 1;
+    const gap = k + 1 < ms.length ? ms[k + 1] - ms[k] : 0;
+    return gap > 450 && k > 0 ? `${part} ‖` : part;
+  }).join('');
 }

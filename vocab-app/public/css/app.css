@@ -822,3 +822,6 @@ body.reader-focus .page-reader .transcript { max-height: calc(100vh - 90px); }
 .sim-diff { color: #b42318; background: color-mix(in srgb, #f5b301 35%, transparent); border-radius: 3px; padding: 0 1px; font-weight: 800; }
 .sim-compare { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
 .group-select { max-width: 240px; }
+.chunk .c-ar { cursor: pointer; }
+.line-body.chunked .chunk + .chunk { border-top: 1px dashed color-mix(in srgb, var(--line) 70%, transparent); }
+.line-body.chunked .chunk { padding-top: 4px; padding-bottom: 4px; }
