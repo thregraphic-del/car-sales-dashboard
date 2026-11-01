@@ -64,7 +64,7 @@ export async function buildDictionaryStep({ offset = 0, count = 20 } = {}) {
       if (forms.length > 1) await writeCache(cacheKey('word_forms_v2', `Word: ${lemma}`), 'word_forms_v2', { base: lemma, forms });
     }
   });
-  return { added, processed: todo.length, next: offset, finished: false };
+  return { added, processed: todo.length, answered: items.length, matched: items.filter((it) => todo.includes(clean(it.input))).map((it) => clean(it.input)), sample: items.slice(0, 3).map((it) => `${it.input}→${it.lemma}${it.skip ? ' (skip)' : ''}`), next: offset, finished: false };
 }
 
 function posAr(pos) {
