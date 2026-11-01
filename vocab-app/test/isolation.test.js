@@ -165,3 +165,16 @@ test('logout ends the session; signing in again restores the same account', asyn
   assert.equal((await B('POST', '/api/auth/login', { username: 'Noura', password: 'a-long-password-2' })).status, 200, 'username is case-insensitive');
   assert.deepEqual((await B('GET', '/api/groups')).body.map((g) => g.name), ['Mine']);
 });
+
+test('suggestions: anyone can send; only the administrator reads everyone\'s', async () => {
+  assert.equal((await B('POST', '/api/feedback', { message: 'أتمنى إضافة وضع ليلي', contact: 'b@example.com' })).status, 200);
+  assert.equal((await A('POST', '/api/feedback', { message: 'Admin idea' })).status, 200);
+  assert.equal((await B('POST', '/api/feedback', { message: ' ' })).status, 400);
+  const mine = (await B('GET', '/api/feedback')).body;
+  assert.equal(mine.admin, false);
+  assert.deepEqual(mine.items.map((f) => f.message), ['أتمنى إضافة وضع ليلي']);
+  const all = (await A('GET', '/api/feedback')).body;
+  assert.equal(all.admin, true);
+  assert.equal(all.items.length, 2);
+  assert.ok(all.items.some((f) => f.message === 'أتمنى إضافة وضع ليلي' && f.contact === 'b@example.com' && /noura/i.test(f.username || '')));
+});

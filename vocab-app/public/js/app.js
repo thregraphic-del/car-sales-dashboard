@@ -4,6 +4,7 @@ import { state, loadGroups } from './state.js';
 import { stop as stopAudio } from './audio.js';
 import { closeWordPanel } from './components.js';
 import { icon, $, closeModal, esc } from './ui.js';
+import { openFeedback } from './feedback.js';
 
 const NAV = [
   { path: '/', label: 'اليوم', icon: 'today', page: 'today', badge: true },
@@ -50,17 +51,13 @@ function renderNav(active) {
   $('#sidebarFoot').innerHTML = s
     ? `<div class="row between"><span>🔥 أيام متتالية</span><b class="en-inline">${s.streak.current}</b></div>
        <div class="tiny muted" style="margin-top:6px">${state.config?.ai?.configured ? '✨ الذكاء الاصطناعي مفعّل' : '📘 القاموس المحلي'}</div>
-       ${state.usage ? `<a class="tiny muted" href="#/settings" style="display:block;margin-top:4px">💲 هذا الشهر: <span class="en-inline">$${Number(state.usage.month.cost || 0).toFixed(3)} · ${new Intl.NumberFormat('en').format(Number(state.usage.month.prompt_tokens || 0) + Number(state.usage.month.completion_tokens || 0))} tokens</span></a>` : ''}
+       <button type="button" class="link-btn small" id="feedbackLink" style="display:block;margin-top:8px">💡 اقتراحاتكم — ساعدنا نطوّر الموقع</button>
        <div class="tiny muted en-inline" style="margin-top:4px">LexiTube v${esc(state.config?.app?.version || '?')}</div>`
     : '';
 }
 
 export async function refreshStats() {
   try {
-    api.aiUsage().then((u) => {
-      state.usage = u.site || u.me;
-      renderNav(activeNav(parseHash().base));
-    }).catch(() => {});
     state.stats = await api.stats();
     renderNav(activeNav(parseHash().base));
   } catch {
@@ -153,6 +150,11 @@ async function init() {
   }
   $('#menuBtn').addEventListener('click', () => document.body.classList.add('nav-open'));
   $('#scrim').addEventListener('click', () => document.body.classList.remove('nav-open'));
+  $('#sidebarFoot').addEventListener('click', (e) => {
+    if (!e.target.closest('#feedbackLink')) return;
+    document.body.classList.remove('nav-open');
+    openFeedback();
+  });
   window.addEventListener('lexitube:auth', () => {
     if (!document.body.classList.contains('auth-mode')) showAuth();
   });

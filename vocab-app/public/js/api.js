@@ -96,6 +96,8 @@ export const api = {
   aiStatus: () => request('GET', '/api/ai/status'),
   aiUsage: () => request('GET', '/api/ai/usage'),
   extractWords: (kind, data, name) => request('POST', '/api/ai/extract', { kind, data, name }),
+  sendFeedback: (body) => request('POST', '/api/feedback', body),
+  feedback: () => request('GET', '/api/feedback'),
   suggestWords: (body) => request('POST', '/api/ai/suggest-words', body),
   story: (opts = {}) => request('POST', '/api/ai/story', opts),
   suggestVideos: (duration, fresh) => request('GET', `/api/ai/suggest-videos${qs({ duration, fresh: fresh ? 1 : undefined })}`),

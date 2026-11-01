@@ -242,7 +242,7 @@ export async function render(view, { segments, params }) {
           ${isVideo ? `<div class="speed-pick" id="speed"><button type="button" class="btn sm ghost en-inline" id="speedBtn" aria-haspopup="true" aria-expanded="false" title="سرعة التشغيل">⏱ <span id="speedVal">1×</span></button>
             <div class="speed-menu hidden" role="menu">${[0.5, 0.75, 0.9, 1, 1.25].map((r) => `<button type="button" role="menuitem" data-rate="${r}" class="en-inline">${r}×</button>`).join('')}</div></div>` : ''}
           ${isVideo && hasTimes ? `<div class="speed-pick" id="mode"><button type="button" class="btn sm ghost" id="modeBtn" aria-haspopup="true" aria-expanded="false" title="طريقة التشغيل"><span id="modeVal">▶ عادي</span></button>
-            <div class="speed-menu mode-menu hidden" role="menu"><button type="button" role="menuitem" data-mode="normal">▶ عادي</button><button type="button" role="menuitem" data-mode="gap">⏸ فاصل بين الجمل</button><label class="gap-len" title="مدة التوقف بعد كل جملة"><span class="tiny muted">مدة الفاصل</span><input type="range" id="gapRange" min="200" max="3000" step="100"><b class="tiny en-inline" id="gapVal"></b></label><button type="button" role="menuitem" data-mode="shadow">🗣 ردّد ورائي</button></div></div>` : ''}
+            <div class="speed-menu mode-menu hidden" role="menu"><label class="mode-switch"><input type="checkbox" class="check" id="gapOn"> ⏸ توقف بعد كل سطر</label><div class="gap-chips" id="gapChips">${[300, 500, 1000, 1500, 2000, 3000].map((ms) => `<button type="button" data-gap="${ms}" class="en-inline">${ms / 1000}ث</button>`).join('')}</div><div class="mode-sep"></div><button type="button" role="menuitem" data-mode="shadow">🗣 ردّد ورائي</button></div><button type="button" class="btn icon sm ghost hidden" id="modeOff" title="إيقاف التوقف — تشغيل عادي">✕</button></div>` : ''}
           <button type="button" class="btn icon sm ghost" id="focusBtn" aria-pressed="false" title="توسيع: إخفاء التفاصيل والتركيز على النص"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
           <span class="tiny mode-note" id="modeNote"></span>
           <span class="tiny muted" id="trNote"></span>
@@ -361,9 +361,11 @@ export async function render(view, { segments, params }) {
     const unsaved = data.items.filter((i) => !i.user_state);
     $('#wcount', view).textContent = data.items.length;
     side.innerHTML = `
-      <div class="row between" style="margin-bottom:10px"><b>كلمات مقترحة</b>
-        ${unsaved.length ? `<button class="btn sm" id="saveAll">${icon.bookmark} حفظ الكل (${unsaved.length})</button>` : ''}</div>
-      <p class="tiny muted" id="refineNote" style="margin:-4px 0 10px">${source.extractor === 'dictionary' ? (state.config.ai.available ? '<span class="spinner"></span> ✨ الذكاء الاصطناعي يختار كلمات أدق…' : 'مختارة من القاموس المحلي. اضغط أي كلمة في النص لمعناها.') : ''}</p>
+      <div class="side-head">
+        <div class="row between"><b>كلمات مقترحة <span class="tiny muted en-inline">(${data.items.length})</span></b>
+          ${unsaved.length ? `<button class="btn sm" id="saveAll">${icon.bookmark} حفظ الكل (${unsaved.length})</button>` : ''}</div>
+        <p class="tiny muted" id="refineNote" style="margin:6px 0 0">${source.extractor === 'dictionary' ? (state.config.ai.available ? '<span class="spinner"></span> ✨ الذكاء الاصطناعي يختار كلمات أدق…' : 'مختارة من القاموس المحلي. اضغط أي كلمة في النص لمعناها.') : ''}</p>
+      </div>
       <div class="side-list">${data.items.map((it) => `
         <div class="side-item ${it.user_state === 'dismissed' ? 'dim' : ''}" data-vid="${it.vocabulary_id}" data-line="${it.line_id}">
           <div style="min-width:0"><div class="row" style="gap:6px"><b class="en">${esc(it.term)}</b>${levelChip(it.level)}</div>
@@ -599,7 +601,7 @@ export async function render(view, { segments, params }) {
   // Playback modes: a short pause after each sentence, or "repeat after me"
   // (a silence as long as the sentence, so the learner can say it, then it continues).
   let playMode = pref('reader.mode', 'normal');
-  let gapMs = Math.max(200, Math.min(3000, Number(pref('reader.gapMs', '800')) || 800));
+  let gapMs = Math.max(200, Math.min(3000, Number(pref('reader.gapMs', '1000')) || 1000));
   let gapTimer = 0;
   let gapTick = 0;
   let gapDoneFor = null;
@@ -632,17 +634,24 @@ export async function render(view, { segments, params }) {
       if (alive && !isPanelOpen()) player.play();
     }, ms);
   }
-  const secs = () => `${(gapMs / 1000).toFixed(1)}ث`;
+  const secs = () => `${gapMs >= 1000 ? gapMs / 1000 : (gapMs / 1000).toFixed(1)}ث`;
   const showMode = () => {
-    const labels = { normal: '▶ عادي', gap: `⏸ فاصل ${secs()}`, shadow: '🗣 ردّد ورائي' };
-    const gv = $('#gapVal', view);
-    if (gv) gv.textContent = secs();
-    const gr = $('#gapRange', view);
-    if (gr && Number(gr.value) !== gapMs) gr.value = String(gapMs);
+    const labels = { normal: '⏸ توقف: لا', gap: `⏸ توقف ${secs()}`, shadow: '🗣 ردّد ورائي' };
     const v = $('#modeVal', view);
     if (v) v.textContent = labels[playMode] || labels.normal;
+    const on = $('#gapOn', view);
+    if (on) on.checked = playMode === 'gap';
+    view.querySelectorAll('#gapChips [data-gap]').forEach((b) => b.classList.toggle('active', playMode === 'gap' && Number(b.dataset.gap) === gapMs));
     view.querySelectorAll('#mode [data-mode]').forEach((b) => b.classList.toggle('active', b.dataset.mode === playMode));
     $('#modeBtn', view)?.classList.toggle('primary', playMode !== 'normal');
+    $('#modeOff', view)?.classList.toggle('hidden', playMode === 'normal');
+  };
+  const setMode = (m) => {
+    playMode = m;
+    setPref('reader.mode', playMode);
+    gapDoneFor = null;
+    if (cancelGap() && alive) player?.play?.();
+    showMode();
   };
   const modeMenu = $('#mode .speed-menu', view);
   const toggleMode = (open) => {
@@ -653,24 +662,20 @@ export async function render(view, { segments, params }) {
   document.addEventListener('click', closeMode);
   $('#mode', view)?.addEventListener('click', (e) => {
     if (e.target.closest('#modeBtn')) { toggleMode(modeMenu.classList.contains('hidden')); return; }
+    if (e.target.closest('#modeOff')) { setMode('normal'); return; }
+    const chip = e.target.closest('[data-gap]');
+    if (chip) {
+      gapMs = Number(chip.dataset.gap);
+      setPref('reader.gapMs', String(gapMs));
+      setMode('gap');
+      return;
+    }
     const b = e.target.closest('[data-mode]');
     if (!b) return;
     toggleMode(false);
-    playMode = b.dataset.mode;
-    setPref('reader.mode', playMode);
-    gapDoneFor = null;
-    if (cancelGap() && alive) player?.play?.();
-    showMode();
+    setMode(playMode === b.dataset.mode ? 'normal' : b.dataset.mode);
   });
-  $('#gapRange', view)?.addEventListener('input', (e) => {
-    gapMs = Number(e.target.value);
-    setPref('reader.gapMs', String(gapMs));
-    if (playMode !== 'gap') {
-      playMode = 'gap';
-      setPref('reader.mode', playMode);
-    }
-    showMode();
-  });
+  $('#gapOn', view)?.addEventListener('change', (e) => setMode(e.target.checked ? 'gap' : 'normal'));
   showMode();
   const tick = () => {
     if (!player || !timeline.length) return;

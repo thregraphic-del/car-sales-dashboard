@@ -235,3 +235,13 @@ CREATE TABLE IF NOT EXISTS import_map (
   new_id  INTEGER NOT NULL,
   PRIMARY KEY (user_id, tbl, old_id)
 );
+
+-- Suggestions sent by learners ("اقتراحاتكم").
+CREATE TABLE IF NOT EXISTS feedback (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  message    TEXT    NOT NULL,
+  contact    TEXT,
+  page       TEXT,
+  created_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);

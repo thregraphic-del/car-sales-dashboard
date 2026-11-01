@@ -829,3 +829,16 @@ body.reader-focus .page-reader .transcript { max-height: calc(100vh - 90px); }
 /* Phrase rows are always one column of rows (English | Arabic), on every screen size */
 .transcript .line-body.chunked, .transcript.bilingual .line-body.chunked { display: flex; flex-direction: column; align-items: stretch; gap: 2px; direction: ltr; width: 100%; }
 .transcript.hide-ar .line-body.chunked { display: block; }
+.fb-list { display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow: auto; }
+.fb-item { padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
+.mode-switch { display: flex; align-items: center; gap: 8px; padding: 8px 10px; font-weight: 700; font-size: 13.5px; cursor: pointer; white-space: nowrap; }
+.gap-chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 0 8px 8px; }
+.gap-chips button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 5px 0; cursor: pointer; font: inherit; color: var(--ink); }
+.gap-chips button.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.mode-sep { height: 1px; background: var(--line); margin: 2px 6px 4px; }
+#mode { display: inline-flex; align-items: center; gap: 2px; }
+/* The suggested-words title stays at the top while the list scrolls */
+.reader-side { padding-top: 0; }
+.side-head { position: sticky; top: 0; z-index: 3; background: var(--surface); padding: 14px 0 10px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }
+.side-head #refineNote:empty { display: none; }
+@media (max-width: 900px) { .side-head { top: 56px; } }
