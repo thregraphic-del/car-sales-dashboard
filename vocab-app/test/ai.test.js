@@ -373,3 +373,37 @@ test('built-in dictionary: built once with AI, then words and their forms need n
   assert.deepEqual(asked, COMMON_WORDS.slice(3, 6));
   delete process.env.DICTIONARY_BUILD_KEY;
 });
+
+test('voice: clear free natural voice through the server, long text in parts, browser voice if it fails', async () => {
+  const before = globalThis.fetch;
+  const asked = [];
+  globalThis.fetch = async (url, opts) => {
+    const u = String(url);
+    if (u.startsWith('https://translate.google.com/translate_tts')) {
+      asked.push(new URL(u).searchParams);
+      return new Response(Buffer.from([0xff, 0xf3, 0x44, 0xc4]), { status: 200, headers: { 'content-type': 'audio/mpeg' } });
+    }
+    return before(url, opts);
+  };
+  try {
+    const cfg = await (await realFetch(`${app.base}/api/config`)).json();
+    assert.equal(cfg.tts.server, true);
+    assert.equal(cfg.tts.provider, 'google-free');
+    const word = `obligation${Math.random().toString(36).slice(2, 8)}`; // saved sounds are reused, so a new word each run
+    const res = await realFetch(`${app.base}/api/tts?text=${word}&lang=en`);
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get('content-type'), /audio\/mpeg/);
+    assert.equal(asked[0].get('tl'), 'en-US');
+    assert.equal(asked[0].get('q'), word);
+    asked.length = 0;
+    const long = `${word} is a long sentence that keeps going, with many words in it. `.repeat(5);
+    assert.equal((await realFetch(`${app.base}/api/tts?${new URLSearchParams({ text: long, lang: 'en' })}`)).status, 200);
+    assert.ok(asked.length >= 2 && asked.every((q) => q.get('q').length <= 190), 'split into parts');
+    assert.equal((await realFetch(`${app.base}/api/tts?${new URLSearchParams({ text: `التزام ${word}`, lang: 'ar' })}`)).status, 200);
+    assert.equal(asked.at(-1).get('tl'), 'ar');
+    globalThis.fetch = async (url, opts) => (String(url).includes('translate_tts') ? new Response('no', { status: 429 }) : before(url, opts));
+    assert.equal((await realFetch(`${app.base}/api/tts?text=other${word}&lang=en`)).status, 502, 'client then uses the browser voice');
+  } finally {
+    globalThis.fetch = before;
+  }
+});
