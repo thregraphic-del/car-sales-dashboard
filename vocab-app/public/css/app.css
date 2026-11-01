@@ -826,3 +826,6 @@ body.reader-focus .page-reader .transcript { max-height: calc(100vh - 90px); }
 .line-body.chunked .chunk + .chunk { border-top: 1px dashed color-mix(in srgb, var(--line) 70%, transparent); }
 .line-body.chunked .chunk { padding-top: 4px; padding-bottom: 4px; }
 .chunk .c-ar.pending { color: var(--muted); }
+/* Phrase rows are always one column of rows (English | Arabic), on every screen size */
+.transcript .line-body.chunked, .transcript.bilingual .line-body.chunked { display: flex; flex-direction: column; align-items: stretch; gap: 2px; direction: ltr; width: 100%; }
+.transcript.hide-ar .line-body.chunked { display: block; }
