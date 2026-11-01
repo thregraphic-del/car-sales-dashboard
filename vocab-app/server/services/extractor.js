@@ -561,3 +561,38 @@ export async function suggestWordsWithAi({ count, topic = '', level = '', avoid 
     cache: false,
   });
 }
+
+/* ------------------------------------------ building the built-in dictionary */
+
+const DICT_SCHEMA = obj({
+  items: {
+    type: 'array',
+    items: obj({
+      input: str, skip: { type: 'boolean' }, lemma: str, part_of_speech: str, level: { type: 'string', enum: LEVELS },
+      arabic: str, simple_english: str, pronunciation: str, example: str, example_ar: str,
+      inflections: { type: 'array', items: str },
+      family: { type: 'array', items: obj({ pos: { type: 'string', enum: POS }, word: str, arabic: str }) },
+    }),
+  },
+});
+const DictZ = z.object({
+  items: z.array(z.object({
+    input: z.string(), skip: z.boolean(), lemma: z.string(), part_of_speech: z.string(), level: z.enum(LEVELS),
+    arabic: z.string(), simple_english: z.string(), pronunciation: z.string(), example: z.string(), example_ar: z.string(),
+    inflections: z.array(z.string()), family: z.array(z.object({ pos: z.enum(POS), word: z.string(), arabic: z.string() })),
+  })),
+});
+
+/** Dictionary entries for frequent words (one per input), for an Arabic-speaking learner. */
+export async function dictionaryBatchWithAi(words) {
+  const r = await jsonCall({
+    task: 'dictionary_batch',
+    system: 'You write a bilingual English–Arabic learner dictionary. For EACH input word return one item (keep "input" exactly). Set skip=true (other fields empty) for personal names, place names, brands, interjections and fillers (uh, hey), fragments of contractions (don, didn), vulgar words and non-English tokens. Otherwise: "lemma" = the dictionary form of the input (went→go, children→child, better→good only if it is the comparative; keep words like "completely" or "decision" as their own lemma); "part_of_speech" in English (noun, verb, adjective, adverb, phrasal verb…); "level" = CEFR A1–C2; "arabic" = the most common Arabic meanings, natural and accurate, up to three separated by " / "; "simple_english" = a short easy definition; "pronunciation" = IPA in slashes; "example" = one short natural sentence, "example_ar" = its Arabic; "inflections" = the lemma\'s inflected forms (plural, -s, past, past participle, -ing, comparative, superlative) that exist; "family" = the other common words of the same family with a different part of speech (فعل، اسم، صفة، ظرف، اسم فاعل), each with a short Arabic meaning — up to 5.',
+    user: words.join('\n'),
+    schema: DICT_SCHEMA,
+    zod: DictZ,
+    maxTokens: Math.min(16000, 260 * words.length + 600),
+    cache: false,
+  });
+  return r.items;
+}

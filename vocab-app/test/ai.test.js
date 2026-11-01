@@ -344,3 +344,32 @@ test('preparing a video (alignment) never uses up the daily AI limit', async () 
     process.env.AI_DAILY_LIMIT_PER_USER = before;
   }
 });
+
+test('built-in dictionary: built once with AI, then words and their forms need no AI', async () => {
+  process.env.DICTIONARY_BUILD_KEY = 'test-dictionary-key-123456';
+  const { COMMON_WORDS } = await import('../server/lib/common-words.js');
+  const [w1, w2, w3] = COMMON_WORDS;
+  reply = ok({ items: [
+    { input: w1, skip: true, lemma: '', part_of_speech: '', level: 'A1', arabic: '', simple_english: '', pronunciation: '', example: '', example_ar: '', inflections: [], family: [] },
+    { input: w2, skip: false, lemma: 'thrive', part_of_speech: 'verb', level: 'B2', arabic: 'يزدهر / ينجح', simple_english: 'to grow well', pronunciation: '/θraɪv/', example: 'Plants thrive in the sun.', example_ar: 'تزدهر النباتات في الشمس.', inflections: ['thrives', 'thrived', 'throve', 'thriving'], family: [{ pos: 'صفة', word: 'thriving', arabic: 'مزدهر' }] },
+    { input: w3, skip: false, lemma: 'meticulous', part_of_speech: 'adjective', level: 'C1', arabic: 'دقيق جدًا', simple_english: 'very careful', pronunciation: '/məˈtɪkjələs/', example: 'She is meticulous.', example_ar: 'هي دقيقة جدًا.', inflections: [], family: [{ pos: 'ظرف', word: 'meticulously', arabic: 'بدقة شديدة' }] },
+  ] });
+  const build = (body) => realFetch(`${app.base}/api/internal/dictionary`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-dictionary-key': process.env.DICTIONARY_BUILD_KEY }, body: JSON.stringify(body) });
+  assert.equal((await realFetch(`${app.base}/api/internal/dictionary`, { method: 'POST' })).status, 403, 'needs the key');
+  const r = await (await build({ offset: 0, count: 3 })).json();
+  assert.equal(r.processed, 3);
+  calls = [];
+  const look = await (await realFetch(`${app.base}/api/lookup?word=throve`)).json();
+  assert.equal(look.found, true);
+  assert.equal(look.term, 'thrive');
+  assert.match(look.arabic, /يزدهر/);
+  const forms = await (await realFetch(`${app.base}/api/ai/forms?word=meticulous`)).json();
+  assert.deepEqual(forms.forms.map((f) => f.word), ['meticulous', 'meticulously']);
+  assert.equal(calls.filter((c) => c.u.endsWith('/chat/completions')).length, 0, 'no AI after the dictionary is built');
+  calls = [];
+  await build({ offset: 0, count: 3 });
+  const asked = calls.find((c) => c.u.endsWith('/chat/completions')).body.messages.at(-1).content.split('\n');
+  assert.ok(![w1, w2, w3].some((w) => asked.includes(w)), 'processed words are not asked again; the next ones are');
+  assert.deepEqual(asked, COMMON_WORDS.slice(3, 6));
+  delete process.env.DICTIONARY_BUILD_KEY;
+});

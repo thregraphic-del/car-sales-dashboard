@@ -245,3 +245,7 @@ CREATE TABLE IF NOT EXISTS feedback (
   page       TEXT,
   created_at TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
+
+-- Built-in dictionary: inflected form → dictionary word; processed frequency-list words.
+CREATE TABLE IF NOT EXISTS lemma_index (form TEXT PRIMARY KEY, lemma TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS dictionary_done (word TEXT PRIMARY KEY);

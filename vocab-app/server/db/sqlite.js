@@ -9,7 +9,7 @@ import { learningSignals } from '../lib/srs.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(here, '..', '..');
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 export const DEFAULT_SQLITE_PATH = path.join(ROOT, 'data', 'lexitube.db');
 
 export function resolvePath(p) {
@@ -147,6 +147,11 @@ export function migrate(d) {
       id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
       message TEXT NOT NULL, contact TEXT, page TEXT,
       created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))`);
+  }
+  if (version < 10) {
+    // v10: built-in dictionary (inflected form → dictionary word).
+    d.exec('CREATE TABLE IF NOT EXISTS lemma_index (form TEXT PRIMARY KEY, lemma TEXT NOT NULL)');
+    d.exec('CREATE TABLE IF NOT EXISTS dictionary_done (word TEXT PRIMARY KEY)');
   }
   d.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }

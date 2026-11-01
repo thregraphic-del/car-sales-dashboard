@@ -11,6 +11,7 @@ import { matchKey, lemmaCandidates, quickTier } from '../../public/js/shared/tex
 import { findVocabulary, upsertVocabulary, vocabularyPublic, getVocabulary, examplesOf } from '../data/vocabulary.js';
 import { occurrenceFor, getLine } from '../data/sources.js';
 import { userStateFor } from '../data/words.js';
+import { lemmaOf } from './dictionary.js';
 
 const inFlight = new Map(); // same click twice → one AI call
 
@@ -23,7 +24,14 @@ export async function lookup({ line_id, word, vocabulary_id, context = false }, 
   const tier = word ? quickTier(word) : null;
 
   if (!vocab && word) {
-    for (const c of lemmaCandidates(word)) {
+    // The word itself, then its dictionary form from the built-in dictionary (went → go),
+    // then the usual spelling rules (decided → decide).
+    vocab = await findVocabulary(word);
+    if (!vocab) {
+      const lemma = await lemmaOf(word);
+      if (lemma) vocab = await findVocabulary(lemma);
+    }
+    for (const c of vocab ? [] : lemmaCandidates(word)) {
       vocab = await findVocabulary(c);
       if (vocab) break;
     }

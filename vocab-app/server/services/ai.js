@@ -166,14 +166,14 @@ function pause(ms, message, learnerMessage = null) {
 /** The reason AI can't be used right now, in the learner's words. */
 export const unavailableMessage = () => (aiConfigured() ? (Date.now() < pausedUntil && pauseMessage) || OFFLINE_MESSAGE : MISSING_KEY_MESSAGE);
 
-const cacheKey = (task, input) => crypto.createHash('sha256').update(`${task}\n${input}`).digest('hex');
+export const cacheKey = (task, input) => crypto.createHash('sha256').update(`${task}\n${input}`).digest('hex');
 
 async function readCache(key) {
   const row = await get('SELECT response FROM ai_cache WHERE key = ?', key);
   return row ? JSON.parse(row.response) : null;
 }
 
-async function writeCache(key, task, value) {
+export async function writeCache(key, task, value) {
   await run(
     `INSERT INTO ai_cache (key, task, model, response, created_at) VALUES (?,?,?,?,?)
      ON CONFLICT (key) DO UPDATE SET model = excluded.model, response = excluded.response, created_at = excluded.created_at`,

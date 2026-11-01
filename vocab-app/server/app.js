@@ -89,6 +89,21 @@ export function createApp() {
       return next(err);
     }
   });
+  // Building the built-in dictionary (operator only, DICTIONARY_BUILD_KEY): one batch per call.
+  app.all('/api/internal/dictionary', async (req, res, next) => {
+    try {
+      const key = process.env.DICTIONARY_BUILD_KEY || '';
+      if (key.length < 16 || req.get('x-dictionary-key') !== key) return res.status(403).json({ error: 'forbidden' });
+      const dict = await import('./services/dictionary.js');
+      if (req.method === 'GET') return res.json(await dict.dictionaryStatus());
+      const offset = Math.max(0, Number(req.body?.offset) || 0);
+      const count = Math.max(1, Math.min(40, Number(req.body?.count) || 20));
+      return res.json(await dict.buildDictionaryStep({ offset, count }));
+    } catch (err) {
+      if (err?.name === 'AiError' || err?.constructor?.name === 'AiError') return res.status(503).json({ error: err.message });
+      return next(err);
+    }
+  });
   app.use('/api', authenticate);
 
   app.use('/api/auth', authRoutes);
