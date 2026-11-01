@@ -181,10 +181,12 @@ function lineHtml(line, marks) {
     return [lo, hi];
   };
   // Phrase by phrase: each English phrase with its Arabic on the same row.
-  const body = line.align?.length
-    ? `<div class="line-body chunked">${line.align.map(([from, to, ar], k) => {
+  // Until it is split into phrases, a line is one row: English beside its Arabic.
+  const rows = line.align?.length ? line.align : (seekable ? [[0, line.text.length, line.text_ar || '']] : null);
+  const body = rows
+    ? `<div class="line-body chunked">${rows.map(([from, to, ar], k) => {
       const [w0, w1] = wordsIn(from, to);
-      return `<div class="chunk" data-c="${k}" data-w0="${w0}" data-w1="${w1}"><p class="c-en en">${renderRange(from, to)}</p><p class="c-ar" dir="rtl">${esc(ar)}</p></div>`;
+      return `<div class="chunk" data-c="${k}" data-w0="${w0}" data-w1="${w1}"><p class="c-en en">${renderRange(from, to)}</p><p class="c-ar${ar ? '' : ' pending'}" dir="rtl">${ar ? esc(ar) : '…'}</p></div>`;
     }).join('')}</div>`
     : `<div class="line-body"><p class="line-en en">${renderRange(0, line.text.length)}</p>${line.text_ar ? `<p class="line-ar" dir="rtl">${seekable ? line.text_ar.split(/(\s+)/).map((w) => (/\S/.test(w) ? `<span class="aw">${esc(w)}</span>` : w)).join('') : esc(line.text_ar)}</p>` : '<p class="line-ar pending" dir="rtl">…</p>'}</div>`;
   return `
@@ -436,7 +438,7 @@ export async function render(view, { segments, params }) {
       }
     };
     try {
-      await Promise.all([worker(0), worker(10), worker(20)]);
+      await Promise.all([0, 12, 24, 36, 48].map(worker));
     } finally {
       aligning = false;
     }
@@ -456,9 +458,11 @@ export async function render(view, { segments, params }) {
         const r = await api.translateStep(id);
         for (const { id: lineId, ar } of r.lines || []) {
           const line = data.lines.find((l) => l.id === lineId);
-          if (line && !line.text_ar) line.text_ar = ar;
+          if (line && !line.text_ar) {
+            line.text_ar = ar;
+            if (!line.align) redrawLine(line);
+          }
         }
-        if (r.lines?.length) drawLines();
         if (r.complete) {
           if (r.ai_error && missingAr()) setTrNote(`تعذّرت الترجمة: ${esc(r.ai_error)} <button class="link-btn" id="retryTr">أعد المحاولة</button>`);
           else setTrNote('');
@@ -474,7 +478,8 @@ export async function render(view, { segments, params }) {
       if (!missingAr()) setTrNote('');
     }
   }
-  ensureAlignment().then(() => ensureTranslation());
+  ensureAlignment();
+  ensureTranslation();
 
   // 2) Smarter word choice: AI reads the transcript in chunks and adds the
   //    useful words / expressions with their meaning in context.
@@ -1061,7 +1066,8 @@ export async function render(view, { segments, params }) {
     setPref('reader.ar', showAr ? '1' : '0');
     linesEl.classList.toggle('hide-ar', !showAr);
     linesEl.classList.toggle('bilingual', showAr);
-    ensureAlignment().then(() => ensureTranslation());
+    ensureAlignment();
+    ensureTranslation();
   });
   $('#followToggle', view)?.addEventListener('change', (e) => {
     follow = e.target.checked;

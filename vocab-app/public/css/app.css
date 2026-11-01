@@ -825,3 +825,4 @@ body.reader-focus .page-reader .transcript { max-height: calc(100vh - 90px); }
 .chunk .c-ar { cursor: pointer; }
 .line-body.chunked .chunk + .chunk { border-top: 1px dashed color-mix(in srgb, var(--line) 70%, transparent); }
 .line-body.chunked .chunk { padding-top: 4px; padding-bottom: 4px; }
+.chunk .c-ar.pending { color: var(--muted); }

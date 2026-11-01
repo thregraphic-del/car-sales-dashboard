@@ -215,7 +215,7 @@ export async function translationStatus(sourceId, userId) {
  */
 export async function alignSource(sourceId, userId, fromIdx = 0, skip = 0) {
   const src = await requireSource(sourceId, userId);
-  const batch = await sources.unalignedLines(sourceId, Math.max(0, Number(fromIdx) || 0), 10, Math.max(0, Math.min(100, Number(skip) || 0)));
+  const batch = await sources.unalignedLines(sourceId, Math.max(0, Number(fromIdx) || 0), 12, Math.max(0, Math.min(120, Number(skip) || 0)));
   if (!batch.length) return { complete: true, lines: [] };
   if (!aiAvailable()) return { complete: true, lines: [], ai_error: unavailableMessage() };
   let map;

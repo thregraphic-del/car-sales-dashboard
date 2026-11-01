@@ -318,7 +318,7 @@ test('story: last week / number of words', async () => {
 
 test('alignment: the AI renumbering lines still works (matched in order)', async () => {
   const v = await (await realFetch(`${app.base}/api/sources/3`)).json();
-  const batch = v.lines.slice(0, 10);
+  const batch = v.lines.slice(0, 12);
   reply = ok({ lines: batch.map((l, k) => ({ i: k + 1, chunks: [{ en: l.text, ar: `ترجمة ${k}` }] })) });
   const r = await postJson('/api/sources/3/align', { from: 0 });
   assert.equal(r.status, 200);
