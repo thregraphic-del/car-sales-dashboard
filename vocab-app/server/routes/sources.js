@@ -46,7 +46,7 @@ router.post('/:id/refine', wrap(async (req) => service.refineSource(idParam(req)
 router.get('/:id/translation', wrap(async (req) => service.translationStatus(idParam(req), req.userId)));
 router.post('/:id/translation', wrap(async (req) => service.translateSource(idParam(req), req.userId)));
 
-router.post('/:id/align', wrap(async (req) => service.alignSource(idParam(req), req.userId, req.body?.from)));
+router.post('/:id/align', wrap(async (req) => service.alignSource(idParam(req), req.userId, req.body?.from, req.body?.skip)));
 
 router.put('/:id/progress', wrap(async (req) => {
   const id = idParam(req);

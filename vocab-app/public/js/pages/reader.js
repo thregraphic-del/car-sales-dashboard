@@ -414,10 +414,10 @@ export async function render(view, { segments, params }) {
     const worker = async (offset) => {
       for (let step = 0; alive && showAr && !complete && step < 40; step += 1) {
         const cur = data.lines.find((l) => l.id === currentId);
-        const from = (cur ? cur.idx : 0) + offset;
+        const from = cur ? cur.idx : 0;
         let r;
         try {
-          r = await api.alignStep(id, from);
+          r = await api.alignStep(id, from, offset); // each worker takes a different batch
         } catch {
           return;
         }
@@ -428,10 +428,11 @@ export async function render(view, { segments, params }) {
           if (!line.text_ar && a.ar) line.text_ar = a.ar;
           redrawLine(line);
         }
-        if (r.complete || r.ai_error || !r.lines?.length) {
+        if (r.complete || r.ai_error) {
           complete = true;
           return;
         }
+        if (!r.lines?.length) return; // nothing left for this worker
       }
     };
     try {

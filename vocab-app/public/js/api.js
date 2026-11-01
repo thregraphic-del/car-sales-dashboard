@@ -48,7 +48,7 @@ export const api = {
   saveProgress: (id, seconds, keepalive = false) => fetch(`/api/sources/${id}/progress`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seconds }), keepalive }).catch(() => {}),
   deleteSource: (id) => request('DELETE', `/api/sources/${id}`),
   translation: (id) => request('GET', `/api/sources/${id}/translation`),
-  alignStep: (id, from) => request('POST', `/api/sources/${id}/align`, { from }),
+  alignStep: (id, from, skip = 0) => request('POST', `/api/sources/${id}/align`, { from, skip }),
   translateStep: (id) => request('POST', `/api/sources/${id}/translation`),
   refineStep: (id) => request('POST', `/api/sources/${id}/refine`),
 

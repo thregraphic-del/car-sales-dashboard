@@ -213,9 +213,9 @@ export async function translationStatus(sourceId, userId) {
  * where the learner is. Lines the AI can't split exactly are marked as done
  * with an empty alignment, so they keep the normal layout and aren't retried.
  */
-export async function alignSource(sourceId, userId, fromIdx = 0) {
+export async function alignSource(sourceId, userId, fromIdx = 0, skip = 0) {
   const src = await requireSource(sourceId, userId);
-  const batch = await sources.unalignedLines(sourceId, Math.max(0, Number(fromIdx) || 0), 10);
+  const batch = await sources.unalignedLines(sourceId, Math.max(0, Number(fromIdx) || 0), 10, Math.max(0, Math.min(100, Number(skip) || 0)));
   if (!batch.length) return { complete: true, lines: [] };
   if (!aiAvailable()) return { complete: true, lines: [], ai_error: unavailableMessage() };
   let map;

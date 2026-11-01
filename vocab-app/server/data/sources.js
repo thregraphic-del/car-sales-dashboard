@@ -64,10 +64,10 @@ export const parseAlign = (json) => {
 };
 
 /** Lines still without a phrase alignment, from line index `fromIdx` on (then from the start). */
-export async function unalignedLines(sourceId, fromIdx, limit) {
+export async function unalignedLines(sourceId, fromIdx, limit, skip = 0) {
   const cols = 'id, idx, text, text_ar, words_json';
-  const after = await all(`SELECT ${cols} FROM transcript_lines WHERE source_id = ? AND (align_json IS NULL OR align_json = '[]') AND idx >= ? ORDER BY idx LIMIT ?`, sourceId, fromIdx, limit);
-  const rows = after.length ? after : await all(`SELECT ${cols} FROM transcript_lines WHERE source_id = ? AND (align_json IS NULL OR align_json = '[]') ORDER BY idx LIMIT ?`, sourceId, limit);
+  const after = await all(`SELECT ${cols} FROM transcript_lines WHERE source_id = ? AND (align_json IS NULL OR align_json = '[]') AND idx >= ? ORDER BY idx LIMIT ? OFFSET ?`, sourceId, fromIdx, limit, skip);
+  const rows = after.length ? after : await all(`SELECT ${cols} FROM transcript_lines WHERE source_id = ? AND (align_json IS NULL OR align_json = '[]') ORDER BY idx LIMIT ? OFFSET ?`, sourceId, limit, skip);
   return rows.map(({ words_json: w, ...l }) => ({ ...l, words: parseWords(w) }));
 }
 
