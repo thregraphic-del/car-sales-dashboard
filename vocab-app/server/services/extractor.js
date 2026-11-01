@@ -124,15 +124,17 @@ const ExtractZ = z.object({
   })),
 });
 
-const EXTRACT_SYSTEM = `You are an expert English teacher building vocabulary lessons for an intermediate (B1–B2) English learner whose first language is Arabic. You read a numbered transcript and choose the vocabulary worth this learner's time.
+const EXTRACT_SYSTEM = `You are an expert English teacher building vocabulary lessons for an English learner whose first language is Arabic. You read a numbered transcript and choose the vocabulary worth this learner's time, from EVERY level A1 to C2.
 
-Basic A1–A2 words and grammar words are handled separately — do not list them. Choose:
-- B1–C2 words and expressions useful in conversation, university, work, media and everyday life (band "useful" for B1–B2, "advanced" for C1–C2);
+Grammar words (the, is, of, and, it…) are never listed. Choose a balanced mix across all levels:
+- A1–A2: important, frequent content words and expressions a learner must know (nouns, verbs, adjectives, adverbs, everyday phrases) — only the ones that matter in this video, not every simple word (band "useful");
+- B1–B2 words and expressions useful in conversation, university, work, media and everyday life (band "useful");
+- C1–C2 words and expressions (band "advanced");
 - domain terms that are central to this video and reusable in its field (band "specialized", e.g. finance or data terms);
 - multi-word items as ONE item when they carry one meaning (phrasal verbs, idioms, collocations, fixed expressions), written in dictionary form with "something"/"someone" slots.
 Never include names of people, brands or places, numbers, filler words, duplicates or inflected variants of an item already chosen, or archaic words.
 
-Quality over quantity: roughly 2 items per minute of video, never padding the list.
+Quality over quantity: roughly 3 items per minute of video, every level represented when the video has it, never padding the list.
 
 For each item:
 - line: the number of the transcript line where it appears (use the [n] markers exactly).
@@ -199,8 +201,8 @@ const ChunkZ = z.object({
 export async function extractChunkWithAi({ title, lines }) {
   const transcript = lines.map((l) => `[${l.idx}] ${l.text}`).join('\n');
   const out = await jsonCall({
-    task: 'extract_chunk',
-    system: `${EXTRACT_SYSTEM}\n\nYou receive one part of a longer transcript. Choose only from these lines; at most one item per two lines. Leave out example fields — they are not needed here.`,
+    task: 'extract_chunk_v2',
+    system: `${EXTRACT_SYSTEM}\n\nYou receive one part of a longer transcript. Choose only from these lines; about one item per line at most. Leave out example fields — they are not needed here.`,
     user: `Title: ${title}\n\n<transcript>\n${transcript}\n</transcript>`,
     schema: CHUNK_SCHEMA,
     zod: ChunkZ,

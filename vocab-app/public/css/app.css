@@ -856,3 +856,7 @@ body.reader-focus .page-reader .transcript { max-height: calc(100vh - 90px); }
 .word-pop .wp-sticky { position: sticky; bottom: -16px; z-index: 2; background: var(--surface); margin: 12px -18px -16px; padding: 10px 18px 14px; border-top: 1px solid var(--line); box-shadow: 0 -8px 16px -12px rgba(0,0,0,.25); }
 .word-pop.sheet .wp-sticky { bottom: calc(-18px - env(safe-area-inset-bottom)); margin-bottom: calc(-18px - env(safe-area-inset-bottom)); padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
 .word-pop .wp-forms { margin-top: 8px; }
+/* Word details in the middle of the screen */
+.word-pop.centered { top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(460px, calc(100vw - 32px)) !important; max-height: min(84vh, 760px) !important; animation: popIn .18s var(--ease); box-shadow: 0 24px 60px -12px rgba(0,0,0,.35), 0 0 0 100vmax rgba(0,0,0,.18); }
+@keyframes popIn { from { opacity: 0; } to { opacity: 1; } }
+.word-pop.sheet { max-height: 85vh; }

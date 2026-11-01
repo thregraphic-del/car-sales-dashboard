@@ -145,24 +145,10 @@ function onOutside(e) {
 }
 export const isPanelOpen = () => !!panelEl;
 
-function placePanel(el, anchor) {
-  if (window.matchMedia('(max-width: 720px)').matches || !anchor) {
-    el.classList.add('sheet');
-    return;
-  }
-  const r = anchor.getBoundingClientRect();
-  const w = 340;
-  let left = r.left + r.width / 2 - w / 2;
-  left = Math.max(12, Math.min(window.innerWidth - w - 12, left));
-  el.style.left = `${left}px`;
-  el.style.width = `${w}px`;
-  // Open on the side with more room, and never taller than that room (Save stays reachable).
-  const spaceBelow = window.innerHeight - r.bottom - 22;
-  const spaceAbove = r.top - 22;
-  const useBelow = spaceBelow >= 380 || spaceBelow >= spaceAbove;
-  if (useBelow) el.style.top = `${r.bottom + 10}px`;
-  else el.style.bottom = `${window.innerHeight - r.top + 10}px`;
-  el.style.maxHeight = `${Math.max(220, Math.min(560, useBelow ? spaceBelow : spaceAbove))}px`;
+function placePanel(el) {
+  // Phones: a sheet from the bottom. Larger screens: in the middle of the screen,
+  // scrolling inside, so everything (and Save) is always reachable.
+  el.classList.add(window.matchMedia('(max-width: 720px)').matches ? 'sheet' : 'centered');
 }
 
 /**
@@ -228,7 +214,7 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
         <button class="btn icon sm ghost wp-close" aria-label="إغلاق">${icon.x}</button>
         <div class="wp-term en">${esc(info.word)} ${listenRow(info.word)}</div>
         <p class="small ink-2" style="margin-top:8px">${info.tier === 'function' ? 'كلمة نحوية شائعة — لا تحتاج حفظًا.'
-          : info.tier === 'basic' ? 'كلمة أساسية (A1–A2) تعرفها على الأغلب.'
+          : info.tier === 'basic' ? 'كلمة أساسية (A1–A2) — مهمة، احفظها إن لم تكن متأكدًا منها.'
           : 'لا يوجد معنى لهذه الكلمة في القاموس المحلي.'}</p>
         ${baseHtml(forms, info.word)}
         ${info.ai_error ? `<p class="tiny muted">${esc(info.ai_error)}</p>` : ''}
