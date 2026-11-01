@@ -93,7 +93,8 @@ const WORD_SELECT = `
   SELECT uv.*, uv.id AS uv_id,
     v.term, v.item_type, v.part_of_speech, v.level, v.band, v.usefulness, v.pronunciation, v.arabic AS arabic_general,
     v.simple_english, v.similar_json, v.topic,
-    o.sentence AS context_sentence, o.sentence_ar AS context_arabic, o.contextual_meaning, o.timestamp_seconds,
+    o.sentence AS context_sentence,
+    COALESCE(o.sentence_ar, (SELECT l.text_ar FROM transcript_lines l WHERE l.id = o.line_id AND trim(l.text) = trim(o.sentence))) AS context_arabic, o.contextual_meaning, o.timestamp_seconds,
     s.kind AS source_kind, s.youtube_id, s.title AS source_title, s.channel AS source_channel, s.is_demo AS source_is_demo, s.thumbnail_url AS source_thumbnail,
     (SELECT group_concat(gi.group_id) FROM word_group_items gi WHERE gi.user_vocabulary_id = uv.id) AS group_ids
   FROM user_vocabulary uv

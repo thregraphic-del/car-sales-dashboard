@@ -256,3 +256,15 @@ test("today's plan is stable and mixes buckets", async () => {
   assert.equal(p1.total, 10);
   assert.ok(p1.counts.difficult > 0 && p1.counts.review > 0);
 });
+
+test('export: the example\'s Arabic is filled even when the line was translated after saving', async () => {
+  const { run, get } = await import('../server/db/index.js');
+  const w = (await words()).find((x) => x.context_sentence);
+  const occ = await get('SELECT o.id, o.line_id, o.sentence FROM user_vocabulary uv JOIN occurrences o ON o.id = uv.occurrence_id WHERE uv.id = ?', w.uv_id);
+  await run('UPDATE occurrences SET sentence_ar = NULL WHERE id = ?', occ.id);
+  await run('UPDATE transcript_lines SET text = ?, text_ar = ? WHERE id = ?', occ.sentence, 'ترجمة السطر لاحقًا', occ.line_id);
+  const rows = (await call('GET', '/api/export?range=all&format=json')).body.words;
+  const row = rows.find((r) => r.Word === w.term);
+  assert.equal(row.Example, occ.sentence);
+  assert.equal(row['Example Arabic'], 'ترجمة السطر لاحقًا');
+});

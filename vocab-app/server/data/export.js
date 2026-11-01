@@ -19,15 +19,20 @@ export async function exportRows(userId, f = {}) {
   const words = await listWords(userId, filters);
   const groups = new Map((await all('SELECT id, name FROM word_groups WHERE user_id = ?', userId)).map((g) => [g.id, g.name]));
   return words.map((w) => {
-    const ex = w.examples.find((e) => e.kind === 'user') || w.examples.find((e) => e.kind === 'example') || w.examples[0];
+    // An example together with its Arabic: the sentence it was saved from when it is
+    // translated, otherwise another example that has a translation.
+    const withAr = (e) => e?.sentence && e.arabic;
+    const ctx = w.context_sentence ? { sentence: w.context_sentence, arabic: w.context_arabic } : null;
+    const ex = (withAr(ctx) && ctx) || ['user', 'example', 'easy'].map((k) => w.examples.find((e) => e.kind === k && withAr(e))).find(Boolean)
+      || w.examples.find(withAr) || ctx || w.examples.find((e) => e?.sentence) || null;
     return {
       Word: w.term,
       Arabic: w.arabic || '',
       'CEFR Level': w.level || '',
       'Part of Speech': w.part_of_speech || '',
       'Simple English': w.simple_english || '',
-      Example: w.context_sentence || ex?.sentence || '',
-      'Example Arabic': w.context_sentence ? w.context_arabic || '' : ex?.arabic || '',
+      Example: ex?.sentence || '',
+      'Example Arabic': ex?.arabic || '',
       Group: w.group_ids.map((g) => groups.get(g)).filter(Boolean).join('; '),
       Topic: w.topic || '',
       Source: w.source?.title || '',
