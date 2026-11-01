@@ -324,3 +324,23 @@ test('alignment: the AI renumbering lines still works (matched in order)', async
   assert.equal(r.status, 200);
   assert.equal(r.body.lines.filter((l) => l.align).length, batch.length);
 });
+
+test('preparing a video (alignment) never uses up the daily AI limit', async () => {
+  const before = process.env.AI_DAILY_LIMIT_PER_USER;
+  process.env.AI_DAILY_LIMIT_PER_USER = '1';
+  try {
+    reply = ok({ arabic: 'x', explanation: 'x', simple_english: 'x', grammar_note: '', key_words: [] });
+    await post('use the only call left today');
+    assert.equal((await post('one more explanation today')).status, 429, 'the daily limit applies to explanations');
+    const v = await (await realFetch(`${app.base}/api/sources/1`)).json();
+    const l = v.lines.find((x) => !x.align);
+    reply = ok({ lines: [{ i: l.idx, chunks: [{ en: l.text, ar: 'ترجمة' }] }] });
+    calls = [];
+    const r = await postJson('/api/sources/1/align', { from: l.idx });
+    assert.equal(r.status, 200);
+    assert.ok(!r.body.ai_error, r.body.ai_error);
+    assert.ok(calls.some((c) => c.u.endsWith('/chat/completions')), 'alignment still asks the AI');
+  } finally {
+    process.env.AI_DAILY_LIMIT_PER_USER = before;
+  }
+});

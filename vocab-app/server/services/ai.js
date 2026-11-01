@@ -84,10 +84,14 @@ export async function checkModel({ force = false } = {}) {
 const today = () => new Date().toISOString().slice(0, 10);
 
 /** Count one AI request for the current learner; throws when today's limit is reached. */
-async function useQuota() {
+// Preparing a video (its Arabic lines and phrase alignment) is bounded by the
+// video's length and saved for everyone, so it never uses up the learner's daily limit.
+const VIDEO_TASKS = new Set(['translate_lines', 'align_lines']);
+
+async function useQuota(task) {
   const userId = aiContext.getStore()?.userId;
   const limit = config.ai.dailyLimitPerUser;
-  if (!userId || !(limit > 0)) return;
+  if (!userId || !(limit > 0) || VIDEO_TASKS.has(task)) return;
   const rows = await all(
     'INSERT INTO ai_usage (user_id, day, calls) VALUES (?, ?, 1) ON CONFLICT (user_id, day) DO UPDATE SET calls = ai_usage.calls + 1 RETURNING calls',
     userId, today(),
@@ -241,7 +245,7 @@ export async function jsonCall({ task, system, user, attachments = null, extra =
   }
   if (!aiAvailable()) throw new AiError(unavailableMessage());
   if (!withinBudget()) throw new AiError('خدمة الذكاء الاصطناعي مشغولة الآن — نستخدم القاموس المحلي. حاول بعد قليل.', 429);
-  await useQuota();
+  await useQuota(task);
 
   // On serverless hosting the whole call (including format retries) must
   // finish before the function's time limit.

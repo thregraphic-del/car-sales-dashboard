@@ -849,3 +849,6 @@ body.reader-focus .page-reader .transcript { max-height: calc(100vh - 90px); }
 .transcript.ar-below.bilingual .line-body:not(.chunked) { grid-template-columns: minmax(0, 1fr); gap: 2px; }
 .transcript.ar-below.bilingual .line-body:not(.chunked) .line-ar { border-left: 0; padding-left: 0; }
 .ar-layout button { padding: 5px 10px; font-size: 12.5px; }
+/* "Under": the Arabic starts right under its English phrase */
+.transcript.ar-below .chunk .c-ar { text-align: left; padding-left: 0; margin-top: 1px; }
+.transcript.ar-below.bilingual .line-body:not(.chunked) .line-ar { text-align: left; }
