@@ -201,8 +201,8 @@ const ChunkZ = z.object({
 export async function extractChunkWithAi({ title, lines }) {
   const transcript = lines.map((l) => `[${l.idx}] ${l.text}`).join('\n');
   const out = await jsonCall({
-    task: 'extract_chunk_v2',
-    system: `${EXTRACT_SYSTEM}\n\nYou receive one part of a longer transcript. Choose only from these lines; about one item per line at most. Leave out example fields — they are not needed here.`,
+    task: 'extract_chunk_v3',
+    system: `${EXTRACT_SYSTEM}\n\nYou receive one part of a longer transcript. Choose only from these lines. Return 8–12 items spread over ALL levels present: at least 2–3 important A1–A2 words, 2–3 at B1, 2–3 at B2, and the C1–C2 words and expressions that appear. Set "level" honestly for each. Leave out example fields — they are not needed here.`,
     user: `Title: ${title}\n\n<transcript>\n${transcript}\n</transcript>`,
     schema: CHUNK_SCHEMA,
     zod: ChunkZ,
