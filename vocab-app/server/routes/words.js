@@ -5,7 +5,8 @@ import { httpError } from '../lib/errors.js';
 import { lookup } from '../services/lookup.js';
 import * as words from '../data/words.js';
 import { groupIdsFor, setWordGroups } from '../data/groups.js';
-import { exportRows, toCsv } from '../data/export.js';
+import { exportRows, toCsv, XLSX_COLUMNS } from '../data/export.js';
+import { toXlsx } from '../lib/xlsx.js';
 
 const router = Router();
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
@@ -83,6 +84,12 @@ router.get('/export', wrap(async (req, res) => {
   if (q.format === 'json') {
     res.set('Content-Disposition', `attachment; filename="lexitube-words-${stamp}.json"`);
     return { exported_at: new Date().toISOString(), count: rows.length, words: rows };
+  }
+  if (q.format !== 'csv') {
+    res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+      .set('Content-Disposition', `attachment; filename="lexitube-words-${stamp}.xlsx"`)
+      .send(toXlsx(rows, XLSX_COLUMNS, 'كلماتي'));
+    return undefined;
   }
   res.set('Content-Type', 'text/csv; charset=utf-8').set('Content-Disposition', `attachment; filename="lexitube-words-${stamp}.csv"`).send(toCsv(rows));
   return undefined;

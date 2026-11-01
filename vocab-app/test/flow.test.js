@@ -199,8 +199,31 @@ test('mistakes become a learning signal: missed words replay first and lead smar
   assert.ok(stats.attention.length > 0);
 });
 
+test('export: Excel file by default, one column each for English, Arabic, example and its translation', async () => {
+  const res = await fetch(`${base}/api/export?range=all`);
+  assert.match(res.headers.get('content-type'), /spreadsheetml/);
+  assert.match(res.headers.get('content-disposition'), /\.xlsx"/);
+  const buf = Buffer.from(await res.arrayBuffer());
+  assert.equal(buf.subarray(0, 2).toString(), 'PK');
+  const { inflateRawSync } = await import('node:zlib');
+  // read the sheet out of the zip
+  let sheet = '';
+  for (let p = 0; p < buf.length - 4;) {
+    if (buf.readUInt32LE(p) !== 0x04034b50) break;
+    const size = buf.readUInt32LE(p + 18);
+    const nameLen = buf.readUInt16LE(p + 26);
+    const name = buf.subarray(p + 30, p + 30 + nameLen).toString();
+    const data = buf.subarray(p + 30 + nameLen, p + 30 + nameLen + size);
+    if (name === 'xl/worksheets/sheet1.xml') sheet = inflateRawSync(data).toString('utf8');
+    p += 30 + nameLen + size;
+  }
+  const header = [...sheet.match(/<row r="1">(.*?)<\/row>/)[1].matchAll(/<t[^>]*>(.*?)<\/t>/g)].map((m) => m[1]);
+  assert.deepEqual(header.slice(0, 4), ['English', 'العربي', 'Example', 'ترجمة المثال']);
+  assert.equal((sheet.match(/<row /g) || []).length - 1, (await words()).length);
+});
+
 test('export: CSV with useful columns and working filters', async () => {
-  const all = await call('GET', '/api/export?range=all');
+  const all = await call('GET', '/api/export?range=all&format=csv');
   assert.match(all.headers.get('content-type'), /text\/csv/);
   const lines = all.text.replace(/^﻿/, '').trim().split(/\r?\n/);
   assert.equal(lines[0], 'Word,Arabic,CEFR Level,Part of Speech,Simple English,Example,Example Arabic,Group,Topic,Source,Saved Date,Mastery,Correct,Wrong,Difficult');

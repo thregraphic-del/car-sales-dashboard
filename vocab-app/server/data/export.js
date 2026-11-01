@@ -40,6 +40,22 @@ export async function exportRows(userId, f = {}) {
   });
 }
 
+/** Excel columns: English, Arabic, example and its translation side by side, then the details. */
+export const XLSX_COLUMNS = [
+  { key: 'Word', title: 'English', width: 24 },
+  { key: 'Arabic', title: 'العربي', width: 26, rtl: true },
+  { key: 'Example', title: 'Example', width: 50 },
+  { key: 'Example Arabic', title: 'ترجمة المثال', width: 50, rtl: true },
+  { key: 'CEFR Level', title: 'Level', width: 8 },
+  { key: 'Part of Speech', title: 'Part of speech', width: 14 },
+  { key: 'Simple English', title: 'Simple English', width: 34 },
+  { key: 'Group', title: 'المجموعة', width: 22, rtl: true },
+  { key: 'Source', title: 'Source', width: 30 },
+  { key: 'Saved Date', title: 'Saved', width: 12 },
+  { key: 'Mastery', title: 'Mastery %', width: 10 },
+  { key: 'Difficult', title: 'Difficult', width: 10 },
+];
+
 export function toCsv(rows) {
   if (!rows.length) return '﻿Word,Arabic\r\n';
   const cols = Object.keys(rows[0]);

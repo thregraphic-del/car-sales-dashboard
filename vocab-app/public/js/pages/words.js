@@ -217,7 +217,7 @@ export async function render(view, { params }) {
 
 function openExport(groupId) {
   const box = openModal(`
-    <h2 style="margin-bottom:4px">تصدير كلماتك</h2><p class="small ink-2" style="margin-bottom:16px">ملف CSV يفتح في Excel و Google Sheets (يدعم العربية).</p>
+    <h2 style="margin-bottom:4px">تصدير كلماتك</h2><p class="small ink-2" style="margin-bottom:16px">ملف Excel: عمود للإنجليزي، وعمود للعربي، وعمود للمثال، وعمود لترجمته — كلٌّ في خانته.</p>
     <form id="ex" class="stack">
       <label class="field">الفترة
         <select class="input" name="range"><option value="all">كل الكلمات</option><option value="week">آخر أسبوع</option><option value="month">آخر شهر</option><option value="3m">آخر 3 أشهر</option><option value="custom">تواريخ محددة…</option></select></label>
@@ -227,7 +227,7 @@ function openExport(groupId) {
       <label class="field">المستوى
         <select class="input" name="level"><option value="">كل المستويات</option>${['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map((l) => `<option>${l}</option>`).join('')}</select></label>
       <label class="row small" style="gap:8px"><input type="checkbox" class="check" name="difficult" value="1"> الكلمات التي تحتاج تدريب فقط</label>
-      <div class="btn-row"><button class="btn primary" type="submit">${icon.download} تنزيل CSV</button><button class="btn ghost" type="button" id="json">JSON</button></div>
+      <div class="btn-row"><button class="btn primary" type="submit">${icon.download} تنزيل Excel</button><button class="btn ghost" type="button" id="csv">CSV</button><button class="btn ghost" type="button" id="json">JSON</button></div>
     </form>`);
   const form = box.querySelector('#ex');
   form.range.addEventListener('change', () => box.querySelector('#dates').classList.toggle('hidden', form.range.value !== 'custom'));
@@ -244,7 +244,8 @@ function openExport(groupId) {
   };
   form.addEventListener('submit', (e) => {
     e.preventDefault();
-    download('csv');
+    download('xlsx');
   });
   box.querySelector('#json').addEventListener('click', () => download('json'));
+  box.querySelector('#csv').addEventListener('click', () => download('csv'));
 }

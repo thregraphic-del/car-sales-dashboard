@@ -91,7 +91,7 @@ test("learner B sees none of A's data", async () => {
   const today = (await B('GET', '/api/today')).body;
   assert.equal(today.plan.total, 0);
   assert.equal(today.stats.total, 0);
-  const csv = (await B('GET', '/api/export?range=all')).text;
+  const csv = (await B('GET', '/api/export?range=all&format=csv')).text;
   assert.equal(csv.replace(/^﻿/, '').trim().split(/\r?\n/).length, 1, 'only the header');
 });
 
