@@ -129,7 +129,7 @@ export function bindGroupPicker(root, getSelected, onToggle) {
 let panelEl = null;
 let panelOnClose = null;
 export function closeWordPanel() {
-  panelEl?.remove();
+  (panelEl?.closest('.wp-overlay') || panelEl)?.remove();
   panelEl = null;
   const cb = panelOnClose;
   panelOnClose = null;
@@ -145,10 +145,16 @@ function onOutside(e) {
 }
 export const isPanelOpen = () => !!panelEl;
 
+// The word panel sits in a full-screen layer that centres it (sheet from the
+// bottom on phones) inside the space the browser really shows (Safari's bars
+// included), so it is never cut at the top or bottom; it scrolls inside.
 function placePanel(el) {
-  // Phones: a sheet from the bottom. Larger screens: in the middle of the screen,
-  // scrolling inside, so everything (and Save) is always reachable.
-  el.classList.add(window.matchMedia('(max-width: 720px)').matches ? 'sheet' : 'centered');
+  const sheet = window.matchMedia('(max-width: 720px)').matches;
+  const layer = document.createElement('div');
+  layer.className = `wp-overlay${sheet ? ' is-sheet' : ''}`;
+  el.classList.add(sheet ? 'sheet' : 'centered');
+  document.body.appendChild(layer);
+  layer.appendChild(el);
 }
 
 /**
@@ -192,8 +198,7 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
   const el = document.createElement('div');
   el.className = 'word-pop';
   el.innerHTML = '<div class="wp-loading"><span class="spinner"></span> جارٍ البحث…</div>';
-  document.body.appendChild(el);
-  placePanel(el, anchor);
+  placePanel(el);
   panelEl = el;
   document.addEventListener('keydown', onPanelKey);
   setTimeout(() => document.addEventListener('pointerdown', onOutside, true), 0);

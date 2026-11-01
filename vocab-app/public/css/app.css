@@ -860,3 +860,17 @@ body.reader-focus .page-reader .transcript { max-height: calc(100vh - 90px); }
 .word-pop.centered { top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(460px, calc(100vw - 32px)) !important; max-height: min(84vh, 760px) !important; animation: popIn .18s var(--ease); box-shadow: 0 24px 60px -12px rgba(0,0,0,.35), 0 0 0 100vmax rgba(0,0,0,.18); }
 @keyframes popIn { from { opacity: 0; } to { opacity: 1; } }
 .word-pop.sheet { max-height: 85vh; }
+
+/* Word panel layer: always fully on screen (dvh = the height Safari really shows) */
+.wp-overlay { position: fixed; inset: 0; z-index: 120; display: flex; align-items: center; justify-content: center;
+  padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); background: rgba(0,0,0,.22); animation: popIn .15s var(--ease); }
+.wp-overlay.is-sheet { align-items: flex-end; padding: 0; }
+.wp-overlay .word-pop, .wp-overlay .word-pop.centered, .wp-overlay .word-pop.sheet { position: relative; inset: auto; top: auto; left: auto; bottom: auto; transform: none; box-shadow: var(--shadow-lg); animation: none; }
+.wp-overlay .word-pop.centered { width: min(480px, 100%) !important; max-height: min(100%, 100dvh - 24px) !important; }
+.wp-overlay .word-pop.sheet { width: 100% !important; max-height: 88dvh !important; }
+
+/* 🔁 the sentence being repeated */
+.line.looping { box-shadow: inset 3px 0 0 #f5b301; }
+/* 🙈 Arabic hidden until touched */
+.transcript.ar-hidden .c-ar:not(.ar-shown), .transcript.ar-hidden .line-ar:not(.ar-shown) { filter: blur(6px); opacity: .55; cursor: pointer; user-select: none; transition: filter .2s, opacity .2s; }
+.transcript.ar-hidden .c-ar.ar-shown, .transcript.ar-hidden .line-ar.ar-shown { filter: none; opacity: 1; }

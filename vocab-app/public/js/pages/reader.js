@@ -245,12 +245,14 @@ export async function render(view, { segments, params }) {
             <div class="speed-menu hidden" role="menu">${[0.5, 0.75, 0.9, 1, 1.25].map((r) => `<button type="button" role="menuitem" data-rate="${r}" class="en-inline">${r}×</button>`).join('')}</div></div>` : ''}
           ${isVideo && hasTimes ? `<div class="speed-pick" id="mode"><button type="button" class="btn sm ghost" id="modeBtn" aria-haspopup="true" aria-expanded="false" title="طريقة التشغيل"><span id="modeVal">▶ عادي</span></button>
             <div class="speed-menu mode-menu hidden" role="menu"><label class="mode-switch"><input type="checkbox" class="check" id="gapOn"> ⏸ توقف بعد كل سطر</label><div class="gap-chips" id="gapChips">${[300, 500, 1000, 1500, 2000, 3000].map((ms) => `<button type="button" data-gap="${ms}" class="en-inline">${ms / 1000}ث</button>`).join('')}</div><div class="mode-sep"></div><button type="button" role="menuitem" data-mode="shadow">🗣 ردّد ورائي</button></div><button type="button" class="btn icon sm ghost hidden" id="modeOff" title="إيقاف التوقف — تشغيل عادي">✕</button></div>` : ''}
+          ${isVideo && hasTimes ? '<button type="button" class="btn sm ghost" id="loopBtn" aria-pressed="false" title="كرّر الجملة الحالية حتى تفهمها (L)">🔁 كرّر الجملة</button>' : ''}
+          <button type="button" class="btn sm ghost" id="hideArBtn" aria-pressed="false" title="أخفِ العربي، والمسه لتراه (A)">🙈 أخفِ العربي</button>
           <button type="button" class="btn icon sm ghost" id="focusBtn" aria-pressed="false" title="توسيع: إخفاء التفاصيل والتركيز على النص"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
           <span class="tiny mode-note" id="modeNote"></span>
           <span class="tiny muted" id="trNote"></span>
         </div>
         <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}${arLayout === 'below' ? ' ar-below' : ''}" id="lines"></div>
-        <p class="tiny muted reader-hint">${isVideo && hasTimes ? 'اضغط أي كلمة: يقف الفيديو عندها ويظهر معناها، ويكمل حين تغلقها أو تحفظها. اسحب الفاصل تحت الفيديو لتكبيره أو تصغيره.' : 'اضغط على أي كلمة لترى معناها في هذه الجملة.'} <span class="mark s-suggested">مقترحة</span> <span class="mark s-saved">محفوظة</span></p>
+        <p class="tiny muted reader-hint">${isVideo && hasTimes ? 'اضغط أي كلمة: يقف الفيديو عندها ويظهر معناها، ويكمل حين تغلقها أو تحفظها. اسحب الفاصل تحت الفيديو لتكبيره أو تصغيره. لوحة المفاتيح: مسافة تشغيل/إيقاف · ← → الجملة السابقة/التالية · R أعد الجملة · L كرّرها · A أخفِ العربي.' : 'اضغط على أي كلمة لترى معناها في هذه الجملة.'} <span class="mark s-suggested">مقترحة</span> <span class="mark s-saved">محفوظة</span></p>
       </div>
       <aside class="reader-side card" id="side"></aside>
     </div>`;
@@ -615,6 +617,7 @@ export async function render(view, { segments, params }) {
   // Playback modes: a short pause after each sentence, or "repeat after me"
   // (a silence as long as the sentence, so the learner can say it, then it continues).
   let playMode = pref('reader.mode', 'normal');
+  let loopId = null; // the sentence being repeated
   let gapMs = Math.max(200, Math.min(3000, Number(pref('reader.gapMs', '1000')) || 1000));
   let gapTimer = 0;
   let gapTick = 0;
@@ -691,9 +694,89 @@ export async function render(view, { segments, params }) {
   });
   $('#gapOn', view)?.addEventListener('change', (e) => setMode(e.target.checked ? 'gap' : 'normal'));
   showMode();
+
+  // 🔁 Repeat the current sentence
+  const showLoop = () => {
+    const b = $('#loopBtn', view);
+    if (!b) return;
+    b.classList.toggle('primary', loopId != null);
+    b.setAttribute('aria-pressed', String(loopId != null));
+    linesEl.querySelectorAll('.line.looping').forEach((l) => l.classList.remove('looping'));
+    if (loopId != null) linesEl.querySelector(`.line[data-id="${loopId}"]`)?.classList.add('looping');
+  };
+  const toggleLoop = () => {
+    loopId = loopId == null ? (currentId ?? timeline[0]?.id ?? null) : null;
+    if (loopId != null) {
+      const e = timeline.find((x) => x.id === loopId);
+      if (e) player?.seek?.(Math.max(0, e.start - 0.05));
+      lastT = null;
+    }
+    showLoop();
+  };
+  $('#loopBtn', view)?.addEventListener('click', toggleLoop);
+
+  // 🙈 Hide the Arabic until it is touched (try to understand first)
+  let hideAr = pref('reader.hideAr', '0') === '1';
+  const showHideAr = () => {
+    linesEl.classList.toggle('ar-hidden', hideAr);
+    linesEl.querySelectorAll('.ar-shown').forEach((x) => x.classList.remove('ar-shown'));
+    const b = $('#hideArBtn', view);
+    b?.classList.toggle('primary', hideAr);
+    b?.setAttribute('aria-pressed', String(hideAr));
+  };
+  const toggleHideAr = () => {
+    hideAr = !hideAr;
+    setPref('reader.hideAr', hideAr ? '1' : '0');
+    showHideAr();
+  };
+  $('#hideArBtn', view)?.addEventListener('click', toggleHideAr);
+  showHideAr();
+  linesEl.addEventListener('click', (e) => {
+    if (!hideAr) return;
+    const ar = e.target.closest('.c-ar, .line-ar');
+    if (ar && !ar.classList.contains('ar-shown')) {
+      ar.classList.add('ar-shown');
+      e.stopPropagation();
+    }
+  }, true);
+
+  // ⌨️ Keyboard: space, ← →, R, L, A
+  const stepLine = (dir) => {
+    const i = timeline.findIndex((x) => x.id === currentId);
+    const next = timeline[Math.max(0, Math.min(timeline.length - 1, (i < 0 ? 0 : i) + dir))];
+    if (!next || !player) return;
+    if (loopId != null) { loopId = next.id; showLoop(); }
+    player.seek(Math.max(0, next.start - 0.05));
+    lastT = null;
+    tick();
+  };
+  const onKey = (e) => {
+    if (e.target.closest?.('input, textarea, select, [contenteditable]') || e.metaKey || e.ctrlKey || e.altKey || isPanelOpen()) return;
+    const k = e.key.toLowerCase();
+    if (k === ' ' && player) {
+      e.preventDefault();
+      if (player.playing?.()) player.pause(); else player.play();
+    } else if (e.key === 'ArrowRight') { e.preventDefault(); stepLine(-1); } // RTL page: → goes back
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); stepLine(1); }
+    else if (k === 'r') {
+      const cur = timeline.find((x) => x.id === currentId);
+      if (cur && player) { player.seek(Math.max(0, cur.start - 0.05)); lastT = null; }
+    } else if (k === 'l') toggleLoop();
+    else if (k === 'a') toggleHideAr();
+  };
+  document.addEventListener('keydown', onKey);
   const tick = () => {
     if (!player || !timeline.length) return;
-    const t = player.time();
+    let t = player.time();
+    // 🔁 Repeat one sentence: back to its start each time it ends.
+    if (loopId != null && playing) {
+      const e = timeline.find((x) => x.id === loopId);
+      if (e && (t >= e.end - 0.12 || t < e.start - 1.5)) {
+        player.seek(Math.max(0, e.start - 0.05));
+        lastT = null;
+        t = Math.max(0, e.start - 0.05);
+      }
+    }
     // A jump (seek on the YouTube bar, or a click here) brings the transcript along at once.
     const jumped = lastT !== null && Math.abs(t - lastT) > 2;
     lastT = t;
@@ -703,7 +786,7 @@ export async function render(view, { segments, params }) {
     setCurrent(entry ? entry.id : null, { force: jumped });
     setWord(pos.word);
     if (jumped) gapDoneFor = null; // after a seek, pause again at the end of the sentence reached
-    if (playMode !== 'normal' && playing && entry && !gapTimer) {
+    if (playMode !== 'normal' && loopId == null && playing && entry && !gapTimer) {
       if (gapDoneFor !== entry.id && t >= entry.end - 0.25) startGap(entry);
       else if (!jumped && prevEntry && prevEntry.id !== entry.id && gapDoneFor !== prevEntry.id && entry.start >= prevEntry.end - 0.01 && t - entry.start < 1) {
         // The clock stepped past the end of the last sentence: go back to its end and pause there.
@@ -924,6 +1007,7 @@ export async function render(view, { segments, params }) {
     if (!player || lineEl.dataset.start === '' || !Number.isFinite(t)) return false;
     if (cancelGap()) player.play?.();
     gapDoneFor = null;
+    if (loopId != null) { loopId = Number(lineEl.dataset.id); showLoop(); }
     player.seek(t);
     setCurrent(Number(lineEl.dataset.id), { scroll: false });
     tick();
@@ -1115,6 +1199,7 @@ export async function render(view, { segments, params }) {
     saveProgress(true);
     document.removeEventListener('click', closeSpeed);
     document.removeEventListener('click', closeMode);
+    document.removeEventListener('keydown', onKey);
     window.removeEventListener('resize', onResize);
     cancelGap();
     document.removeEventListener('fullscreenchange', onFsChange);
