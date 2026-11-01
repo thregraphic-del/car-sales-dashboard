@@ -8,6 +8,10 @@ const norm = (w) => w.toLowerCase().replace(/[’']/g, "'").replace(/[^\p{L}\p{N
  * reproduce the line's words exactly (then the line is shown as before).
  */
 export function chunkRanges(text, chunks) {
+  return exactRanges(text, chunks) || looseRanges(text, chunks);
+}
+
+function exactRanges(text, chunks) {
   const tokens = [...String(text).matchAll(/\S+/g)].map((m) => ({ w: norm(m[0]), start: m.index }))
     .filter((t) => t.w);
   if (!tokens.length || !Array.isArray(chunks) || !chunks.length) return null;
@@ -22,6 +26,31 @@ export function chunkRanges(text, chunks) {
     t += words.length;
   }
   if (t !== tokens.length || !starts.length) return null;
+  starts[0].at = 0;
+  return starts.map((s, i) => [s.at, i + 1 < starts.length ? starts[i + 1].at : text.length, s.ar]);
+}
+
+/**
+ * When the AI changed a word or two (spelling, a dropped "--"), place the phrase
+ * borders by word count, as long as almost all words still match in order.
+ */
+function looseRanges(text, chunks) {
+  const tokens = [...String(text).matchAll(/\S+/g)].map((m) => ({ w: norm(m[0]), start: m.index })).filter((t) => t.w);
+  const parts = (Array.isArray(chunks) ? chunks : []).map((c) => ({ words: String(c.en || '').split(/\s+/).map(norm).filter(Boolean), ar: String(c.ar || '').trim() }))
+    .filter((c) => c.words.length);
+  const total = parts.reduce((n, c) => n + c.words.length, 0);
+  if (!tokens.length || !parts.length || Math.abs(total - tokens.length) > 2) return null;
+  const flat = parts.flatMap((c) => c.words);
+  let same = 0;
+  for (let i = 0; i < Math.min(flat.length, tokens.length); i += 1) if (flat[i] === tokens[i].w) same += 1;
+  if (same / tokens.length < 0.8) return null;
+  const starts = [];
+  let t = 0;
+  for (const c of parts) {
+    if (t >= tokens.length) break;
+    starts.push({ at: tokens[t].start, ar: c.ar });
+    t += c.words.length;
+  }
   starts[0].at = 0;
   return starts.map((s, i) => [s.at, i + 1 < starts.length ? starts[i + 1].at : text.length, s.ar]);
 }

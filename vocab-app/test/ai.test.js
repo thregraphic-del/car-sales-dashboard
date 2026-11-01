@@ -315,3 +315,12 @@ test('story: last week / number of words', async () => {
   const w = await postJson('/api/ai/story', { range: 'week', count: 30 });
   assert.ok([200, 400].includes(w.status));
 });
+
+test('alignment: the AI renumbering lines still works (matched in order)', async () => {
+  const v = await (await realFetch(`${app.base}/api/sources/3`)).json();
+  const batch = v.lines.slice(0, 10);
+  reply = ok({ lines: batch.map((l, k) => ({ i: k + 1, chunks: [{ en: l.text, ar: `ترجمة ${k}` }] })) });
+  const r = await postJson('/api/sources/3/align', { from: 0 });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.lines.filter((l) => l.align).length, batch.length);
+});

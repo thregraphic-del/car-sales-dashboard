@@ -225,13 +225,22 @@ export async function alignSource(sourceId, userId, fromIdx = 0) {
     if (!(err instanceof AiError)) throw err;
     return { complete: true, lines: [], ai_error: err.message };
   }
-  const rows = batch.map((l) => {
-    const align = chunkRanges(l.text, map.get(l.idx)) || [];
-    return { id: l.id, align, ar: align.length ? align.map((c) => c[2]).join(' ') : null };
-  });
+  // The AI sometimes renumbers the lines: each line is tried by its number, then by its place.
+  const inOrder = [...map.values()];
+  const rows = [];
+  for (const [k, l] of batch.entries()) {
+    const tries = [map.get(l.idx), map.size === batch.length ? inOrder[k] : null].filter(Boolean);
+    if (!tries.length) continue; // not answered: tried again next time
+    let align = null;
+    for (const chunks of tries) {
+      align = chunkRanges(l.text, chunks);
+      if (align) break;
+    }
+    rows.push({ id: l.id, align: align || 'x', ar: align ? align.map((c) => c[2]).join(' ') : null });
+  }
   await sources.storeAlignments(rows);
   const c = await sources.alignCounts(sourceId);
-  return { complete: c.aligned >= c.total, lines: rows.map((r) => ({ id: r.id, align: r.align.length ? r.align : null, ar: r.ar })) };
+  return { complete: c.aligned >= c.total, lines: rows.map((r) => ({ id: r.id, align: Array.isArray(r.align) ? r.align : null, ar: r.ar })) };
 }
 
 /** The line with "‖" where the speaker pauses (from word timings), so phrases break there. */
