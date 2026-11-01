@@ -250,7 +250,7 @@ export async function jsonCall({ task, system, user, attachments = null, extra =
 
   // On serverless hosting the whole call (including format retries) must
   // finish before the function's time limit.
-  const limit = config.app.production ? Math.min(timeoutMs, config.ai.timeoutMs) : timeoutMs;
+  const limit = config.app.production ? Math.min(timeoutMs, 55000) : timeoutMs; // under the function's 60 s limit
   const started = Date.now();
   const messages = [
     { role: 'system', content: `${system}\n\nReply with ONLY one JSON object (no markdown) that matches this JSON Schema:\n${JSON.stringify(schema)}` },

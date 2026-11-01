@@ -592,6 +592,7 @@ export async function dictionaryBatchWithAi(words) {
     schema: DICT_SCHEMA,
     zod: DictZ,
     maxTokens: Math.min(16000, 260 * words.length + 600),
+    timeoutMs: 50000,
     cache: false,
   });
   return r.items;

@@ -98,7 +98,7 @@ export function createApp() {
       if (req.method === 'GET') return res.json(await dict.dictionaryStatus());
       const offset = Math.max(0, Number(req.body?.offset) || 0);
       const count = Math.max(1, Math.min(40, Number(req.body?.count) || 20));
-      return res.json(await dict.buildDictionaryStep({ offset, count }));
+      return res.json(await dict.buildDictionaryStep({ offset, count, words: req.body?.words }));
     } catch (err) {
       if (err?.name === 'AiError' || err?.constructor?.name === 'AiError') return res.status(503).json({ error: err.message });
       return next(err);

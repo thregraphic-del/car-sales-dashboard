@@ -7,6 +7,7 @@ import { dictionaryBatchWithAi } from './extractor.js';
 import { cacheKey, writeCache } from './ai.js';
 import { findVocabulary, upsertVocabulary, addExample } from '../data/vocabulary.js';
 
+const LEVEL = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const clean = (w) => String(w || '').toLowerCase().trim();
 
 /** The dictionary word for an inflected form (went → go), if known. */
@@ -22,7 +23,8 @@ export async function dictionaryStatus() {
 }
 
 /** Process the next `count` unprocessed words of the frequency list (from `offset`). */
-export async function buildDictionaryStep({ offset = 0, count = 20 } = {}) {
+export async function buildDictionaryStep({ offset = 0, count = 20, words = null } = {}) {
+  if (Array.isArray(words) && words.length) return processWords(words.map(clean).filter((w) => /^[a-z]{2,}$/.test(w)).slice(0, 40), offset);
   const slice = COMMON_WORDS.slice(offset, offset + 200);
   const doneRows = slice.length ? await all(`SELECT word FROM dictionary_done WHERE word IN (${slice.map(() => '?').join(',')})`, ...slice) : [];
   const done = new Set(doneRows.map((r) => r.word));
@@ -37,6 +39,10 @@ export async function buildDictionaryStep({ offset = 0, count = 20 } = {}) {
     todo.push(w);
   }
   if (!todo.length) return { added: 0, processed: 0, next: offset + slice.length, finished: offset + slice.length >= COMMON_WORDS.length };
+  return processWords(todo, offset);
+}
+
+async function processWords(todo, offset) {
   const items = await dictionaryBatchWithAi(todo);
   let added = 0;
   await tx(async () => {
@@ -51,6 +57,11 @@ export async function buildDictionaryStep({ offset = 0, count = 20 } = {}) {
         term: lemma, part_of_speech: it.part_of_speech, level: it.level, arabic: it.arabic,
         simple_english: it.simple_english, pronunciation: it.pronunciation, origin: 'dictionary',
       });
+      // The dictionary meaning replaces an earlier automatic one (a learner's own meaning is kept apart).
+      if (before && before.origin !== 'user') {
+        await run(`UPDATE vocabulary SET arabic = ?, simple_english = ?, level = ?, part_of_speech = ?, pronunciation = COALESCE(?, pronunciation), origin = 'dictionary' WHERE id = ?`,
+          it.arabic, it.simple_english || before.simple_english, LEVEL.includes(it.level) ? it.level : before.level, it.part_of_speech || before.part_of_speech, it.pronunciation || null, id);
+      }
       if (!before) added += 1;
       if (it.example && !before) await addExample(id, it.example, it.example_ar || null, 'easy');
       for (const f of new Set([input, lemma, ...it.inflections.map(clean)])) {
