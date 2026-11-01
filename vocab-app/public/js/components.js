@@ -156,9 +156,13 @@ function placePanel(el, anchor) {
   left = Math.max(12, Math.min(window.innerWidth - w - 12, left));
   el.style.left = `${left}px`;
   el.style.width = `${w}px`;
-  const below = r.bottom + 10;
-  if (below + 360 < window.innerHeight) el.style.top = `${below}px`;
+  // Open on the side with more room, and never taller than that room (Save stays reachable).
+  const spaceBelow = window.innerHeight - r.bottom - 22;
+  const spaceAbove = r.top - 22;
+  const useBelow = spaceBelow >= 380 || spaceBelow >= spaceAbove;
+  if (useBelow) el.style.top = `${r.bottom + 10}px`;
   else el.style.bottom = `${window.innerHeight - r.top + 10}px`;
+  el.style.maxHeight = `${Math.max(220, Math.min(560, useBelow ? spaceBelow : spaceAbove))}px`;
 }
 
 /**
@@ -228,8 +232,8 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
           : 'لا يوجد معنى لهذه الكلمة في القاموس المحلي.'}</p>
         ${baseHtml(forms, info.word)}
         ${info.ai_error ? `<p class="tiny muted">${esc(info.ai_error)}</p>` : ''}
-        ${info.tier !== 'function' ? `<div class="wp-actions"><button class="btn sm" data-act="save-own">${icon.bookmark} احفظها بمعناك</button></div>` : ''}
-        ${formsHtml(forms, savedForms)}`;
+        ${formsHtml(forms, savedForms)}
+        ${info.tier !== 'function' ? `<div class="wp-actions wp-sticky"><button class="btn primary" data-act="save-own">${icon.bookmark} احفظها بمعناك</button></div>` : ''}`;
       return;
     }
     const saved = info.state === 'saved';
@@ -242,17 +246,17 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
       ${info.contextual ? '' : info.arabic ? '<div class="tiny muted">معنى عام من القاموس (ليس حسب هذه الجملة)</div>' : ''}
       ${info.can_explain ? '<button class="btn sm ghost explain-btn" data-act="explain">✨ اشرح معناها في هذه الجملة</button>' : ''}
       ${info.ai_error ? `<p class="tiny muted">${esc(info.ai_error)}</p>` : ''}
+      ${formsHtml(forms, savedForms)}
       ${sentenceHtml(info.context_sentence, info.context_arabic, info.term)}
       ${(() => {
         const ex = (info.examples || []).find((e) => e.kind === 'example' && e.sentence !== info.context_sentence) || (info.examples || []).find((e) => e.kind === 'easy');
         return ex ? `<div class="tiny muted" style="margin-top:8px">مثال</div><p class="en small">${highlight(ex.sentence, info.term)}</p>${ex.arabic ? `<p class="tiny ink-2">${esc(ex.arabic)}</p>` : ''}` : '';
       })()}
-      <div class="wp-actions">
-        ${saved ? `<button class="btn sm saved" data-act="noop">${icon.check} محفوظة ✓</button>` : `<button class="btn sm primary" data-act="save">${icon.bookmark} حفظ</button>`}
+      ${saved ? `<div class="wp-groups"><div class="tiny muted" style="margin-bottom:6px">المجموعات</div>${groupPickerHtml(info.groups || [])}</div>` : ''}
+      <div class="wp-actions wp-sticky">
+        ${saved ? `<button class="btn sm saved" data-act="noop">${icon.check} محفوظة ✓</button>` : `<button class="btn primary" data-act="save">${icon.bookmark} حفظ «${esc(info.term)}»</button>`}
         ${saved ? `<button class="btn sm ghost" data-act="details">التفاصيل</button>` : ''}
-      </div>
-      ${formsHtml(forms, savedForms)}
-      ${saved ? `<div class="wp-groups"><div class="tiny muted" style="margin-bottom:6px">المجموعات</div>${groupPickerHtml(info.groups || [])}</div>` : ''}`;
+      </div>`;
   };
   const formsWord = info.found ? info.term : info.word;
   let forms = formsWord && info.tier !== 'function' && state.config?.ai?.configured ? { loading: true } : null;
@@ -344,6 +348,7 @@ export async function openWordCard(uvId, { onChange } = {}) {
     ${headHtml(w, { big: true })}
     <div class="wd-section">${meaningHtml(w)}
       <button class="btn sm ghost" data-act="edit-meaning" style="margin-top:6px">${icon.edit} ${w.user_arabic ? 'عدّل معناك' : 'اكتب معناك الخاص'}</button></div>
+    ${state.config?.ai?.configured ? '<div class="wd-section" id="wdForms"><div class="tiny muted"><span class="spinner"></span> نجلب صيغ الكلمة…</div></div>' : ''}
 
     ${contexts.length ? `<div class="wd-section"><div class="wd-label">وجدتها في</div>
       ${contexts.slice(0, 4).map((c) => `<div class="ctx">
@@ -368,6 +373,31 @@ export async function openWordCard(uvId, { onChange } = {}) {
       <button class="btn sm ghost" data-act="remove" style="color:var(--bad)">${icon.trash} إزالة من كلماتي</button>
     </div>`);
   bindSpeech(box);
+  // All forms of the word (verb, noun, adjective…), each can be saved on its own.
+  const formsBox = box.querySelector('#wdForms');
+  if (formsBox) {
+    let forms = null;
+    const saved = new Set();
+    const drawForms = () => { formsBox.innerHTML = `<div class="wd-label">صيغ الكلمة</div>${baseHtml(forms, w.term)}${formsHtml(forms, saved)}`; };
+    loadForms(w.term).then((r) => { forms = r; }, (err) => { forms = { error: err.message }; }).finally(() => { if (formsBox.isConnected) drawForms(); });
+    formsBox.addEventListener('click', async (e) => {
+      const b = e.target.closest('.wf-save[data-form]');
+      if (!b || !forms?.forms) return;
+      const k = Number(b.dataset.form);
+      const f = forms.forms[k];
+      b.disabled = true;
+      try {
+        const r = await api.importSave([{ term: formTerm(f), arabic: f.arabic, meaning_from: 'ai', part_of_speech: POS_EN[f.pos] || null, examples: f.example ? [{ sentence: f.example, arabic: f.example_ar || null }] : [] }]);
+        saved.add(k);
+        toast(r.results?.[0]?.result === 'unchanged' ? `موجودة عندك ✓ ${formTerm(f)}` : `تم الحفظ ✓ ${formTerm(f)}`);
+        drawForms();
+        onChange?.(w);
+      } catch (err) {
+        b.disabled = false;
+        toast(err.message);
+      }
+    });
+  }
   bindGroupPicker(box, () => w.group_ids, async (gid, on) => {
     const nextIds = on ? [...w.group_ids, gid] : w.group_ids.filter((g) => g !== gid);
     w.group_ids = (await api.setWordGroups(w.uv_id, nextIds)).group_ids;

@@ -852,3 +852,7 @@ body.reader-focus .page-reader .transcript { max-height: calc(100vh - 90px); }
 /* "Under": the Arabic starts right under its English phrase */
 .transcript.ar-below .chunk .c-ar { text-align: left; padding-left: 0; margin-top: 1px; }
 .transcript.ar-below.bilingual .line-body:not(.chunked) .line-ar { text-align: left; }
+/* Word panel: Save always visible at the bottom */
+.word-pop .wp-sticky { position: sticky; bottom: -16px; z-index: 2; background: var(--surface); margin: 12px -18px -16px; padding: 10px 18px 14px; border-top: 1px solid var(--line); box-shadow: 0 -8px 16px -12px rgba(0,0,0,.25); }
+.word-pop.sheet .wp-sticky { bottom: calc(-18px - env(safe-area-inset-bottom)); margin-bottom: calc(-18px - env(safe-area-inset-bottom)); padding-bottom: calc(14px + env(safe-area-inset-bottom)); }
+.word-pop .wp-forms { margin-top: 8px; }

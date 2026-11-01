@@ -85,8 +85,9 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 /** Count one AI request for the current learner; throws when today's limit is reached. */
 // Preparing a video (its Arabic lines and phrase alignment) is bounded by the
-// video's length and saved for everyone, so it never uses up the learner's daily limit.
-const VIDEO_TASKS = new Set(['translate_lines', 'align_lines']);
+// video's length and saved for everyone, so it never uses up the learner's daily limit;
+// so is a word's family (asked once per word, then shared).
+const VIDEO_TASKS = new Set(['translate_lines', 'align_lines', 'word_forms_v2']);
 
 async function useQuota(task) {
   const userId = aiContext.getStore()?.userId;
