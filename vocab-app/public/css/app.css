@@ -842,3 +842,10 @@ body.reader-focus .page-reader .transcript { max-height: calc(100vh - 90px); }
 .side-head { position: sticky; top: 0; z-index: 3; background: var(--surface); padding: 14px 0 10px; margin-bottom: 6px; border-bottom: 1px solid var(--line); }
 .side-head #refineNote:empty { display: none; }
 @media (max-width: 900px) { .side-head { top: 56px; } }
+
+/* Arabic under the English (chosen in the reader) */
+.transcript.ar-below .chunk { grid-template-columns: minmax(0, 1fr); gap: 0; }
+.transcript.ar-below .chunk .c-ar { border-left: 0; padding-left: 0; text-align: right; color: var(--ink-2); }
+.transcript.ar-below.bilingual .line-body:not(.chunked) { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+.transcript.ar-below.bilingual .line-body:not(.chunked) .line-ar { border-left: 0; padding-left: 0; }
+.ar-layout button { padding: 5px 10px; font-size: 12.5px; }

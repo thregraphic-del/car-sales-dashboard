@@ -209,6 +209,7 @@ export async function render(view, { segments, params }) {
   const isVideo = source.kind === 'youtube';
   const hasTimes = data.lines.some((l) => l.start_seconds != null);
   let showAr = pref('reader.ar', '1') === '1';
+  let arLayout = pref('reader.arLayout', 'side') === 'below' ? 'below' : 'side';
   let follow = pref('reader.follow', '1') === '1';
   let player = null;
   let currentId = null;
@@ -233,7 +234,8 @@ export async function render(view, { segments, params }) {
       <div class="reader-main">
         ${isVideo ? '<div class="player-box"><div id="player"></div></div><div class="split" id="split" role="separator" aria-orientation="horizontal" title="اسحب لتكبير الفيديو أو النص"><span></span></div>' : ''}
         <div class="reader-tools">
-          <label class="switch"><input type="checkbox" id="arToggle" ${showAr ? 'checked' : ''}> <span>${icon.subtitles} العربي بجانب الإنجليزي</span></label>
+          <label class="switch"><input type="checkbox" id="arToggle" ${showAr ? 'checked' : ''}> <span>${icon.subtitles} الترجمة العربية</span></label>
+          <div class="segmented ar-layout${showAr ? '' : ' hidden'}" id="arLayout" role="group" aria-label="مكان الترجمة"><button type="button" data-layout="side" title="العربي بجانب الإنجليزي">⇆ بجانبه</button><button type="button" data-layout="below" title="العربي تحت الإنجليزي">⇅ تحته</button></div>
           ${hasTimes ? `<label class="switch"><input type="checkbox" id="followToggle" ${follow ? 'checked' : ''}> <span>متابعة تلقائية</span></label>` : ''}
           <div class="segmented fontsize" role="group" aria-label="حجم الخط"><button type="button" data-font="-1" title="خط أصغر">A−</button><button type="button" data-font="1" title="خط أكبر">A+</button></div>
           ${isVideo && hasTimes && SpeechRec ? `<button type="button" class="btn sm ghost" id="voiceBtn" aria-pressed="false" title="قل «وقف» أو الكلمة">🎤 الأوامر الصوتية</button>
@@ -247,13 +249,25 @@ export async function render(view, { segments, params }) {
           <span class="tiny mode-note" id="modeNote"></span>
           <span class="tiny muted" id="trNote"></span>
         </div>
-        <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}" id="lines"></div>
+        <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}${arLayout === 'below' ? ' ar-below' : ''}" id="lines"></div>
         <p class="tiny muted reader-hint">${isVideo && hasTimes ? 'اضغط أي كلمة: يقف الفيديو عندها ويظهر معناها، ويكمل حين تغلقها أو تحفظها. اسحب الفاصل تحت الفيديو لتكبيره أو تصغيره.' : 'اضغط على أي كلمة لترى معناها في هذه الجملة.'} <span class="mark s-suggested">مقترحة</span> <span class="mark s-saved">محفوظة</span></p>
       </div>
       <aside class="reader-side card" id="side"></aside>
     </div>`;
 
   const linesEl = $('#lines', view);
+  // Arabic beside the English (same row) or under it — the learner chooses.
+  const showLayout = () => {
+    linesEl.classList.toggle('ar-below', arLayout === 'below');
+    view.querySelectorAll('#arLayout [data-layout]').forEach((b) => b.classList.toggle('active', b.dataset.layout === arLayout));
+  };
+  showLayout();
+  view.querySelectorAll('#arLayout [data-layout]').forEach((b) => b.addEventListener('click', () => {
+    arLayout = b.dataset.layout;
+    setPref('reader.arLayout', arLayout);
+    showLayout();
+    recenter();
+  }));
   // Font size of the transcript (remembered).
   let fontPx = Number(pref('reader.font', '16')) || 16;
   const applyFont = () => linesEl.style.setProperty('--reader-font', `${fontPx}px`);
@@ -1071,6 +1085,7 @@ export async function render(view, { segments, params }) {
     setPref('reader.ar', showAr ? '1' : '0');
     linesEl.classList.toggle('hide-ar', !showAr);
     linesEl.classList.toggle('bilingual', showAr);
+    $('#arLayout', view)?.classList.toggle('hidden', !showAr);
     ensureAlignment();
     ensureTranslation();
   });
