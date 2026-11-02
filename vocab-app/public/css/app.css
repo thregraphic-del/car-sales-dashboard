@@ -945,3 +945,5 @@ a.day-tile:hover { border-color: var(--accent); }
 .ladder-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
 .ladder-row.is-head { border-color: var(--accent); background: var(--accent-soft); }
 .ladder-row .small { flex: 1; min-width: 120px; }
+/* room under the last sentence so it can also rise to the top row */
+.transcript::after { content: ''; display: block; height: 45vh; }

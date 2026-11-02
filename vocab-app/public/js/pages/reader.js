@@ -623,7 +623,8 @@ export async function render(view, { segments, params }) {
     }
   }
 
-  // Keep the current sentence comfortably in view (only scroll when it leaves the middle band).
+  // The spoken sentence (and the phrase being said) always sits on the first row of the
+  // transcript box: the text scrolls up under a fixed reading line, the highlight never wanders.
   const bringIntoView = (el, force = false) => {
     if (!el || isPanelOpen() || (!force && Date.now() < userScrollUntil)) return;
     // Position inside the transcript box, measured on screen (independent of offsetParent).
@@ -632,12 +633,8 @@ export async function render(view, { segments, params }) {
     const top = r.top - box.top + linesEl.scrollTop;
     const view0 = linesEl.scrollTop;
     const h = linesEl.clientHeight;
-    // Keep the spoken sentence about a third of the way down; scroll only when it
-    // leaves the comfortable band, so the text moves steadily down with the speech.
-    if (force || top < view0 + h * 0.08 || top + r.height > view0 + h * 0.7) {
-      const target = Math.max(0, Math.min(top - h * 0.3, linesEl.scrollHeight - h));
-      if (Math.abs(target - view0) > 4) linesEl.scrollTo({ top: target, behavior: force ? 'auto' : 'smooth' });
-    }
+    const target = Math.max(0, Math.min(top - 6, linesEl.scrollHeight - h));
+    if (Math.abs(target - view0) > 3) linesEl.scrollTo({ top: target, behavior: force ? 'auto' : 'smooth' });
   };
   const setCurrent = (lineId, { scroll = follow, force = false } = {}) => {
     if (lineId === currentId) return;
@@ -658,12 +655,17 @@ export async function render(view, { segments, params }) {
     if (!el) return;
     el.querySelectorAll('.w-now, .w-said').forEach((w) => w.classList.remove('w-now', 'w-said'));
     // Phrase rows: the phrase being spoken lights up in English and Arabic together.
+    let nowChunk = null;
     el.querySelectorAll('.chunk').forEach((c) => {
       const w0 = Number(c.dataset.w0);
       const w1 = Number(c.dataset.w1);
-      c.classList.toggle('c-now', wi >= 0 && wi >= w0 && wi <= w1);
+      const on = wi >= 0 && wi >= w0 && wi <= w1;
+      if (on && !c.classList.contains('c-now')) nowChunk = c;
+      c.classList.toggle('c-now', on);
       c.classList.toggle('c-said', wi >= 0 && w1 >= 0 && w1 < wi);
     });
+    // a long sentence: the phrase being said moves up to the top row
+    if (nowChunk && follow && nowChunk !== el.querySelector('.chunk')) bringIntoView(nowChunk);
     // Arabic follows the same progress through the sentence (word order differs, so it is proportional).
     const ar = el.querySelectorAll('.aw');
     if (ar.length) {
