@@ -10,7 +10,8 @@ const TABLE_LABELS = {
   sources: 'مصادر', transcript_lines: 'أسطر نص', vocabulary: 'مفردات', examples: 'أمثلة', occurrences: 'سياقات', user_vocabulary: 'كلماتك',
   review_logs: 'مراجعات', daily_plans: 'خطط يومية', daily_plan_items: 'عناصر الخطط', word_groups: 'مجموعات', word_group_items: 'عضويات', ai_cache: 'ذاكرة الذكاء',
 };
-const countsHtml = (c) => `<div class="data-counts">${TABLES.map((t) => `<span>${TABLE_LABELS[t]}: <b class="en-inline">${c[t] ?? 0}</b></span>`).join('')}</div>`;
+const MAIN = ['user_vocabulary', 'sources', 'word_groups', 'review_logs'];
+const countsHtml = (c, keys = TABLES) => `<div class="data-counts">${keys.map((t) => `<span>${TABLE_LABELS[t]}: <b class="en-inline">${c[t] ?? 0}</b></span>`).join('')}</div>`;
 
 export async function render(view) {
   const cfg = await api.config();
@@ -28,33 +29,19 @@ export async function render(view) {
     <div class="page-head"><div><div class="eyebrow">Settings</div><h1>الإعدادات</h1></div></div>
     <div class="grid cols-2">
       <div class="card stack">
-        <b>ملفك</b>
+        <b>تفضيلاتك</b>
         <label class="field">الاسم<input class="input" id="name" value="${esc(u.name)}"></label>
         <label class="field">هدف الكلمات اليومي: <span id="goalVal" class="en-inline">${u.daily_goal}</span>
           <input type="range" id="goal" min="${cfg.limits?.daily_goal_min || 4}" max="${cfg.limits?.daily_goal_max || 30}" value="${u.daily_goal}" style="accent-color:var(--accent)"></label>
-        <p class="tiny muted">يطبّق الهدف الجديد على خطة الغد (خطة اليوم ثابتة؛ يمكنك إضافة 5 كلمات من صفحة اليوم).</p>
-        <button class="btn primary" id="saveProfile" style="justify-self:start">حفظ</button>
-      </div>
-      <div class="card stack">
-        <b>الصوت والمظهر</b>
-        <label class="field">سرعة النطق الأساسية: <span id="rateVal" class="en-inline">${u.speech_rate}×</span>
+        <button class="btn primary sm" id="saveProfile" style="justify-self:start">حفظ</button>
+        <div class="divider" style="margin:4px 0"></div>
+        <label class="field">سرعة النطق: <span id="rateVal" class="en-inline">${u.speech_rate}×</span>
           <input type="range" id="rate" min="0.6" max="1.3" step="0.05" value="${u.speech_rate}" style="accent-color:var(--accent)"></label>
-        <label class="row small" style="gap:8px"><input type="checkbox" class="check" id="ar" ${u.speak_arabic ? 'checked' : ''}> نطق المعنى العربي في صفحة الاستماع</label>
-        <button class="btn sm" id="test" style="justify-self:start">${icon.speaker} جرّب الصوت</button>
+        <div class="row" style="gap:10px;flex-wrap:wrap"><label class="row small" style="gap:8px"><input type="checkbox" class="check" id="ar" ${u.speak_arabic ? 'checked' : ''}> انطق العربي أيضًا</label>
+          <button class="btn sm ghost" id="test">${icon.speaker} جرّب الصوت</button></div>
         <div class="field">المظهر<div class="segmented" id="theme">${[['system', 'تلقائي'], ['light', 'فاتح'], ['dark', 'داكن']].map(([k, l]) => `<button data-t="${k}" class="${k === theme ? 'active' : ''}">${l}</button>`).join('')}</div></div>
       </div>
       ${feedbackCardHtml()}
-      <div class="card stack">
-        <b>المحرّكات</b>
-        <div class="row between small"><span>تحليل المفردات</span><span class="chip ar-chip ${cfg.ai.available ? 'st-mastered' : 'st-learning'}">${cfg.ai.configured ? (cfg.ai.available ? 'OpenRouter ✓' : 'OpenRouter متوقف مؤقتًا') : 'قاموس محلي'}</span></div>
-        <p class="tiny muted">${cfg.ai.configured
-          ? `القاموس المحلي أولًا، والذكاء الاصطناعي فقط عند الحاجة (والنتائج تُحفظ ولا تُطلب مرتين). النموذج: <span class="en-inline">${esc(cfg.ai.model || '')}</span>`
-          : 'شرح الذكاء الاصطناعي غير متاح — نستخدم القاموس المحلي.'}</p>
-        <div class="row between small"><span>تحويل النص إلى كلام</span><span class="chip ar-chip ${cfg.tts.server ? 'st-mastered' : 'st-learning'}">${cfg.tts.server ? esc(cfg.tts.provider) : 'أصوات المتصفح'}</span></div>
-        <p class="tiny muted">لأصوات أعلى جودة اضبط TTS_PROVIDER و TTS_API_KEY على الخادم.</p>
-        <div class="row between small"><span>نسخة التطبيق</span><span class="chip en-inline">v${esc(cfg.app?.version || '?')}</span></div>
-        <div class="row between small"><span>قاعدة البيانات</span><span class="chip en-inline">${cfg.database.engine === 'postgres' ? 'Postgres' : 'SQLite (محلي)'}</span></div>
-      </div>
       ${cfg.auth?.required ? `<div class="card stack">
         <b>الحساب</b>
         <div class="row between small"><span>اسم المستخدم</span><span class="chip en-inline">${esc(u.username || '')}</span></div>
@@ -75,7 +62,7 @@ export async function render(view) {
           <a class="btn" href="${api.backupUrl()}" download>${icon.download || '⬇'} تنزيل نسخة احتياطية كاملة (JSON)</a>
           <a class="btn ghost" href="#/words">تصدير الكلمات إلى Excel ←</a>
         </div>
-        <div class="divider" style="margin:6px 0"></div>
+        <details class="adv"><summary class="small">⚙ خيارات متقدمة (نقل البيانات، المحرّكات)</summary><div class="stack" style="margin-top:10px">
         <b class="small">نقل بياناتك من النسخة المحلية</b>
         <p class="small ink-2">أغلق نافذة النسخة المحلية أولًا، ثم اختر من مجلدها <span class="en-inline">data</span> الملف <span class="en-inline">lexitube.db</span>
           — ومعه <span class="en-inline">lexitube.db-wal</span> إن وُجد (حدّد الملفين معًا) — أو نسخة احتياطية <span class="en-inline">.json</span>.
@@ -84,6 +71,16 @@ export async function render(view) {
         <div id="importBox"></div>
         <div id="demoBox"></div>
         <div id="backupsBox"></div>
+        <div class="divider" style="margin:6px 0"></div>
+        <b class="small">المحرّكات</b>
+        <div class="row between small"><span>تحليل المفردات</span><span class="chip ar-chip ${cfg.ai.available ? 'st-mastered' : 'st-learning'}">${cfg.ai.configured ? (cfg.ai.available ? 'OpenRouter ✓' : 'OpenRouter متوقف مؤقتًا') : 'قاموس محلي'}</span></div>
+        <p class="tiny muted">${cfg.ai.configured
+          ? `القاموس المحلي أولًا، والذكاء الاصطناعي فقط عند الحاجة (والنتائج تُحفظ ولا تُطلب مرتين). النموذج: <span class="en-inline">${esc(cfg.ai.model || '')}</span>`
+          : 'شرح الذكاء الاصطناعي غير متاح — نستخدم القاموس المحلي.'}</p>
+        <div class="row between small"><span>تحويل النص إلى كلام</span><span class="chip ar-chip ${cfg.tts.server ? 'st-mastered' : 'st-learning'}">${cfg.tts.server ? esc(cfg.tts.provider) : 'أصوات المتصفح'}</span></div>
+        <div class="row between small"><span>نسخة التطبيق</span><span class="chip en-inline">v${esc(cfg.app?.version || '?')}</span></div>
+        <div class="row between small"><span>قاعدة البيانات</span><span class="chip en-inline">${cfg.database.engine === 'postgres' ? 'Postgres' : 'SQLite (محلي)'}</span></div>
+        </div></details>
       </div>
       ${cfg.features?.demo_reset ? `<div class="card stack">
         <b>البيانات التجريبية (محلي فقط)</b>
@@ -151,7 +148,7 @@ export async function render(view) {
     try {
       const s = await api.dataSummary();
       current = s.counts;
-      $('#counts').innerHTML = countsHtml(current);
+      $('#counts').innerHTML = countsHtml(current, MAIN);
       const empty = !current.sources && !current.user_vocabulary;
       $('#demoBox').innerHTML = empty
         ? `<div class="alert info"><span>حسابك فارغ. انقل بياناتك من النسخة المحلية بالأعلى، أو جرّب التطبيق بالبيانات التجريبية.</span>

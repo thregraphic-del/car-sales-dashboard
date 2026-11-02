@@ -529,7 +529,7 @@ select.level-select, select.sm-select { width: auto; padding: 6px 10px; font-siz
 .wp-actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .wp-groups { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .listen-mini { display: inline-flex; gap: 2px; vertical-align: middle; }
-.slow-btn { padding: 4px 8px; font-size: 12px; }
+.slow-btn { font-size: 15px; line-height: 1; }
 .ctx { margin-bottom: 10px; }
 .ctx-src { display: inline-block; margin-top: 4px; text-decoration: none; }
 .progress-line { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
@@ -744,7 +744,8 @@ body.reader-focus .page-reader .transcript { max-height: calc(100vh - 90px); }
 .wp-base { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 6px 0 8px; padding: 8px 10px; border-radius: 12px; background: var(--accent-soft); }
 .wp-base b { font-size: 18px; color: var(--accent); }
 .wf-head { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.wf-save { margin-top: 6px; }
+.wf-save { margin-inline-start: 2px; }
+.wf-save.saved { color: var(--accent, #3fb68b); }
 
 /* Game feedback: the sentence and its translation */
 .fb-ex { margin-top: 10px; padding-top: 8px; border-top: 1px dashed color-mix(in srgb, currentColor 25%, transparent); text-align: start; }
@@ -923,3 +924,12 @@ a.day-tile:hover { border-color: var(--accent); }
 .back-now { position: sticky; top: 8px; z-index: 6; display: block; margin: 0 auto 6px; box-shadow: var(--shadow-lg); }
 .word-pop.sheet { transition: transform .15s; }
 @media (max-width: 640px) { .tr-search .input { width: 120px; } }
+
+/* merged reader menus */
+.view-menu { min-width: 230px; padding: 10px; gap: 10px; align-items: stretch; }
+.view-menu .switch { justify-content: flex-start; }
+.view-menu #hideArBtn { text-align: start; }
+.view-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.menu-label { font-size: 12px; color: var(--ink-3, #888); padding: 6px 10px 2px; }
+.speed-menu .segmented button { text-align: center; }
+@media (max-width: 640px) { .reader-head .btn-label { display: none; } }

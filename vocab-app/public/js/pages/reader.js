@@ -227,8 +227,8 @@ export async function render(view, { segments, params }) {
       <div style="min-width:0;flex:1"><h1 class="en reader-title" dir="auto">${esc(source.title)}</h1>
         <div class="tiny muted en">${esc(source.channel || (source.kind === 'text' ? 'نص أضفته' : ''))}${source.duration_seconds ? ` · ${fmtDuration(source.duration_seconds)}` : ''}</div></div>
       ${source.youtube_id && !source.is_demo ? `<a class="btn icon sm ghost" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener" aria-label="فتح في يوتيوب">${icon.link}</a>` : ''}
-      <button class="btn sm ghost" id="summaryBtn" title="ملخص المقطع: الفكرة، الفائدة، الخطوات والأقوال">📝 الملخص</button>
-      <button class="btn sm ghost" id="listenBtn" title="يقرأ لك كل جملة بالعربي ثم بالإنجليزي — تابع بأذنك">🎧 استماع</button>
+      <button class="btn sm ghost" id="summaryBtn" title="ملخص المقطع: الفكرة، الفائدة، الخطوات والأقوال">📝<span class="btn-label"> الملخص</span></button>
+      <button class="btn sm ghost" id="listenBtn" title="يقرأ لك كل جملة بالعربي ثم بالإنجليزي — تابع بأذنك">🎧<span class="btn-label"> استماع</span></button>
       <button class="btn icon sm ghost" id="del" aria-label="حذف المصدر" title="حذف المصدر">${icon.trash}</button>
     </div>
     <div class="listen-bar hidden" id="listenBar"><span id="listenNote">🎧 يقرأ…</span>
@@ -240,16 +240,17 @@ export async function render(view, { segments, params }) {
         <div class="reader-tools">
           <span class="goal-chip" id="goalChip" title="هدف اليوم: الكلمات التي مررت عليها"></span>
           <span class="tr-search"><input class="input sm" id="trQ" type="search" placeholder="🔎 ابحث في النص" aria-label="ابحث في النص"><span class="tiny muted" id="trQn"></span></span>
-          <label class="switch"><input type="checkbox" id="arToggle" ${showAr ? 'checked' : ''}> <span>${icon.subtitles} الترجمة العربية</span></label>
-          <div class="segmented ar-layout${showAr ? '' : ' hidden'}" id="arLayout" role="group" aria-label="مكان الترجمة"><button type="button" data-layout="side" title="العربي بجانب الإنجليزي">⇆ بجانبه</button><button type="button" data-layout="below" title="العربي تحت الإنجليزي">⇅ تحته</button></div>
-          ${hasTimes ? `<label class="switch"><input type="checkbox" id="followToggle" ${follow ? 'checked' : ''}> <span>متابعة تلقائية</span></label>` : ''}
-          <div class="segmented fontsize" role="group" aria-label="حجم الخط"><button type="button" data-font="-1" title="خط أصغر">A−</button><button type="button" data-font="1" title="خط أكبر">A+</button></div>
-          ${isVideo ? `<div class="speed-pick" id="speed"><button type="button" class="btn sm ghost en-inline" id="speedBtn" aria-haspopup="true" aria-expanded="false" title="سرعة التشغيل">⏱ <span id="speedVal">1×</span></button>
-            <div class="speed-menu hidden" role="menu">${[0.5, 0.75, 0.9, 1, 1.25].map((r) => `<button type="button" role="menuitem" data-rate="${r}" class="en-inline">${r}×</button>`).join('')}</div></div>` : ''}
-          ${isVideo && hasTimes ? `<div class="speed-pick" id="mode"><button type="button" class="btn sm ghost" id="modeBtn" aria-haspopup="true" aria-expanded="false" title="طريقة التشغيل"><span id="modeVal">▶ عادي</span></button>
-            <div class="speed-menu mode-menu hidden" role="menu"><label class="mode-switch"><input type="checkbox" class="check" id="gapOn"> ⏸ توقف بعد كل سطر</label><div class="gap-chips" id="gapChips">${[300, 500, 1000, 1500, 2000, 3000].map((ms) => `<button type="button" data-gap="${ms}" class="en-inline">${ms / 1000}ث</button>`).join('')}</div><div class="mode-sep"></div><button type="button" role="menuitem" data-mode="shadow">🗣 ردّد ورائي</button></div><button type="button" class="btn icon sm ghost hidden" id="modeOff" title="إيقاف التوقف — تشغيل عادي">✕</button></div>` : ''}
-          ${isVideo && hasTimes ? '<button type="button" class="btn sm ghost" id="loopBtn" aria-pressed="false" title="كرّر الجملة الحالية حتى تفهمها (L)">🔁 كرّر الجملة</button>' : ''}
-          <button type="button" class="btn sm ghost" id="hideArBtn" aria-pressed="false" title="أخفِ العربي، والمسه لتراه (A)">🙈 أخفِ العربي</button>
+          ${isVideo && hasTimes ? `<div class="speed-pick" id="mode"><button type="button" class="btn sm ghost" id="modeBtn" aria-haspopup="true" aria-expanded="false" title="التشغيل: السرعة والتوقف والترديد"><span id="modeVal">▶ تشغيل</span> <span class="en-inline" id="speedVal">1×</span></button>
+            <div class="speed-menu mode-menu hidden" role="menu"><div class="menu-label">السرعة</div><div class="gap-chips" id="speed">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" data-rate="${r}" class="en-inline">${r}×</button>`).join('')}</div><div class="mode-sep"></div><label class="mode-switch"><input type="checkbox" class="check" id="gapOn"> ⏸ توقف بعد كل سطر</label><div class="gap-chips" id="gapChips">${[300, 500, 1000, 1500, 2000, 3000].map((ms) => `<button type="button" data-gap="${ms}" class="en-inline">${ms / 1000}ث</button>`).join('')}</div><div class="mode-sep"></div><button type="button" role="menuitem" data-mode="shadow">🗣 ردّد ورائي</button></div><button type="button" class="btn icon sm ghost hidden" id="modeOff" title="إيقاف التوقف — تشغيل عادي">✕</button></div>` : ''}
+          ${isVideo && hasTimes ? '<button type="button" class="btn icon sm ghost" id="loopBtn" aria-pressed="false" title="كرّر الجملة الحالية حتى تفهمها (L)">🔁</button>' : ''}
+          <div class="speed-pick" id="viewPick"><button type="button" class="btn sm ghost" id="viewBtn" aria-haspopup="true" aria-expanded="false" title="العرض: الترجمة، الخط، المتابعة">${icon.subtitles} العرض</button>
+            <div class="speed-menu view-menu hidden" id="viewMenu">
+              <label class="switch"><input type="checkbox" id="arToggle" ${showAr ? 'checked' : ''}> <span>الترجمة العربية</span></label>
+              <div class="segmented ar-layout${showAr ? '' : ' hidden'}" id="arLayout" role="group" aria-label="مكان الترجمة"><button type="button" data-layout="side" title="العربي بجانب الإنجليزي">⇆ بجانبه</button><button type="button" data-layout="below" title="العربي تحت الإنجليزي">⇅ تحته</button></div>
+              <button type="button" class="btn sm ghost" id="hideArBtn" aria-pressed="false" title="أخفِ العربي، والمسه لتراه (A)">🙈 أخفِ العربي حتى ألمسه</button>
+              ${hasTimes ? `<label class="switch"><input type="checkbox" id="followToggle" ${follow ? 'checked' : ''}> <span>متابعة تلقائية للنص</span></label>` : ''}
+              <div class="view-row"><span class="tiny muted">حجم الخط</span><div class="segmented fontsize" role="group" aria-label="حجم الخط"><button type="button" data-font="-1" title="خط أصغر">A−</button><button type="button" data-font="1" title="خط أكبر">A+</button></div></div>
+            </div></div>
           <button type="button" class="btn icon sm ghost" id="focusBtn" aria-pressed="false" title="توسيع: إخفاء التفاصيل والتركيز على النص"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
           <span class="tiny mode-note" id="modeNote"></span>
           <span class="tiny muted" id="trNote"></span>
@@ -285,6 +286,12 @@ export async function render(view, { segments, params }) {
     applyFont();
     recenter();
   }));
+  // "العرض" menu: Arabic, layout, hide Arabic, follow, font size — all in one place.
+  const viewMenu = $('#viewMenu', view);
+  const toggleView = (open) => { viewMenu.classList.toggle('hidden', !open); $('#viewBtn', view).setAttribute('aria-expanded', String(open)); };
+  $('#viewBtn', view).addEventListener('click', () => toggleView(viewMenu.classList.contains('hidden')));
+  const closeView = (e) => { if (!e.target.closest?.('#viewPick')) toggleView(false); };
+  document.addEventListener('click', closeView);
   // After a font change or rotating the phone, bring the spoken sentence back into view.
   function recenter() {
     requestAnimationFrame(() => {
@@ -721,7 +728,7 @@ export async function render(view, { segments, params }) {
   }
   const secs = () => `${gapMs >= 1000 ? gapMs / 1000 : (gapMs / 1000).toFixed(1)}ث`;
   const showMode = () => {
-    const labels = { normal: '⏸ توقف: لا', gap: `⏸ توقف ${secs()}`, shadow: '🗣 ردّد ورائي' };
+    const labels = { normal: '▶ تشغيل', gap: `⏸ توقف ${secs()}`, shadow: '🗣 ردّد ورائي' };
     const v = $('#modeVal', view);
     if (v) v.textContent = labels[playMode] || labels.normal;
     const on = $('#gapOn', view);
@@ -1245,6 +1252,7 @@ export async function render(view, { segments, params }) {
     saveProgress(true);
     document.removeEventListener('click', closeSpeed);
     document.removeEventListener('click', closeMode);
+    document.removeEventListener('click', closeView);
     document.removeEventListener('keydown', onKey);
     stopListening();
     clearInterval(backTimer);

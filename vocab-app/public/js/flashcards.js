@@ -37,7 +37,7 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
             <div class="fc-face fc-back">
               <div class="row between"><div class="en"><b class="display" style="font-size:22px">${esc(w.term)}</b></div>
                 <div class="row" style="gap:4px"><button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="1" aria-label="عادي">${icon.speaker}</button>
-                <button class="btn sm ghost" data-say="${esc(w.term)}" data-rate="0.65">بطيء</button></div></div>
+                <button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="0.65" aria-label="استمع ببطء">🐢</button></div></div>
               <div><div class="tiny muted">المعنى</div><div style="font-size:21px;font-weight:700">${w.arabic ? esc(w.arabic) : '<span class="muted" style="font-size:15px">بدون معنى محفوظ</span>'}</div></div>
               ${w.simple_english ? `<p class="en ink-2">${esc(w.simple_english)}</p>` : ''}
               ${w.context_sentence ? `<div class="quote"><div class="tiny muted" style="margin-bottom:4px">من الفيديو ${w.timestamp_seconds != null ? `<button class="ts-btn" data-ts style="padding:1px 7px;font-size:11.5px">▶ ${Math.floor(w.timestamp_seconds / 60)}:${String(w.timestamp_seconds % 60).padStart(2, '0')}</button>` : ''}</div>
