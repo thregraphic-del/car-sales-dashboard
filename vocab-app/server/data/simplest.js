@@ -86,7 +86,7 @@ export async function simplestVocab(v) {
 /* ---------------------------------------------- inflections and doers */
 
 // words that only look like an inflection or a "doer" noun
-const STOP = new Set(('being evening morning during ceiling string spring king wedding pudding sibling darling nothing something anything everything '
+const STOP = new Set(('career being evening morning during ceiling string spring king wedding pudding sibling darling nothing something anything everything '
   + 'news means series species lens always sometimes perhaps its his has was does thanks glasses physics politics economics '
   + 'former latter flower tower master sister brother mother father water paper number order corner finger power other under over after '
   + 'never ever rather whether together however either neither matter member letter better later dinner summer winter offer answer cover '
@@ -129,6 +129,9 @@ async function doerVerb(w) {
   const r = w.slice(0, -2);
   for (const t of [r, `${r}e`, /([bdgmnprt])\1$/.test(r) ? r.slice(0, -1) : null]) {
     if (!t || t.length < 3 || !rank.has(t)) continue;
+    // the noun must be exactly verb + er/or (speak → speaker, use → user, run → runner; care ↛ career)
+    const ends = [`${t}er`, `${t}or`, `${t}r`, `${t}${t.at(-1)}er`];
+    if (!ends.includes(w) || (w.endsWith('r') && !t.endsWith('e') && w === `${t}r`)) continue;
     if (rank.has(w) && rank.get(t) > rank.get(w) * 2.5 + 1000) continue;
     const row = await findVocabulary(t);
     if (row && row.term.toLowerCase() === t && isVerb(row.part_of_speech) && row.arabic) return row;
@@ -163,7 +166,7 @@ export async function simpleTerm(term) {
   return lemma !== lower ? { term: lemma, kind: 'inflection' } : { term: t, kind: 'same' };
 }
 
-const VERSION = '6';
+const VERSION = '7';
 
 /**
  * Point a video's suggested words at their simplest forms (once per video).
@@ -174,7 +177,7 @@ export async function simplifySourceWords(sourceId, { dry = false } = {}) {
   const flag = (await get('SELECT value FROM app_settings WHERE key = ?', `simplest:${sourceId}`))?.value || null;
   const changes = [];
   let restored = 0;
-  const redo = flag === '1'; // the first rule changed too much: put the said words back first
+  const redo = flag === '1' || flag === '6'; // these rules changed some words wrongly: put the said words back first
   const load = () => all(
     `SELECT o.id, o.vocabulary_id, o.line_id, o.char_start, o.char_end, v.term, v.level, v.item_type, l.text
      FROM occurrences o JOIN vocabulary v ON v.id = o.vocabulary_id LEFT JOIN transcript_lines l ON l.id = o.line_id
