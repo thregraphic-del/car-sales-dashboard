@@ -4,6 +4,7 @@
 //   fields), or when the learner asks for the meaning in this exact sentence.
 // AI answers are cached (ai_cache + vocabulary + occurrence), so a word in a
 // given sentence is only ever sent once.
+import { simplestVocab } from '../data/simplest.js';
 import { get } from '../db/index.js';
 import { lookupWithAi, dictionaryDetails } from './extractor.js';
 import { aiConfigured, aiAvailable, AiError, OFFLINE_MESSAGE } from './ai.js';
@@ -34,6 +35,11 @@ export async function lookup({ line_id, word, vocabulary_id, context = false }, 
     for (const c of vocab ? [] : lemmaCandidates(word)) {
       vocab = await findVocabulary(c);
       if (vocab) break;
+    }
+    // a noun made from a verb is shown (and saved) as the short verb: decision → decide
+    if (vocab && vocab.item_type !== 'expression') {
+      const base = await simplestVocab(vocab).catch(() => null);
+      if (base?.id) vocab = (await getVocabulary(base.id)) || vocab;
     }
   }
   if (!vocab && word) {

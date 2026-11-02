@@ -475,13 +475,18 @@ test('video: suggested words are shown in their simplest form (appearance → ap
   await add('appear', 'A2', 'verb');
   const appearance = await add('appearance', 'B1', 'noun');
   const integrity = await add('integrity', 'C1', 'noun'); // its family says "integral", but that is not the verb it comes from
+  await add('decide', 'A2', 'verb');
+  const decision = await add('decision', 'B1', 'noun');
+  await add('import', 'B1', 'verb');
+  const importance = await add('importance', 'B1', 'noun'); // looks like import + ance, but not one family
+  await writeCache(cacheKey('word_forms_v2', 'Word: decide'), 'word_forms_v2', { base: 'decide', forms: [{ pos: 'فعل', word: 'decide', arabic: 'يقرر' }, { pos: 'اسم', word: 'decision', arabic: 'قرار' }] });
   await writeCache(cacheKey('word_forms_v2', 'Word: appear'), 'word_forms_v2', { base: 'appear', forms: [{ pos: 'فعل', word: 'appear', arabic: 'يظهر' }, { pos: 'اسم', word: 'appearance', arabic: 'مظهر' }] });
   await writeCache(cacheKey('word_forms_v2', 'Word: integrity'), 'word_forms_v2', { base: 'integrity', forms: [{ pos: 'اسم', word: 'integrity', arabic: 'نزاهة' }, { pos: 'صفة', word: 'integral', arabic: 'أساسي' }] });
-  for (const v of [appearance, integrity]) {
+  for (const v of [appearance, integrity, decision, importance]) {
     await run('INSERT INTO occurrences (vocabulary_id, source_id, line_id, char_start, char_end, sentence, contextual_meaning, suggested, rank) VALUES (?, ?, ?, 0, 3, ?, ?, 1, 5)', v, src.id, line.id, line.text, 'مظهر');
   }
   const dry = await postJson(`/api/sources/${src.id}/dictionary-words`, { dry: true });
-  assert.deepEqual(dry.body.changes, ['appearance→appear']);
+  assert.deepEqual(dry.body.changes.sort(), ['appearance→appear', 'decision→decide']);
   const r = await postJson(`/api/sources/${src.id}/dictionary-words`, {});
   assert.equal(r.status, 200);
   assert.ok(r.body.simplified >= 1, JSON.stringify(r.body));
@@ -490,6 +495,11 @@ test('video: suggested words are shown in their simplest form (appearance → ap
   assert.ok(terms.includes('appear'), 'shown as the simplest form');
   assert.ok(!terms.includes('appearance'));
   assert.ok(terms.includes('integrity'), 'not changed to a different word');
+  assert.ok(terms.includes('decide') && !terms.includes('decision'));
+  assert.ok(terms.includes('importance'));
+  // clicking "decision" anywhere shows (and saves) "decide"
+  const look = await (await realFetch(`${app.base}/api/lookup?word=decision`)).json();
+  assert.equal(look.term, 'decide', JSON.stringify(look).slice(0, 200));
   assert.equal(view.items.find((i) => i.term === 'appear').arabic, 'معنى', 'meaning of the simple form, not of the long one');
   assert.equal(view.source.simplified, true);
 });

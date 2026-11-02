@@ -2,7 +2,7 @@
 // suggested words are shown and saved in their shortest, most basic form.
 import { all, get, run, tx } from '../db/index.js';
 import { cacheKey, readCache } from '../services/ai.js';
-import { findVocabulary } from './vocabulary.js';
+import { findVocabulary, upsertVocabulary } from './vocabulary.js';
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const lv = (l) => (LEVELS.includes(l) ? LEVELS.indexOf(l) : 9);
@@ -10,54 +10,60 @@ const familyOf = async (term) => (await readCache(cacheKey('word_forms_v2', `Wor
 const wordOf = (f) => String(f.word || f.form || '').toLowerCase().trim().split(/[\s(/]/)[0];
 const isVerb = (pos) => /فعل|verb/i.test(String(pos || '')) && !/adverb|ظرف/i.test(String(pos || ''));
 
-// Only nouns made from a verb become that verb (appearance → appear, agreement → agree):
-// the learner saves the short basic verb. Adjectives and adverbs stay as they are.
-const SUFFIXES = [
-  ['ation', ['ate', 'e', '']], ['ition', ['ite', 'e']], ['ization', ['ize']], ['isation', ['ise']], ['ment', ['']],
-  ['ance', ['', 'e']], ['ence', ['', 'e']], ['ion', ['e', '']], ['al', ['e']], ['er', ['', 'e']], ['or', ['', 'e']],
+// Only nouns made from a verb become that verb (decision → decide, explanation → explain,
+// improvement → improve, communication → communicate). A noun is accepted only when it is
+// built from the verb by a known English pattern, so look-alikes (integrity/integrate) never change.
+const RULES = [
+  // [verb ending to drop, noun ending to add]
+  ['', 'ment'], ['', 'ion'], ['e', 'ion'], ['', 'ation'], ['e', 'ation'], ['y', 'ication'], ['ize', 'ization'], ['ise', 'isation'],
+  ['', 'ance'], ['e', 'ance'], ['', 'ence'], ['e', 'ence'], ['e', 'al'], ['de', 'sion'], ['d', 'sion'], ['t', 'ssion'], ['it', 'ission'],
+  ['ain', 'anation'], ['ibe', 'iption'], ['eive', 'eption'], ['uce', 'uction'], ['ume', 'umption'], ['ve', 'ution'], ['ounce', 'unciation'], ['d', 'tion'],
+  ['ain', 'ention'], ['y', 'iance'], ['er', 'rance'], ['ear', 'earance'], ['ify', 'ification'], ['ate', 'ation'],
 ];
-function stems(term) {
+export const derived = (verb) => new Set(RULES.filter(([cut]) => verb.endsWith(cut)).map(([cut, add]) => verb.slice(0, verb.length - cut.length) + add));
+// possible verbs behind a noun: undo each rule
+export function verbsBehind(term) {
   const out = new Set();
-  for (const [suf, adds] of SUFFIXES) {
-    if (!term.endsWith(suf) || term.length - suf.length < 3) continue;
-    const root = term.slice(0, -suf.length);
-    for (const a of adds) out.add(root + a);
-    if (/([bdgmnprt])\1$/.test(root)) out.add(root.slice(0, -1)); // beginner → begin
-  }
+  for (const [cut, add] of RULES) if (term.endsWith(add) && term.length - add.length >= 3) out.add(term.slice(0, -add.length) + cut);
   out.delete(term);
   return [...out];
-}
-
-let rankOf = null;
-async function ranks() {
-  if (!rankOf) {
-    const { COMMON_WORDS } = await import('../lib/common-words.js');
-    rankOf = new Map(COMMON_WORDS.map((w, i) => [w, i]));
-  }
-  return rankOf;
 }
 
 /** The basic verb a noun is made from, or null. Strict: a wrong change is worse than none. */
 export async function simplestFor(v) {
   const term = String(v.term || '').toLowerCase();
   if (!/^[a-z]+$/.test(term) || term.length < 6) return null;
-  const rank = await ranks();
-  const ok = [];
-  for (const w of stems(term)) {
-    if (w.length < 3 || !rank.has(w)) continue; // a real, common word
-    if (rank.has(term) && rank.get(w) > rank.get(term)) continue; // and more common than the long one
-    const row = await findVocabulary(w);
-    if (!row || row.term.toLowerCase() !== w || row.origin !== 'dictionary' || !isVerb(row.part_of_speech)) continue;
-    if (!row.level || !v.level || lv(row.level) > lv(v.level)) continue; // never a harder word
-    const fam = await familyOf(w);
-    if (!fam?.some((f) => wordOf(f) === term)) continue; // the dictionary says they are one family
-    ok.push({ term: w, id: row.id, arabic: row.arabic, pos: row.part_of_speech, level: row.level });
+  const cands = new Map();
+  for (const w of verbsBehind(term)) cands.set(w, null);
+  for (const f of (await familyOf(term)) || []) {
+    const w = wordOf(f);
+    if (isVerb(f.pos) && /^[a-z]+$/.test(w)) cands.set(w, f);
   }
-  ok.sort((a, b) => a.term.length - b.term.length);
+  const ok = [];
+  for (const [w, fam] of cands) {
+    if (w === term || w.length >= term.length || !derived(w).has(term)) continue;
+    const row = await findVocabulary(w);
+    if (row && row.term.toLowerCase() !== w) continue;
+    if (row && row.part_of_speech && !isVerb(row.part_of_speech) && !fam) continue;
+    if (!row && !fam?.arabic) continue; // unknown word: only when the dictionary family names it as the verb
+    if (row?.level && v.level && lv(row.level) > lv(v.level) + 1) continue; // not a much harder word
+    // and the dictionary says they are one family (importance is not from "import")
+    if (!fam && !((await familyOf(w)) || []).some((f) => wordOf(f) === term)) continue;
+    ok.push({ term: w, id: row?.id || null, arabic: row?.arabic || fam?.arabic, pos: row?.part_of_speech || 'verb', level: row?.level || null });
+  }
+  ok.sort((a, b) => (b.id ? 1 : 0) - (a.id ? 1 : 0) || a.term.length - b.term.length);
   return ok[0] || null;
 }
 
-const VERSION = '2';
+/** The vocabulary row of the simplest form (creating it from the dictionary family when needed). */
+export async function simplestVocab(v) {
+  const base = await simplestFor(v);
+  if (!base) return null;
+  if (!base.id) base.id = (await upsertVocabulary({ term: base.term, arabic: base.arabic, part_of_speech: 'verb', origin: 'ai' })).id;
+  return base;
+}
+
+const VERSION = '3';
 
 /**
  * Point a video's suggested words at their simplest forms (once per video).
@@ -95,7 +101,7 @@ export async function simplifySourceWords(sourceId, { dry = false } = {}) {
     const memo = new Map();
     for (const r of await load()) {
       if (r.item_type === 'expression' || /\s/.test(r.term)) continue;
-      if (!memo.has(r.term)) memo.set(r.term, await simplestFor(r));
+      if (!memo.has(r.term)) memo.set(r.term, await (dry ? simplestFor(r) : simplestVocab(r)));
       const base = memo.get(r.term);
       if (!base || base.id === r.vocabulary_id) continue;
       changes.push(`${r.term}→${base.term}`);
