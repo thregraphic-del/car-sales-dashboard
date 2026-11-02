@@ -60,7 +60,12 @@ export async function simplestFor(v) {
     if (!row && !fam?.arabic) continue; // unknown word: only when the dictionary family names it as the verb
     if (row?.level && v.level && lv(row.level) > lv(v.level) + 1) continue; // not a much harder word
     // and the dictionary says they are one family (importance is not from "import")
-    if (!fam && !((await familyOf(w)) || []).some((f) => wordOf(f) === term)) continue;
+    if (!fam) {
+      const famW = await familyOf(w);
+      const famT = await familyOf(term);
+      const linked = [famW, famT].some((f) => f?.some((x) => [term, w].includes(wordOf(x)) && wordOf(x) !== (f === famW ? w : term)));
+      if ((famW || famT) && !linked) continue; // the dictionary knows these words and does not join them
+    }
     ok.push({ term: w, id: row?.id || null, arabic: row?.arabic || fam?.arabic, pos: row?.part_of_speech || 'verb', level: row?.level || null });
   }
   ok.sort((a, b) => (b.id ? 1 : 0) - (a.id ? 1 : 0) || a.term.length - b.term.length);

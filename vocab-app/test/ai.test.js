@@ -479,14 +479,16 @@ test('video: suggested words are shown in their simplest form (appearance → ap
   const decision = await add('decision', 'B1', 'noun');
   await add('import', 'B1', 'verb');
   const importance = await add('importance', 'B1', 'noun'); // looks like import + ance, but not one family
+  await add('improve', 'A2', 'verb');
+  const improvement = await add('improvement', 'B1', 'noun'); // no family data at all: the rules decide
   await writeCache(cacheKey('word_forms_v2', 'Word: decide'), 'word_forms_v2', { base: 'decide', forms: [{ pos: 'فعل', word: 'decide', arabic: 'يقرر' }, { pos: 'اسم', word: 'decision', arabic: 'قرار' }] });
   await writeCache(cacheKey('word_forms_v2', 'Word: appear'), 'word_forms_v2', { base: 'appear', forms: [{ pos: 'فعل', word: 'appear', arabic: 'يظهر' }, { pos: 'اسم', word: 'appearance', arabic: 'مظهر' }] });
   await writeCache(cacheKey('word_forms_v2', 'Word: integrity'), 'word_forms_v2', { base: 'integrity', forms: [{ pos: 'اسم', word: 'integrity', arabic: 'نزاهة' }, { pos: 'صفة', word: 'integral', arabic: 'أساسي' }] });
-  for (const v of [appearance, integrity, decision, importance]) {
+  for (const v of [appearance, integrity, decision, importance, improvement]) {
     await run('INSERT INTO occurrences (vocabulary_id, source_id, line_id, char_start, char_end, sentence, contextual_meaning, suggested, rank) VALUES (?, ?, ?, 0, 3, ?, ?, 1, 5)', v, src.id, line.id, line.text, 'مظهر');
   }
   const dry = await postJson(`/api/sources/${src.id}/dictionary-words`, { dry: true });
-  assert.deepEqual(dry.body.changes.sort(), ['appearance→appear', 'decision→decide']);
+  assert.deepEqual(dry.body.changes.sort(), ['appearance→appear', 'decision→decide', 'improvement→improve']);
   const r = await postJson(`/api/sources/${src.id}/dictionary-words`, {});
   assert.equal(r.status, 200);
   assert.ok(r.body.simplified >= 1, JSON.stringify(r.body));
