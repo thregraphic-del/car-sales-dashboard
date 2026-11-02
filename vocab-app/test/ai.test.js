@@ -189,6 +189,28 @@ test('word forms: verb/noun/adjective with examples, cached, input sanitised', a
   assert.equal((await get('<<>>')).status, 400);
 });
 
+test('word forms: an old family saved in Arabic (no examples) is asked again in English with examples', async () => {
+  const { cacheKey, writeCache } = await import('../server/services/ai.js');
+  await writeCache(cacheKey('word_forms_v2', 'Word: survive'), 'word_forms_v2', { base: 'survive', forms: [
+    { pos: 'فعل', word: 'survive', form: 'survive', arabic: 'نجا', example: 'They survived.', example_ar: 'نجوا.' },
+    { pos: 'فعل', word: 'نجا', form: 'نجا', arabic: 'استمر في الحياة', example: '', example_ar: '' },
+    { pos: 'اسم', word: 'نجاة', form: 'نجاة', arabic: 'الاستمرار', example: '', example_ar: '' },
+  ] });
+  reply = ok({ base: 'survive', forms: [
+    { pos: 'فعل', word: 'survive', form: 'survive (survived, survived)', arabic: 'ينجو', example: 'They survived the storm.', example_ar: 'نجوا من العاصفة.' },
+    { pos: 'اسم', word: 'survival', form: 'survival', arabic: 'النجاة', example: 'Survival was hard.', example_ar: 'كانت النجاة صعبة.' },
+    { pos: 'اسم فاعل', word: 'survivor', form: 'survivor', arabic: 'ناجٍ', example: 'She is a survivor.', example_ar: 'هي ناجية.' },
+  ] });
+  calls = [];
+  const r = await (await realFetch(`${app.base}/api/ai/forms?word=survive`)).json();
+  assert.deepEqual(r.forms.map((f) => f.word), ['survive', 'survival', 'survivor']);
+  assert.ok(r.forms.every((f) => f.example && f.example_ar));
+  assert.equal(calls.filter((c) => c.u.endsWith('/chat/completions')).length, 1);
+  calls = [];
+  await realFetch(`${app.base}/api/ai/forms?word=survive`);
+  assert.equal(calls.filter((c) => c.u.endsWith('/chat/completions')).length, 0, 'the good family replaced the old one');
+});
+
 const postJson = async (path, body) => {
   const res = await realFetch(`${app.base}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   return { status: res.status, body: await res.json() };
@@ -363,9 +385,10 @@ test('built-in dictionary: built once with AI, then words and their forms need n
   assert.equal(look.found, true);
   assert.equal(look.term, 'thrive');
   assert.match(look.arabic, /يزدهر/);
+  assert.equal(calls.filter((c) => c.u.endsWith('/chat/completions')).length, 0, 'no AI after the dictionary is built');
+  // the family has no example for every form yet: asked once to complete it; the stored forms are the fallback
   const forms = await (await realFetch(`${app.base}/api/ai/forms?word=meticulous`)).json();
   assert.deepEqual(forms.forms.map((f) => f.word), ['meticulous', 'meticulously']);
-  assert.equal(calls.filter((c) => c.u.endsWith('/chat/completions')).length, 0, 'no AI after the dictionary is built');
   calls = [];
   await build({ offset: 0, count: 3 });
   const asked = calls.find((c) => c.u.endsWith('/chat/completions')).body.messages.at(-1).content.split('\n');

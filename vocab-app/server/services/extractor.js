@@ -426,17 +426,41 @@ const FormsZ = z.object({
   forms: z.array(z.object({ pos: z.enum(POS), word: z.string(), form: z.string(), arabic: z.string(), example: z.string(), example_ar: z.string() })),
 });
 
+const isEnglishForm = (f) => /^[a-z][a-z' -]*$/i.test(String(f.word || f.form || '').trim().split(/[(/]/)[0].trim());
+/** A stored family is usable when every form is an English word and most have an example. */
+export function goodForms(r) {
+  const forms = r?.forms || [];
+  if (forms.length < 2 || !forms.every(isEnglishForm)) return false;
+  return forms.filter((f) => f.example).length >= Math.ceil(forms.length * 0.75);
+}
+
 /** Word family: the word as verb / noun / adjective / adverb…, each with an example. Cached per word. */
 export async function formsWithAi(word) {
-  const r = await jsonCall({
-    task: 'word_forms_v2',
-    system: 'You help an Arabic-speaking learner of English. Give the word family of the given English word: its common forms as a verb (فعل), noun (اسم), adjective (صفة), adverb (ظرف), person noun (اسم فاعل, e.g. teacher) or other (أخرى). Include only real, commonly used forms (2–7), the given word\'s own form first. "base" = the shortest dictionary form (one word when possible, e.g. "decide" for "decision-making"). For each: "word" = that form alone as a single dictionary headword to save (e.g. "decision", no slashes, brackets or extra forms), "form" = the English form (for verbs add past and past participle like "decide (decided, decided)" when irregular or useful), "arabic" = short Arabic meaning, "example" = one short natural English example sentence using that form, "example_ar" = its Arabic translation.',
+  const { cacheKey, readCache, writeCache } = await import('./ai.js');
+  const oldKey = cacheKey('word_forms_v2', `Word: ${word}`);
+  const old = await readCache(oldKey).catch(() => null);
+  if (goodForms(old)) return { base: old.base, forms: old.forms.filter((f) => f.form || f.word).slice(0, 8) };
+  let r;
+  try {
+    r = await jsonCall({
+    task: 'word_forms_v3',
+    system: 'You help an Arabic-speaking learner of English. Give the COMPLETE word family of the given English word: every common form as a verb (فعل), noun (اسم), adjective (صفة), adverb (ظرف), person noun (اسم فاعل, e.g. survivor) or other (أخرى) — e.g. survive → survive (فعل), survival (اسم), survivor (اسم فاعل), surviving (صفة). Include every real, commonly used form (2–8), the simplest form first. "base" = the shortest dictionary form. For each form: "word" = the ENGLISH headword only (never Arabic, no slashes or brackets); "form" = the English form (for verbs add past and past participle, e.g. "survive (survived, survived)"); "arabic" = its short Arabic meaning; "example" = one short natural English sentence using exactly that form (REQUIRED for every form); "example_ar" = its Arabic translation (REQUIRED).',
     user: `Word: ${word}`,
     schema: FORMS_SCHEMA,
     zod: FormsZ,
-    maxTokens: 700,
-  });
-  return { base: r.base, forms: r.forms.filter((f) => f.form).slice(0, 7) };
+    maxTokens: 1100,
+    });
+  } catch (err) {
+    // AI unavailable: show what we have, English forms only
+    const keep = (old?.forms || []).filter(isEnglishForm);
+    if (keep.length) return { base: old.base, forms: keep };
+    throw err;
+  }
+  const forms = r.forms.filter((f) => (f.form || f.word) && isEnglishForm(f)).slice(0, 8);
+  const out = { base: r.base, forms };
+  // replace the old family so the whole app (simplest forms, the word panel) uses the good one
+  if (forms.length) await writeCache(oldKey, 'word_forms_v2', out).catch(() => {});
+  return out;
 }
 
 /* ------------------------------------------- words from a photo or a PDF */

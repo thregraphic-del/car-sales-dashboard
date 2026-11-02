@@ -181,7 +181,11 @@ function placePanel(el) {
 const formsMemo = new Map();
 function loadForms(term) {
   const key = String(term || '').toLowerCase();
-  if (!formsMemo.has(key)) formsMemo.set(key, api.wordForms(key).catch((err) => { formsMemo.delete(key); throw err; }));
+  if (!formsMemo.has(key)) {
+    formsMemo.set(key, api.wordForms(key)
+      .then((r) => ({ ...r, forms: (r.forms || []).filter((f) => /^[a-z]/i.test(formTerm(f))) })) // English forms only
+      .catch((err) => { formsMemo.delete(key); throw err; }));
+  }
   return formsMemo.get(key);
 }
 
