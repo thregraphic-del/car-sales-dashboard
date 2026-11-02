@@ -9,6 +9,7 @@ import { startOfDay, midnightOf } from '../lib/time.js';
 import { addExample, examplesFor } from './vocabulary.js';
 import { addToGroup, groupIdsFor } from './groups.js';
 import { baseVocabId } from './simplest.js';
+import { usageOf } from '../lib/usage.js';
 
 /**
  * Save a vocabulary item to the learner's words (explicit action only).
@@ -124,6 +125,7 @@ function toWord(r, ex, now) {
     simple_english: r.simple_english,
     similar: JSON.parse(r.similar_json || '[]'),
     topic: r.topic,
+    usage: usageOf(r.term, r.level),
     context_sentence: r.context_sentence,
     context_arabic: r.context_arabic,
     timestamp_seconds: r.timestamp_seconds,

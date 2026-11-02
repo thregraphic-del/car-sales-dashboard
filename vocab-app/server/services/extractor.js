@@ -419,11 +419,11 @@ export async function explainWithAi({ text, sentence = '', title = '' }) {
 const POS = ['فعل', 'اسم', 'صفة', 'ظرف', 'اسم فاعل', 'أخرى'];
 const FORMS_SCHEMA = obj({
   base: str,
-  forms: { type: 'array', items: obj({ pos: { type: 'string', enum: POS }, word: str, form: str, arabic: str, example: str, example_ar: str }) },
+  forms: { type: 'array', items: obj({ pos: { type: 'string', enum: POS }, word: str, form: str, arabic: str, example: str, example_ar: str, usage: { type: 'string', enum: ['common', 'medium', 'rare'] } }) },
 });
 const FormsZ = z.object({
   base: z.string(),
-  forms: z.array(z.object({ pos: z.enum(POS), word: z.string(), form: z.string(), arabic: z.string(), example: z.string(), example_ar: z.string() })),
+  forms: z.array(z.object({ pos: z.enum(POS), word: z.string(), form: z.string(), arabic: z.string(), example: z.string(), example_ar: z.string(), usage: z.enum(['common', 'medium', 'rare']).optional() })),
 });
 
 const isEnglishForm = (f) => /^[a-z][a-z' -]*$/i.test(String(f.word || f.form || '').trim().split(/[(/]/)[0].trim());
@@ -444,7 +444,7 @@ export async function formsWithAi(word) {
   try {
     r = await jsonCall({
     task: 'word_forms_v3',
-    system: 'You help an Arabic-speaking learner of English. Give the COMPLETE word family of the given English word: every common form as a verb (فعل), noun (اسم), adjective (صفة), adverb (ظرف), person noun (اسم فاعل, e.g. survivor) or other (أخرى) — e.g. survive → survive (فعل), survival (اسم), survivor (اسم فاعل), surviving (صفة). Include every real, commonly used form (2–8), the simplest form first. "base" = the shortest dictionary form. For each form: "word" = the ENGLISH headword only (never Arabic, no slashes or brackets); "form" = the English form (for verbs add past and past participle, e.g. "survive (survived, survived)"); "arabic" = its short Arabic meaning; "example" = one short natural English sentence using exactly that form (REQUIRED for every form); "example_ar" = its Arabic translation (REQUIRED).',
+    system: 'You help an Arabic-speaking learner of English. Give the COMPLETE word family of the given English word: every common form as a verb (فعل), noun (اسم), adjective (صفة), adverb (ظرف), person noun (اسم فاعل, e.g. survivor) or other (أخرى) — e.g. survive → survive (فعل), survival (اسم), survivor (اسم فاعل), surviving (صفة). Include every real, commonly used form (2–8), the simplest form first. "base" = the shortest dictionary form. For each form: "word" = the ENGLISH headword only (never Arabic, no slashes or brackets); "form" = the English form (for verbs add past and past participle, e.g. "survive (survived, survived)"); "arabic" = its short Arabic meaning; "example" = one short natural English sentence using exactly that form (REQUIRED for every form); "example_ar" = its Arabic translation (REQUIRED); "usage" = how common that form is in everyday English: "common" (very common, everyday, important), "medium" (less common or a bit advanced), "rare" (rare, formal, technical or not worth learning early).',
     user: `Word: ${word}`,
     schema: FORMS_SCHEMA,
     zod: FormsZ,
@@ -679,4 +679,22 @@ export async function ladderWithAi({ term, arabic }) {
     zod: LadderZ,
     maxTokens: 900,
   });
+}
+
+const FORMS_BATCH_SCHEMA = obj({ items: { type: 'array', items: obj({ input: str, base: str, forms: FORMS_SCHEMA.properties.forms }) } });
+const FormsBatchZ = z.object({ items: z.array(z.object({ input: z.string(), base: z.string(), forms: FormsZ.shape.forms })) });
+
+/** The complete word family of several words at once (to prepare the built-in dictionary). */
+export async function formsBatchWithAi(words) {
+  const r = await jsonCall({
+    task: 'forms_batch',
+    system: 'You help Arabic-speaking learners of English. For EACH input word (keep "input" exactly) give its COMPLETE word family: every common form as a verb (فعل), noun (اسم), adjective (صفة), adverb (ظرف), person noun (اسم فاعل) or other (أخرى) — e.g. survive → survive, survival, survivor, surviving. 2–7 real forms, the simplest form first; "base" = the shortest dictionary form. For each form: "word" = the ENGLISH headword only (never Arabic); "form" = the English form (verbs: add past and past participle, e.g. "survive (survived, survived)"); "arabic" = short Arabic meaning; "example" = one short natural English sentence using exactly that form; "example_ar" = its Arabic translation; "usage" = "common" (everyday, important), "medium" (less common / a bit advanced) or "rare" (rare, formal, technical, not worth learning early).',
+    user: words.join('\n'),
+    schema: FORMS_BATCH_SCHEMA,
+    zod: FormsBatchZ,
+    maxTokens: Math.min(16000, 520 * words.length + 400),
+    timeoutMs: 50000,
+    cache: false,
+  });
+  return r.items;
 }

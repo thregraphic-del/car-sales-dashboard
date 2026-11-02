@@ -951,3 +951,20 @@ a.day-tile:hover { border-color: var(--accent); }
 .transcript .line.past-fade { opacity: .3; transition: opacity .6s ease; }
 .transcript .line { transition: opacity .4s ease; }
 .transcript { scroll-behavior: smooth; }
+/* how common a word is: green everyday, orange less common, red rare */
+.u-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex: none; vertical-align: middle; margin-inline: 2px 4px; }
+.u-dot.u-common { background: #22a35a; }
+.u-dot.u-medium { background: #e8892b; }
+.u-dot.u-rare { background: #d9443a; }
+.u-t-common { color: #1f8f4f; }
+.u-t-medium { color: #c76d12; }
+.u-t-rare { color: #c0392b; }
+:root[data-theme="dark"] .u-t-common { color: #4fd18b; }
+:root[data-theme="dark"] .u-t-medium { color: #f2a65a; }
+:root[data-theme="dark"] .u-t-rare { color: #f07167; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .u-t-common { color: #4fd18b; }
+  :root:not([data-theme="light"]) .u-t-medium { color: #f2a65a; }
+  :root:not([data-theme="light"]) .u-t-rare { color: #f07167; }
+}
+.u-legend { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin: 4px 0 8px; }

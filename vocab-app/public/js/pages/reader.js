@@ -10,7 +10,7 @@
 // seeks the video there.
 import { api } from '../api.js';
 import { state } from '../state.js';
-import { esc, icon, levelChip, fmtTime, fmtDuration, toast, $, emptyState, openModal } from '../ui.js';
+import { esc, icon, levelChip, usageDot, usageLegend, fmtTime, fmtDuration, toast, $, emptyState, openModal } from '../ui.js';
 import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech, celebrateGoal } from '../components.js';
 import { tokenize, quickTier, normalizeArabic } from '../shared/text.js';
 import { buildTimeline, positionAt, steadyPosition, wordIndexByChar } from '../shared/sync.js';
@@ -412,10 +412,11 @@ export async function render(view, { segments, params }) {
           <div class="row" style="gap:6px"><input class="input sm" id="sideQ" type="search" placeholder="ابحث في الكلمات…" value="${esc(sideF.q)}" style="flex:1;min-width:0">
           <label class="row tiny" style="gap:4px;white-space:nowrap"><input type="checkbox" class="check" id="sideUnsaved" ${sideF.unsaved ? 'checked' : ''}> غير المحفوظة</label></div></div>` : ''}
         <p class="tiny muted" id="refineNote" style="margin:6px 0 0">${source.extractor === 'dictionary' ? (state.config.ai.available ? '<span class="spinner"></span> ✨ الذكاء الاصطناعي يختار كلمات أدق…' : 'مختارة من القاموس المحلي. اضغط أي كلمة في النص لمعناها.') : ''}</p>
+        ${usageLegend()}
       </div>
       <div class="side-list">${shown.slice(0, sideLimit).map((it) => `
         <div class="side-item ${it.user_state === 'dismissed' ? 'dim' : ''}" data-vid="${it.vocabulary_id}" data-line="${it.line_id}">
-          <div style="min-width:0"><div class="row" style="gap:6px"><b class="en">${esc(it.term)}</b>${levelChip(it.level)}</div>
+          <div style="min-width:0"><div class="row" style="gap:6px">${usageDot(it.usage)}<b class="en u-t-${esc(it.usage || '')}">${esc(it.term)}</b>${levelChip(it.level)}</div>
             <div class="small ink-2 clamp1">${esc(it.arabic || '')}</div></div>
           ${it.user_state === 'saved' ? '<span class="saved-tick" title="محفوظة">✓</span>' : `<button class="btn sm" data-save="${it.vocabulary_id}" data-occ="${it.occurrence_id}">حفظ</button>`}
         </div>`).join('') || '<p class="small muted">لا توجد كلمات هنا. غيّر الفلتر، أو اضغط أي كلمة في النص لتفهمها وتحفظها.</p>'}

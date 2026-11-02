@@ -49,6 +49,10 @@ export const icon = {
 export const $ = (sel, root = document) => root.querySelector(sel);
 export const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 
+export const USAGE_AR = { common: 'شائعة ومهمة', medium: 'أقل شيوعًا', rare: 'نادرة أو احترافية' };
+/** Coloured dot for how common a word is: green common, orange less common, red rare. */
+export const usageDot = (usage) => (usage && USAGE_AR[usage] ? `<span class="u-dot u-${usage}" title="${USAGE_AR[usage]}"></span>` : '');
+export const usageLegend = () => `<span class="u-legend tiny muted"><span class="u-dot u-common"></span>شائعة <span class="u-dot u-medium"></span>أقل شيوعًا <span class="u-dot u-rare"></span>نادرة</span>`;
 export const levelChip = (level) => (level ? `<span class="chip lvl-${esc(level)}" title="مستوى CEFR">${esc(level)}</span>` : '');
 
 export const TYPE_AR = {

@@ -2,6 +2,7 @@
 // learner. It holds no personal data: a learner's own meaning lives in
 // user_vocabulary.user_arabic and their own examples carry their user_id.
 // New information only fills gaps — existing meanings never change.
+import { usageOf } from '../lib/usage.js';
 import { all, get, run } from '../db/index.js';
 import { matchKey, singularCandidates, sentenceKey } from '../../public/js/shared/text.js';
 
@@ -141,5 +142,6 @@ export function vocabularyPublic(v) {
     simple_english: v.simple_english,
     similar: JSON.parse(v.similar_json || '[]'),
     topic: v.topic,
+    usage: usageOf(v.term, v.level),
   };
 }

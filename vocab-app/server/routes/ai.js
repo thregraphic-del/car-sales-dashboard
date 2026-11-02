@@ -2,6 +2,7 @@
 // The OpenRouter key stays on the server; only the selected text and its own
 // sentence are sent (never the whole transcript).
 import { Router } from 'express';
+import { usageOf } from '../lib/usage.js';
 import { config } from '../config.js';
 import { wrap, num } from '../http.js';
 import { httpError } from '../lib/errors.js';
@@ -43,7 +44,8 @@ router.get('/forms', wrap(async (req, res) => {
   const word = String(req.query.word || '').toLowerCase().replace(/[^a-z' -]/g, '').replace(/\s+/g, ' ').trim();
   if (!word || word.length > 40) throw httpError(400, 'كلمة غير صالحة.');
   try {
-    return { ok: true, word, ...(await formsWithAi(word)) };
+    const r = await formsWithAi(word);
+    return { ok: true, word, ...r, forms: r.forms.map((f) => ({ ...f, usage: f.usage || usageOf(String(f.word || f.form).split(/[\s(]/)[0]) })) };
   } catch (err) {
     if (!(err instanceof AiError)) throw err;
     res.status(err.status || 503).json({ ok: false, error: err.message });

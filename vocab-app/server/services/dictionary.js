@@ -86,3 +86,43 @@ function posAr(pos) {
   if (p.includes('noun')) return 'اسم';
   return 'أخرى';
 }
+
+/* ------------------------------------------- word families, prepared ahead */
+
+let dictTerms = null;
+/** The dictionary's words, most common first. */
+async function dictionaryTerms() {
+  if (dictTerms) return dictTerms;
+  const rows = await all("SELECT term FROM vocabulary WHERE origin = 'dictionary'");
+  const rank = new Map(COMMON_WORDS.map((w, i) => [w, i]));
+  dictTerms = rows.map((r) => clean(r.term)).filter((t) => /^[a-z]+$/.test(t)).sort((a, b) => (rank.get(a) ?? 1e9) - (rank.get(b) ?? 1e9));
+  return dictTerms;
+}
+
+/**
+ * Prepare the complete word family (English forms, Arabic, an example each, how common)
+ * of the next `count` dictionary words that do not have a good one yet, so the word panel
+ * opens instantly.
+ */
+export async function buildFormsStep({ offset = 0, count = 8 } = {}) {
+  const { formsBatchWithAi, goodForms } = await import('./extractor.js');
+  const { readCache } = await import('./ai.js');
+  const terms = await dictionaryTerms();
+  const todo = [];
+  let i = offset;
+  for (; i < terms.length && todo.length < count && i < offset + 300; i++) {
+    if (!goodForms(await readCache(cacheKey('word_forms_v2', `Word: ${terms[i]}`)).catch(() => null))) todo.push(terms[i]);
+  }
+  if (!todo.length) return { done: 0, next: i, total: terms.length, finished: i >= terms.length };
+  const items = await formsBatchWithAi(todo);
+  let done = 0;
+  for (const it of items) {
+    const w = clean(it.input);
+    if (!todo.includes(w)) continue;
+    const forms = it.forms.filter((f) => /^[a-z][a-z' -]*$/i.test(String(f.word || '').trim()) && f.example);
+    if (forms.length < 1) continue;
+    await writeCache(cacheKey('word_forms_v2', `Word: ${w}`), 'word_forms_v2', { base: clean(it.base) || w, forms });
+    done += 1;
+  }
+  return { done, asked: todo.length, next: i, total: terms.length, finished: false };
+}

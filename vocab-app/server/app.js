@@ -105,6 +105,18 @@ export function createApp() {
       return next(err);
     }
   });
+  // Preparing every dictionary word's family (operator only, same key): one batch per call.
+  app.post('/api/internal/forms', async (req, res, next) => {
+    try {
+      const key = process.env.DICTIONARY_BUILD_KEY || '';
+      if (key.length < 16 || req.get('x-dictionary-key') !== key) return res.status(403).json({ error: 'forbidden' });
+      const dict = await import('./services/dictionary.js');
+      return res.json(await dict.buildFormsStep({ offset: Math.max(0, Number(req.body?.offset) || 0), count: Math.max(1, Math.min(12, Number(req.body?.count) || 8)) }));
+    } catch (err) {
+      if (err?.name === 'AiError' || err?.constructor?.name === 'AiError') return res.status(503).json({ error: err.message });
+      return next(err);
+    }
+  });
   app.use('/api', authenticate);
 
   app.use('/api/auth', authRoutes);

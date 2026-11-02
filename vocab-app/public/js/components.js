@@ -4,7 +4,7 @@ import { api } from './api.js';
 import { speak } from './audio.js';
 import { state, loadGroups, groupName } from './state.js';
 import {
-  esc, icon, levelChip, statusChips, typeLabel, fmtTime, highlight, openModal, closeModal, toast, relDate, $,
+  esc, icon, levelChip, statusChips, typeLabel, fmtTime, highlight, openModal, closeModal, toast, relDate, $, usageDot, usageLegend,
 } from './ui.js';
 
 export const BAND_AR = { function: 'كلمة نحوية', basic: 'كلمة أساسية', useful: 'مفيدة', advanced: 'متقدمة', specialized: 'متخصصة' };
@@ -17,7 +17,7 @@ export function wordRowHtml(w, { selectable = false, selected = false, extra = '
     <div class="word-row ${selectable ? 'check-mode' : ''}" data-id="${w.uv_id}">
       ${selectable ? `<input type="checkbox" class="check" data-act="select" ${selected ? 'checked' : ''} aria-label="تحديد">` : ''}
       <div style="min-width:0">
-        <div class="en-row en"><span class="term">${esc(w.term)}</span>${levelChip(w.level)}${extra}</div>
+        <div class="en-row en">${usageDot(w.usage)}<span class="term u-t-${esc(w.usage || '')}">${esc(w.term)}</span>${levelChip(w.level)}${extra}</div>
         <div class="meaning">${w.arabic ? esc(w.arabic) : '<span class="muted">بدون معنى بعد</span>'}</div>
         ${groups.length || statusChips(w) ? `<div class="meta">${statusChips(w)}${groups.map((g) => `<span class="chip ar-chip group-chip">${esc(g)}</span>`).join('')}</div>` : ''}
       </div>
@@ -206,7 +206,7 @@ function formsHtml(forms, savedForms = new Set()) {
   if (forms.loading) return '<div class="wp-forms tiny muted"><span class="spinner"></span> نجلب صيغ الكلمة…</div>';
   if (forms.error || !forms.forms?.length) return forms.error ? `<p class="tiny muted wp-forms">صيغ الكلمة: ${esc(forms.error)}</p>` : '';
   return `<details class="wp-forms" open><summary class="tiny muted">صيغ الكلمة (فعل، اسم، صفة…)</summary>
-    ${forms.forms.map((f, k) => `<div class="wf"><div class="wf-head"><span class="wf-pos">${esc(f.pos)}</span><b class="en" dir="ltr">${esc(formTerm(f))}</b>${f.form && f.form.trim() !== formTerm(f) ? ` <span class="tiny muted en-inline">${esc(f.form)}</span>` : ''} ${listenRow(formTerm(f))}${savedForms.has(k) ? `<button class="btn icon sm saved wf-save" disabled aria-label="محفوظة" title="محفوظة">${icon.check}</button>` : `<button class="btn icon sm ghost wf-save" data-form="${k}" aria-label="احفظ" title="احفظ">${icon.bookmark}</button>`}</div>
+    ${usageLegend()}${forms.forms.map((f, k) => `<div class="wf"><div class="wf-head"><span class="wf-pos">${esc(f.pos)}</span>${usageDot(f.usage)}<b class="en u-t-${esc(f.usage || '')}" dir="ltr">${esc(formTerm(f))}</b>${f.form && f.form.trim() !== formTerm(f) ? ` <span class="tiny muted en-inline">${esc(f.form)}</span>` : ''} ${listenRow(formTerm(f))}${savedForms.has(k) ? `<button class="btn icon sm saved wf-save" disabled aria-label="محفوظة" title="محفوظة">${icon.check}</button>` : `<button class="btn icon sm ghost wf-save" data-form="${k}" aria-label="احفظ" title="احفظ">${icon.bookmark}</button>`}</div>
       <div class="small ink-2">${esc(f.arabic)}</div>
       ${f.example ? `<p class="en small" dir="ltr">${esc(f.example)}</p>${f.example_ar ? `<p class="tiny ink-2">${esc(f.example_ar)}</p>` : ''}` : ''}</div>`).join('')}</details>`;
 }
