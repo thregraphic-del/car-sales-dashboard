@@ -29,10 +29,20 @@ export function verbsBehind(term) {
   return [...out];
 }
 
+let rankOf = null;
+async function ranks() {
+  if (!rankOf) {
+    const { COMMON_WORDS } = await import('../lib/common-words.js');
+    rankOf = new Map(COMMON_WORDS.map((w, i) => [w, i]));
+  }
+  return rankOf;
+}
+
 /** The basic verb a noun is made from, or null. Strict: a wrong change is worse than none. */
 export async function simplestFor(v) {
   const term = String(v.term || '').toLowerCase();
   if (!/^[a-z]+$/.test(term) || term.length < 6) return null;
+  const rank = await ranks();
   const cands = new Map();
   for (const w of verbsBehind(term)) cands.set(w, null);
   for (const f of (await familyOf(term)) || []) {
@@ -42,6 +52,8 @@ export async function simplestFor(v) {
   const ok = [];
   for (const [w, fam] of cands) {
     if (w === term || w.length >= term.length || !derived(w).has(term)) continue;
+    // a common English word, not much rarer than the noun (no "situate", "opt", "sess")
+    if (!rank.has(w) || (rank.has(term) && rank.get(w) > rank.get(term) * 2.5 + 1000)) continue;
     const row = await findVocabulary(w);
     if (row && row.term.toLowerCase() !== w) continue;
     if (row && row.part_of_speech && !isVerb(row.part_of_speech) && !fam) continue;
@@ -63,7 +75,7 @@ export async function simplestVocab(v) {
   return base;
 }
 
-const VERSION = '3';
+const VERSION = '4';
 
 /**
  * Point a video's suggested words at their simplest forms (once per video).
@@ -74,6 +86,7 @@ export async function simplifySourceWords(sourceId, { dry = false } = {}) {
   const flag = (await get('SELECT value FROM app_settings WHERE key = ?', `simplest:${sourceId}`))?.value || null;
   const changes = [];
   let restored = 0;
+  const redo = !!flag && flag !== VERSION; // an older rule changed this video: put the said words back first
   const load = () => all(
     `SELECT o.id, o.vocabulary_id, o.line_id, o.char_start, o.char_end, v.term, v.level, v.item_type, l.text
      FROM occurrences o JOIN vocabulary v ON v.id = o.vocabulary_id LEFT JOIN transcript_lines l ON l.id = o.line_id
@@ -84,7 +97,7 @@ export async function simplifySourceWords(sourceId, { dry = false } = {}) {
     else await run('UPDATE occurrences SET vocabulary_id = ?, contextual_meaning = NULL, context_note = NULL WHERE id = ?', toId, r.id);
   };
   await tx(async () => {
-    if (flag === '1' && !dry) {
+    if (redo && !dry) {
       for (const r of await load()) {
         if (r.item_type === 'expression' || /\s/.test(r.term) || r.char_start == null || !r.text) continue;
         const said = r.text.slice(r.char_start, r.char_end).toLowerCase().replace(/[’']s$/, '');
@@ -109,7 +122,7 @@ export async function simplifySourceWords(sourceId, { dry = false } = {}) {
     }
     if (!dry) await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', `simplest:${sourceId}`, VERSION);
   });
-  return { simplified: changes.length, restored, changes: [...new Set(changes)], redo_dictionary: flag === '1' && !dry };
+  return { simplified: changes.length, restored, changes: [...new Set(changes)], redo_dictionary: redo && !dry };
 }
 
 export async function isSimplified(sourceId) {
