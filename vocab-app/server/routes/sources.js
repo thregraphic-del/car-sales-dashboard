@@ -69,8 +69,11 @@ router.post('/:id/dictionary-words', wrap(async (req) => {
   const id = idParam(req);
   const src = await sources.getSource(id, req.userId);
   if (!src) throw httpError(404, 'المصدر غير موجود.');
-  const r = src.dict_words_at ? { added: 0 } : await sources.addDictionaryWords(id);
+  if (req.body?.dry) return simplifySourceWords(id, { dry: true });
+  let r = src.dict_words_at ? { added: 0 } : await sources.addDictionaryWords(id);
   const s = await simplifySourceWords(id);
+  if (s.redo_dictionary) r = await sources.addDictionaryWords(id); // words removed by the old simplification come back
+  if (s.restored || r.added) await simplifySourceWords(id);
   return { ...r, ...s };
 }));
 
