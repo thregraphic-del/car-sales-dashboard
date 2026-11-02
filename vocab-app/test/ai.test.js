@@ -460,3 +460,33 @@ test('summary and channels', async () => {
   assert.ok(ch2.find((c) => c.handle === 'veritasium').hidden);
   assert.ok(ch2.findIndex((c) => c.pinned) === 0, 'pinned first');
 });
+
+test('video: suggested words are shown in their simplest form (appearance → appear)', async () => {
+  const { run, get } = await import('../server/db/index.js');
+  const { cacheKey, writeCache } = await import('../server/services/ai.js');
+  const src = (await (await realFetch(`${app.base}/api/sources`)).json())[0];
+  await run('UPDATE sources SET is_demo = 0 WHERE id = ?', src.id);
+  const line = (await (await realFetch(`${app.base}/api/sources/${src.id}`)).json()).lines[0];
+  const add = async (term, level) => {
+    await run("INSERT INTO vocabulary (term, match_key, arabic, level, part_of_speech, origin) VALUES (?, ?, 'معنى', ?, 'noun', 'dictionary') ON CONFLICT (match_key) DO NOTHING", term, term, level);
+    return (await get('SELECT id FROM vocabulary WHERE match_key = ?', term)).id;
+  };
+  const appear = await add('appearx', 'A2');
+  await run("UPDATE vocabulary SET part_of_speech = 'verb' WHERE id = ?", appear);
+  const appearance = await add('appearxance', 'B1');
+  const lonely = await add('kindnessq', 'B1'); // "kindq" is not a word: stays as it is
+  await writeCache(cacheKey('word_forms_v2', 'Word: appearx'), 'word_forms_v2', { base: 'appearx', forms: [{ pos: 'فعل', word: 'appearx', arabic: 'يظهر' }, { pos: 'اسم', word: 'appearxance', arabic: 'مظهر' }] });
+  for (const v of [appearance, lonely]) {
+    await run('INSERT INTO occurrences (vocabulary_id, source_id, line_id, char_start, char_end, sentence, contextual_meaning, suggested, rank) VALUES (?, ?, ?, 0, 3, ?, ?, 1, 5)', v, src.id, line.id, line.text, 'مظهر');
+  }
+  const r = await postJson(`/api/sources/${src.id}/dictionary-words`, {});
+  assert.equal(r.status, 200);
+  assert.ok(r.body.simplified >= 1, JSON.stringify(r.body));
+  const view = await (await realFetch(`${app.base}/api/sources/${src.id}`)).json();
+  const terms = view.items.map((i) => i.term);
+  assert.ok(terms.includes('appearx'), 'shown as the simplest form');
+  assert.ok(!terms.includes('appearxance'));
+  assert.ok(terms.includes('kindnessq'));
+  assert.equal(view.items.find((i) => i.term === 'appearx').arabic, 'معنى', 'meaning of the simple form, not of the long one');
+  assert.equal(view.source.simplified, true);
+});

@@ -5,6 +5,7 @@
 // contexts belong to that learner through their source. Functions that take
 // an id coming from a request also take the userId and only find the
 // learner's own rows — another learner's id behaves exactly like a missing one.
+import { isSimplified } from './simplest.js';
 import { all, get, run, insert, tx } from '../db/index.js';
 import { httpError } from '../lib/errors.js';
 import { findSpan } from '../lib/matcher.js';
@@ -327,6 +328,7 @@ export async function sourceView(sourceId, userId) {
       examples: ex.get(o.vocabulary_id) || [],
       source: ref,
     }));
+  source.simplified = await isSimplified(sourceId);
   return { source, lines, marks, items };
 }
 

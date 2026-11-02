@@ -596,8 +596,8 @@ export async function render(view, { segments, params }) {
   };
   window.addEventListener('lexitube:goal', onGoal);
   // Every word of the built-in dictionary used in this video (once per video, no AI).
-  if (!source.dict_words_at && !source.is_demo) {
-    api.dictionaryWords(id).then((r) => { if (alive && r.added) refresh(); }).catch(() => {});
+  if ((!source.dict_words_at || !source.simplified) && !source.is_demo) {
+    api.dictionaryWords(id).then((r) => { if (alive && (r.added || r.simplified)) refresh(); }).catch(() => {});
   }
 
   // Player + sync.

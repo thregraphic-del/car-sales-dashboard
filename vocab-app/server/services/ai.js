@@ -168,7 +168,7 @@ export const unavailableMessage = () => (aiConfigured() ? (Date.now() < pausedUn
 
 export const cacheKey = (task, input) => crypto.createHash('sha256').update(`${task}\n${input}`).digest('hex');
 
-async function readCache(key) {
+export async function readCache(key) {
   const row = await get('SELECT response FROM ai_cache WHERE key = ?', key);
   return row ? JSON.parse(row.response) : null;
 }
