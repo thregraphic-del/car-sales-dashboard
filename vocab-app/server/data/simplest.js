@@ -229,3 +229,64 @@ export async function simplifySourceWords(sourceId, { dry = false } = {}) {
 export async function isSimplified(sourceId) {
   return (await get('SELECT value FROM app_settings WHERE key = ?', `simplest:${sourceId}`))?.value === VERSION;
 }
+
+/* ------------------------------------------------------ the learner's words */
+
+const MAYBE = /(s|ed|ing|er|or|ion|ment|ance|ence|al)$|\s/;
+
+/** The vocabulary id to save for a word: its simplest form (created for an inflection). */
+export async function baseVocabId(v) {
+  if (!v?.term || !MAYBE.test(v.term.toLowerCase())) return v?.id;
+  const s = await simpleTerm(v.term);
+  if (s.kind === 'same' || s.term.toLowerCase() === v.term.toLowerCase()) return v.id;
+  let to = s.row || (await findVocabulary(s.term));
+  if (to && to.term.toLowerCase() !== s.term.toLowerCase()) to = null;
+  if (to) return to.id;
+  if (s.kind !== 'inflection') return v.id;
+  return (await upsertVocabulary({ term: s.term, item_type: v.item_type, part_of_speech: v.part_of_speech, level: v.level,
+    arabic: v.arabic, simple_english: v.simple_english, topic: v.topic, origin: v.origin || 'ai' })).id;
+}
+
+const WORDS_VERSION = '1';
+
+/**
+ * Move the learner's saved words to their simplest forms, a slice at a time
+ * (the words page calls again until done). Progress, groups and meanings are kept;
+ * two cards of the same word become one (the one with more practice stays).
+ */
+export async function simplifyUserWords(userId, { limit = 120 } = {}) {
+  const key = `words-simplest:${userId}`;
+  const state = (await get('SELECT value FROM app_settings WHERE key = ?', key))?.value || '';
+  const [ver, last] = state.split(':');
+  if (ver === WORDS_VERSION && last === 'done') return { done: true, changed: 0 };
+  const after = ver === WORDS_VERSION ? Number(last) || 0 : 0;
+  const rows = await all(
+    `SELECT uv.id AS uv_id, uv.state, uv.review_count, v.* FROM user_vocabulary uv JOIN vocabulary v ON v.id = uv.vocabulary_id
+     WHERE uv.user_id = ? AND uv.id > ? ORDER BY uv.id LIMIT ?`, userId, after, limit);
+  const changes = [];
+  await tx(async () => {
+    for (const r of rows) {
+      if (r.state !== 'saved') continue;
+      const to = await baseVocabId(r);
+      if (!to || to === r.id) continue;
+      const other = await get('SELECT id, state, review_count FROM user_vocabulary WHERE user_id = ? AND vocabulary_id = ?', userId, to);
+      if (other && other.state === 'saved') {
+        // the same word twice: keep the card with more practice, carry the groups over
+        const [keep, drop] = Number(other.review_count) >= Number(r.review_count) ? [other.id, r.uv_id] : [r.uv_id, other.id];
+        for (const g of await all('SELECT group_id FROM word_group_items WHERE user_vocabulary_id = ?', drop)) {
+          await run('INSERT INTO word_group_items (group_id, user_vocabulary_id) VALUES (?, ?) ON CONFLICT DO NOTHING', g.group_id, keep);
+        }
+        await run('DELETE FROM user_vocabulary WHERE id = ?', drop);
+        if (keep === r.uv_id) await run('UPDATE user_vocabulary SET vocabulary_id = ? WHERE id = ?', to, r.uv_id);
+      } else {
+        if (other) await run('DELETE FROM user_vocabulary WHERE id = ?', other.id); // an old "not useful" mark
+        await run('UPDATE user_vocabulary SET vocabulary_id = ? WHERE id = ?', to, r.uv_id);
+      }
+      changes.push(`${r.term}→${(await get('SELECT term FROM vocabulary WHERE id = ?', to)).term}`);
+    }
+    const done = rows.length < limit;
+    await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value',
+      key, `${WORDS_VERSION}:${done ? 'done' : rows.at(-1).uv_id}`);
+  });
+  return { done: rows.length < limit, changed: changes.length, changes };
+}

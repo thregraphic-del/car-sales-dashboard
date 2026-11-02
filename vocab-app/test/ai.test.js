@@ -512,3 +512,41 @@ test('video: suggested words are shown in their simplest form (appearance → ap
   assert.equal(view.items.find((i) => i.term === 'appear').arabic, 'معنى', 'meaning of the simple form, not of the long one');
   assert.equal(view.source.simplified, true);
 });
+
+test('my words: saved in the simplest form, older words simplified, «الأوضح» groups one meaning', async () => {
+  const { run, get } = await import('../server/db/index.js');
+  const add = async (term, level, arabic, pos = 'noun') => {
+    await run("INSERT INTO vocabulary (term, match_key, arabic, level, part_of_speech, origin) VALUES (?, ?, ?, ?, ?, 'dictionary') ON CONFLICT (match_key) DO NOTHING", term, term, arabic, level, pos);
+    return (await get('SELECT id FROM vocabulary WHERE match_key = ?', term)).id;
+  };
+  // saving "worried" saves "worry"
+  const worried = await add('worried', 'B1', 'قلق', 'verb');
+  const s1 = await postJson('/api/words', { vocabulary_id: worried });
+  assert.equal(s1.status, 200);
+  const w1 = await (await realFetch(`${app.base}/api/words/${s1.body.uv_id}`)).json();
+  assert.equal(w1.term, 'worry');
+  // an older saved word moves to its simplest form, keeping its card
+  const opened = await add('opened', 'A2', 'فتح', 'verb');
+  const user = (await get('SELECT id FROM users ORDER BY id LIMIT 1')).id;
+  await run("INSERT INTO user_vocabulary (user_id, vocabulary_id, state, review_count) VALUES (?, ?, 'saved', 3) ON CONFLICT DO NOTHING", user, opened);
+  await run('DELETE FROM app_settings WHERE key = ?', `words-simplest:${user}`);
+  let r;
+  for (let i = 0; i < 30; i++) { r = await postJson('/api/words/simplify', {}); if (r.body.done) break; }
+  assert.ok(r.body.done);
+  const mine = await (await realFetch(`${app.base}/api/words`)).json();
+  assert.ok(mine.some((w) => w.term === 'open' && w.review_count === 3), 'progress kept');
+  assert.ok(!mine.some((w) => w.term === 'opened'));
+  // «الأوضح»: big / huge / enormous share "كبير" → one group under the simplest
+  for (const [t, l] of [['big', 'A1'], ['huge', 'B1'], ['enormous', 'B2']]) {
+    const id = await add(t, l, t === 'big' ? 'كبير' : `كبير جدًا / ${t === 'huge' ? 'ضخم' : 'هائل'}`, 'adjective');
+    await postJson('/api/words', { vocabulary_id: id });
+  }
+  await run("UPDATE vocabulary SET arabic = 'كبير / ضخم' WHERE match_key = 'huge'");
+  await run("UPDATE vocabulary SET arabic = 'ضخم / هائل' WHERE match_key = 'enormous'");
+  const c = (await (await realFetch(`${app.base}/api/words/clusters`)).json()).clusters;
+  const big = c.find((x) => x.members.some((m) => m.term === 'enormous'));
+  assert.equal(big.head.term, 'big');
+  const terms = big.members.map((m) => m.term);
+  assert.ok(['big', 'huge', 'enormous'].every((t) => terms.includes(t)), terms.join(','));
+  assert.ok(terms.indexOf('big') < terms.indexOf('huge') && terms.indexOf('huge') < terms.indexOf('enormous'), 'from simple to advanced');
+});

@@ -1,8 +1,8 @@
 // كلماتي — everything saved, organised in learner-named groups.
 import { api } from '../api.js';
 import { state, loadGroups } from '../state.js';
-import { esc, icon, emptyState, toast, openModal, closeModal, num } from '../ui.js';
-import { wordRowHtml, bindWordList } from '../components.js';
+import { esc, icon, emptyState, toast, openModal, closeModal, num, levelChip } from '../ui.js';
+import { wordRowHtml, bindWordList, openWordCard, bindSpeech } from '../components.js';
 
 const FILTERS = [
   ['all', 'الكل'],
@@ -14,7 +14,8 @@ const FILTERS = [
 export async function render(view, { params }) {
   let all = await api.words();
   await loadGroups();
-  const f = { filter: params.filter || 'all', group: params.group ? Number(params.group) : null, q: '', level: '', when: params.when || '', source: params.source ? Number(params.source) : null, sort: 'new' };
+  const f = { filter: params.filter || 'all', group: params.group ? Number(params.group) : null, q: '', level: '', when: params.when || '', source: params.source ? Number(params.source) : null, sort: 'new', view: params.view === 'clear' ? 'clear' : 'list' };
+  let clusters = null; // «الأوضح»: words with one meaning under the simplest one
   const DAY = 86400000;
   const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
   const WHEN = { today: () => [startOfToday(), Infinity], yesterday: () => [startOfToday() - DAY, startOfToday()], week: () => [startOfToday() - 6 * DAY, Infinity], month: () => [startOfToday() - 29 * DAY, Infinity] };
@@ -56,7 +57,7 @@ export async function render(view, { params }) {
     const mastered = all.filter((w) => w.status === 'mastered').length;
     const practice = all.filter((w) => w.difficult || w.due).length;
     $('#summary').textContent = all.length ? `${num(all.length)} كلمة · ${num(mastered)} متقنة · ${num(practice)} تحتاج تدريب` : 'لم تحفظ كلمات بعد.';
-    $('#filters').innerHTML = FILTERS.map(([k, l]) => `<button class="tab ${f.filter === k ? 'active' : ''}" data-f="${k}">${l}</button>`).join('')
+    $('#filters').innerHTML = `<button class="tab view-tab ${f.view === 'clear' ? 'active' : ''}" id="viewClear" title="الكلمة الأبسط لكل معنى، وداخلها المستويات الأخرى">🎯 الأوضح</button>` + FILTERS.map(([k, l]) => `<button class="tab ${f.view === 'list' && f.filter === k ? 'active' : ''}" data-f="${k}">${l}</button>`).join('')
       + `<select class="input level-select" id="level" aria-label="المستوى"><option value="">كل المستويات</option>${['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map((l) => `<option ${f.level === l ? 'selected' : ''}>${l}</option>`).join('')}</select>`
       + `<select class="input level-select" id="when" aria-label="التاريخ">${[['', 'كل الأوقات'], ['today', 'اليوم'], ['yesterday', 'أمس'], ['week', 'آخر أسبوع'], ['month', 'آخر شهر']].map(([k, l]) => `<option value="${k}" ${f.when === k ? 'selected' : ''}>${l}</option>`).join('')}</select>`
       + `<select class="input level-select" id="source" aria-label="المقطع"><option value="">كل المقاطع</option>${sourcesOf().map((s) => `<option value="${s.id}" ${f.source === s.id ? 'selected' : ''}>${esc(s.title.slice(0, 40))}</option>`).join('')}</select>`
@@ -72,6 +73,11 @@ export async function render(view, { params }) {
           <button class="btn sm ghost" data-gact="delete" style="color:var(--bad)">${icon.trash}</button>
         </div>
       </div>` : '';
+    if (f.view === 'clear') {
+      drawClear();
+      $('#selectBar').innerHTML = '';
+      return;
+    }
     shown = all.filter(matches);
     const sorters = { old: (a, b) => new Date(a.saved_at) - new Date(b.saved_at), az: (a, b) => a.term.localeCompare(b.term), hard: (a, b) => (b.difficulty || 0) - (a.difficulty || 0) || a.mastery - b.mastery };
     if (sorters[f.sort]) shown.sort(sorters[f.sort]);
@@ -99,6 +105,77 @@ export async function render(view, { params }) {
           <a class="btn sm" href="#/practice?ids=${[...selected].join(',')}" ${selected.size ? '' : 'style="pointer-events:none;opacity:.5"'}>${icon.game} تدرّب</a>
           <button class="btn sm bad" id="deleteSelected" ${none}>${icon.trash} حذف</button>
         </div></div>` : '';
+  }
+
+  // 🎯 «الأوضح»: one simple, common word per meaning; tap it to see the same meaning at every level.
+  async function drawClear() {
+    const box = $('#list');
+    if (!clusters) {
+      box.innerHTML = '<p class="muted small"><span class="spinner"></span> نجمع الكلمات المتشابهة في المعنى…</p>';
+      try {
+        clusters = (await api.wordClusters()).clusters;
+      } catch (err) {
+        box.innerHTML = `<p class="muted">${esc(err.message)}</p>`;
+        return;
+      }
+      if (f.view !== 'clear') return;
+    }
+    const ok = (c) => c.members.some((m) => matches(all.find((w) => w.uv_id === m.uv_id) || m));
+    const list = clusters.filter(ok);
+    const multi = list.filter((c) => c.members.length > 1).length;
+    box.innerHTML = list.length ? `<p class="small muted" style="margin:4px 0 10px">${list.length} كلمة أساسية${multi ? ` · ${multi} منها لها كلمات بنفس المعنى بمستويات أخرى` : ''} — اضغط أي كلمة لترى كل مستوياتها.</p>
+      <div class="clear-list">${list.map((c, i) => `<button class="clear-item" data-cl="${clusters.indexOf(c)}">
+        ${levelChip(c.head.level)}
+        <b class="en" dir="ltr">${esc(c.head.term)}</b>
+        <span class="small ink-2 clear-ar">${esc(c.head.arabic || '')}</span>
+        ${c.members.length > 1 ? `<span class="clear-more">+${c.members.length - 1} <span class="tiny">${c.members.filter((m) => m.uv_id !== c.head.uv_id).map((m) => esc(m.term)).slice(0, 3).join('، ')}</span></span>` : ''}
+      </button>`).join('')}</div>` : emptyState('🔍', 'لا توجد كلمات هنا', 'جرّب بحثًا أو فلترًا آخر.');
+  }
+
+  function openLadder(c) {
+    const lvl = (l) => levelChip(l) || '<span class="chip">–</span>';
+    const box = openModal(`<div class="ladder">
+      <div class="row between"><div><span class="tiny muted">الكلمة الأوضح للحفظ</span><h2 class="en" dir="ltr" style="margin:2px 0">${esc(c.head.term)} <button class="btn icon sm ghost" data-say="${esc(c.head.term)}" aria-label="استمع">${icon.speaker}</button></h2>
+        <div class="ink-2">${esc(c.head.arabic || '')}</div></div>${lvl(c.head.level)}</div>
+      <div class="wd-label" style="margin-top:14px">كلماتك بنفس المعنى (من الأبسط إلى الأصعب)</div>
+      <div class="ladder-list">${c.members.map((m) => `<div class="ladder-row ${m.uv_id === c.head.uv_id ? 'is-head' : ''}">${lvl(m.level)}<b class="en" dir="ltr">${esc(m.term)}</b>
+        <button class="btn icon sm ghost" data-say="${esc(m.term)}" aria-label="استمع">${icon.speaker}</button><span class="small ink-2">${esc(m.arabic || '')}</span>
+        <button class="btn sm ghost" data-open="${m.uv_id}">البطاقة</button></div>`).join('')}</div>
+      <div id="ladderAi" style="margin-top:12px"><button class="btn" id="ladderGo">✨ كل المستويات لهذا المعنى (البسيط والاحترافي)</button></div>
+      <div class="btn-row" style="margin-top:12px"><button class="btn ghost" data-close>إغلاق</button></div></div>`);
+    bindSpeech(box);
+    box.addEventListener('click', async (e) => {
+      const o = e.target.closest('[data-open]');
+      if (o) { closeModal(); openWordCard(Number(o.dataset.open), { onChange: reload }); return; }
+      if (e.target.closest('#ladderGo')) {
+        const ai = box.querySelector('#ladderAi');
+        ai.innerHTML = '<p class="small muted"><span class="spinner"></span> نرتّب الكلمات من الأبسط إلى الأصعب…</p>';
+        try {
+          const r = await api.ladder(c.head.term, c.head.arabic || '');
+          ai.innerHTML = `<div class="wd-label">نفس المعنى في كل المستويات</div><div class="ladder-list">${r.items.map((it, k) => `<div class="ladder-row">${lvl(it.level)}<b class="en" dir="ltr">${esc(it.term)}</b>
+            <button class="btn icon sm ghost" data-say="${esc(it.term)}" aria-label="استمع">${icon.speaker}</button><span class="small ink-2">${esc(it.arabic)}${it.note_ar ? ` · <span class="muted">${esc(it.note_ar)}</span>` : ''}</span>
+            ${it.saved ? `<span class="btn icon sm saved" title="محفوظة">${icon.check}</span>` : `<button class="btn icon sm ghost" data-lsave="${k}" title="احفظ" aria-label="احفظ">${icon.bookmark}</button>`}</div>`).join('')}</div>`;
+          ai.addEventListener('click', async (ev) => {
+            const b = ev.target.closest('[data-lsave]');
+            if (!b) return;
+            const it = r.items[Number(b.dataset.lsave)];
+            b.disabled = true;
+            try {
+              await api.importSave([{ term: it.term, arabic: it.arabic, level: it.level, meaning_from: 'ai', examples: it.example ? [{ sentence: it.example }] : [] }]);
+              b.outerHTML = `<span class="btn icon sm saved" title="محفوظة">${icon.check}</span>`;
+              toast(`تم الحفظ ✓ ${it.term}`);
+              clusters = null;
+              all = await api.words();
+            } catch (err) {
+              b.disabled = false;
+              toast(err.message);
+            }
+          });
+        } catch (err) {
+          ai.innerHTML = `<p class="small muted">${esc(err.message)}</p>`;
+        }
+      }
+    });
   }
 
   // Videos the learner's words come from (for the filter).
@@ -153,15 +230,23 @@ export async function render(view, { params }) {
   }
 
   const reload = async () => {
+    clusters = null;
     all = await api.words();
     await loadGroups();
     draw();
   };
 
   view.addEventListener('click', async (e) => {
+    if (e.target.closest('#viewClear')) {
+      f.view = f.view === 'clear' ? 'list' : 'clear';
+      return draw();
+    }
+    const cl = e.target.closest('[data-cl]');
+    if (cl) return openLadder(clusters[Number(cl.dataset.cl)]);
     const fb = e.target.closest('[data-f]');
     if (fb) {
       f.filter = fb.dataset.f;
+      f.view = 'list';
       return draw();
     }
     const gb = e.target.closest('[data-g]');
@@ -288,6 +373,22 @@ export async function render(view, { params }) {
 
   bindWordList($('#list'), () => shown, { onChange: reload });
   draw();
+
+  // Older saved words move to their simplest form once (struggling → struggle), a slice at a time.
+  (async () => {
+    let changed = 0;
+    try {
+      for (let i = 0; i < 60; i++) {
+        const r = await api.simplifyWords();
+        changed += r.changed || 0;
+        if (r.done) break;
+      }
+    } catch { /* try again next time */ }
+    if (changed && view.isConnected) {
+      toast(`بسّطنا ${changed} كلمة إلى أبسط صيغة ✓`);
+      await reload();
+    }
+  })();
 }
 
 function openExport(groupId) {

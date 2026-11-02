@@ -933,3 +933,15 @@ a.day-tile:hover { border-color: var(--accent); }
 .menu-label { font-size: 12px; color: var(--ink-3, #888); padding: 6px 10px 2px; }
 .speed-menu .segmented button { text-align: center; }
 @media (max-width: 640px) { .reader-head .btn-label { display: none; } }
+/* 🎯 الأوضح */
+.clear-list { display: grid; gap: 8px; }
+.clear-item { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; text-align: start; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; cursor: pointer; font: inherit; color: var(--ink); }
+.clear-item:hover { border-color: var(--accent); }
+.clear-item b { font-size: 17px; }
+.clear-ar { flex: 1; min-width: 120px; }
+.clear-more { background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 10px; font-weight: 700; font-size: 13px; }
+.view-tab.active { background: var(--accent); color: var(--accent-ink); }
+.ladder-list { display: grid; gap: 6px; }
+.ladder-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
+.ladder-row.is-head { border-color: var(--accent); background: var(--accent-soft); }
+.ladder-row .small { flex: 1; min-width: 120px; }

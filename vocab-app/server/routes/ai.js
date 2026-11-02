@@ -6,7 +6,7 @@ import { config } from '../config.js';
 import { wrap, num } from '../http.js';
 import { httpError } from '../lib/errors.js';
 import { aiStatus, checkModel, usageToday, usageReport, AiError } from '../services/ai.js';
-import { explainWithAi, formsWithAi, extractFromFileWithAi, storyWithAi, suggestVideosWithAi, suggestWordsWithAi } from '../services/extractor.js';
+import { explainWithAi, formsWithAi, extractFromFileWithAi, storyWithAi, suggestVideosWithAi, suggestWordsWithAi, ladderWithAi } from '../services/extractor.js';
 import { matchKey } from '../../public/js/shared/text.js';
 import { listWords } from '../data/words.js';
 import { listSources } from '../data/sources.js';
@@ -109,6 +109,18 @@ router.post('/suggest-words', wrap(async (req, res) => {
       return true;
     }).slice(0, count);
     return { ok: true, items };
+  });
+}));
+
+// Same meaning, every level: the simple word and the advanced ones.
+router.post('/ladder', wrap(async (req, res) => {
+  const term = String(req.body?.term || '').trim().slice(0, 60);
+  const arabic = String(req.body?.arabic || '').trim().slice(0, 80);
+  if (!term) return { ok: false, error: 'لا توجد كلمة.' };
+  const mine = new Set((await listWords(req.userId)).map((w) => matchKey(w.term)));
+  return withAi(res, async () => {
+    const r = await ladderWithAi({ term, arabic });
+    return { ok: true, items: r.items.map((it) => ({ ...it, saved: mine.has(matchKey(it.term)) })) };
   });
 }));
 

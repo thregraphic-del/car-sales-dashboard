@@ -641,3 +641,18 @@ export async function suggestChannelsWithAi({ names }) {
     cache: false,
   });
 }
+
+const LADDER_SCHEMA = obj({ items: { type: 'array', items: obj({ term: str, level: { type: 'string', enum: LEVELS }, arabic: str, note_ar: str, example: str }) } });
+const LadderZ = z.object({ items: z.array(z.object({ term: z.string(), level: z.enum(LEVELS), arabic: z.string(), note_ar: z.string(), example: z.string() })) });
+
+/** Words with the same meaning from simple to advanced (big → large → huge → enormous → colossal). */
+export async function ladderWithAi({ term, arabic }) {
+  return jsonCall({
+    task: 'meaning_ladder',
+    system: 'You help an Arabic-speaking learner of English. For the given word, list 4–7 English words or short expressions with the SAME core meaning, from the simplest everyday word (A1/A2) to formal or advanced ones (C1/C2), including the given word. Use dictionary forms (the shortest basic form, e.g. "decide" not "decision" when the meaning allows). "level" = CEFR; "arabic" = short Arabic meaning; "note_ar" = a very short Arabic note on when to use it (formal, spoken, stronger…); "example" = one short natural English sentence. Order from simplest to most advanced.',
+    user: `Word: ${term}${arabic ? `\nArabic meaning: ${arabic}` : ''}`,
+    schema: LADDER_SCHEMA,
+    zod: LadderZ,
+    maxTokens: 900,
+  });
+}

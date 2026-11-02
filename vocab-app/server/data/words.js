@@ -8,6 +8,7 @@ import { isDifficult, statusOf, isDue } from '../lib/srs.js';
 import { startOfDay, midnightOf } from '../lib/time.js';
 import { addExample, examplesFor } from './vocabulary.js';
 import { addToGroup, groupIdsFor } from './groups.js';
+import { baseVocabId } from './simplest.js';
 
 /**
  * Save a vocabulary item to the learner's words (explicit action only).
@@ -15,12 +16,16 @@ import { addToGroup, groupIdsFor } from './groups.js';
  */
 export async function saveWord(userId, vocabularyId, { occurrenceId = null, sourceId = null, userArabic = null, groupIds = [] } = {}) {
   return tx(async () => {
-    if (!await get('SELECT 1 AS x FROM vocabulary WHERE id = ?', vocabularyId)) throw httpError(404, 'لم نجد هذه الكلمة.');
+    const asked = await get('SELECT * FROM vocabulary WHERE id = ?', vocabularyId);
+    if (!asked) throw httpError(404, 'لم نجد هذه الكلمة.');
+    // always saved in its simplest form (struggling → struggle, decision → decide)
+    const contextId = vocabularyId;
+    vocabularyId = await baseVocabId(asked).catch(() => vocabularyId);
     // The context must come from one of the learner's own sources.
     const occ = occurrenceId
       ? await get(
         'SELECT o.* FROM occurrences o JOIN sources s ON s.id = o.source_id WHERE o.id = ? AND o.vocabulary_id = ? AND s.user_id = ?',
-        occurrenceId, vocabularyId, userId,
+        occurrenceId, contextId, userId,
       )
       : null;
     const ownSource = sourceId ? await get('SELECT id FROM sources WHERE id = ? AND user_id = ?', sourceId, userId) : null;

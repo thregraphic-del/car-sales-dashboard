@@ -1,4 +1,6 @@
 // /api/lookup, /api/words, /api/export — clicked words and the learner's words.
+import { wordClusters } from '../data/clusters.js';
+import { simplifyUserWords } from '../data/simplest.js';
 import { Router } from 'express';
 import { wrap, num, idParam, idList, str, oneOf } from '../http.js';
 import { httpError } from '../lib/errors.js';
@@ -73,6 +75,8 @@ router.get('/words', wrap(async (req) => {
     ids: q.ids ? idList(q.ids) : undefined,
   });
 }));
+router.get('/words/clusters', wrap(async (req) => ({ clusters: await wordClusters(req.userId) })));
+router.post('/words/simplify', wrap(async (req) => simplifyUserWords(req.userId)));
 router.get('/words/:id', wrap(async (req) => words.getWord(req.userId, idParam(req))));
 router.patch('/words/:id', wrap(async (req) => {
   const b = req.body || {};
