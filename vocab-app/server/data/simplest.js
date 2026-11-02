@@ -62,8 +62,10 @@ export async function simplestFor(v, trace = null) {
     if (row?.level && v.level && lv(row.level) > lv(v.level) + 1) { why(w, 'harder'); continue; } // not a much harder word
     // and the dictionary says they are one family (importance is not from "import")
     if (!fam) {
-      const famW = await familyOf(w);
-      const famT = await familyOf(term);
+      // a family counts only when it names other English words (some were saved in Arabic)
+      const english = (f, self) => (f?.some((x) => /^[a-z]+$/.test(wordOf(x)) && wordOf(x) !== self) ? f : null);
+      const famW = english(await familyOf(w), w);
+      const famT = english(await familyOf(term), term);
       const linked = [famW, famT].some((f) => f?.some((x) => [term, w].includes(wordOf(x)) && wordOf(x) !== (f === famW ? w : term)));
       if ((famW || famT) && !linked) { why(w, `not linked ${JSON.stringify([famW, famT].map((f) => f?.map(wordOf)))}`); continue; } // the dictionary knows these words and does not join them
     }
@@ -81,7 +83,7 @@ export async function simplestVocab(v) {
   return base;
 }
 
-const VERSION = '4';
+const VERSION = '5';
 
 /**
  * Point a video's suggested words at their simplest forms (once per video).
