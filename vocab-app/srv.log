@@ -1,0 +1,8 @@
+(node:1401) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+LexiTube v3.0.0 running on http://localhost:3198
+  project folder: /home/user/car-sales-dashboard/vocab-app
+  database: sqlite (data/lexitube.db)
+  AI: AI explanation is unavailable — using offline dictionary.
+  text-to-speech: 
+  login: off (local single user)

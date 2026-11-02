@@ -947,3 +947,7 @@ a.day-tile:hover { border-color: var(--accent); }
 .ladder-row .small { flex: 1; min-width: 120px; }
 /* room under the last sentence so it can also rise to the top row */
 .transcript::after { content: ''; display: block; height: 45vh; }
+/* the block just said stays above the current one, faded */
+.transcript .line.past-fade { opacity: .3; transition: opacity .6s ease; }
+.transcript .line { transition: opacity .4s ease; }
+.transcript { scroll-behavior: smooth; }
