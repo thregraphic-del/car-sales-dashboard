@@ -39,7 +39,8 @@ async function ranks() {
 }
 
 /** The basic verb a noun is made from, or null. Strict: a wrong change is worse than none. */
-export async function simplestFor(v) {
+export async function simplestFor(v, trace = null) {
+  const why = (w, r) => trace?.push(`${w}: ${r}`);
   const term = String(v.term || '').toLowerCase();
   if (!/^[a-z]+$/.test(term) || term.length < 6) return null;
   const rank = await ranks();
@@ -51,20 +52,20 @@ export async function simplestFor(v) {
   }
   const ok = [];
   for (const [w, fam] of cands) {
-    if (w === term || w.length >= term.length || !derived(w).has(term)) continue;
+    if (w === term || w.length >= term.length || !derived(w).has(term)) { why(w, 'not derived'); continue; }
     // a common English word, not much rarer than the noun (no "situate", "opt", "sess")
-    if (!rank.has(w) || (rank.has(term) && rank.get(w) > rank.get(term) * 2.5 + 1000)) continue;
+    if (!rank.has(w) || (rank.has(term) && rank.get(w) > rank.get(term) * 2.5 + 1000)) { why(w, 'rare'); continue; }
     const row = await findVocabulary(w);
-    if (row && row.term.toLowerCase() !== w) continue;
-    if (row && row.part_of_speech && !isVerb(row.part_of_speech) && !fam) continue;
-    if (!row && !fam?.arabic) continue; // unknown word: only when the dictionary family names it as the verb
-    if (row?.level && v.level && lv(row.level) > lv(v.level) + 1) continue; // not a much harder word
+    if (row && row.term.toLowerCase() !== w) { why(w, `row ${row.term}`); continue; }
+    if (row && row.part_of_speech && !isVerb(row.part_of_speech) && !fam) { why(w, `pos ${row.part_of_speech}`); continue; }
+    if (!row && !fam?.arabic) { why(w, 'unknown'); continue; } // unknown word: only when the dictionary family names it as the verb
+    if (row?.level && v.level && lv(row.level) > lv(v.level) + 1) { why(w, 'harder'); continue; } // not a much harder word
     // and the dictionary says they are one family (importance is not from "import")
     if (!fam) {
       const famW = await familyOf(w);
       const famT = await familyOf(term);
       const linked = [famW, famT].some((f) => f?.some((x) => [term, w].includes(wordOf(x)) && wordOf(x) !== (f === famW ? w : term)));
-      if ((famW || famT) && !linked) continue; // the dictionary knows these words and does not join them
+      if ((famW || famT) && !linked) { why(w, `not linked ${JSON.stringify([famW, famT].map((f) => f?.map(wordOf)))}`); continue; } // the dictionary knows these words and does not join them
     }
     ok.push({ term: w, id: row?.id || null, arabic: row?.arabic || fam?.arabic, pos: row?.part_of_speech || 'verb', level: row?.level || null });
   }

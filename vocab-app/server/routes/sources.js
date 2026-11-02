@@ -1,5 +1,5 @@
 // /api/sources — YouTube videos and texts: analysis, reader view, AI chunks.
-import { simplifySourceWords } from '../data/simplest.js';
+import { simplifySourceWords, simplestFor } from '../data/simplest.js';
 import { Router } from 'express';
 import { config } from '../config.js';
 import { wrap, idParam, str } from '../http.js';
@@ -69,6 +69,16 @@ router.post('/:id/dictionary-words', wrap(async (req) => {
   const id = idParam(req);
   const src = await sources.getSource(id, req.userId);
   if (!src) throw httpError(404, 'المصدر غير موجود.');
+  if (req.body?.dry && Array.isArray(req.body.words)) {
+    const { findVocabulary } = await import('../data/vocabulary.js');
+    const out = {};
+    for (const w of req.body.words.slice(0, 20)) {
+      const trace = [];
+      const v = await findVocabulary(String(w));
+      out[w] = { result: v ? (await simplestFor(v, trace))?.term || null : 'no vocab', trace };
+    }
+    return out;
+  }
   if (req.body?.dry) return simplifySourceWords(id, { dry: true });
   let r = src.dict_words_at ? { added: 0 } : await sources.addDictionaryWords(id);
   const s = await simplifySourceWords(id);
