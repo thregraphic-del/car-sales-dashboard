@@ -5,7 +5,7 @@
 // contexts belong to that learner through their source. Functions that take
 // an id coming from a request also take the userId and only find the
 // learner's own rows — another learner's id behaves exactly like a missing one.
-import { isSimplified } from './simplest.js';
+import { isSimplified, simpleTerm } from './simplest.js';
 import { all, get, run, insert, tx } from '../db/index.js';
 import { httpError } from '../lib/errors.js';
 import { findSpan } from '../lib/matcher.js';
@@ -163,7 +163,12 @@ async function addOccurrence(sourceId, vocabId, line, span, extra = {}) {
 async function storeItems(sourceId, lineList, items, rankBase = 0) {
   const byIdx = new Map(lineList.map((l) => [l.idx, l]));
   let added = 0;
-  for (const [i, item] of items.entries()) {
+  for (const [i, raw] of items.entries()) {
+    // show and save the shortest basic form (struggling → struggle, decision → decide)
+    let item = raw;
+    const simple = await simpleTerm(raw.term).catch(() => ({ kind: 'same' }));
+    if (simple.kind === 'inflection') item = { ...raw, term: simple.term };
+    if (simple.kind === 'derived' && simple.row) item = { term: simple.row.term, item_type: 'word', line: raw.line, rank: raw.rank, context_arabic: raw.context_arabic };
     const { id: vocabId } = await upsertVocabulary(item);
     const line = byIdx.get(item.line);
     if (line && item.context_arabic && !line.text_ar) {
@@ -172,7 +177,7 @@ async function storeItems(sourceId, lineList, items, rankBase = 0) {
     }
     const opts = { pos: item.part_of_speech, type: item.item_type };
     const already = line ? await get('SELECT 1 AS x FROM occurrences WHERE source_id = ? AND vocabulary_id = ? AND suggested = 1', sourceId, vocabId) : null;
-    const span = line ? findSpan(item.term, line.text, opts) : null;
+    const span = line ? findSpan(raw.term, line.text, { pos: raw.part_of_speech, type: raw.item_type }) || findSpan(item.term, line.text, opts) : null;
     await addOccurrence(sourceId, vocabId, line, span, {
       suggested: true, rank: item.rank ?? rankBase + i, contextual_meaning: item.contextual_meaning, sentence_ar: item.context_arabic,
     });
@@ -180,7 +185,7 @@ async function storeItems(sourceId, lineList, items, rankBase = 0) {
     let extra = 0;
     for (const l of lineList) {
       if (l === line || extra >= 20) continue;
-      const sp = findSpan(item.term, l.text, opts);
+      const sp = findSpan(raw.term, l.text, { pos: raw.part_of_speech, type: raw.item_type }) || findSpan(item.term, l.text, opts);
       if (sp) {
         await addOccurrence(sourceId, vocabId, l, sp);
         extra += 1;

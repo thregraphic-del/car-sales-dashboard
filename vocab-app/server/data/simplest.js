@@ -83,7 +83,87 @@ export async function simplestVocab(v) {
   return base;
 }
 
-const VERSION = '5';
+/* ---------------------------------------------- inflections and doers */
+
+// words that only look like an inflection or a "doer" noun
+const STOP = new Set(('being evening morning during ceiling string spring king wedding pudding sibling darling nothing something anything everything '
+  + 'news means series species lens always sometimes perhaps its his has was does thanks glasses physics politics economics '
+  + 'former latter flower tower master sister brother mother father water paper number order corner finger power other under over after '
+  + 'never ever rather whether together however either neither matter member letter better later dinner summer winter offer answer cover '
+  + 'consider remember wonder enter monster computer super proper eager clever silver shower bitter liver river butter ladder '
+  + 'hundred red bed need speed seed feed indeed naked wicked sacred kindred').split(' '));
+
+async function known(w) {
+  const rank = await ranks();
+  if (rank.has(w)) return true;
+  const row = await findVocabulary(w);
+  return !!row && row.term.toLowerCase() === w;
+}
+
+/** The dictionary form of one inflected word (struggling → struggle, years → year), or the word itself. */
+export async function lemmaWord(word) {
+  const w = String(word || '').toLowerCase();
+  if (!/^[a-z]+$/.test(w) || STOP.has(w)) return w;
+  const hit = (await get('SELECT lemma FROM lemma_index WHERE form = ?', w))?.lemma;
+  if (hit && /^[a-z]+$/.test(hit)) return hit;
+  const tries = [];
+  const root = (suf) => (w.endsWith(suf) && w.length - suf.length >= 2 ? w.slice(0, -suf.length) : null);
+  let r;
+  if ((r = root('ying'))) tries.push(`${r}y`, `${r}ie`); // dying → die
+  if ((r = root('ing'))) tries.push(`${r}e`, r, /([bdgmnprt])\1$/.test(r) ? r.slice(0, -1) : null);
+  if ((r = root('ied'))) tries.push(`${r}y`);
+  if ((r = root('ed'))) tries.push(`${r}e`, r, /([bdgmnprt])\1$/.test(r) ? r.slice(0, -1) : null);
+  if ((r = root('ies'))) tries.push(`${r}y`);
+  if ((r = root('es')) && /(s|x|z|ch|sh|o)$/.test(r)) tries.push(r);
+  if ((r = w.length >= 4 && w.endsWith('s') && !/(ss|us|is)$/.test(w) ? w.slice(0, -1) : null)) tries.push(r);
+  for (const t of tries) if (t && t.length >= 3 && t !== w && (await known(t))) return t;
+  // plural of a long noun, even when the dictionary does not know it yet (improvements → improvement)
+  if (/(ment|tion|sion|ness|ity|ance|ence|ist|ship)s$/.test(w)) return w.slice(0, -1);
+  return w;
+}
+
+/** The verb behind a "doer" noun (researcher → research, user → use, runner → run), if common. */
+async function doerVerb(w) {
+  if (STOP.has(w) || !/(er|or)$/.test(w) || w.length < 5) return null;
+  const rank = await ranks();
+  const r = w.slice(0, -2);
+  for (const t of [r, `${r}e`, /([bdgmnprt])\1$/.test(r) ? r.slice(0, -1) : null]) {
+    if (!t || t.length < 3 || !rank.has(t)) continue;
+    if (rank.has(w) && rank.get(t) > rank.get(w) * 2.5 + 1000) continue;
+    const row = await findVocabulary(t);
+    if (row && row.term.toLowerCase() === t && isVerb(row.part_of_speech) && row.arabic) return row;
+  }
+  return null;
+}
+
+/**
+ * The shortest basic form to show and save for an extracted word or expression:
+ * inflections go (struggling → struggle, changed the way → change the way) and keep their meaning;
+ * a doer noun or a noun made from a verb becomes that verb (researcher → research, decision → decide)
+ * but only when the verb is a known word with its own meaning.
+ * @returns {Promise<{term:string, kind:'same'|'inflection'|'derived', row?:object}>}
+ */
+export async function simpleTerm(term) {
+  const t = String(term || '').trim();
+  if (!t) return { term: t, kind: 'same' };
+  if (/\s/.test(t)) {
+    // expression: only its first word (the verb) loses its ending
+    const [first, ...rest] = t.split(/\s+/);
+    const lower = first.toLowerCase();
+    const l = /^[a-z]+$/.test(lower) && /(ed|ing|s)$/.test(lower) ? await lemmaWord(lower) : lower;
+    return l !== lower ? { term: [l, ...rest].join(' '), kind: 'inflection' } : { term: t, kind: 'same' };
+  }
+  const lower = t.toLowerCase();
+  const lemma = await lemmaWord(lower);
+  const doer = await doerVerb(lemma);
+  if (doer) return { term: doer.term, kind: 'derived', row: doer };
+  const lemmaRow = lemma !== lower ? await findVocabulary(lemma) : null;
+  const derived = await simplestFor({ term: lemma, level: lemmaRow?.level || null });
+  if (derived?.id) return { term: derived.term, kind: 'derived', row: await findVocabulary(derived.term) };
+  return lemma !== lower ? { term: lemma, kind: 'inflection' } : { term: t, kind: 'same' };
+}
+
+const VERSION = '6';
 
 /**
  * Point a video's suggested words at their simplest forms (once per video).
@@ -94,14 +174,15 @@ export async function simplifySourceWords(sourceId, { dry = false } = {}) {
   const flag = (await get('SELECT value FROM app_settings WHERE key = ?', `simplest:${sourceId}`))?.value || null;
   const changes = [];
   let restored = 0;
-  const redo = !!flag && flag !== VERSION; // an older rule changed this video: put the said words back first
+  const redo = flag === '1'; // the first rule changed too much: put the said words back first
   const load = () => all(
     `SELECT o.id, o.vocabulary_id, o.line_id, o.char_start, o.char_end, v.term, v.level, v.item_type, l.text
      FROM occurrences o JOIN vocabulary v ON v.id = o.vocabulary_id LEFT JOIN transcript_lines l ON l.id = o.line_id
      WHERE o.source_id = ? AND o.suggested = 1`, sourceId);
-  const move = async (r, toId) => {
+  const move = async (r, toId, keepMeaning = false) => {
     const dup = (await all('SELECT id, line_id FROM occurrences WHERE source_id = ? AND vocabulary_id = ?', sourceId, toId)).find((d) => d.line_id === r.line_id);
     if (dup) await run('DELETE FROM occurrences WHERE id = ?', r.id);
+    else if (keepMeaning) await run('UPDATE occurrences SET vocabulary_id = ? WHERE id = ?', toId, r.id);
     else await run('UPDATE occurrences SET vocabulary_id = ?, contextual_meaning = NULL, context_note = NULL WHERE id = ?', toId, r.id);
   };
   await tx(async () => {
@@ -121,12 +202,21 @@ export async function simplifySourceWords(sourceId, { dry = false } = {}) {
     }
     const memo = new Map();
     for (const r of await load()) {
-      if (r.item_type === 'expression' || /\s/.test(r.term)) continue;
-      if (!memo.has(r.term)) memo.set(r.term, await (dry ? simplestFor(r) : simplestVocab(r)));
+      if (!memo.has(r.term)) memo.set(r.term, await simpleTerm(r.term));
       const base = memo.get(r.term);
-      if (!base || base.id === r.vocabulary_id) continue;
+      if (base.kind === 'same' || base.term.toLowerCase() === r.term.toLowerCase()) continue;
       changes.push(`${r.term}→${base.term}`);
-      if (!dry) await move(r, base.id);
+      if (dry) continue;
+      let to = base.row || (await findVocabulary(base.term));
+      if (to && to.term.toLowerCase() !== base.term.toLowerCase()) to = null;
+      if (!to) {
+        if (base.kind !== 'inflection') continue;
+        // same meaning, shorter form: copy the card of the long form
+        const from = await get('SELECT * FROM vocabulary WHERE id = ?', r.vocabulary_id);
+        to = { id: (await upsertVocabulary({ term: base.term, item_type: from.item_type, part_of_speech: from.part_of_speech, level: from.level,
+          arabic: from.arabic, simple_english: from.simple_english, pronunciation: null, topic: from.topic, origin: from.origin || 'ai' })).id };
+      }
+      if (to.id !== r.vocabulary_id) await move(r, to.id, base.kind === 'inflection');
     }
     if (!dry) await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', `simplest:${sourceId}`, VERSION);
   });

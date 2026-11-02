@@ -485,11 +485,14 @@ test('video: suggested words are shown in their simplest form (appearance → ap
   await writeCache(cacheKey('word_forms_v2', 'Word: decide'), 'word_forms_v2', { base: 'decide', forms: [{ pos: 'فعل', word: 'decide', arabic: 'يقرر' }, { pos: 'اسم', word: 'decision', arabic: 'قرار' }] });
   await writeCache(cacheKey('word_forms_v2', 'Word: appear'), 'word_forms_v2', { base: 'appear', forms: [{ pos: 'فعل', word: 'appear', arabic: 'يظهر' }, { pos: 'اسم', word: 'appearance', arabic: 'مظهر' }] });
   await writeCache(cacheKey('word_forms_v2', 'Word: integrity'), 'word_forms_v2', { base: 'integrity', forms: [{ pos: 'اسم', word: 'integrity', arabic: 'نزاهة' }, { pos: 'صفة', word: 'integral', arabic: 'أساسي' }] });
-  for (const v of [appearance, integrity, decision, importance, improvement]) {
+  const struggling = await add('struggling', 'B1', 'verb'); // an inflected form: becomes "struggle" with the same meaning
+  await run("INSERT INTO vocabulary (term, match_key, arabic, level, item_type, origin) VALUES ('changed the way', 'changed the way', 'غيّر الطريقة', 'B2', 'expression', 'ai') ON CONFLICT (match_key) DO NOTHING");
+  const changed = (await get("SELECT id FROM vocabulary WHERE match_key = 'changed the way'")).id;
+  for (const v of [appearance, integrity, decision, importance, improvement, struggling, changed]) {
     await run('INSERT INTO occurrences (vocabulary_id, source_id, line_id, char_start, char_end, sentence, contextual_meaning, suggested, rank) VALUES (?, ?, ?, 0, 3, ?, ?, 1, 5)', v, src.id, line.id, line.text, 'مظهر');
   }
   const dry = await postJson(`/api/sources/${src.id}/dictionary-words`, { dry: true });
-  assert.deepEqual(dry.body.changes.sort(), ['appearance→appear', 'decision→decide', 'improvement→improve']);
+  assert.deepEqual(dry.body.changes.sort(), ['appearance→appear', 'changed the way→change the way', 'decision→decide', 'improvement→improve', 'struggling→struggle']);
   const r = await postJson(`/api/sources/${src.id}/dictionary-words`, {});
   assert.equal(r.status, 200);
   assert.ok(r.body.simplified >= 1, JSON.stringify(r.body));
@@ -500,6 +503,9 @@ test('video: suggested words are shown in their simplest form (appearance → ap
   assert.ok(terms.includes('integrity'), 'not changed to a different word');
   assert.ok(terms.includes('decide') && !terms.includes('decision'));
   assert.ok(terms.includes('importance'));
+  assert.ok(terms.includes('struggle') && !terms.includes('struggling'));
+  assert.ok(terms.includes('change the way') && !terms.includes('changed the way'));
+  assert.equal(view.items.find((i) => i.term === 'struggle').arabic, 'مظهر', 'an inflection keeps its meaning in the sentence');
   // clicking "decision" anywhere shows (and saves) "decide"
   const look = await (await realFetch(`${app.base}/api/lookup?word=decision`)).json();
   assert.equal(look.term, 'decide', JSON.stringify(look).slice(0, 200));
