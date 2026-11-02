@@ -129,8 +129,8 @@ async function planView(userId, plan, words = null) {
  *  - group_id: words of one group
  *  - focus 'difficult' | 'due' | 'new' | 'smart' (default)
  */
-export async function practiceSet(userId, { ids, group_id, source_id, focus = 'smart', size = 10 } = {}) {
-  if (source_id) return sourcePractice(userId, source_id, size);
+export async function practiceSet(userId, { ids, group_id, source_id, vids, seen, focus = 'smart', size = 10 } = {}) {
+  if (source_id) return sourcePractice(userId, source_id, size, { vids, seen });
   const everything = await listWords(userId);
   const now = Date.now();
   const need = (w) => {
@@ -232,7 +232,7 @@ export async function listGroups(userId) {
  * Practise the words suggested in one video, saved or not, without leaving it.
  * Unsaved words get a negative id (−vocabulary id): they are played, not recorded.
  */
-async function sourcePractice(userId, sourceId, size) {
+async function sourcePractice(userId, sourceId, size, { vids, seen } = {}) {
   const { sourceView } = await import('./sources.js');
   const view = await sourceView(sourceId, userId);
   const all = view.items.filter((w) => w.arabic).map((w) => ({
@@ -241,9 +241,16 @@ async function sourcePractice(userId, sourceId, size) {
     status: w.user_state === 'saved' ? 'learning' : 'new',
     mastery: 0, review_count: 0, difficult: false, group_ids: [],
   }));
-  const ai = all.filter((w, i) => i < 200);
-  const words = [...ai].sort(() => Math.random() - 0.5).slice(0, size);
-  return { words, distractors: all };
+  // vids: exactly these words (the hard ones again); seen: skip words already practised, in the video's order
+  if (vids?.length) {
+    const want = new Set(vids.map(Number));
+    return { words: all.filter((w) => want.has(w.vocabulary_id)), distractors: all, remaining: 0 };
+  }
+  const skip = new Set((seen || []).map(Number));
+  const fresh = all.filter((w) => !skip.has(w.vocabulary_id));
+  const pool = (fresh.length ? fresh : all).slice(0, 60);
+  const words = [...pool].sort(() => Math.random() - 0.5).slice(0, size);
+  return { words, distractors: all, remaining: Math.max(0, fresh.length - words.length) };
 }
 
 /** The last 7 days: words saved, answers given (and right), words gone through in videos. */

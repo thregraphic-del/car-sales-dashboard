@@ -6,7 +6,7 @@ import { esc, icon, levelChip, typeLabel, highlight, BUCKET_AR, toast } from './
 import { bindSpeech } from './components.js';
 import { refreshStats } from './app.js';
 
-export function runFlashcards(container, words, { source = 'flashcard', onDone, doneActions = '' } = {}) {
+export function runFlashcards(container, words, { source = 'flashcard', onDone, doneActions = '', hardHref = null } = {}) {
   const queue = [...words];
   const requeued = new Set();
   const results = { hard: 0, good: 0, easy: 0 };
@@ -69,7 +69,7 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
         </div>
         ${missed.size ? `<div class="replay-box"><b>صعبت عليك ${missed.size} ${missed.size === 1 ? 'كلمة' : 'كلمات'}</b>
           <div class="en small" style="margin:6px 0 10px">${[...missed.values()].map((m) => esc(m.term)).join(' · ')}</div>
-          <a class="btn primary" href="#/practice?ids=${[...missed.keys()].join(',')}&mode=quiz&replay=1">${icon.repeat} تدرّب عليها الآن</a></div>` : ''}
+          <a class="btn primary" href="${hardHref ? hardHref([...missed.values()]) : `#/practice?ids=${[...missed.keys()].join(',')}&mode=quiz&replay=1`}">${icon.repeat} ${hardHref ? "راجع الصعب" : "تدرّب عليها الآن"}</a></div>` : ''}
         <div class="btn-row" style="justify-content:center;margin-top:18px">${doneActions}</div>
         <p class="tiny muted" style="margin-top:12px">${answered} إجابة سُجّلت في قاعدة البيانات.</p>
       </div>`;

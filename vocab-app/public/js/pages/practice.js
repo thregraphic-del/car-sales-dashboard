@@ -26,6 +26,14 @@ const FOCUS = [
 
 const href = (p) => `#/practice?${new URLSearchParams(Object.entries(p).filter(([, v]) => v !== undefined && v !== null && v !== ''))}`;
 
+const seenKey = (id) => `practice.seen.${id}`;
+function seenOf(id) {
+  try { return new Set(JSON.parse(sessionStorage.getItem(seenKey(id)) || '[]')); } catch { return new Set(); }
+}
+function saveSeen(id, set) {
+  try { sessionStorage.setItem(seenKey(id), JSON.stringify([...set].slice(-2000))); } catch { /* storage unavailable */ }
+}
+
 export async function render(view, { params }) {
   await loadGroups();
   const mode = params.mode || (params.session === 'today' ? 'cards' : 'quiz');
@@ -47,16 +55,22 @@ export async function render(view, { params }) {
     distractors = (await api.practice({ size: 1 })).distractors;
     label = 'جلسة اليوم';
   } else {
-    const r = await api.practice({ ids: params.ids, group_id: group, source_id: params.source, focus, size: params.source ? 15 : 10 });
+    const r = await api.practice({ ids: params.ids, group_id: group, source_id: params.source, vids: params.vids, seen: params.source && !params.vids ? [...seenOf(params.source)].slice(-600).join(',') || undefined : undefined, focus, size: params.source ? 15 : 10 });
     words = r.words;
+    if (params.source && !params.vids) {
+      // remember what was practised so "15 more" brings new words
+      const seen = r.remaining ? seenOf(params.source) : new Set();
+      for (const w of words) seen.add(w.vocabulary_id);
+      saveSeen(params.source, seen);
+    }
     distractors = r.distractors;
     if (params.ids) label = params.yesterday ? 'كلمات أمس' : params.replay ? 'الكلمات التي أخطأت فيها' : 'كلمات مختارة';
   }
   const groupObj = state.groups.find((g) => g.id === group);
   if (groupObj) label = `مجموعة: ${groupObj.name}`;
 
-  if (params.source) label = `كلمات المقطع${params.title ? `: ${params.title}` : ''}`;
-  const base = { mode, focus: params.ids || params.session || params.source ? undefined : focus, group: group || undefined, ids: params.ids, session: params.session, replay: params.replay, source: params.source, title: params.title, type: type !== 'mixed' ? type : undefined };
+  if (params.source) label = `${params.vids ? 'الكلمات الصعبة من المقطع' : 'كلمات المقطع'}${params.title ? `: ${params.title}` : ''}`;
+  const base = { mode, focus: params.ids || params.session || params.source ? undefined : focus, group: group || undefined, ids: params.ids, session: params.session, replay: params.replay, source: params.source, vids: params.vids, title: params.title, type: type !== 'mixed' ? type : undefined };
 
   view.innerHTML = `
     <div class="page-head compact"><div><h1>تدرّب</h1></div>
@@ -102,7 +116,8 @@ export async function render(view, { params }) {
     if (mode === 'cards') {
       cleanup = runFlashcards(stage, words, {
         source: params.session === 'today' ? 'today' : 'flashcard',
-        doneActions: `<a class="btn" href="${href({ ...base, mode: 'quiz' })}">${icon.game} اختبار على نفس الكلمات</a><a class="btn ghost" href="#/">انتهيت</a>`,
+        doneActions: params.source ? sourceActions() : `<a class="btn" href="${href({ ...base, mode: 'quiz' })}">${icon.game} اختبار على نفس الكلمات</a><a class="btn ghost" href="#/">انتهيت</a>`,
+        hardHref: params.source ? (list) => href({ ...base, mode: 'cards', vids: list.map((m) => m.vocabulary_id).join(','), n: Date.now() }) : null,
       });
       return;
     }
@@ -156,15 +171,23 @@ export async function render(view, { params }) {
           </div>`
           : `<p class="ink-2">${replay ? 'ممتاز — أجبت عن كل الكلمات التي أخطأت فيها.' : 'ممتاز! ستتباعد مراجعة هذه الكلمات.'}</p>`}
         <div class="btn-row" style="justify-content:center;margin-top:18px">
-          ${mode === 'games' ? `<a class="btn" href="${href({ ...base, mode: 'games', type: undefined })}">${icon.game} لعبة أخرى</a>` : ''}
+          ${params.source ? sourceActions(missed) : `${mode === 'games' ? `<a class="btn" href="${href({ ...base, mode: 'games', type: undefined })}">${icon.game} لعبة أخرى</a>` : ''}
           <a class="btn" href="${href(mode === 'games' ? { ...base, mode: 'games', ids: undefined, replay: undefined } : { mode: 'quiz' })}">${icon.repeat} ${mode === 'games' ? 'العب مجددًا' : 'جولة جديدة'}</a>
-          <a class="btn ghost" href="#/">انتهيت</a>
+          <a class="btn ghost" href="#/">انتهيت</a>`}
         </div>
       </div>`;
   }
 
+  // End of a round on a video's words: back to the video, 15 more, or the hard ones again.
+  function sourceActions(missed = []) {
+    const back = `<a class="btn primary" href="#/source/${esc(params.source)}">↩ رجوع للمقطع</a>`;
+    const more = `<a class="btn" href="${href({ ...base, vids: undefined, n: Date.now() })}">➕ ١٥ كلمة أخرى</a>`;
+    const hard = missed.length ? `<a class="btn" href="${href({ ...base, vids: missed.map((m) => m.vocabulary_id).join(','), n: Date.now() })}">${icon.repeat} راجع الصعب (${missed.length})</a>` : '';
+    return back + more + hard;
+  }
+
   // Skip the "ready" screen when the learner already chose (today's session / replay).
-  if (params.session || params.replay || (params.ids && mode !== 'quiz') || mode === 'games') {
+  if (params.session || params.replay || params.vids || params.n || (params.ids && mode !== 'quiz') || mode === 'games') {
     start();
   } else {
     stage.innerHTML = `

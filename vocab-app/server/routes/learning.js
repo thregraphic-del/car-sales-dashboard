@@ -22,6 +22,8 @@ router.get('/practice', wrap(async (req) => learning.practiceSet(req.userId, {
   ids: req.query.ids ? idList(req.query.ids, 200) : undefined,
   group_id: num(req.query.group_id),
   source_id: num(req.query.source_id),
+  vids: req.query.vids ? idList(req.query.vids, 200) : undefined,
+  seen: req.query.seen ? idList(req.query.seen, 2000) : undefined,
   focus: oneOf(req.query.focus, ['smart', 'difficult', 'due', 'new'], 'smart'),
   size: Math.max(1, Math.min(config.limits.practiceMax, num(req.query.size) || 10)),
 })));
