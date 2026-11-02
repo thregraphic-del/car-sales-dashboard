@@ -510,12 +510,12 @@ const SuggestZ = z.object({
 });
 
 /** Ideas for the next videos: similar topics and length, for an intermediate learner. */
-export async function suggestVideosWithAi({ titles, duration, day, fresh = false }) {
+export async function suggestVideosWithAi({ titles, duration, day, fresh = false, channel = '' }) {
   const span = { short: 'under 5 minutes', medium: '5 to 20 minutes', long: 'over 20 minutes' }[duration] || '5 to 20 minutes';
   return jsonCall({
     task: 'suggest_videos',
     system: 'You recommend YouTube videos for an intermediate Arabic-speaking learner of English. Recommend real, popular, well-known videos with clear English and English captions (TED, TED-Ed, Kurzgesagt, BBC Learning English, Vox, popular educational channels, etc.) on topics similar to the videos the learner watched, matching the requested length. "youtube_id" = the 11-character video id only if you are confident it is correct, else an empty string. "minutes" = approximate length. "why_ar" = one short Arabic sentence on why it suits the learner. Also give 6 short YouTube search queries ("query", English) on related topics with an Arabic label ("label_ar"). Up to 10 videos.',
-    user: `Requested length: ${span}\nDate: ${day}${fresh ? `\nVariant: ${Date.now()}` : ''}\nVideos the learner watched recently:\n${titles.length ? titles.map((t) => `- ${t}`).join('\n') : '- (none yet: suggest varied general-interest topics)'}`,
+    user: `Requested length: ${span}\nDate: ${day}${fresh ? `\nVariant: ${Date.now()}` : ''}${channel ? `\nOnly videos from the YouTube channel: ${channel} (any length)` : ''}\nVideos the learner watched recently:\n${titles.length ? titles.map((t) => `- ${t}`).join('\n') : '- (none yet: suggest varied general-interest topics)'}`,
     schema: SUGGEST_SCHEMA,
     zod: SuggestZ,
     maxTokens: 1800,
@@ -554,7 +554,7 @@ export async function suggestWordsWithAi({ count, topic = '', level = '', avoid 
   return jsonCall({
     task: 'suggest_words',
     system: 'You suggest English vocabulary for an Arabic-speaking learner of English. Suggest useful, commonly used words and expressions (single words, phrasal verbs, collocations) for the requested field and level, varied, in dictionary form, none of the listed words to avoid. "arabic" = short natural Arabic meaning; "example" = one natural example sentence (8–16 words); "example_ar" = its Arabic translation.',
-    user: `Number of items: ${count}\nField: ${topic || 'general everyday English'}\nLevel: ${level || 'B1–B2'}\nVariant: ${Date.now()}\nAvoid: ${avoid.slice(0, 400).join(', ') || '(none)'}`,
+    user: `Number of items: ${count}\nField: ${topic || 'general everyday English'}\nLevel: ${level || 'a balanced mix of ALL levels A1, A2, B1, B2, C1 and C2'}\nVariant: ${Date.now()}\nAvoid: ${avoid.slice(0, 400).join(', ') || '(none)'}`,
     schema: SUGGEST_WORDS_SCHEMA,
     zod: SuggestWordsZ,
     maxTokens: Math.min(12000, 160 * count + 600),
@@ -596,4 +596,48 @@ export async function dictionaryBatchWithAi(words) {
     cache: false,
   });
   return r.items;
+}
+
+/* ------------------------------------------------------- video summary */
+
+const SUMMARY_SCHEMA = obj({
+  idea: str, benefit: str,
+  points: { type: 'array', items: str },
+  steps: { type: 'array', items: str },
+  quotes: { type: 'array', items: obj({ en: str, ar: str }) },
+});
+const SummaryZ = z.object({
+  idea: z.string(), benefit: z.string(), points: z.array(z.string()), steps: z.array(z.string()),
+  quotes: z.array(z.object({ en: z.string(), ar: z.string() })),
+});
+
+/** A complete Arabic summary of a video: idea, value, key points, practical steps, quotes. Cached per transcript. */
+export async function summaryWithAi({ title, text }) {
+  return jsonCall({
+    task: 'video_summary',
+    system: 'You summarise English videos for an Arabic-speaking learner, in clear Modern Standard Arabic. Fields: "idea" = the main idea in 2–3 sentences; "benefit" = what the viewer gains from this video, 1–2 sentences; "points" = 3–7 key points (one sentence each); "steps" = practical, actionable steps the video recommends, in order (empty list if it has none); "quotes" = 2–5 memorable sentences or pieces of wisdom quoted EXACTLY from the transcript in English ("en") with a natural Arabic translation ("ar"). Be faithful to the transcript; do not invent content.',
+    user: `Title: ${title}\n\nTranscript:\n${text.slice(0, 60000)}`,
+    schema: SUMMARY_SCHEMA,
+    zod: SummaryZ,
+    maxTokens: 2500,
+    timeoutMs: 50000,
+  });
+}
+
+/* ------------------------------------------------- similar channels */
+
+const CHANNELS_SCHEMA = obj({ channels: { type: 'array', items: obj({ name: str, handle: str, field: str, why_ar: str }) } });
+const ChannelsZ = z.object({ channels: z.array(z.object({ name: z.string(), handle: z.string(), field: z.string(), why_ar: z.string() })) });
+
+/** Real, popular English-language YouTube channels like the learner's. */
+export async function suggestChannelsWithAi({ names }) {
+  return jsonCall({
+    task: 'suggest_channels',
+    system: 'You recommend real, popular English-language YouTube channels with clear speech and captions, similar to the channels the learner watches, for an Arabic-speaking learner of English. Up to 10, not the given ones. "handle" = the channel\'s @handle without "@" only if you are sure, else "". "field" = a short Arabic topic name. "why_ar" = one short Arabic sentence.',
+    user: `Channels the learner watches:\n${names.map((n) => `- ${n}`).join('\n')}`,
+    schema: CHANNELS_SCHEMA,
+    zod: ChannelsZ,
+    maxTokens: 1200,
+    cache: false,
+  });
 }

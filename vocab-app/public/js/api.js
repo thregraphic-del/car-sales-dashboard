@@ -48,12 +48,15 @@ export const api = {
   saveProgress: (id, seconds, keepalive = false) => fetch(`/api/sources/${id}/progress`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ seconds }), keepalive }).catch(() => {}),
   deleteSource: (id) => request('DELETE', `/api/sources/${id}`),
   translation: (id) => request('GET', `/api/sources/${id}/translation`),
+  summary: (id) => request('POST', `/api/sources/${id}/summary`),
+  dictionaryWords: (id) => request('POST', `/api/sources/${id}/dictionary-words`),
   alignStep: (id, from, skip = 0) => request('POST', `/api/sources/${id}/align`, { from, skip }),
   translateStep: (id) => request('POST', `/api/sources/${id}/translation`),
   refineStep: (id) => request('POST', `/api/sources/${id}/refine`),
 
   lookup: (params) => request('GET', `/api/lookup${qs(params)}`),
-  saveWord: (vocabulary_id, occurrence_id, group_ids) => request('POST', '/api/words', { vocabulary_id, occurrence_id, group_ids }),
+  saveWord: (vocabulary_id, occurrence_id, group_ids, bulk = false) => request('POST', '/api/words', { vocabulary_id, occurrence_id, group_ids, bulk }),
+  saveWordsBulk: (items) => request('POST', '/api/words/bulk', { items }),
   dismissWord: (vocabulary_id) => request('POST', '/api/words/dismiss', { vocabulary_id }),
   resetWord: (vocabulary_id) => request('POST', '/api/words/reset', { vocabulary_id }),
   words: (filters) => request('GET', `/api/words${qs(filters)}`),
@@ -75,7 +78,8 @@ export const api = {
   addToGroup: (id, uv_ids) => request('POST', `/api/groups/${id}/words`, { uv_ids }),
 
   practice: (params) => request('GET', `/api/practice${qs(params)}`),
-  review: (uv_id, grade, source) => request('POST', '/api/review', { uv_id, grade, source }),
+  // Words practised from a video before saving them have a negative id: not recorded.
+  review: (uv_id, grade, source) => (Number(uv_id) > 0 ? request('POST', '/api/review', { uv_id, grade, source }) : Promise.resolve({ skipped: true })),
 
   exportUrl: (params) => `/api/export${qs(params)}`,
 
@@ -96,6 +100,10 @@ export const api = {
   aiStatus: () => request('GET', '/api/ai/status'),
   aiUsage: () => request('GET', '/api/ai/usage'),
   extractWords: (kind, data, name) => request('POST', '/api/ai/extract', { kind, data, name }),
+  channels: () => request('GET', '/api/channels'),
+  channelAction: (body) => request('POST', '/api/channels', body),
+  similarChannels: () => request('POST', '/api/channels/similar', {}),
+  channelVideos: (name, fresh) => request('POST', '/api/channels/videos', { name, fresh }),
   sendFeedback: (body) => request('POST', '/api/feedback', body),
   feedback: () => request('GET', '/api/feedback'),
   suggestWords: (body) => request('POST', '/api/ai/suggest-words', body),

@@ -14,7 +14,10 @@ const FILTERS = [
 export async function render(view, { params }) {
   let all = await api.words();
   await loadGroups();
-  const f = { filter: params.filter || 'all', group: params.group ? Number(params.group) : null, q: '', level: '' };
+  const f = { filter: params.filter || 'all', group: params.group ? Number(params.group) : null, q: '', level: '', when: params.when || '', source: params.source ? Number(params.source) : null, sort: 'new' };
+  const DAY = 86400000;
+  const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const WHEN = { today: () => [startOfToday(), Infinity], yesterday: () => [startOfToday() - DAY, startOfToday()], week: () => [startOfToday() - 6 * DAY, Infinity], month: () => [startOfToday() - 29 * DAY, Infinity] };
   let select = false;
   const selected = new Set();
   let shown = [];
@@ -38,6 +41,12 @@ export async function render(view, { params }) {
     if (f.filter === 'new' && w.status !== 'new') return false;
     if (f.filter === 'mastered' && w.status !== 'mastered') return false;
     if (f.level && w.level !== f.level) return false;
+    if (f.when && WHEN[f.when]) {
+      const t = new Date(w.saved_at).getTime();
+      const [from, to] = WHEN[f.when]();
+      if (!(t >= from && t < to)) return false;
+    }
+    if (f.source && w.source?.id !== f.source) return false;
     const q = f.q.trim().toLowerCase();
     if (q && !`${w.term} ${w.arabic || ''} ${w.arabic_general || ''}`.toLowerCase().includes(q)) return false;
     return true;
@@ -48,8 +57,11 @@ export async function render(view, { params }) {
     const practice = all.filter((w) => w.difficult || w.due).length;
     $('#summary').textContent = all.length ? `${num(all.length)} كلمة · ${num(mastered)} متقنة · ${num(practice)} تحتاج تدريب` : 'لم تحفظ كلمات بعد.';
     $('#filters').innerHTML = FILTERS.map(([k, l]) => `<button class="tab ${f.filter === k ? 'active' : ''}" data-f="${k}">${l}</button>`).join('')
-      + `<select class="input level-select" id="level" aria-label="المستوى"><option value="">كل المستويات</option>${['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map((l) => `<option ${f.level === l ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
-    $('#groups').innerHTML = `<span class="tiny muted">المجموعات:</span>${state.groups.map((g) => `<button class="gchip ${f.group === g.id ? 'on' : ''}" data-g="${g.id}">${esc(g.name)} <span class="en-inline tiny">${g.count}</span></button>`).join('')}<button class="gchip new" id="newGroup">+ مجموعة</button>`;
+      + `<select class="input level-select" id="level" aria-label="المستوى"><option value="">كل المستويات</option>${['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map((l) => `<option ${f.level === l ? 'selected' : ''}>${l}</option>`).join('')}</select>`
+      + `<select class="input level-select" id="when" aria-label="التاريخ">${[['', 'كل الأوقات'], ['today', 'اليوم'], ['yesterday', 'أمس'], ['week', 'آخر أسبوع'], ['month', 'آخر شهر']].map(([k, l]) => `<option value="${k}" ${f.when === k ? 'selected' : ''}>${l}</option>`).join('')}</select>`
+      + `<select class="input level-select" id="source" aria-label="المقطع"><option value="">كل المقاطع</option>${sourcesOf().map((s) => `<option value="${s.id}" ${f.source === s.id ? 'selected' : ''}>${esc(s.title.slice(0, 40))}</option>`).join('')}</select>`
+      + `<select class="input level-select" id="sort" aria-label="الترتيب">${[['new', 'الأحدث'], ['old', 'الأقدم'], ['az', 'أبجديًا'], ['hard', 'الأصعب أولًا']].map(([k, l]) => `<option value="${k}" ${f.sort === k ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+    $('#groups').innerHTML = `<span class="tiny muted">المجموعات:</span>${state.groups.map((g) => `<button class="gchip ${f.group === g.id ? 'on' : ''}" data-g="${g.id}">${esc(g.name)} <span class="en-inline tiny">${g.count}</span></button>`).join('')}<button class="gchip new" id="newGroup">+ مجموعة</button>${state.groups.length > 1 ? '<button class="gchip new" id="manageGroups">⚙ إدارة المجموعات</button>' : ''}`;
     const g = state.groups.find((x) => x.id === f.group);
     $('#groupHead').innerHTML = g ? `
       <div class="card group-head">
@@ -61,8 +73,10 @@ export async function render(view, { params }) {
         </div>
       </div>` : '';
     shown = all.filter(matches);
+    const sorters = { old: (a, b) => new Date(a.saved_at) - new Date(b.saved_at), az: (a, b) => a.term.localeCompare(b.term), hard: (a, b) => (b.difficulty || 0) - (a.difficulty || 0) || a.mastery - b.mastery };
+    if (sorters[f.sort]) shown.sort(sorters[f.sort]);
     $('#list').innerHTML = shown.length
-      ? `<div class="row between" style="margin:4px 0 10px"><span class="small muted">${shown.length} كلمة</span><button class="btn sm ${select ? 'primary' : ''}" id="selectToggle">${icon.check} ${select ? 'إنهاء التحديد' : 'تحديد'}</button></div>
+      ? `<div class="row between" style="margin:4px 0 10px"><span class="small muted">${shown.length} كلمة</span><span class="btn-row">${select ? '' : `<button class="btn sm" id="selectAllQuick">☑ تحديد الكل</button>`}<button class="btn sm ${select ? 'primary' : ''}" id="selectToggle">${icon.check} ${select ? 'إنهاء التحديد' : 'تحديد'}</button></span></div>
          <div class="word-list">${shown.map((w) => wordRowHtml(w, { selectable: select, selected: selected.has(w.uv_id) })).join('')}</div>`
       : all.length
         ? emptyState('🔍', 'لا توجد كلمات هنا', f.group ? 'أضف كلمات إلى هذه المجموعة من بطاقة أي كلمة.' : 'جرّب بحثًا أو فلترًا آخر.')
@@ -85,6 +99,57 @@ export async function render(view, { params }) {
           <a class="btn sm" href="#/practice?ids=${[...selected].join(',')}" ${selected.size ? '' : 'style="pointer-events:none;opacity:.5"'}>${icon.game} تدرّب</a>
           <button class="btn sm bad" id="deleteSelected" ${none}>${icon.trash} حذف</button>
         </div></div>` : '';
+  }
+
+  // Videos the learner's words come from (for the filter).
+  function sourcesOf() {
+    const m = new Map();
+    for (const w of all) if (w.source?.id && w.source.title) m.set(w.source.id, w.source);
+    return [...m.values()];
+  }
+
+  // Merge or delete several groups at once.
+  function openGroupManager() {
+    const box = openModal(`<h2 style="margin-bottom:4px">إدارة المجموعات</h2>
+      <p class="small ink-2" style="margin-bottom:12px">حدّد مجموعتين أو أكثر لدمجها في واحدة، أو حدّد ما تريد حذفه (الكلمات نفسها لا تُحذف).</p>
+      <div class="gm-list">${state.groups.map((g) => `<label class="gm-item"><input type="checkbox" class="check" value="${g.id}"> <b>${esc(g.name)}</b> <span class="tiny muted en-inline">${g.count}</span></label>`).join('')}</div>
+      <div class="row wrap" style="gap:8px;margin-top:10px"><button class="btn sm" id="gmAll">تحديد الكل</button></div>
+      <label class="field" style="margin-top:12px">اسم المجموعة بعد الدمج<input class="input" id="gmName" placeholder="مثلًا: مفردات العمل"></label>
+      <div class="btn-row" style="margin-top:12px"><button class="btn primary" id="gmMerge">دمج المحدد</button><button class="btn bad" id="gmDelete">حذف المحدد</button><button class="btn ghost" data-close>إغلاق</button></div>`);
+    const picked = () => [...box.querySelectorAll('.gm-item input:checked')].map((x) => Number(x.value));
+    box.querySelector('#gmAll').addEventListener('click', () => {
+      const boxes = [...box.querySelectorAll('.gm-item input')];
+      const allOn = boxes.every((x) => x.checked);
+      boxes.forEach((x) => { x.checked = !allOn; });
+    });
+    box.querySelector('#gmMerge').addEventListener('click', async () => {
+      const ids = picked();
+      if (ids.length < 2) return toast('حدّد مجموعتين على الأقل');
+      const first = state.groups.find((g) => g.id === ids[0]);
+      const name = box.querySelector('#gmName').value.trim() || first.name;
+      try {
+        const target = name === first.name ? first : await api.createGroup(name);
+        const uv = all.filter((w) => w.group_ids.some((g) => ids.includes(g))).map((w) => w.uv_id);
+        if (uv.length) await api.addToGroup(target.id, uv);
+        for (const g of ids) if (g !== target.id) await api.deleteGroup(g);
+        closeModal();
+        toast(`دُمجت ${ids.length} مجموعات في «${name}» ✓`);
+        f.group = target.id;
+        await reload();
+      } catch (err) {
+        toast(err.message);
+      }
+    });
+    box.querySelector('#gmDelete').addEventListener('click', async () => {
+      const ids = picked();
+      if (!ids.length) return toast('حدّد مجموعة واحدة على الأقل');
+      if (!confirm(`حذف ${ids.length} ${ids.length === 1 ? 'مجموعة' : 'مجموعات'}؟ الكلمات نفسها لن تُحذف.`)) return;
+      for (const g of ids) await api.deleteGroup(g);
+      closeModal();
+      toast('حُذفت المجموعات ✓');
+      if (ids.includes(f.group)) f.group = null;
+      await reload();
+    });
   }
 
   const reload = async () => {
@@ -145,6 +210,12 @@ export async function render(view, { params }) {
       return draw();
     }
     if (e.target.closest('#exportBtn')) openExport(f.group);
+    if (e.target.closest('#manageGroups')) return openGroupManager();
+    if (e.target.closest('#selectAllQuick')) {
+      select = true;
+      shown.forEach((w) => selected.add(w.uv_id));
+      return draw();
+    }
     if (e.target.closest('#selAll')) {
       const allSel = shown.every((w) => selected.has(w.uv_id));
       shown.forEach((w) => (allSel ? selected.delete(w.uv_id) : selected.add(w.uv_id)));
@@ -184,6 +255,10 @@ export async function render(view, { params }) {
   view.addEventListener('change', async (e) => {
     if (e.target.id === 'level') {
       f.level = e.target.value;
+      return draw();
+    }
+    if (['when', 'source', 'sort'].includes(e.target.id)) {
+      f[e.target.id] = e.target.id === 'source' ? (Number(e.target.value) || null) : e.target.value;
       return draw();
     }
     if (e.target.id === 'toGroup' && e.target.value) {

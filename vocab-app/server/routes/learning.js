@@ -12,7 +12,8 @@ const router = Router();
 router.get('/today', wrap(async (req) => {
   const words = await listWords(req.userId);
   const [plan, stats] = [await learning.getTodayPlan(req.userId, words), await learning.stats(req.userId)];
-  return { plan, stats };
+  const { viewsToday } = await import('../data/goal.js');
+  return { plan, stats, watch_goal: await viewsToday(req.userId) };
 }));
 router.post('/today/extend', wrap(async (req) => learning.extendTodayPlan(req.userId, Math.max(1, Math.min(20, num(req.body?.count) || 5)))));
 router.get('/stats', wrap(async (req) => learning.stats(req.userId)));
@@ -20,6 +21,7 @@ router.get('/stats', wrap(async (req) => learning.stats(req.userId)));
 router.get('/practice', wrap(async (req) => learning.practiceSet(req.userId, {
   ids: req.query.ids ? idList(req.query.ids, 200) : undefined,
   group_id: num(req.query.group_id),
+  source_id: num(req.query.source_id),
   focus: oneOf(req.query.focus, ['smart', 'difficult', 'due', 'new'], 'smart'),
   size: Math.max(1, Math.min(config.limits.practiceMax, num(req.query.size) || 10)),
 })));

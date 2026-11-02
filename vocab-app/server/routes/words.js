@@ -6,6 +6,7 @@ import { lookup } from '../services/lookup.js';
 import * as words from '../data/words.js';
 import { groupIdsFor, setWordGroups } from '../data/groups.js';
 import { exportRows, toCsv, XLSX_COLUMNS } from '../data/export.js';
+import { recordView } from '../data/goal.js';
 import { toXlsx } from '../lib/xlsx.js';
 
 const router = Router();
@@ -16,7 +17,10 @@ router.get('/lookup', wrap(async (req) => {
   const lineId = num(req.query.line_id);
   const vocabularyId = num(req.query.vocabulary_id);
   if (!word && !vocabularyId) throw httpError(400, 'لا توجد كلمة.');
-  return lookup({ line_id: lineId, word, vocabulary_id: vocabularyId, context: req.query.context === '1' }, req.userId);
+  const r = await lookup({ line_id: lineId, word, vocabulary_id: vocabularyId, context: req.query.context === '1' }, req.userId);
+  // A word opened while watching or reading counts toward today's goal.
+  if (r.found && lineId && r.vocabulary_id) r.goal = await recordView(req.userId, r.vocabulary_id);
+  return r;
 }));
 
 /** Save a word. Body: {vocabulary_id, occurrence_id?, group_ids?} */
@@ -25,7 +29,21 @@ router.post('/words', wrap(async (req) => {
   const vocabularyId = num(b.vocabulary_id);
   if (!vocabularyId) throw httpError(400, 'لا توجد كلمة للحفظ.');
   const out = await words.saveWord(req.userId, vocabularyId, { occurrenceId: num(b.occurrence_id) ?? null, groupIds: idList(b.group_ids, 50) });
-  return { ...out, groups: await groupIdsFor(out.uv_id) };
+  // Saving one word counts toward today's goal; "save all" (bulk) does not.
+  const goal = b.bulk ? undefined : await recordView(req.userId, vocabularyId);
+  return { ...out, groups: await groupIdsFor(out.uv_id), goal };
+}));
+/** Save many words at once (the reader's "save all"); does not count toward the daily goal. */
+router.post('/words/bulk', wrap(async (req) => {
+  const items = Array.isArray(req.body?.items) ? req.body.items.slice(0, 800) : [];
+  let saved = 0;
+  for (const it of items) {
+    const vid = num(it?.vocabulary_id);
+    if (!vid) continue;
+    await words.saveWord(req.userId, vid, { occurrenceId: num(it.occurrence_id) ?? null });
+    saved += 1;
+  }
+  return { saved };
 }));
 router.post('/words/dismiss', wrap(async (req) => {
   const id = num(req.body?.vocabulary_id);

@@ -129,7 +129,8 @@ async function planView(userId, plan, words = null) {
  *  - group_id: words of one group
  *  - focus 'difficult' | 'due' | 'new' | 'smart' (default)
  */
-export async function practiceSet(userId, { ids, group_id, focus = 'smart', size = 10 } = {}) {
+export async function practiceSet(userId, { ids, group_id, source_id, focus = 'smart', size = 10 } = {}) {
+  if (source_id) return sourcePractice(userId, source_id, size);
   const everything = await listWords(userId);
   const now = Date.now();
   const need = (w) => {
@@ -201,6 +202,7 @@ export async function stats(userId) {
     due: words.filter((w) => w.due).length,
     difficult: words.filter((w) => w.difficult).length,
     saved_today: words.filter((w) => w.saved_at >= todayStart).length,
+    week: await weekSummary(userId, words),
     plan: { total: plan.total, completed: plan.completed, counts: plan.counts },
     attention,
     streak: await streak(userId),
@@ -224,4 +226,35 @@ export async function listGroups(userId) {
       progress: ws.length ? Math.round(ws.reduce((s, w) => s + w.mastery, 0) / ws.length) : 0,
     };
   });
+}
+
+/**
+ * Practise the words suggested in one video, saved or not, without leaving it.
+ * Unsaved words get a negative id (−vocabulary id): they are played, not recorded.
+ */
+async function sourcePractice(userId, sourceId, size) {
+  const { sourceView } = await import('./sources.js');
+  const view = await sourceView(sourceId, userId);
+  const all = view.items.filter((w) => w.arabic).map((w) => ({
+    ...w,
+    uv_id: w.uv_id && w.user_state === 'saved' ? w.uv_id : -w.vocabulary_id,
+    status: w.user_state === 'saved' ? 'learning' : 'new',
+    mastery: 0, review_count: 0, difficult: false, group_ids: [],
+  }));
+  const ai = all.filter((w, i) => i < 200);
+  const words = [...ai].sort(() => Math.random() - 0.5).slice(0, size);
+  return { words, distractors: all };
+}
+
+/** The last 7 days: words saved, answers given (and right), words gone through in videos. */
+async function weekSummary(userId, words) {
+  const from = startOfDay(6).toISOString();
+  const r = await get('SELECT COUNT(*) AS n, SUM(correct) AS ok FROM review_logs WHERE user_id = ? AND created_at >= ?', userId, from);
+  const v = await get('SELECT COUNT(*) AS n FROM word_views WHERE user_id = ? AND day >= ?', userId, localDate(startOfDay(6)));
+  return {
+    saved: words.filter((w) => w.saved_at >= from).length,
+    reviews: Number(r?.n || 0),
+    correct: Number(r?.ok || 0),
+    seen: Number(v?.n || 0),
+  };
 }

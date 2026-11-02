@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS sources (
   translation_status TEXT    NOT NULL DEFAULT 'none', -- none | running | done | unavailable | failed
   ai_cursor          INTEGER NOT NULL DEFAULT 0,      -- next line idx for AI word selection (chunked)
   progress_seconds   REAL,                            -- where the learner stopped watching
+  dict_words_at      TEXT,                            -- when built-in dictionary words were suggested
   created_at         TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   analyzed_at        TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
@@ -249,3 +250,11 @@ CREATE TABLE IF NOT EXISTS feedback (
 -- Built-in dictionary: inflected form → dictionary word; processed frequency-list words.
 CREATE TABLE IF NOT EXISTS lemma_index (form TEXT PRIMARY KEY, lemma TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS dictionary_done (word TEXT PRIMARY KEY);
+
+-- Daily goal while watching: distinct words opened (or saved one by one) per day.
+CREATE TABLE IF NOT EXISTS word_views (
+  user_id       INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  day           TEXT    NOT NULL,
+  vocabulary_id INTEGER NOT NULL REFERENCES vocabulary(id) ON DELETE CASCADE,
+  PRIMARY KEY (user_id, day, vocabulary_id)
+);

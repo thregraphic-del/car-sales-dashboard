@@ -96,7 +96,7 @@ router.post('/story', wrap(async (req, res) => {
 router.post('/suggest-words', wrap(async (req, res) => {
   const count = Math.max(5, Math.min(50, Number(req.body?.count) || 20));
   const topic = String(req.body?.topic || '').replace(/\s+/g, ' ').trim().slice(0, 60);
-  const level = ['A2', 'B1', 'B2', 'C1'].includes(req.body?.level) ? req.body.level : '';
+  const level = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].includes(req.body?.level) ? req.body.level : '';
   const mine = await listWords(req.userId);
   const have = new Set(mine.map((w) => matchKey(w.term)));
   return withAi(res, async () => {

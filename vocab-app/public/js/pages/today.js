@@ -4,7 +4,7 @@ import { state } from '../state.js';
 import { esc, icon, thumbHtml, relDate, levelChip } from '../ui.js';
 
 export async function render(view) {
-  const [{ plan, stats }, sources] = await Promise.all([api.today(), api.sources()]);
+  const [{ plan, stats, watch_goal: wg }, sources, yesterday] = await Promise.all([api.today(), api.sources(), api.words({ section: 'yesterday' }).catch(() => [])]);
   state.stats = stats;
   const left = plan.items.filter((i) => !i.completed);
   const hour = new Date().getHours();
@@ -55,6 +55,24 @@ export async function render(view) {
       <div><h1>${greet}${state.user?.name && state.user.name !== 'Learner' ? `، ${esc(state.user.name)}` : ''}</h1></div>
       ${stats.streak.current ? `<span class="streak-chip">🔥 ${stats.streak.current} ${stats.streak.current === 1 ? 'يوم' : 'أيام'}</span>` : ''}
     </div>
+    ${(() => {
+      // Start of the day: yesterday's words as quick cards; the watching goal; the video to continue.
+      const last = sources.find((x) => x.kind === 'youtube' && Number(x.progress_seconds) > 5) || sources.find((x) => x.kind === 'youtube');
+      const pct = wg ? Math.min(100, Math.round((100 * wg.count) / Math.max(1, wg.goal))) : 0;
+      const tiles = [
+        yesterday.length ? `<a class="card day-tile" href="#/practice?mode=cards&ids=${yesterday.slice(0, 60).map((w) => w.uv_id).join(',')}&yesterday=1">
+          <div class="day-ico">☀️</div><div><b>راجع كلمات أمس</b><div class="small ink-2">${yesterday.length} ${yesterday.length === 1 ? 'كلمة' : 'كلمات'} · بطاقات سريعة</div></div></a>` : '',
+        wg ? `<div class="card day-tile"><div class="day-ico">🎯</div><div style="flex:1"><b>هدف المشاهدة اليوم</b>
+          <div class="small ink-2">مررت على <b class="en-inline">${Math.min(wg.count, wg.goal)}/${wg.goal}</b> كلمة${wg.count >= wg.goal ? ' — أحسنت ✓' : ''}</div>
+          <div class="bar" style="margin-top:6px"><span style="width:${pct}%"></span></div></div></div>` : '',
+        last ? `<a class="card day-tile" href="#/source/${last.id}"><div class="day-ico">▶</div><div style="min-width:0"><b>${Number(last.progress_seconds) > 5 ? 'أكمل المشاهدة' : 'آخر مقطع'}</b>
+          <div class="small ink-2 en clamp1">${esc(last.title)}</div></div></a>` : '',
+      ].filter(Boolean);
+      const wk = stats.week;
+      const weekLine = wk && (wk.saved || wk.reviews || wk.seen)
+        ? `<p class="small ink-2 week-line">📅 هذا الأسبوع: <b class="en-inline">${wk.seen}</b> كلمة مررت عليها · <b class="en-inline">${wk.saved}</b> حفظتها · <b class="en-inline">${wk.reviews}</b> إجابة تدريب${wk.reviews ? ` (${Math.round((100 * wk.correct) / wk.reviews)}% صحيحة)` : ''}</p>` : '';
+      return (tiles.length ? `<div class="day-tiles">${tiles.join('')}</div>` : '') + weekLine;
+    })()}
     ${main}
 
     ${stats.attention.length ? `

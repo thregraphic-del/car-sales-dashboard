@@ -407,3 +407,56 @@ test('voice: clear free natural voice through the server, long text in parts, br
     globalThis.fetch = before;
   }
 });
+
+test('video: dictionary words become suggestions, practice from the video, goal counts opened words but not "save all"', async () => {
+  const { run, all, get } = await import('../server/db/index.js');
+  const src = (await (await realFetch(`${app.base}/api/sources`)).json()).find((s) => !s.is_demo) || (await (await realFetch(`${app.base}/api/sources`)).json())[0];
+  await run('UPDATE sources SET is_demo = 0 WHERE id = ?', src.id);
+  const view = await (await realFetch(`${app.base}/api/sources/${src.id}`)).json();
+  // put two words of this transcript into the built-in dictionary
+  const words = [...new Set(view.lines.flatMap((l) => l.text.toLowerCase().match(/[a-z]{6,}/g) || []))].slice(0, 2);
+  for (const w of words) {
+    if (!(await get('SELECT id FROM vocabulary WHERE term = ?', w))) await run("INSERT INTO vocabulary (term, match_key, arabic, level, origin) VALUES (?, ?, 'معنى', 'B1', 'dictionary')", w, w);
+    else await run("UPDATE vocabulary SET origin = 'dictionary', arabic = COALESCE(arabic, 'معنى') WHERE term = ?", w);
+    await run('INSERT INTO lemma_index (form, lemma) VALUES (?, ?) ON CONFLICT (form) DO NOTHING', w, w);
+  }
+  await run("DELETE FROM occurrences WHERE source_id = ? AND vocabulary_id IN (SELECT id FROM vocabulary WHERE term IN (?, ?))", src.id, words[0], words[1]);
+  const r = await postJson(`/api/sources/${src.id}/dictionary-words`, {});
+  assert.equal(r.status, 200);
+  assert.ok(r.body.added >= 1, JSON.stringify(r.body));
+  const after = await (await realFetch(`${app.base}/api/sources/${src.id}`)).json();
+  assert.ok(after.items.some((i) => words.includes(i.term)), 'dictionary words suggested');
+  assert.ok(after.marks.some((m) => m.light), 'shown with a light mark');
+  assert.ok(after.source.dict_words_at);
+  // practice the video's words, saved or not
+  const p = await (await realFetch(`${app.base}/api/practice?source_id=${src.id}&size=50`)).json();
+  assert.ok(p.words.length >= 1);
+  assert.ok(p.words.some((w) => w.uv_id < 0) || p.words.every((w) => w.uv_id > 0));
+  // goal: opening a word in a video counts once; "save all" (bulk) never counts
+  const before = (await (await realFetch(`${app.base}/api/today`)).json()).watch_goal.count;
+  const item = after.items.find((i) => !i.user_state);
+  const look = await (await realFetch(`${app.base}/api/lookup?vocabulary_id=${item.vocabulary_id}&line_id=${item.line_id}`)).json();
+  assert.equal(look.goal.count, before + 1);
+  await realFetch(`${app.base}/api/lookup?vocabulary_id=${item.vocabulary_id}&line_id=${item.line_id}`);
+  const bulk = await postJson('/api/words/bulk', { items: after.items.filter((i) => !i.user_state && i !== item).slice(0, 5).map((i) => ({ vocabulary_id: i.vocabulary_id, occurrence_id: i.occurrence_id })) });
+  assert.equal(bulk.status, 200);
+  assert.equal((await (await realFetch(`${app.base}/api/today`)).json()).watch_goal.count, before + 1, 'same word twice and "save all" do not count');
+});
+
+test('summary and channels', async () => {
+  reply = ok({ idea: 'فكرة', benefit: 'فائدة', points: ['نقطة'], steps: ['خطوة'], quotes: [{ en: 'Hi everyone', ar: 'مرحبًا' }] });
+  const s = await postJson('/api/sources/1/summary', {});
+  assert.equal(s.status, 200);
+  assert.equal(s.body.steps[0], 'خطوة');
+  const ch = await (await realFetch(`${app.base}/api/channels`)).json();
+  assert.ok(ch.channels.filter((c) => c.kind === 'fixed').length >= 10, 'two known channels in five fields');
+  const ted = ch.channels.find((c) => c.handle === 'TED');
+  assert.equal((await postJson('/api/channels', { action: 'pin', id: ted.id })).status, 200);
+  assert.equal((await postJson('/api/channels', { action: 'add', name: 'My Channel', handle: '@mychannel' })).status, 200);
+  assert.equal((await postJson('/api/channels', { action: 'hide', id: '@veritasium' })).status, 200);
+  const ch2 = (await (await realFetch(`${app.base}/api/channels`)).json()).channels;
+  assert.ok(ch2.find((c) => c.handle === 'TED').pinned);
+  assert.ok(ch2.find((c) => c.handle === 'mychannel'));
+  assert.ok(ch2.find((c) => c.handle === 'veritasium').hidden);
+  assert.ok(ch2.findIndex((c) => c.pinned) === 0, 'pinned first');
+});

@@ -308,7 +308,7 @@ export async function sourceView(sourceId, userId) {
   );
   const marks = occ
     .filter((o) => o.char_start !== null && (o.suggested || o.user_state === 'saved'))
-    .map((o) => ({ line_id: o.line_id, start: o.char_start, end: o.char_end, vocabulary_id: o.vocabulary_id, occurrence_id: o.id, state: o.user_state || null }));
+    .map((o) => ({ line_id: o.line_id, start: o.char_start, end: o.char_end, vocabulary_id: o.vocabulary_id, occurrence_id: o.id, state: o.user_state || null, light: o.suggested && o.rank >= 1000 }));
   const seen = new Set();
   const ex = await examplesFor([...new Set(occ.map((o) => o.vocabulary_id))], userId);
   const ref = sourceRef(source);
@@ -360,4 +360,59 @@ export async function occurrenceFor(vocabularyId, lineId, userId, { contextual_m
     contextual_meaning || null, context_note || null, floorOrNull(line.start_seconds),
   );
   return get('SELECT * FROM occurrences WHERE id = ?', id);
+}
+
+/**
+ * Suggest every word of the built-in dictionary that the source uses (except the
+ * most basic ones): found through its inflections (went → go), one context each,
+ * after the AI's choices. Fast enough for one request (no AI).
+ */
+export async function addDictionaryWords(sourceId, { skipTop = 150, limit = 700 } = {}) {
+  const { COMMON_WORDS } = await import('../lib/common-words.js');
+  const rankOf = new Map(COMMON_WORDS.map((w, i) => [w, i]));
+  const lines = await all('SELECT id, idx, start_seconds, text, text_ar FROM transcript_lines WHERE source_id = ? ORDER BY idx', sourceId);
+  // first place and count of every word form
+  const forms = new Map();
+  for (const l of lines) {
+    for (const m of l.text.matchAll(/[A-Za-z][A-Za-z'’-]*/g)) {
+      const f = m[0].toLowerCase().replace(/’/g, "'").replace(/'s$/, '');
+      const hit = forms.get(f);
+      if (hit) hit.n += 1;
+      else forms.set(f, { n: 1, line: l, start: m.index, end: m.index + m[0].length });
+    }
+  }
+  const list = [...forms.keys()];
+  const lemmaOf = new Map();
+  for (let i = 0; i < list.length; i += 400) {
+    const part = list.slice(i, i + 400);
+    for (const r of await all(`SELECT form, lemma FROM lemma_index WHERE form IN (${part.map(() => '?').join(',')})`, ...part)) lemmaOf.set(r.form, r.lemma);
+  }
+  // lemma → first appearance and total count
+  const byLemma = new Map();
+  for (const [f, info] of forms) {
+    const lemma = lemmaOf.get(f);
+    if (!lemma) continue;
+    const cur = byLemma.get(lemma);
+    if (!cur) byLemma.set(lemma, { ...info });
+    else cur.n += info.n;
+  }
+  const lemmas = [...byLemma.keys()].filter((l) => (rankOf.get(l) ?? 99999) >= skipTop);
+  const vocab = new Map();
+  for (let i = 0; i < lemmas.length; i += 400) {
+    const part = lemmas.slice(i, i + 400);
+    for (const r of await all(`SELECT id, term FROM vocabulary WHERE origin = 'dictionary' AND term IN (${part.map(() => '?').join(',')})`, ...part)) vocab.set(r.term, r.id);
+  }
+  const already = new Set((await all('SELECT vocabulary_id FROM occurrences WHERE source_id = ? AND suggested = 1', sourceId)).map((r) => r.vocabulary_id));
+  // most used in this video first, then the rarer (more useful) words
+  const chosen = lemmas.filter((l) => vocab.has(l) && !already.has(vocab.get(l)))
+    .sort((a, b) => byLemma.get(b).n - byLemma.get(a).n || (rankOf.get(b) ?? 0) - (rankOf.get(a) ?? 0))
+    .slice(0, limit);
+  await tx(async () => {
+    for (const [i, lemma] of chosen.entries()) {
+      const h = byLemma.get(lemma);
+      await addOccurrence(sourceId, vocab.get(lemma), { ...h.line, start: h.line.start_seconds }, { start: h.start, end: h.end }, { suggested: true, rank: 1000 + i });
+    }
+    await run('UPDATE sources SET dict_words_at = ? WHERE id = ?', new Date().toISOString(), sourceId);
+  });
+  return { added: chosen.length };
 }

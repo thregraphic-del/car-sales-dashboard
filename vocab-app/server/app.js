@@ -16,6 +16,7 @@ import groupRoutes from './routes/groups.js';
 import dataRoutes from './routes/data.js';
 import ttsRoutes from './routes/tts.js';
 import feedbackRoutes from './routes/feedback.js';
+import channelRoutes from './routes/channels.js';
 import aiRoutes from './routes/ai.js';
 
 const PUBLIC_PATHS = new Set(['/api/version', '/api/auth/status', '/api/auth/login', '/api/auth/setup', '/api/auth/register', '/api/auth/logout']);
@@ -117,6 +118,7 @@ export function createApp() {
   app.use('/api/tts', ttsRoutes);
   app.use('/api/ai', aiRoutes);
   app.use('/api/feedback', feedbackRoutes);
+  app.use('/api/channels', channelRoutes);
   app.use('/api', (_req, res) => res.status(404).json({ error: 'غير موجود' }));
 
   // Human-readable errors only — details stay in the server log, never in responses.

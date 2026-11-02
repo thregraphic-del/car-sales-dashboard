@@ -47,21 +47,22 @@ export async function render(view, { params }) {
     distractors = (await api.practice({ size: 1 })).distractors;
     label = 'جلسة اليوم';
   } else {
-    const r = await api.practice({ ids: params.ids, group_id: group, focus, size: 10 });
+    const r = await api.practice({ ids: params.ids, group_id: group, source_id: params.source, focus, size: params.source ? 15 : 10 });
     words = r.words;
     distractors = r.distractors;
-    if (params.ids) label = params.replay ? 'الكلمات التي أخطأت فيها' : 'كلمات مختارة';
+    if (params.ids) label = params.yesterday ? 'كلمات أمس' : params.replay ? 'الكلمات التي أخطأت فيها' : 'كلمات مختارة';
   }
   const groupObj = state.groups.find((g) => g.id === group);
   if (groupObj) label = `مجموعة: ${groupObj.name}`;
 
-  const base = { mode, focus: params.ids || params.session ? undefined : focus, group: group || undefined, ids: params.ids, session: params.session, replay: params.replay, type: type !== 'mixed' ? type : undefined };
+  if (params.source) label = `كلمات المقطع${params.title ? `: ${params.title}` : ''}`;
+  const base = { mode, focus: params.ids || params.session || params.source ? undefined : focus, group: group || undefined, ids: params.ids, session: params.session, replay: params.replay, source: params.source, title: params.title, type: type !== 'mixed' ? type : undefined };
 
   view.innerHTML = `
     <div class="page-head compact"><div><h1>تدرّب</h1></div>
       <div class="segmented mode-tabs">${MODES.map(([k, l, ic]) => `<a class="${k === mode ? 'active' : ''}" href="${href({ ...base, mode: k })}">${icon[ic]} ${l}</a>`).join('')}</div>
     </div>
-    ${label ? `<div class="chip-row"><span class="gchip on">${esc(label)}</span><a class="link-btn" href="${href({ mode })}">✕ اختيار ذكي بدلًا منها</a></div>`
+    ${label ? `<div class="chip-row"><span class="gchip on">${esc(label)}</span>${params.source ? `<a class="link-btn" href="#/source/${esc(params.source)}">↩ رجوع للمقطع</a>` : `<a class="link-btn" href="${href({ mode })}">✕ اختيار ذكي بدلًا منها</a>`}</div>`
       : `<div class="chip-row">${mode === 'story' ? `<a class="tab active" href="${href({ mode })}">كلماتي الأخيرة</a>` : FOCUS.map(([k, l]) => `<a class="tab ${k === focus ? 'active' : ''}" href="${href({ ...base, focus: k })}">${l}</a>`).join('')}
         ${state.groups.length > 6 ? `<select class="input sm group-select" id="groupSelect" aria-label="مجموعة"><option value="">أو اختر مجموعة…</option>${state.groups.map((g) => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>`
     : state.groups.length ? `<span class="tiny muted" style="margin-inline-start:6px">أو مجموعة:</span>${state.groups.map((g) => `<a class="gchip" href="${href({ mode, group: g.id })}">${esc(g.name)}</a>`).join('')}` : ''}</div>`}

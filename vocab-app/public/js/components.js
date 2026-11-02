@@ -155,6 +155,23 @@ function placePanel(el) {
   el.classList.add(sheet ? 'sheet' : 'centered');
   document.body.appendChild(layer);
   layer.appendChild(el);
+  if (sheet) {
+    // Swipe the sheet down to close it.
+    let y0 = null;
+    el.addEventListener('touchstart', (e) => { y0 = el.scrollTop <= 0 ? e.touches[0].clientY : null; }, { passive: true });
+    el.addEventListener('touchmove', (e) => {
+      if (y0 == null) return;
+      const dy = e.touches[0].clientY - y0;
+      if (dy > 0) el.style.transform = `translateY(${dy}px)`;
+    }, { passive: true });
+    el.addEventListener('touchend', (e) => {
+      if (y0 == null) return;
+      const dy = e.changedTouches[0].clientY - y0;
+      y0 = null;
+      if (dy > 90) closeWordPanel();
+      else el.style.transform = '';
+    });
+  }
 }
 
 /**
@@ -207,6 +224,7 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
   let info;
   try {
     info = await api.lookup(query);
+    if (info.goal) window.dispatchEvent(new CustomEvent('lexitube:goal', { detail: info.goal }));
   } catch (err) {
     if (panelEl === el) el.innerHTML = `<div class="alert">${esc(err.message)}</div>`;
     return;
@@ -246,7 +264,7 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
       ${saved ? `<div class="wp-groups"><div class="tiny muted" style="margin-bottom:6px">المجموعات</div>${groupPickerHtml(info.groups || [])}</div>` : ''}
       <div class="wp-actions wp-sticky">
         ${saved ? `<button class="btn sm saved" data-act="noop">${icon.check} محفوظة ✓</button>` : `<button class="btn primary" data-act="save">${icon.bookmark} حفظ «${esc(info.term)}»</button>`}
-        ${saved ? `<button class="btn sm ghost" data-act="details">التفاصيل</button>` : ''}
+        ${saved ? `<button class="btn sm ghost" data-act="details">التفاصيل</button>` : `<button class="btn sm ghost" data-act="known" title="أعرفها — لا تقترحها عليّ مرة أخرى">أعرفها ✓</button>`}
       </div>`;
   };
   const formsWord = info.found ? info.term : info.word;
@@ -288,6 +306,7 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
     try {
       if (act === 'save') {
         const r = await api.saveWord(info.vocabulary_id, info.occurrence_id);
+        if (r.goal) window.dispatchEvent(new CustomEvent('lexitube:goal', { detail: r.goal }));
         Object.assign(info, { state: 'saved', uv_id: r.uv_id, groups: r.groups });
         toast(r.already ? 'موجودة عندك ✓' : `تم الحفظ ✓ ${info.term}`);
         render();
@@ -302,6 +321,13 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
         info = { ...(await api.lookup({ ...query, vocabulary_id: info.vocabulary_id, context: 1 })), groups: groups ?? info.groups };
         render();
         onChange?.(info);
+      }
+      if (act === 'known') {
+        await api.dismissWord(info.vocabulary_id);
+        toast(`حسنًا — لن نقترح «${info.term}» عليك بعد الآن`);
+        onChange?.(info);
+        closeWordPanel();
+        return;
       }
       if (act === 'details') {
         closeWordPanel();
@@ -421,3 +447,11 @@ export async function openWordCard(uvId, { onChange } = {}) {
 }
 
 export { $ };
+
+/** 🎉 Today's goal reached while watching: keep going, or practise now. */
+export function celebrateGoal(goal, practiceHref = '#/practice?session=today') {
+  openModal(`<div class="celebrate"><div class="celebrate-emoji">🎉</div>
+    <h2>مبروك! حققت هدف اليوم</h2>
+    <p class="ink-2">مررت على <b class="en-inline">${goal.count}</b> كلمة اليوم (الهدف ${goal.goal}).</p>
+    <div class="btn-row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-close>▶ أكمل</button><a class="btn" href="${practiceHref}" data-close>🎯 تدرّب الآن</a></div></div>`);
+}

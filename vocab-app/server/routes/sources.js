@@ -48,6 +48,28 @@ router.post('/:id/translation', wrap(async (req) => service.translateSource(idPa
 
 router.post('/:id/align', wrap(async (req) => service.alignSource(idParam(req), req.userId, req.body?.from, req.body?.skip)));
 
+router.post('/:id/summary', wrap(async (req, res) => {
+  const id = idParam(req);
+  const src = await sources.getSource(id, req.userId);
+  if (!src) throw httpError(404, 'المصدر غير موجود.');
+  const lines = await sources.sourceLines(id);
+  const { summaryWithAi } = await import('../services/extractor.js');
+  const { AiError } = await import('../services/ai.js');
+  try {
+    return { ok: true, ...(await summaryWithAi({ title: src.title, text: lines.map((l) => l.text).join(' ') })) };
+  } catch (err) {
+    if (!(err instanceof AiError)) throw err;
+    res.status(err.status || 503).json({ ok: false, error: err.message });
+    return undefined;
+  }
+}));
+
+router.post('/:id/dictionary-words', wrap(async (req) => {
+  const id = idParam(req);
+  if (!(await sources.getSource(id, req.userId))) throw httpError(404, 'المصدر غير موجود.');
+  return sources.addDictionaryWords(id);
+}));
+
 router.put('/:id/progress', wrap(async (req) => {
   const id = idParam(req);
   const seconds = Number(req.body?.seconds);

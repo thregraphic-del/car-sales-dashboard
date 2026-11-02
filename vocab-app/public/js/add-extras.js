@@ -282,7 +282,7 @@ export const suggestWordsHtml = () => `
     <div class="row between wrap" style="gap:8px"><b>✨ اقترح لي كلمات جديدة</b><span class="tiny muted">كلمات ليست عندك في «كلماتي»</span></div>
     <div class="row wrap" style="gap:10px;margin-top:10px">
       <label class="small">العدد <select class="input sm" id="swCount"><option>10</option><option selected>20</option><option>30</option><option>50</option></select></label>
-      <label class="small">المستوى <select class="input sm" id="swLevel"><option value="">أي مستوى</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option></select></label>
+      <label class="small">المستوى <select class="input sm" id="swLevel"><option value="">كل المستويات (مزيج)</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select></label>
       <input class="input sm" id="swTopic" placeholder="المجال (اختياري) مثل: تسويق" style="flex:1;min-width:150px">
     </div>
     <div class="row wrap" style="gap:6px;margin-top:8px">${FIELDS.map((f) => `<button type="button" class="gchip" data-field="${esc(f)}">${esc(f)}</button>`).join('')}</div>
@@ -347,4 +347,112 @@ export function bindSuggestWords(view) {
       btn.disabled = false;
     }
   });
+}
+
+/* --------------------------------------------------- suggested channels */
+
+export const channelsHtml = () => `
+  <div class="section-title row between wrap" style="gap:8px"><h2>📺 قنوات مقترحة</h2>
+    <div class="row" style="gap:6px"><button class="btn sm ghost" id="chSimilar">✨ قنوات مشابهة</button><button class="btn sm ghost" id="chAdd">＋ قناة</button><button class="btn sm ghost" id="chEdit">✎ تعديل</button></div></div>
+  <div id="chBox"><p class="tiny muted"><span class="spinner"></span></p></div>
+  <div id="chExtra"></div>`;
+
+const initials = (name) => esc(String(name || '?').trim().slice(0, 1).toUpperCase());
+const avatar = (c) => `<span class="ch-ava" aria-hidden="true">${c.handle ? `<img src="https://unavatar.io/youtube/${encodeURIComponent(c.handle)}?fallback=false" alt="" loading="lazy" onerror="this.remove()">` : ''}<span>${initials(c.name)}</span></span>`;
+
+export function bindChannels(view, { onPick }) {
+  const box = $('#chBox', view);
+  const extra = $('#chExtra', view);
+  if (!box) return;
+  let list = [];
+  let edit = false;
+  let open = null;
+  const draw = () => {
+    const shown = list.filter((c) => edit || !c.hidden);
+    box.innerHTML = `<div class="ch-grid">${shown.map((c) => `
+      <div class="ch-card ${c.hidden ? 'is-hidden' : ''} ${open === c.id ? 'open' : ''}" data-ch="${esc(c.id)}">
+        <button class="ch-main" data-open="${esc(c.id)}">${avatar(c)}<span class="ch-txt"><b class="en-inline">${esc(c.name)}</b><span class="tiny muted">${c.pinned ? '📌 ' : ''}${esc(c.field || '')}</span></span></button>
+        ${edit ? `<div class="ch-tools">
+          <button class="btn icon sm ghost" data-act="${c.pinned ? 'unpin' : 'pin'}" title="${c.pinned ? 'إلغاء التثبيت' : 'تثبيت في الأعلى'}">📌</button>
+          ${c.kind === 'custom' ? '<button class="btn icon sm ghost" data-act="edit" title="تعديل">✎</button>' : ''}
+          <button class="btn icon sm ghost" data-act="${c.hidden ? 'show' : c.kind === 'custom' ? 'remove' : 'hide'}" title="${c.hidden ? 'إظهار' : 'حذف من القائمة'}">${c.hidden ? '↺' : '✕'}</button></div>` : ''}
+      </div>`).join('')}</div>
+      ${edit ? '<p class="tiny muted">📌 للتثبيت في الأعلى · ✕ للحذف من القائمة · ↺ لإرجاع قناة محذوفة.</p>' : '<p class="tiny muted">اضغط قناة لترى فيديوهات منها تضيفها مباشرة.</p>'}`;
+    $('#chEdit', view).classList.toggle('primary', edit);
+  };
+  const load = async () => {
+    try {
+      list = (await api.channels()).channels;
+      draw();
+    } catch (err) {
+      box.innerHTML = `<p class="tiny muted">${esc(err.message)}</p>`;
+    }
+  };
+  const act = async (body) => {
+    try {
+      await api.channelAction(body);
+      await load();
+    } catch (err) {
+      toast(err.message);
+    }
+  };
+  const showVideos = async (c, fresh = false) => {
+    open = c.id;
+    draw();
+    extra.innerHTML = `<div class="card ch-videos"><div class="row between wrap" style="gap:8px"><b>🎬 من قناة <span class="en-inline">${esc(c.name)}</span></b>
+      <span class="btn-row"><a class="btn sm ghost" href="${esc(c.url)}" target="_blank" rel="noopener">فتح القناة في يوتيوب ↗</a><button class="btn sm ghost" id="chMore">↻</button></span></div>
+      <div id="chVids"><p class="tiny muted"><span class="spinner"></span> نبحث عن فيديوهات من القناة…</p></div></div>`;
+    $('#chMore', extra).addEventListener('click', () => showVideos(c, true));
+    try {
+      const r = await api.channelVideos(c.name, fresh);
+      $('#chVids', extra).innerHTML = r.videos.length ? `<div class="grid cols-3">${r.videos.map((v) => `
+        <div class="video-mini sug-card"><img class="sug-thumb" src="${esc(v.thumbnail)}" alt="" loading="lazy">
+          <div style="min-width:0"><div class="en small clamp2" style="font-weight:600">${esc(v.title)}</div>
+          <button class="btn sm primary" data-url="${esc(v.url)}" style="margin-top:6px">أضف وتعلّم</button></div></div>`).join('')}</div>`
+        : `<p class="tiny muted">لم نجد فيديوهات مؤكدة — افتح القناة في يوتيوب وانسخ رابط أي فيديو والصقه فوق.</p>`;
+      extra.querySelectorAll('[data-url]').forEach((b) => b.addEventListener('click', () => onPick(b.dataset.url)));
+    } catch (err) {
+      $('#chVids', extra).innerHTML = `<p class="tiny muted">${esc(err.message)}</p>`;
+    }
+  };
+  const askChannel = async (c = null) => {
+    const name = prompt('اسم القناة', c?.name || '');
+    if (!name?.trim()) return;
+    const link = prompt('رابط القناة أو @handle (اختياري)', c?.handle ? `@${c.handle}` : c?.url || '');
+    const isHandle = /^@?[A-Za-z0-9._-]+$/.test((link || '').trim()) && !/^https?:/.test(link || '');
+    await act({ action: c ? 'edit' : 'add', id: c?.id, name: name.trim(), handle: isHandle ? link.trim() : '', url: isHandle ? '' : (link || '').trim() });
+  };
+  box.addEventListener('click', (e) => {
+    const card = e.target.closest('[data-ch]');
+    if (!card) return;
+    const c = list.find((x) => x.id === card.dataset.ch);
+    const a = e.target.closest('[data-act]')?.dataset.act;
+    if (a === 'edit') return askChannel(c);
+    if (a) return act({ action: a, id: c.id });
+    if (e.target.closest('[data-open]') && !edit) {
+      if (open === c.id) { open = null; extra.innerHTML = ''; return draw(); }
+      showVideos(c);
+    }
+  });
+  $('#chEdit', view).addEventListener('click', () => { edit = !edit; draw(); });
+  $('#chAdd', view).addEventListener('click', () => askChannel());
+  $('#chSimilar', view).addEventListener('click', async () => {
+    if (!state.config?.ai?.configured) return toast('تحتاج الذكاء الاصطناعي');
+    extra.innerHTML = '<p class="tiny muted"><span class="spinner"></span> نبحث عن قنوات مشابهة لقنواتك…</p>';
+    try {
+      const r = await api.similarChannels();
+      extra.innerHTML = `<div class="card ch-videos"><b>✨ قنوات مشابهة</b><div class="ch-sim">${r.channels.map((c, k) => `
+        <div class="ch-sim-row">${avatar(c)}<div style="flex:1;min-width:0"><b class="en-inline">${esc(c.name)}</b> <span class="tiny muted">${esc(c.field)}</span><div class="tiny ink-2">${esc(c.why_ar)}</div></div>
+        <a class="btn sm ghost" href="${esc(c.url)}" target="_blank" rel="noopener">↗</a><button class="btn sm" data-addsim="${k}">＋ أضف</button></div>`).join('')}</div></div>`;
+      extra.querySelectorAll('[data-addsim]').forEach((b) => b.addEventListener('click', async () => {
+        const c = r.channels[Number(b.dataset.addsim)];
+        b.disabled = true;
+        await act({ action: 'add', name: c.name, handle: c.handle, field: c.field });
+        b.textContent = '✓ أُضيفت';
+      }));
+    } catch (err) {
+      extra.innerHTML = `<p class="tiny muted">${esc(err.message)}</p>`;
+    }
+  });
+  load();
 }
