@@ -438,12 +438,15 @@ export async function render(view, { segments, params }) {
       const start = Number(l?.start_seconds);
       // a long pause also starts a new paragraph
       if (n && prevEnd != null && Number.isFinite(start) && start - prevEnd > 6) { para += 1; n = 0; chars = 0; }
+      // never more than 3 rows on screen in one green paragraph
+      const rows = el.querySelectorAll('.chunk').length || 1;
+      if (n && n + rows > 3) { para += 1; n = 0; chars = 0; }
       el.dataset.para = String(para);
-      n += 1;
+      n += rows;
       chars += text.length;
       prevEnd = Number.isFinite(start) ? start + Math.max(1, text.split(/\s+/).length * 0.35) : prevEnd;
       const ends = /[.?!…]["')\]]?$/.test(text);
-      if ((ends && (n >= 2 || chars >= 90)) || n >= 4 || chars >= 300) { para += 1; n = 0; chars = 0; }
+      if ((ends && (n >= 2 || chars >= 90)) || n >= 3) { para += 1; n = 0; chars = 0; }
     }
     if (currentPara != null) showPara(currentPara, false);
   }
