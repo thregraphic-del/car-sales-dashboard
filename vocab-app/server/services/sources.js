@@ -6,6 +6,7 @@
 //   refineSource()    — AI chooses the learnable items, ~25 lines per call
 //   translateSource() — Arabic subtitles, ~15 lines per call
 // Each chunk is stored as soon as it is done, so nothing is lost or repeated.
+import { run } from '../db/index.js';
 import { config } from '../config.js';
 import { recordTranscript } from './ai.js';
 import { httpError } from '../lib/errors.js';
@@ -155,6 +156,8 @@ export async function refineSource(sourceId, userId) {
   // AI choices come before dictionary matches; most useful first.
   for (const it of items) it.rank = -it.usefulness;
   const added = await sources.addItemsToSource(sourceId, items);
+  // new words: the next simplifying pass picks them up (it continues after the last one done)
+  if (added) await run('DELETE FROM app_settings WHERE key = ?', `simplest:${sourceId}`);
   const cursor = lines[lines.length - 1].idx + 1;
   const done = cursor >= total;
   await sources.setAiCursor(sourceId, done ? total : cursor, done ? 'ai' : null);

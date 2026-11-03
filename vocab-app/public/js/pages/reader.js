@@ -567,6 +567,7 @@ export async function render(view, { segments, params }) {
         const n = note();
         if (r.done) {
           if (n) n.innerHTML = r.ai_error ? `${esc(r.ai_error)}` : '';
+          if (!source.is_demo) simplifyWords(); // the AI's words too, in their simplest form
           if (!r.ai_error) source.extractor = 'ai';
           drawSide();
           break;
@@ -597,9 +598,21 @@ export async function render(view, { segments, params }) {
   };
   window.addEventListener('lexitube:goal', onGoal);
   // Every word of the built-in dictionary used in this video (once per video, no AI).
-  if ((!source.dict_words_at || !source.simplified) && !source.is_demo) {
-    api.dictionaryWords(id).then((r) => { if (alive && (r.added || r.simplified)) refresh(); }).catch(() => {});
-  }
+  // Then every suggested word moves to its simplest form, a few seconds per call.
+  let simplifying = null;
+  const simplifyWords = () => {
+    simplifying ??= (async () => {
+      let changed = 0;
+      for (let i = 0; alive && i < 25; i++) {
+        const r = await api.dictionaryWords(id);
+        changed += (r.added || 0) + (r.simplified || 0);
+        if (!r.more) break;
+      }
+      if (alive && changed) await refresh();
+    })().catch(() => {}).finally(() => { simplifying = null; });
+    return simplifying;
+  };
+  if ((!source.dict_words_at || !source.simplified) && !source.is_demo) simplifyWords();
 
   // Player + sync.
   const startAt = params.t ? Number(params.t) : null;

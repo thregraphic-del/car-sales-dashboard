@@ -173,57 +173,62 @@ const VERSION = '7';
  * Version 1 changed too much (integrity → integral), so its changes are undone first:
  * every word goes back to the word actually said in the video.
  */
-export async function simplifySourceWords(sourceId, { dry = false } = {}) {
-  const flag = (await get('SELECT value FROM app_settings WHERE key = ?', `simplest:${sourceId}`))?.value || null;
+const memoTerms = new Map(); // simplest forms already worked out (per function instance)
+async function simpleTermCached(term) {
+  const k = String(term || '').toLowerCase();
+  if (!memoTerms.has(k)) {
+    if (memoTerms.size > 20000) memoTerms.clear();
+    // most words cannot be shortened: answer those without asking the database
+    memoTerms.set(k, MAYBE.test(k) ? await simpleTerm(term) : { term, kind: 'same' });
+  }
+  return memoTerms.get(k);
+}
+
+/**
+ * Point a video's suggested words at their simplest forms, in short steps (each call
+ * stops after `budgetMs` and says whether more is left), so no request runs too long.
+ */
+export async function simplifySourceWords(sourceId, { dry = false, budgetMs = 15000 } = {}) {
+  const started = Date.now();
+  const curKey = `simplest-cursor:${sourceId}`;
+  let cursor = dry ? 0 : Number((await get('SELECT value FROM app_settings WHERE key = ?', curKey))?.value) || 0;
   const changes = [];
-  let restored = 0;
-  const redo = flag === '1' || flag === '6'; // these rules changed some words wrongly: put the said words back first
-  const load = () => all(
-    `SELECT o.id, o.vocabulary_id, o.line_id, o.char_start, o.char_end, v.term, v.level, v.item_type, l.text
-     FROM occurrences o JOIN vocabulary v ON v.id = o.vocabulary_id LEFT JOIN transcript_lines l ON l.id = o.line_id
-     WHERE o.source_id = ? AND o.suggested = 1`, sourceId);
   const move = async (r, toId, keepMeaning = false) => {
     const dup = (await all('SELECT id, line_id FROM occurrences WHERE source_id = ? AND vocabulary_id = ?', sourceId, toId)).find((d) => d.line_id === r.line_id);
     if (dup) await run('DELETE FROM occurrences WHERE id = ?', r.id);
     else if (keepMeaning) await run('UPDATE occurrences SET vocabulary_id = ? WHERE id = ?', toId, r.id);
     else await run('UPDATE occurrences SET vocabulary_id = ?, contextual_meaning = NULL, context_note = NULL WHERE id = ?', toId, r.id);
   };
-  await tx(async () => {
-    if (redo && !dry) {
-      for (const r of await load()) {
-        if (r.item_type === 'expression' || /\s/.test(r.term) || r.char_start == null || !r.text) continue;
-        const said = r.text.slice(r.char_start, r.char_end).toLowerCase().replace(/[’']s$/, '');
-        if (!/^[a-z]+$/.test(said)) continue;
-        const lemma = (await get('SELECT lemma FROM lemma_index WHERE form = ?', said))?.lemma || said;
-        const term = r.term.toLowerCase();
-        if (term === lemma || term === said || term.slice(0, 3) !== said.slice(0, 3) || term.length >= said.length) continue;
-        const back = (await findVocabulary(lemma)) || (await findVocabulary(said));
-        if (!back || back.id === r.vocabulary_id) continue;
-        await move(r, back.id);
-        restored += 1;
+  let more = true;
+  while (Date.now() - started < budgetMs) {
+    const rows = await all(
+      `SELECT o.id, o.vocabulary_id, o.line_id, v.term, v.level, v.item_type
+       FROM occurrences o JOIN vocabulary v ON v.id = o.vocabulary_id
+       WHERE o.source_id = ? AND o.suggested = 1 AND o.id > ? ORDER BY o.id LIMIT 60`, sourceId, cursor);
+    if (!rows.length) { more = false; break; }
+    await tx(async () => {
+      for (const r of rows) {
+        cursor = r.id;
+        const base = await simpleTermCached(r.term);
+        if (base.kind === 'same' || base.term.toLowerCase() === r.term.toLowerCase()) continue;
+        changes.push(`${r.term}→${base.term}`);
+        if (dry) continue;
+        let to = base.row || (await findVocabulary(base.term));
+        if (to && to.term.toLowerCase() !== base.term.toLowerCase()) to = null;
+        if (!to) {
+          if (base.kind !== 'inflection') continue;
+          // same meaning, shorter form: copy the card of the long form
+          const from = await get('SELECT * FROM vocabulary WHERE id = ?', r.vocabulary_id);
+          to = { id: (await upsertVocabulary({ term: base.term, item_type: from.item_type, part_of_speech: from.part_of_speech, level: from.level,
+            arabic: from.arabic, simple_english: from.simple_english, pronunciation: null, topic: from.topic, origin: from.origin || 'ai' })).id };
+        }
+        if (to.id !== r.vocabulary_id) await move(r, to.id, base.kind === 'inflection');
       }
-    }
-    const memo = new Map();
-    for (const r of await load()) {
-      if (!memo.has(r.term)) memo.set(r.term, await simpleTerm(r.term));
-      const base = memo.get(r.term);
-      if (base.kind === 'same' || base.term.toLowerCase() === r.term.toLowerCase()) continue;
-      changes.push(`${r.term}→${base.term}`);
-      if (dry) continue;
-      let to = base.row || (await findVocabulary(base.term));
-      if (to && to.term.toLowerCase() !== base.term.toLowerCase()) to = null;
-      if (!to) {
-        if (base.kind !== 'inflection') continue;
-        // same meaning, shorter form: copy the card of the long form
-        const from = await get('SELECT * FROM vocabulary WHERE id = ?', r.vocabulary_id);
-        to = { id: (await upsertVocabulary({ term: base.term, item_type: from.item_type, part_of_speech: from.part_of_speech, level: from.level,
-          arabic: from.arabic, simple_english: from.simple_english, pronunciation: null, topic: from.topic, origin: from.origin || 'ai' })).id };
-      }
-      if (to.id !== r.vocabulary_id) await move(r, to.id, base.kind === 'inflection');
-    }
-    if (!dry) await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', `simplest:${sourceId}`, VERSION);
-  });
-  return { simplified: changes.length, restored, changes: [...new Set(changes)], redo_dictionary: redo && !dry };
+      if (!dry) await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', curKey, String(cursor));
+    });
+  }
+  if (!more && !dry) await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', `simplest:${sourceId}`, VERSION);
+  return { simplified: changes.length, more, changes: [...new Set(changes)].slice(0, 100) };
 }
 
 export async function isSimplified(sourceId) {

@@ -80,10 +80,10 @@ router.post('/:id/dictionary-words', wrap(async (req) => {
     return out;
   }
   if (req.body?.dry) return simplifySourceWords(id, { dry: true });
-  let r = src.dict_words_at ? { added: 0 } : await sources.addDictionaryWords(id);
-  const s = await simplifySourceWords(id);
-  if (s.redo_dictionary) r = await sources.addDictionaryWords(id); // words removed by the old simplification come back
-  if (s.restored || r.added) await simplifySourceWords(id);
+  const t0 = Date.now();
+  const r = src.dict_words_at ? { added: 0 } : await sources.addDictionaryWords(id);
+  // a few seconds of simplifying per call; the reader calls again while "more" is true
+  const s = await simplifySourceWords(id, { budgetMs: Math.max(3000, 16000 - (Date.now() - t0)) });
   return { ...r, ...s };
 }));
 

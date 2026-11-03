@@ -5,7 +5,7 @@
 // contexts belong to that learner through their source. Functions that take
 // an id coming from a request also take the userId and only find the
 // learner's own rows — another learner's id behaves exactly like a missing one.
-import { isSimplified, simpleTerm } from './simplest.js';
+import { isSimplified } from './simplest.js';
 import { all, get, run, insert, tx } from '../db/index.js';
 import { httpError } from '../lib/errors.js';
 import { findSpan } from '../lib/matcher.js';
@@ -165,10 +165,8 @@ async function storeItems(sourceId, lineList, items, rankBase = 0) {
   let added = 0;
   for (const [i, raw] of items.entries()) {
     // show and save the shortest basic form (struggling → struggle, decision → decide)
-    let item = raw;
-    const simple = await simpleTerm(raw.term).catch(() => ({ kind: 'same' }));
-    if (simple.kind === 'inflection') item = { ...raw, term: simple.term };
-    if (simple.kind === 'derived' && simple.row) item = { term: simple.row.term, item_type: 'word', line: raw.line, rank: raw.rank, context_arabic: raw.context_arabic };
+    // (done right after the video opens, in short steps, so adding a video stays fast)
+    const item = raw;
     const { id: vocabId } = await upsertVocabulary(item);
     const line = byIdx.get(item.line);
     if (line && item.context_arabic && !line.text_ar) {
