@@ -104,13 +104,13 @@ async function dictionaryTerms() {
  * of the next `count` dictionary words that do not have a good one yet, so the word panel
  * opens instantly.
  */
-export async function buildFormsStep({ offset = 0, count = 8 } = {}) {
+export async function buildFormsStep({ offset = 0, count = 8, span = 300 } = {}) {
   const { formsBatchWithAi, goodForms } = await import('./extractor.js');
   const { readCache } = await import('./ai.js');
   const terms = await dictionaryTerms();
   const todo = [];
   let i = offset;
-  for (; i < terms.length && todo.length < count && i < offset + 300; i++) {
+  for (; i < terms.length && todo.length < count && i < offset + span; i++) {
     if (!goodForms(await readCache(cacheKey('word_forms_v2', `Word: ${terms[i]}`)).catch(() => null))) todo.push(terms[i]);
   }
   if (!todo.length) return { done: 0, next: i, total: terms.length, finished: i >= terms.length };
@@ -125,4 +125,24 @@ export async function buildFormsStep({ offset = 0, count = 8 } = {}) {
     done += 1;
   }
   return { done, asked: todo.length, next: i, total: terms.length, finished: false };
+}
+
+/**
+ * One run of the scheduled job (every minute): three batches of 10 words side by side,
+ * continuing where the last run stopped. Two sweeps over the list (the second picks up
+ * words that failed), then it rests.
+ */
+export async function scheduledFormsRun() {
+  const KEY = 'forms-build';
+  const st = JSON.parse((await get('SELECT value FROM app_settings WHERE key = ?', KEY))?.value || '{"cursor":0,"sweep":0}');
+  const terms = await dictionaryTerms();
+  if (st.sweep >= 2) return { resting: true, ...st };
+  const slices = [0, 10, 20].map((d) => st.cursor + d).filter((o) => o < terms.length);
+  const results = await Promise.allSettled(slices.map((o) => buildFormsStep({ offset: o, count: 10, span: 10 })));
+  st.cursor += 30;
+  if (st.cursor >= terms.length) { st.cursor = 0; st.sweep += 1; }
+  st.done = (st.done || 0) + results.reduce((n, r) => n + (r.status === 'fulfilled' ? r.value.done || 0 : 0), 0);
+  st.at = new Date().toISOString();
+  await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', KEY, JSON.stringify(st));
+  return { ...st, errors: results.filter((r) => r.status === 'rejected').map((r) => String(r.reason?.message || r.reason).slice(0, 120)) };
 }
