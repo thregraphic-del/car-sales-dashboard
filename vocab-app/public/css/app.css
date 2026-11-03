@@ -968,3 +968,11 @@ a.day-tile:hover { border-color: var(--accent); }
   :root:not([data-theme="light"]) .u-t-rare { color: #f07167; }
 }
 .u-legend { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin: 4px 0 8px; }
+/* Paragraph (green) → spoken line (yellow) → spoken word (orange) */
+.transcript .line.current { background: transparent; box-shadow: none; }
+.transcript .line.para-now { background: color-mix(in srgb, var(--accent) 12%, transparent); border-radius: 0; box-shadow: inset -3px 0 0 var(--accent); }
+.transcript .line.para-now.para-first { border-top-left-radius: 14px; border-top-right-radius: 14px; }
+.transcript .line.para-now.para-last { border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; }
+.transcript .line.para-now + .line.para-now { border-top-color: transparent; }
+.transcript .line.current .line-body:not(.chunked) { background: color-mix(in srgb, #f5b301 22%, transparent); border-radius: 10px; padding: 4px 8px; margin: -4px -8px; }
+.transcript .line.para-now:not(.current) .line-en { color: var(--ink); }

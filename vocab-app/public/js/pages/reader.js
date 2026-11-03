@@ -383,7 +383,43 @@ export async function render(view, { segments, params }) {
     linesEl.scrollTop = keep;
     if (currentId) linesEl.querySelector(`.line[data-id="${currentId}"]`)?.classList.add('current');
     currentWord = -1; // re-applied on the next tick
+    markParas();
   };
+  // Lines that make one complete sentence or idea (about 2–4 lines) form a paragraph:
+  // it lights up green as a whole; inside it the spoken line is yellow, and the word orange.
+  let currentPara = null;
+  function markParas() {
+    const byId = new Map(data.lines.map((l) => [String(l.id), l]));
+    let para = 0;
+    let n = 0;
+    let chars = 0;
+    let prevEnd = null;
+    for (const el of linesEl.querySelectorAll('.line')) {
+      const l = byId.get(el.dataset.id);
+      const text = String(l?.text || '').trim();
+      const start = Number(l?.start_seconds);
+      // a long pause also starts a new paragraph
+      if (n && prevEnd != null && Number.isFinite(start) && start - prevEnd > 6) { para += 1; n = 0; chars = 0; }
+      el.dataset.para = String(para);
+      n += 1;
+      chars += text.length;
+      prevEnd = Number.isFinite(start) ? start + Math.max(1, text.split(/\s+/).length * 0.35) : prevEnd;
+      const ends = /[.?!…]["')\]]?$/.test(text);
+      if ((ends && (n >= 2 || chars >= 90)) || n >= 4 || chars >= 300) { para += 1; n = 0; chars = 0; }
+    }
+    if (currentPara != null) showPara(currentPara, false);
+  }
+  function showPara(p, fadePrev = true) {
+    linesEl.querySelectorAll('.line.para-now, .line.past-fade').forEach((x) => x.classList.remove('para-now', 'para-first', 'para-last', 'past-fade'));
+    const lines = [...linesEl.querySelectorAll(`.line[data-para="${p}"]`)];
+    lines.forEach((x, k) => {
+      x.classList.add('para-now');
+      x.classList.toggle('para-first', k === 0);
+      x.classList.toggle('para-last', k === lines.length - 1);
+    });
+    if (fadePrev) linesEl.querySelectorAll(`.line[data-para="${Number(p) - 1}"]`).forEach((x) => x.classList.add('past-fade'));
+    return lines[0];
+  }
 
   // Suggested words: filter by level, search, only unsaved; long lists shown 150 at a time.
   const sideKey = `reader.side.${id}`;
@@ -475,7 +511,11 @@ export async function render(view, { segments, params }) {
     const el = linesEl.querySelector(`.line[data-id="${line.id}"]`);
     if (!el) return;
     const wasCurrent = el.classList.contains('current');
+    const para = el.dataset.para;
+    const cls = ['para-now', 'para-first', 'para-last', 'past-fade'].filter((c) => el.classList.contains(c));
     el.outerHTML = lineHtml(line, data.marks);
+    const fresh = linesEl.querySelector(`.line[data-id="${line.id}"]`);
+    if (fresh) { fresh.dataset.para = para; fresh.classList.add(...cls); }
     if (wasCurrent) {
       linesEl.querySelector(`.line[data-id="${line.id}"]`)?.classList.add('current');
       currentWord = -1;
@@ -648,7 +688,7 @@ export async function render(view, { segments, params }) {
     const top = r.top - box.top + linesEl.scrollTop;
     const view0 = linesEl.scrollTop;
     const h = linesEl.clientHeight;
-    const prev = el.previousElementSibling?.classList.contains('line') ? el.previousElementSibling : null;
+    const prev = el.previousElementSibling?.classList.contains('line') ? el.previousElementSibling : null; // last line of the paragraph before
     const prevH = prev ? Math.min(prev.getBoundingClientRect().height, h * 0.22) : 0;
     const target = Math.max(0, Math.min(top - prevH - 6, linesEl.scrollHeight - h));
     if (Math.abs(target - view0) > 3) linesEl.scrollTo({ top: target, behavior: force ? 'auto' : 'smooth' });
@@ -656,7 +696,6 @@ export async function render(view, { segments, params }) {
   const setCurrent = (lineId, { scroll = follow, force = false } = {}) => {
     if (lineId === currentId) return;
     linesEl.querySelectorAll('.c-now, .c-said').forEach((c) => c.classList.remove('c-now', 'c-said'));
-    linesEl.querySelectorAll('.line.past-fade').forEach((l) => l.classList.remove('past-fade'));
     const was = linesEl.querySelector('.line.current');
     was?.classList.remove('current');
     linesEl.querySelectorAll('.w-now, .w-said').forEach((w) => w.classList.remove('w-now', 'w-said'));
@@ -665,8 +704,13 @@ export async function render(view, { segments, params }) {
     const el = lineId != null && linesEl.querySelector(`.line[data-id="${lineId}"]`);
     if (!el) return;
     el.classList.add('current');
-    if (was && was !== el) was.classList.add('past-fade'); // the block just said: faded, still readable
-    if (scroll) bringIntoView(el, force);
+    // a new paragraph: the green moves on, the one just said fades above it, the text glides up
+    if (el.dataset.para !== currentPara || force) {
+      const jump = currentPara == null || Math.abs(Number(el.dataset.para) - Number(currentPara)) !== 1;
+      currentPara = el.dataset.para;
+      const first = showPara(currentPara, !jump);
+      if (scroll) bringIntoView(first || el, force);
+    }
   };
   const setWord = (wi) => {
     if (wi === currentWord) return;
