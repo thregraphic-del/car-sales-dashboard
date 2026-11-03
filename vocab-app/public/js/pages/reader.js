@@ -809,16 +809,27 @@ export async function render(view, { segments, params }) {
     modeNote('');
     return was;
   };
+  // «ردّد ورائي» waits for the end of the whole green paragraph (a complete idea, ~3 lines).
+  const paraOf = (entry) => {
+    const el = entry && linesEl.querySelector(`.line[data-id="${entry.id}"]`);
+    if (!el) return { last: true, start: entry?.start ?? 0 };
+    const next = el.nextElementSibling;
+    const last = !next?.classList.contains('line') || next.dataset.para !== el.dataset.para;
+    const first = linesEl.querySelector(`.line[data-para="${el.dataset.para}"]`);
+    const firstEntry = first && timeline.find((x) => String(x.id) === first.dataset.id);
+    return { last, start: firstEntry ? firstEntry.start : entry.start };
+  };
+  const pauseHere = (entry) => playMode !== 'shadow' || paraOf(entry).last;
   function startGap(entry) {
     gapDoneFor = entry.id;
     const ms = playMode === 'shadow'
-      ? Math.max(1500, ((entry.end - entry.start) * 1000) / (rate || 1) + 600)
+      ? Math.min(25000, Math.max(1500, ((entry.end - paraOf(entry).start) * 1000) / (rate || 1) + 800))
       : gapMs;
     player.pause();
     const until = Date.now() + ms;
     const show = () => {
       const left = Math.max(0, Math.ceil((until - Date.now()) / 1000));
-      modeNote(playMode === 'shadow' ? `🗣 ردّد الجملة الآن… ${left}` : '⏸ …');
+      modeNote(playMode === 'shadow' ? `🗣 ردّد الفقرة الآن… ${left}` : '⏸ …');
     };
     show();
     gapTick = setInterval(show, 250);
@@ -963,8 +974,8 @@ export async function render(view, { segments, params }) {
     setWord(pos.word);
     if (jumped) gapDoneFor = null; // after a seek, pause again at the end of the sentence reached
     if (playMode !== 'normal' && loopId == null && playing && entry && !gapTimer) {
-      if (gapDoneFor !== entry.id && t >= entry.end - 0.25) startGap(entry);
-      else if (!jumped && prevEntry && prevEntry.id !== entry.id && gapDoneFor !== prevEntry.id && entry.start >= prevEntry.end - 0.01 && t - entry.start < 1) {
+      if (gapDoneFor !== entry.id && t >= entry.end - 0.25 && pauseHere(entry)) startGap(entry);
+      else if (!jumped && prevEntry && prevEntry.id !== entry.id && gapDoneFor !== prevEntry.id && pauseHere(prevEntry) && entry.start >= prevEntry.end - 0.01 && t - entry.start < 1) {
         // The clock stepped past the end of the last sentence: go back to its end and pause there.
         player.seek(Math.max(0, entry.start - 0.05), { play: false });
         lastT = null;
