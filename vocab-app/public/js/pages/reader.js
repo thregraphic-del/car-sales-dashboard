@@ -132,6 +132,44 @@ const wiAttr = (map, from) => (map && map[from] >= 0 ? ` data-wi="${map[from]}"`
 
 /* ---------------------------------------------------------------- render */
 
+/**
+ * Until the AI pairs the phrases exactly, a long line is cut into short rows (4–8 words,
+ * at punctuation when possible) and its Arabic is shared out in the same proportion, so
+ * each English row keeps its Arabic beside it at any font size, and both light up together.
+ */
+function autoRows(text, ar) {
+  const words = [...text.matchAll(/\S+/g)];
+  const arWords = String(ar || '').split(/\s+/).filter(Boolean);
+  if (words.length <= 8 || arWords.length < 4) return [[0, text.length, ar]];
+  const groups = [];
+  let from = 0;
+  for (let i = 0; i < words.length; i++) {
+    const n = i - from + 1;
+    const last = i === words.length - 1;
+    const left = words.length - 1 - i;
+    if (last || (n >= 4 && /[,;:.?!…]["')]?$/.test(words[i][0]) && left >= 3) || (n >= 7 && left >= 3)) {
+      groups.push([from, i]);
+      from = i + 1;
+    }
+  }
+  const total = words.length;
+  let done = 0;
+  let arFrom = 0;
+  return groups.map(([a, b], k) => {
+    done += b - a + 1;
+    let arTo = k === groups.length - 1 ? arWords.length : Math.round((done / total) * arWords.length);
+    // move the Arabic cut to a nearby comma or full stop when there is one
+    for (const d of [0, 1, -1, 2, -2]) {
+      const j = arTo + d;
+      if (j > arFrom && j < arWords.length && /[،,.؛:؟!]$/.test(arWords[j - 1])) { arTo = j; break; }
+    }
+    arTo = Math.max(arFrom + 1, Math.min(arTo, arWords.length - (groups.length - 1 - k)));
+    const piece = arWords.slice(arFrom, arTo).join(' ');
+    arFrom = arTo;
+    return [words[a].index, words[b].index + words[b][0].length, piece];
+  });
+}
+
 function lineHtml(line, marks) {
   const wmap = wordIndexByChar(line.text); // word i ↔ timing i (real or estimated)
   const own = marks.filter((m) => m.line_id === line.id).sort((a, b) => a.start - b.start || b.end - a.end);
@@ -182,7 +220,7 @@ function lineHtml(line, marks) {
   };
   // Phrase by phrase: each English phrase with its Arabic on the same row.
   // Until it is split into phrases, a line is one row: English beside its Arabic.
-  const rows = line.align?.length ? line.align : (seekable ? [[0, line.text.length, line.text_ar || '']] : null);
+  const rows = line.align?.length ? line.align : (seekable ? autoRows(line.text, line.text_ar || '') : null);
   const body = rows
     ? `<div class="line-body chunked">${rows.map(([from, to, ar], k) => {
       const [w0, w1] = wordsIn(from, to);
