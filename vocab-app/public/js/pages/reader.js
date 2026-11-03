@@ -629,11 +629,32 @@ export async function render(view, { segments, params }) {
     } finally {
       translating = false;
       if (!alive) return;
-      if (!missingAr()) setTrNote('');
+      if (!missingAr()) { setTrNote(''); repairTranslation(); }
     }
+  }
+  // Translations made before the fix could slip to the wrong line (a whole sentence put into
+  // its first fragment): such windows are translated again, line by line, and redrawn.
+  let repairing = false;
+  async function repairTranslation() {
+    if (repairing || source.is_demo || !ai()) return;
+    repairing = true;
+    let fixed = 0;
+    try {
+      for (let i = 0; alive && i < 40; i++) {
+        const r = await api.repairTranslation(id);
+        fixed += r.fixed || 0;
+        if (r.fixed) setTrNote('<span class="spinner"></span> نصحّح ترجمة بعض السطور لتطابق الإنجليزي سطرًا بسطر…');
+        if (!r.more) break;
+      }
+    } catch { /* try again next time */ }
+    repairing = false;
+    if (!alive) return;
+    setTrNote('');
+    if (fixed) { await refresh(); ensureAlignment(); }
   }
   ensureAlignment();
   ensureTranslation();
+  if (!missingAr()) repairTranslation();
 
   // 2) Smarter word choice: AI reads the transcript in chunks and adds the
   //    useful words / expressions with their meaning in context.

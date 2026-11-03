@@ -374,17 +374,44 @@ export function dictionaryDetails(term) {
 const TRANSLATE_SCHEMA = obj({ lines: { type: 'array', items: obj({ i: { type: 'integer' }, ar: str }) } });
 const TranslateZ = z.object({ lines: z.array(z.object({ i: z.number().int(), ar: z.string() })) });
 
-/** Translate a batch of transcript lines → Map(idx → Arabic). */
+const TRANSLATE_RULES = 'Translate English video subtitles into natural Modern Standard Arabic for a learner reading along, line by line. IMPORTANT: each numbered line is a FRAGMENT of speech, often cut in the middle of a sentence. Translate ONLY the words of that line, in the same order, even when the fragment is incomplete (e.g. "It makes them" → "إنه يجعلهم"). Never move words to or from the neighbouring lines, never merge, split, summarise or skip lines, never leave English words untranslated (names may stay). Return exactly one item per input line, with its number. Use the surrounding lines only to choose the right meaning.';
+
+/**
+ * Lines whose Arabic does not belong to them: missing, English left in, or far too long/short
+ * for the line (a sign that the model moved a whole sentence into one fragment).
+ */
+export function suspiciousTranslations(lines, ar) {
+  const bad = new Set();
+  for (const l of lines) {
+    const a = String(ar.get(l.idx) || '').trim();
+    const en = String(l.text || '').split(/\s+/).filter(Boolean).length;
+    const n = a.split(/\s+/).filter(Boolean).length;
+    if (!a) { bad.add(l.idx); continue; }
+    if (/\b[a-z]{4,}\b/.test(a)) bad.add(l.idx); // an English word left in the Arabic
+    if (en >= 2 && (n > en * 2 + 3 || (en >= 6 && n < en * 0.3))) bad.add(l.idx);
+  }
+  return bad;
+}
+
+/** Translate a batch of transcript lines → Map(idx → Arabic), one line each; asked again strictly if lines got shifted. */
 export async function translateWithAi(lines, title = '') {
-  const r = await jsonCall({
-    task: 'translate_lines',
-    system: 'Translate English video subtitles into natural Modern Standard Arabic for a learner reading along. Translate each numbered line separately, keeping the numbering; keep the meaning faithful and concise. Use the surrounding lines for context.',
-    user: `${title ? `Video: ${title}\n` : ''}${lines.map((l) => `[${l.idx}] ${l.text}`).join('\n')}`,
-    schema: TRANSLATE_SCHEMA,
-    zod: TranslateZ,
-    maxTokens: Math.min(32000, 120 * lines.length + 1000),
-  });
-  return new Map(r.lines.map((l) => [l.i, l.ar]));
+  const ask = async (strict) => {
+    const r = await jsonCall({
+      task: 'translate_lines_v2',
+      system: TRANSLATE_RULES,
+      user: `${strict ? 'Check carefully: one Arabic line per English fragment, nothing moved between lines.\n' : ''}${title ? `Video: ${title}\n` : ''}${lines.map((l) => `[${l.idx}] ${l.text}`).join('\n')}`,
+      schema: TRANSLATE_SCHEMA,
+      zod: TranslateZ,
+      maxTokens: Math.min(32000, 120 * lines.length + 1000),
+    });
+    return new Map(r.lines.map((l) => [l.i, l.ar]));
+  };
+  const first = await ask(false);
+  const bad = suspiciousTranslations(lines, first);
+  if (!bad.size) return first;
+  const second = await ask(true).catch(() => null);
+  if (!second) return first;
+  return suspiciousTranslations(lines, second).size <= bad.size ? second : first;
 }
 
 export { findSpan, aiConfigured, aiAvailable, AiError };

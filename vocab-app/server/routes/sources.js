@@ -45,6 +45,7 @@ router.delete('/:id', wrap(async (req) => {
 // AI improvement, one short chunk per request (the reader calls again until done).
 router.post('/:id/refine', wrap(async (req) => service.refineSource(idParam(req), req.userId)));
 router.get('/:id/translation', wrap(async (req) => service.translationStatus(idParam(req), req.userId)));
+router.post('/:id/repair-translation', wrap(async (req) => service.repairTranslation(idParam(req), req.userId)));
 router.post('/:id/translation', wrap(async (req) => service.translateSource(idParam(req), req.userId)));
 
 router.post('/:id/align', wrap(async (req) => service.alignSource(idParam(req), req.userId, req.body?.from, req.body?.skip)));

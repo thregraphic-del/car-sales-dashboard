@@ -49,6 +49,7 @@ export const api = {
   deleteSource: (id) => request('DELETE', `/api/sources/${id}`),
   translation: (id) => request('GET', `/api/sources/${id}/translation`),
   summary: (id) => request('POST', `/api/sources/${id}/summary`),
+  repairTranslation: (id) => request('POST', `/api/sources/${id}/repair-translation`, {}),
   dictionaryWords: (id) => request('POST', `/api/sources/${id}/dictionary-words`),
   alignStep: (id, from, skip = 0) => request('POST', `/api/sources/${id}/align`, { from, skip }),
   translateStep: (id) => request('POST', `/api/sources/${id}/translation`),

@@ -171,6 +171,37 @@ test('a video is translated once: re-adding it, or another learner adding it, co
   assert.equal(chats(), used);
 });
 
+test('translation: a sentence pushed into one fragment is noticed, asked again line by line, and old videos are repaired', async () => {
+  const { suspiciousTranslations } = await import('../server/services/extractor.js');
+  const lines = [{ idx: 0, text: 'It makes them' }, { idx: 1, text: 'feel like complete and then it starts to' }, { idx: 2, text: 'erode their own identity because you' }];
+  const shifted = new Map([[0, 'يجعلهم يشعرون بالكمال ثم يبدأ في eroding هويتهم الخاصة لأنك'], [1, 'وتحاول بناء حياة سعيدة ومليئة بالإنجازات والآن أنت'], [2, 'تأخذ نجمة الشمال الخاصة بك بعيدًا عنها']]);
+  assert.ok(suspiciousTranslations(lines, shifted).has(0));
+  const good = new Map([[0, 'إنه يجعلهم'], [1, 'يشعرون بالكمال ثم يبدأ في'], [2, 'تآكل هويتهم لأنك']]);
+  assert.equal(suspiciousTranslations(lines, good).size, 0);
+  // the model first shifts, then (asked strictly) translates line by line
+  let n = 0;
+  reply = () => {
+    n += 1;
+    const out = n === 1 ? [...shifted].map(([i, ar]) => ({ i, ar })) : [...good].map(([i, ar]) => ({ i, ar }));
+    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ lines: out }) }, finish_reason: 'stop' }] }), { status: 200 });
+  };
+  const T = '0:01 It makes them\n0:02 feel like complete and then it starts to\n0:04 erode their own identity because you';
+  const { source_id: id } = await (await realFetch(`${app.base}/api/sources/youtube`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: 'https://youtu.be/SHIFTED0001', transcript: T }) })).json();
+  for (let k = 0; k < 5 && !(await (await realFetch(`${app.base}/api/sources/${id}/translation`, { method: 'POST' })).json()).complete; k += 1);
+  let v = await (await realFetch(`${app.base}/api/sources/${id}`)).json();
+  assert.deepEqual(v.lines.map((l) => l.text_ar), [...good.values()], 'asked again and kept the line-by-line one');
+  // an old video translated the shifted way is repaired
+  const { run } = await import('../server/db/index.js');
+  for (const l of v.lines) await run('UPDATE transcript_lines SET text_ar = ? WHERE id = ?', shifted.get(l.idx), l.id);
+  n = 1; // the next reply is the good one
+  const r = await (await realFetch(`${app.base}/api/sources/${id}/repair-translation`, { method: 'POST' })).json();
+  assert.ok(r.fixed >= 1, JSON.stringify(r));
+  v = await (await realFetch(`${app.base}/api/sources/${id}`)).json();
+  assert.deepEqual(v.lines.map((l) => l.text_ar), [...good.values()]);
+  const again = await (await realFetch(`${app.base}/api/sources/${id}/repair-translation`, { method: 'POST' })).json();
+  assert.equal(again.more, false);
+});
+
 test('word forms: verb/noun/adjective with examples, cached, input sanitised', async () => {
   reply = ok({ base: 'decide', forms: [
     { pos: 'فعل', word: 'decide', form: 'decide', arabic: 'يقرر', example: 'I decided to stay.', example_ar: 'قررت البقاء.' },

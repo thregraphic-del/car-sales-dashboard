@@ -6,12 +6,12 @@
 //   refineSource()    — AI chooses the learnable items, ~25 lines per call
 //   translateSource() — Arabic subtitles, ~15 lines per call
 // Each chunk is stored as soon as it is done, so nothing is lost or repeated.
-import { run } from '../db/index.js';
+import { run, get, all, tx } from '../db/index.js';
 import { config } from '../config.js';
 import { recordTranscript } from './ai.js';
 import { httpError } from '../lib/errors.js';
 import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript, MESSAGES, TranscriptError, externalTranscript } from '../lib/youtube.js';
-import { extractVocabulary, extractChunkWithAi, toSentences, translateWithAi, alignWithAi, ExtractionError } from './extractor.js';
+import { extractVocabulary, extractChunkWithAi, toSentences, translateWithAi, suspiciousTranslations, alignWithAi, ExtractionError } from './extractor.js';
 import { chunkRanges, batchRanges } from '../lib/align.js';
 import { aiConfigured, aiAvailable, AiError, OFFLINE_MESSAGE, unavailableMessage } from './ai.js';
 import * as sources from '../data/sources.js';
@@ -200,6 +200,48 @@ export async function translateSource(sourceId, userId) {
   const complete = after.done >= after.total;
   await sources.setTranslationStatus(sourceId, complete ? 'done' : 'running');
   return { complete, ...after, status: complete ? 'done' : 'running', lines: pairs };
+}
+
+/**
+ * Videos translated before: find windows where the Arabic slipped to the wrong lines
+ * and translate those windows again (a few seconds per call; the reader calls again
+ * while "more" is true). Fixed lines lose their old phrase pairing so it is redone.
+ */
+export async function repairTranslation(sourceId, userId, { budgetMs = 15000 } = {}) {
+  const src = await requireSource(sourceId, userId);
+  const key = `tr-fix:${sourceId}`;
+  const state = (await get('SELECT value FROM app_settings WHERE key = ?', key))?.value || '0';
+  if (state === 'done' || src.is_demo) return { more: false, fixed: 0 };
+  if (!aiAvailable()) return { more: false, fixed: 0, ai_error: unavailableMessage() };
+  const started = Date.now();
+  let cursor = Number(state) || 0;
+  let fixed = 0;
+  let carry = false; // a shift often runs on into the next window: check it again too
+  const W = 20;
+  while (Date.now() - started < budgetMs) {
+    const win = await all('SELECT id, idx, text, text_ar FROM transcript_lines WHERE source_id = ? AND idx >= ? ORDER BY idx LIMIT ?', sourceId, cursor, W);
+    if (!win.length) {
+      await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', key, 'done');
+      return { more: false, fixed };
+    }
+    const have = new Map(win.map((l) => [l.idx, l.text_ar]));
+    const badNow = win.every((l) => l.text_ar) ? suspiciousTranslations(win, have).size : 0;
+    if (badNow || (carry && win.every((l) => l.text_ar))) {
+      const map = await translateWithAi(win, src.title);
+      if (suspiciousTranslations(win, map).size <= badNow) {
+        await tx(async () => {
+          for (const l of win) {
+            const ar = map.get(l.idx);
+            if (ar && ar !== l.text_ar) { await run('UPDATE transcript_lines SET text_ar = ?, align_json = NULL WHERE id = ?', ar, l.id); fixed += 1; }
+          }
+        });
+      }
+    }
+    carry = badNow > 0;
+    cursor = win.at(-1).idx + 1;
+    await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', key, String(cursor));
+  }
+  return { more: true, fixed };
 }
 
 export async function translationStatus(sourceId, userId) {
