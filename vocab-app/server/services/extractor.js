@@ -725,3 +725,41 @@ export async function formsBatchWithAi(words) {
   });
   return r.items;
 }
+
+const SYN_SCHEMA = obj({ items: { type: 'array', items: obj({ word: str, arabic: str, level: { type: 'string', enum: LEVELS } }) } });
+const SynZ = z.object({ items: z.array(z.object({ word: z.string(), arabic: z.string(), level: z.enum(LEVELS) })) });
+
+/** 1–5 easier, more common English words with the same meaning (shortest basic forms), each with a short Arabic meaning. */
+export async function synonymsWithAi(word) {
+  const r = await jsonCall({
+    task: 'easy_synonyms',
+    system: 'You help an Arabic-speaking learner of English. For the given English word, give 1–5 EASIER and MORE COMMON English words or very short phrases with the same core meaning, easiest and most common first. Use the shortest basic dictionary form (e.g. "decide", "help", "big"). Never repeat the given word. "arabic" = a very short Arabic meaning (one or two words). "level" = CEFR.',
+    user: `Word: ${word}`,
+    schema: SYN_SCHEMA,
+    zod: SynZ,
+    maxTokens: 300,
+  });
+  const seen = new Set([word.toLowerCase()]);
+  return r.items.filter((it) => {
+    const w = it.word.trim().toLowerCase();
+    if (!w || seen.has(w) || !/^[a-z][a-z' -]*$/.test(w)) return false;
+    seen.add(w);
+    return true;
+  }).slice(0, 5);
+}
+
+const RECAP_SCHEMA = obj({ text: str });
+const RecapZ = z.object({ text: z.string() });
+
+/** A very short recap of a part of the video in casual, everyday Saudi Arabic (readable in ~15 seconds). */
+export async function recapWithAi({ title, text }) {
+  const r = await jsonCall({
+    task: 'recap_saudi',
+    system: 'You summarise part of an English video for a Saudi viewer. Write ONE short, natural paragraph in casual everyday Saudi Arabic (white Saudi dialect, friendly and spontaneous, like telling a friend "السالفة باختصار…"), saying what the speaker is really getting at, concretely, with no bullet points, no English and no emojis. Maximum 30 words, readable in 15 seconds.',
+    user: `${title ? `Video: ${title}\n` : ''}Part of the transcript:\n${text.slice(0, 6000)}`,
+    schema: RECAP_SCHEMA,
+    zod: RecapZ,
+    maxTokens: 250,
+  });
+  return r.text.trim();
+}

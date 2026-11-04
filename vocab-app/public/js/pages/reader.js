@@ -276,6 +276,8 @@ export async function render(view, { segments, params }) {
           <div class="rset-sec"><div class="rset-h">▶ التشغيل</div>
           ${isVideo && hasTimes ? `<div class="speed-pick" id="mode"><button type="button" class="btn sm ghost" id="modeBtn" aria-haspopup="true" aria-expanded="false" title="التشغيل: السرعة والتوقف والترديد"><span id="modeVal">▶ تشغيل</span> <span class="en-inline" id="speedVal">1×</span></button>
             <div class="speed-menu mode-menu hidden" role="menu"><div class="menu-label">السرعة</div><div class="gap-chips" id="speed">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" data-rate="${r}" class="en-inline">${r}×</button>`).join('')}</div><div class="mode-sep"></div><label class="mode-switch"><input type="checkbox" class="check" id="gapOn"> ⏸ توقف بعد كل سطر</label><div class="gap-chips" id="gapChips">${[300, 500, 1000, 1500, 2000, 3000].map((ms) => `<button type="button" data-gap="${ms}" class="en-inline">${ms / 1000}ث</button>`).join('')}</div><div class="mode-sep"></div><button type="button" role="menuitem" data-mode="shadow">🗣 ردّد ورائي</button></div><button type="button" class="btn icon sm ghost hidden" id="modeOff" title="إيقاف التوقف — تشغيل عادي">✕</button></div>` : ''}
+          ${isVideo && hasTimes ? `<div class="view-row"><span class="tiny muted">🔔 قائمة الكلمات كل</span><div class="segmented" id="wordBatch" role="group">${[[0, 'إيقاف'], [10, '10'], [20, '20'], [30, '30']].map(([n, l]) => `<button type="button" data-wb="${n}">${l}</button>`).join('')}</div></div>
+          <label class="switch"><input type="checkbox" id="recapOn"> <span>📝 ملخص قصير بالعامية كل ٥ دقائق</span></label>` : ''}
           ${isVideo && hasTimes ? '<button type="button" class="btn sm ghost rset-wide" id="loopBtn" aria-pressed="false" title="كل فقرة خضراء تُعاد مرتين ثم يكمل (L)">🔁 أعِد كل فقرة مرتين</button>' : ''}
           </div>
           <div class="rset-sec"><div class="rset-h">👁 العرض</div>
@@ -324,6 +326,69 @@ export async function render(view, { segments, params }) {
   };
   view.querySelectorAll('#vidPos [data-vpos]').forEach((b) => b.addEventListener('click', () => { vidPos = b.dataset.vpos; setPref('reader.vidPos', vidPos); showVidPos(); }));
   showVidPos();
+
+  // Small cards over the page that never block the view for long.
+  function popNote(html, { ms = 0, cls = '' } = {}) {
+    document.querySelectorAll('.lt-note').forEach((n) => n.remove());
+    const n = document.createElement('div');
+    n.className = `lt-note ${cls}`;
+    n.innerHTML = `<button type="button" class="lt-x" aria-label="إغلاق">✕</button>${html}`;
+    document.body.appendChild(n);
+    const close = () => n.remove();
+    n.querySelector('.lt-x').addEventListener('click', close);
+    if (ms) setTimeout(close, ms);
+    return n;
+  }
+
+  // 🔔 Every N suggested words that went by in the video: the list with meanings, play them or go on.
+  let wordBatch = Number(pref('reader.wordBatch', '20'));
+  if (![0, 10, 20, 30].includes(wordBatch)) wordBatch = 20;
+  const passed = new Map(); // vocabulary_id → item
+  const showBatch = () => view.querySelectorAll('#wordBatch [data-wb]').forEach((b) => b.classList.toggle('active', Number(b.dataset.wb) === wordBatch));
+  view.querySelectorAll('#wordBatch [data-wb]').forEach((b) => b.addEventListener('click', () => { wordBatch = Number(b.dataset.wb); setPref('reader.wordBatch', String(wordBatch)); passed.clear(); showBatch(); }));
+  showBatch();
+  function wordsPassed(lineEl) {
+    if (!wordBatch || !lineEl) return;
+    for (const m of lineEl.querySelectorAll('.mark[data-vid]')) {
+      const vid = Number(m.dataset.vid);
+      const it = data.items.find((x) => x.vocabulary_id === vid);
+      if (it && !passed.has(vid)) passed.set(vid, it);
+    }
+    if (passed.size < wordBatch) return;
+    const list = [...passed.values()];
+    passed.clear();
+    player?.pause?.();
+    const href = `#/practice?${new URLSearchParams({ source: id, title: source.title.slice(0, 40), mode: 'quiz', vids: list.map((w) => w.vocabulary_id).join(','), n: Date.now() })}`;
+    const n = popNote(`<div class="lt-title">🔔 مرّت عليك ${list.length} كلمة</div>
+      <div class="lt-words">${list.map((w) => `<div class="lt-w"><b class="en">${esc(w.term)}</b><span>${esc(w.arabic || '')}</span></div>`).join('')}</div>
+      <div class="lt-actions"><a class="btn primary sm" href="${href}">🎮 العبها</a><button type="button" class="btn sm" data-back>↩ عد للمقطع</button></div>`, { cls: 'lt-words-card' });
+    n.querySelector('[data-back]').addEventListener('click', () => { n.remove(); player?.play?.(); });
+  }
+
+  // 📝 Every 5 minutes watched: what it is about, in a few words of everyday Saudi Arabic.
+  let recapOn = pref('reader.recap', '1') === '1';
+  const recapBox = $('#recapOn', view);
+  if (recapBox) {
+    recapBox.checked = recapOn;
+    recapBox.addEventListener('change', () => { recapOn = recapBox.checked; setPref('reader.recap', recapOn ? '1' : '0'); });
+  }
+  let watched = 0;
+  let recapFrom = null;
+  const recapTimer = setInterval(() => {
+    if (!playing || !player || !recapOn) return;
+    const t = player.time?.() || 0;
+    if (recapFrom == null) recapFrom = t;
+    watched += 1;
+    if (watched < 300) return;
+    watched = 0;
+    const from = Math.max(0, Math.min(recapFrom, t - 300));
+    recapFrom = t;
+    if (!state.config.ai.available) return;
+    api.recap(id, from, t).then((r) => {
+      if (!alive || !r.ok || !r.text) return;
+      popNote(`<div class="lt-title">📝 السالفة باختصار</div><p class="lt-text">${esc(r.text)}</p>`, { ms: 20000, cls: 'lt-recap' });
+    }).catch(() => {});
+  }, 1000);
   // Arabic beside the English (same row) or under it — the learner chooses.
   const showLayout = () => {
     linesEl.classList.toggle('ar-below', arLayout === 'below');
@@ -788,6 +853,7 @@ export async function render(view, { segments, params }) {
     const el = lineId != null && linesEl.querySelector(`.line[data-id="${lineId}"]`);
     if (!el) return;
     el.classList.add('current');
+    if (was && was !== el && playing) wordsPassed(was);
     // a new paragraph: the green moves on, the one just said fades above it, the text glides up
     if (el.dataset.para !== currentPara || force) {
       const jump = currentPara == null || Math.abs(Number(el.dataset.para) - Number(currentPara)) !== 1;
@@ -1428,6 +1494,8 @@ export async function render(view, { segments, params }) {
     document.removeEventListener('keydown', onKey);
     stopListening();
     clearInterval(backTimer);
+    clearInterval(recapTimer);
+    document.querySelectorAll('.lt-note').forEach((n) => n.remove());
     window.removeEventListener('lexitube:goal', onGoal);
     window.removeEventListener('resize', onResize);
     cancelGap();

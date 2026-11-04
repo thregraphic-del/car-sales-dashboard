@@ -1001,3 +1001,23 @@ a.day-tile:hover { border-color: var(--accent); }
 .rset-wide { justify-self: start; }
 @media (min-width: 900px) { .rset { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; } }
 .reader-main.video-bottom .player-box { top: auto; bottom: 0; }
+/* easier synonyms in the word panel */
+.syn-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 4px; }
+.syn-chip { display: inline-flex; align-items: baseline; gap: 6px; border: 1px solid var(--line); background: var(--surface-2, var(--surface)); color: var(--ink); border-radius: 999px; padding: 4px 10px; font: inherit; cursor: pointer; }
+.syn-chip:hover { border-color: var(--accent); }
+.syn-chip b { font-size: 14px; }
+.syn-chip span { font-size: 12px; color: var(--ink-2); }
+/* small cards over the reader (recap, words that went by) */
+.lt-note { position: fixed; z-index: 120; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(520px, calc(100vw - 24px)); background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 14px 40px rgba(0,0,0,.28); padding: 12px 14px 12px 40px; animation: ltIn .35s ease; }
+[dir="rtl"] .lt-note, .lt-note:dir(rtl) { padding: 12px 14px 12px 40px; }
+@keyframes ltIn { from { opacity: 0; transform: translate(-50%, -10px); } }
+.lt-x { position: absolute; top: 8px; left: 8px; width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--surface-2, transparent); color: var(--ink-2); cursor: pointer; font-size: 14px; }
+.lt-title { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.lt-text { margin: 0; font-size: 15px; line-height: 1.7; }
+.lt-recap { border-color: color-mix(in srgb, var(--accent) 50%, var(--line)); }
+.lt-words-card { top: auto; bottom: max(14px, env(safe-area-inset-bottom)); }
+.lt-words { max-height: 40vh; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; margin: 6px 0 10px; }
+.lt-w { display: flex; flex-direction: column; padding: 6px 8px; border-radius: 10px; background: var(--surface-2, transparent); border: 1px solid var(--line); }
+.lt-w b { font-size: 14px; }
+.lt-w span { font-size: 12px; color: var(--ink-2); }
+.lt-actions { display: flex; gap: 8px; flex-wrap: wrap; }

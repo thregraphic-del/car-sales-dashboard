@@ -7,7 +7,7 @@ import { config } from '../config.js';
 import { wrap, num } from '../http.js';
 import { httpError } from '../lib/errors.js';
 import { aiStatus, checkModel, usageToday, usageReport, AiError } from '../services/ai.js';
-import { explainWithAi, formsWithAi, extractFromFileWithAi, storyWithAi, suggestVideosWithAi, suggestWordsWithAi, ladderWithAi } from '../services/extractor.js';
+import { explainWithAi, formsWithAi, extractFromFileWithAi, storyWithAi, suggestVideosWithAi, suggestWordsWithAi, ladderWithAi, synonymsWithAi } from '../services/extractor.js';
 import { matchKey } from '../../public/js/shared/text.js';
 import { listWords } from '../data/words.js';
 import { listSources } from '../data/sources.js';
@@ -40,6 +40,11 @@ router.post('/explain', wrap(async (req, res) => {
   }
 }));
 
+router.get('/synonyms', wrap(async (req, res) => {
+  const word = String(req.query.word || '').toLowerCase().replace(/[^a-z' -]/g, '').replace(/\s+/g, ' ').trim();
+  if (!word || word.length > 40) throw httpError(400, 'كلمة غير صالحة.');
+  return withAi(res, async () => ({ ok: true, word, items: await synonymsWithAi(word) }));
+}));
 router.get('/forms', wrap(async (req, res) => {
   const word = String(req.query.word || '').toLowerCase().replace(/[^a-z' -]/g, '').replace(/\s+/g, ' ').trim();
   if (!word || word.length > 40) throw httpError(400, 'كلمة غير صالحة.');

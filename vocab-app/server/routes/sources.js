@@ -45,6 +45,23 @@ router.delete('/:id', wrap(async (req) => {
 // AI improvement, one short chunk per request (the reader calls again until done).
 router.post('/:id/refine', wrap(async (req) => service.refineSource(idParam(req), req.userId)));
 router.get('/:id/translation', wrap(async (req) => service.translationStatus(idParam(req), req.userId)));
+// A short recap in Saudi dialect of the part just watched (from–to seconds).
+router.post('/:id/recap', wrap(async (req, res) => {
+  const id = idParam(req);
+  const src = await sources.getSource(id, req.userId);
+  if (!src) throw httpError(404, 'المصدر غير موجود.');
+  const from = Math.max(0, Number(req.body?.from) || 0);
+  const to = Math.max(from + 30, Number(req.body?.to) || from + 300);
+  const lines = (await sources.sourceLines(id)).filter((l) => l.start_seconds != null && l.start_seconds >= from - 1 && l.start_seconds < to);
+  if (lines.length < 3) return { ok: false };
+  try {
+    const { recapWithAi } = await import('../services/extractor.js');
+    return { ok: true, text: await recapWithAi({ title: src.title, text: lines.map((l) => l.text).join(' ') }) };
+  } catch (err) {
+    if (err?.name !== 'AiError' && err?.constructor?.name !== 'AiError') throw err;
+    return { ok: false, error: err.message };
+  }
+}));
 router.post('/:id/repair-translation', wrap(async (req) => service.repairTranslation(idParam(req), req.userId)));
 router.post('/:id/translation', wrap(async (req) => service.translateSource(idParam(req), req.userId)));
 

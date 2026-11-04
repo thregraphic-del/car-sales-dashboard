@@ -254,6 +254,7 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
       ${headHtml(info)}
       ${baseHtml(forms, info.term)}
       ${meaningHtml(info)}
+      ${synHtml()}
       ${info.context_note ? `<p class="small ctx-note">💡 ${esc(info.context_note)}</p>` : ''}
       ${info.contextual ? '' : info.arabic ? '<div class="tiny muted">معنى عام من القاموس (ليس حسب هذه الجملة)</div>' : ''}
       ${info.can_explain ? '<button class="btn sm ghost explain-btn" data-act="explain">✨ اشرح معناها في هذه الجملة</button>' : ''}
@@ -270,6 +271,20 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
         ${saved ? `<button class="btn sm ghost" data-act="details">التفاصيل</button>` : `<button class="btn sm ghost" data-act="known" title="أعرفها — لا تقترحها عليّ مرة أخرى">أعرفها ✓</button>`}
       </div>`;
   };
+  // Easier, more common words with the same meaning: just the word and a short Arabic, tap for details.
+  let syns = (info.similar || []).map((x) => ({ word: x.word || x.term, arabic: x.arabic })).filter((x) => x.word).slice(0, 5);
+  function synHtml() {
+    if (!syns.length) return '';
+    return `<div class="syn-row"><span class="tiny muted">أسهل وأشهر:</span>${syns.map((x) => `<button type="button" class="syn-chip" data-syn="${esc(x.word)}"><b class="en">${esc(x.word)}</b>${x.arabic ? `<span>${esc(x.arabic)}</span>` : ''}</button>`).join('')}</div>`;
+  }
+  if (info.found && info.tier !== 'function' && state.config?.ai?.configured && syns.length < 3) {
+    api.synonyms(info.term).then((r) => {
+      if (panelEl !== el || !r.items?.length) return;
+      const have = new Set(syns.map((x) => x.word.toLowerCase()));
+      syns = [...syns, ...r.items.filter((x) => !have.has(x.word.toLowerCase()))].slice(0, 5);
+      render();
+    }).catch(() => {});
+  }
   const formsWord = info.found ? info.term : info.word;
   let forms = formsWord && info.tier !== 'function' && state.config?.ai?.configured ? { loading: true } : null;
   const savedForms = new Set();
@@ -288,6 +303,8 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
 
   el.addEventListener('click', async (e) => {
     if (e.target.closest('.wp-close')) return closeWordPanel();
+    const sy = e.target.closest('[data-syn]');
+    if (sy) return openWordPanel(anchor, { word: sy.dataset.syn }, { onChange, onClose });
     const fb = e.target.closest('.wf-save[data-form]');
     if (fb && forms?.forms) {
       const k = Number(fb.dataset.form);

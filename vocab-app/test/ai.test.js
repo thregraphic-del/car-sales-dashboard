@@ -604,3 +604,17 @@ test('my words: saved in the simplest form, older words simplified, «الأوض
   assert.ok(['big', 'huge', 'enormous'].every((t) => terms.includes(t)), terms.join(','));
   assert.ok(terms.indexOf('big') < terms.indexOf('huge') && terms.indexOf('huge') < terms.indexOf('enormous'), 'from simple to advanced');
 });
+
+test('word panel synonyms and the Saudi recap of a part of the video', async () => {
+  reply = ok({ items: [{ word: 'begin', arabic: 'يبدأ', level: 'A1' }, { word: 'Start', arabic: 'يبدأ', level: 'A1' }, { word: 'commence', arabic: 'يشرع', level: 'C1' }, { word: 'commence', arabic: 'x', level: 'C1' }, { word: 'بدأ', arabic: 'x', level: 'A1' }] });
+  const syn = await (await realFetch(`${app.base}/api/ai/synonyms?word=start`)).json();
+  assert.deepEqual(syn.items.map((x) => x.word), ['begin', 'commence'], 'not the word itself, no repeats, English only');
+  reply = ok({ text: 'السالفة باختصار: يقول لك لا تقارن نفسك بغيرك، ركّز على طريقك وبتلقى نفسك أحسن.' });
+  const src = (await (await realFetch(`${app.base}/api/sources`)).json())[0];
+  const r = await postJson(`/api/sources/${src.id}/recap`, { from: 0, to: 600 });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.ok, true);
+  assert.match(r.body.text, /السالفة/);
+  const sent = calls.filter((c) => c.u.endsWith('/chat/completions')).at(-1).body.messages;
+  assert.match(sent[0].content, /Saudi/);
+});
