@@ -6,6 +6,7 @@
 // an id coming from a request also take the userId and only find the
 // learner's own rows — another learner's id behaves exactly like a missing one.
 import { isSimplified } from './simplest.js';
+import { usageOf } from '../lib/usage.js';
 import { all, get, run, insert, tx } from '../db/index.js';
 import { httpError } from '../lib/errors.js';
 import { findSpan } from '../lib/matcher.js';
@@ -312,7 +313,7 @@ export async function sourceView(sourceId, userId) {
   );
   const marks = occ
     .filter((o) => o.char_start !== null && (o.suggested || o.user_state === 'saved'))
-    .map((o) => ({ line_id: o.line_id, start: o.char_start, end: o.char_end, vocabulary_id: o.vocabulary_id, occurrence_id: o.id, state: o.user_state || null, light: o.suggested && o.rank >= 1000 }));
+    .map((o) => ({ line_id: o.line_id, start: o.char_start, end: o.char_end, vocabulary_id: o.vocabulary_id, occurrence_id: o.id, state: o.user_state || null, light: o.suggested && o.rank >= 1000, usage: usageOf(o.term, o.level) }));
   const seen = new Set();
   const ex = await examplesFor([...new Set(occ.map((o) => o.vocabulary_id))], userId);
   const ref = sourceRef(source);

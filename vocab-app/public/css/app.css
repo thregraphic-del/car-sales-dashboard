@@ -1021,3 +1021,10 @@ a.day-tile:hover { border-color: var(--accent); }
 .lt-w b { font-size: 14px; }
 .lt-w span { font-size: 12px; color: var(--ink-2); }
 .lt-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+/* words in the transcript coloured by how common they are (saved words keep their own style) */
+.mark.u-common:not(.s-saved) { --mk: #22a35a; }
+.mark.u-medium:not(.s-saved) { --mk: #e0a100; }
+.mark.u-rare:not(.s-saved) { --mk: #d9443a; }
+.mark[class*="u-"]:not(.s-saved) { background: color-mix(in srgb, var(--mk) 16%, transparent); border-bottom: 2px solid var(--mk); border-radius: 4px; padding: 0 2px; color: inherit; }
+.mark.s-light[class*="u-"]:not(.s-saved) { background: color-mix(in srgb, var(--mk) 8%, transparent); border-bottom-style: dotted; }
+.play-btn { font-size: 16px; min-width: 36px; }

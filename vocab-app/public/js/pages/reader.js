@@ -199,7 +199,7 @@ function lineHtml(line, marks) {
       const s = Math.max(m.start, from);
       const e = Math.min(m.end, to);
       if (s > pos) out += plain(line.text.slice(pos, s), pos);
-      out += `<span class="mark ${m.state === 'saved' ? 's-saved' : m.light ? 's-light' : 's-suggested'}" data-vid="${m.vocabulary_id}">${markInner(s, e)}</span>`;
+      out += `<span class="mark ${m.state === 'saved' ? 's-saved' : m.light ? 's-light' : 's-suggested'}${m.usage ? ` u-${m.usage}` : ''}" data-vid="${m.vocabulary_id}">${markInner(s, e)}</span>`;
       pos = e;
     }
     if (pos < to) out += plain(line.text.slice(pos, to), pos);
@@ -264,6 +264,7 @@ export async function render(view, { segments, params }) {
       <a class="btn icon sm ghost" href="#/add" aria-label="رجوع">${icon.prev}</a>
       <div class="reader-title-sm en" dir="auto" title="${esc(source.title)}">${esc(source.title)}</div>
       <span class="goal-chip" id="goalChip" title="هدف اليوم: الكلمات التي مررت عليها"></span>
+      ${isVideo ? '<button type="button" class="btn icon sm play-btn" id="playBtn" title="تشغيل / إيقاف (مسافة)" aria-label="تشغيل أو إيقاف">▶</button>' : ''}
       <button type="button" class="btn icon sm ghost set-btn" id="setBtn" aria-expanded="false" title="الإعدادات: التشغيل، العرض، الأدوات">⚙️</button>
     </div>
     <div class="listen-bar hidden" id="listenBar"><span id="listenNote">🎧 يقرأ…</span>
@@ -306,7 +307,7 @@ export async function render(view, { segments, params }) {
         ${isVideo ? '<div class="player-box"><div id="player"></div></div><div class="split" id="split" role="separator" aria-orientation="horizontal" title="اسحب لتكبير الفيديو أو النص"><span></span></div>' : ''}
         <button type="button" class="btn sm primary back-now hidden" id="backNow">↓ الجملة الحالية</button>
         <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}${arLayout === 'below' ? ' ar-below' : ''}" id="lines"></div>
-        <p class="tiny muted reader-hint">${isVideo && hasTimes ? 'اضغط أي كلمة: يقف الفيديو عندها ويظهر معناها، ويكمل حين تغلقها أو تحفظها. اسحب الفاصل تحت الفيديو لتكبيره أو تصغيره. لوحة المفاتيح: مسافة تشغيل/إيقاف · ← → الجملة السابقة/التالية · R أعد الجملة · L كرّرها · A أخفِ العربي.' : 'اضغط على أي كلمة لترى معناها في هذه الجملة.'} <span class="mark s-suggested">مقترحة</span> <span class="mark s-saved">محفوظة</span></p>
+        <p class="tiny muted reader-hint">${isVideo && hasTimes ? 'اضغط أي كلمة: يقف الفيديو عندها ويظهر معناها، ويكمل حين تغلقها أو تحفظها. اسحب الفاصل تحت الفيديو لتكبيره أو تصغيره. لوحة المفاتيح: مسافة تشغيل/إيقاف · ← → الجملة السابقة/التالية · R أعد الجملة · L كرّرها · A أخفِ العربي.' : 'اضغط على أي كلمة لترى معناها في هذه الجملة.'} <span class="mark s-suggested u-common">شائعة</span> <span class="mark s-suggested u-medium">أقل شيوعًا</span> <span class="mark s-suggested u-rare">نادرة</span> <span class="mark s-saved">محفوظة</span></p>
       </div>
       <aside class="reader-side card" id="side"></aside>
     </div>`;
@@ -910,6 +911,7 @@ export async function render(view, { segments, params }) {
   let gapTimer = 0;
   let gapTick = 0;
   let gapDoneFor = null;
+  let held = false; // the learner stopped the video: no automatic restart
   let prevEntry = null;
   const modeNote = (t) => { const n = $('#modeNote', view); if (n) n.textContent = t; };
   const cancelGap = () => {
@@ -919,6 +921,7 @@ export async function render(view, { segments, params }) {
     gapTimer = 0;
     gapTick = 0;
     modeNote('');
+    showPlayBtn?.();
     return was;
   };
   // «ردّد ورائي» waits for the end of the whole green paragraph (a complete idea, ~3 lines).
@@ -934,6 +937,7 @@ export async function render(view, { segments, params }) {
   const pauseHere = (entry) => playMode !== 'shadow' || paraOf(entry).last;
   function startGap(entry) {
     gapDoneFor = entry.id;
+    if (held) return;
     const ms = playMode === 'shadow'
       ? Math.min(25000, Math.max(1500, ((entry.end - paraOf(entry).start) * 1000) / (rate || 1) + 800))
       : gapMs;
@@ -945,9 +949,10 @@ export async function render(view, { segments, params }) {
     };
     show();
     gapTick = setInterval(show, 250);
+    showPlayBtn();
     gapTimer = setTimeout(() => {
       cancelGap();
-      if (alive && !isPanelOpen()) player.play();
+      if (alive && !isPanelOpen() && !held) player.play();
     }, ms);
   }
   const secs = () => `${gapMs >= 1000 ? gapMs / 1000 : (gapMs / 1000).toFixed(1)}ث`;
@@ -966,7 +971,7 @@ export async function render(view, { segments, params }) {
     playMode = m;
     setPref('reader.mode', playMode);
     gapDoneFor = null;
-    if (cancelGap() && alive) player?.play?.();
+    if (cancelGap() && alive && !held) player?.play?.();
     showMode();
   };
   const modeMenu = $('#mode .speed-menu', view);
@@ -1048,12 +1053,35 @@ export async function render(view, { segments, params }) {
     lastT = null;
     tick();
   };
+  // ⏯ A stop that always holds: it also ends a «ردّد ورائي» pause, and nothing restarts
+  // the video by itself until it is pressed again.
+  function showPlayBtn() {
+    const b = $('#playBtn', view);
+    if (!b) return;
+    const on = (playing || Boolean(gapTimer)) && !held;
+    b.textContent = on ? '⏸' : '▶';
+    b.classList.toggle('primary', on);
+  }
+  function togglePlay() {
+    if (!player) return;
+    if ((player.playing?.() || gapTimer) && !held) {
+      held = true;
+      cancelGap();
+      player.pause();
+    } else {
+      held = false;
+      cancelGap();
+      player.play();
+    }
+    showPlayBtn();
+  }
+  $('#playBtn', view)?.addEventListener('click', togglePlay);
   const onKey = (e) => {
     if (e.target.closest?.('input, textarea, select, [contenteditable]') || e.metaKey || e.ctrlKey || e.altKey || isPanelOpen()) return;
     const k = e.key.toLowerCase();
     if (k === ' ' && player) {
       e.preventDefault();
-      if (player.playing?.()) player.pause(); else player.play();
+      togglePlay();
     } else if (e.key === 'ArrowRight') { e.preventDefault(); stepLine(-1); } // RTL page: → goes back
     else if (e.key === 'ArrowLeft') { e.preventDefault(); stepLine(1); }
     else if (k === 'r') {
@@ -1115,7 +1143,9 @@ export async function render(view, { segments, params }) {
   };
   function setPlaying(isPlaying) {
     if (playing && !isPlaying && !gapTimer) setTimeout(() => saveProgress(), 0);
+    if (isPlaying) held = false; // started again (here or on the YouTube player)
     playing = isPlaying;
+    showPlayBtn();
     linesEl.classList.toggle('is-playing', isPlaying);
     if (isPlaying && !frame) frame = requestAnimationFrame(loop);
     if (!isPlaying) tick();
@@ -1228,7 +1258,7 @@ export async function render(view, { segments, params }) {
       }
       player?.pause?.();
       const onClose = () => {
-        if (resumeAfterWord && alive) player?.play?.();
+        if (resumeAfterWord && alive && !held) player?.play?.();
         resumeAfterWord = false;
       };
       if (mark) openWordPanel(mark, { vocabulary_id: mark.dataset.vid, line_id: line.dataset.id }, { onChange, onClose });
