@@ -976,3 +976,28 @@ a.day-tile:hover { border-color: var(--accent); }
 .transcript .line.para-now + .line.para-now { border-top-color: transparent; }
 .transcript .line.current .line-body:not(.chunked) { background: color-mix(in srgb, #f5b301 22%, transparent); border-radius: 10px; padding: 4px 8px; margin: -4px -8px; }
 .transcript .line.para-now:not(.current) .line-en { color: var(--ink); }
+/* Slim reader top: tiny grey title + ⚙ panel */
+.reader-head.slim { margin-bottom: 6px; gap: 6px; min-height: 36px; }
+.reader-title-sm { flex: 1; min-width: 0; font-size: 12px; color: var(--ink-3, #888); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.set-btn { font-size: 18px; }
+.reader-main { position: relative; display: flex; flex-direction: column; }
+.reader-main.video-bottom .player-box { order: 3; margin-top: 8px; }
+.reader-main.video-bottom .split { order: 2; }
+.reader-main.video-bottom #backNow { order: 0; }
+.reader-main.video-bottom .transcript { order: 1; }
+.reader-main.video-bottom .reader-hint { order: 4; }
+.reader-status:has(span:not(:empty)) { margin: 0 0 6px; }
+.reader-status span:empty { display: none; }
+.rset { position: absolute; top: 0; inset-inline: 0; z-index: 40; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,.25); padding: 12px; display: grid; gap: 12px; max-height: 75vh; overflow-y: auto; }
+.rset.hidden { display: none; }
+.rset-sec { display: grid; gap: 8px; }
+.rset-h { font-weight: 700; font-size: 13px; color: var(--ink-2); }
+.rset-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.rset .speed-pick { position: static; }
+.rset .speed-menu, .rset .speed-menu.hidden { position: static; display: flex !important; box-shadow: none; border: 0; padding: 0; background: none; min-width: 0; }
+.rset #modeBtn, .rset #viewBtn { display: none; }
+.rset .view-menu { padding: 0; gap: 10px; }
+.rset .tr-search .input { width: 100%; }
+.rset-wide { justify-self: start; }
+@media (min-width: 900px) { .rset { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start; } }
+.reader-main.video-bottom .player-box { top: auto; bottom: 0; }

@@ -260,14 +260,11 @@ export async function render(view, { segments, params }) {
   let tab = 'text';
 
   view.innerHTML = `
-    <div class="reader-head">
+    <div class="reader-head slim">
       <a class="btn icon sm ghost" href="#/add" aria-label="رجوع">${icon.prev}</a>
-      <div style="min-width:0;flex:1"><h1 class="en reader-title" dir="auto">${esc(source.title)}</h1>
-        <div class="tiny muted en">${esc(source.channel || (source.kind === 'text' ? 'نص أضفته' : ''))}${source.duration_seconds ? ` · ${fmtDuration(source.duration_seconds)}` : ''}</div></div>
-      ${source.youtube_id && !source.is_demo ? `<a class="btn icon sm ghost" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener" aria-label="فتح في يوتيوب">${icon.link}</a>` : ''}
-      <button class="btn sm ghost" id="summaryBtn" title="ملخص المقطع: الفكرة، الفائدة، الخطوات والأقوال">📝<span class="btn-label"> الملخص</span></button>
-      <button class="btn sm ghost" id="listenBtn" title="يقرأ لك كل جملة بالعربي ثم بالإنجليزي — تابع بأذنك">🎧<span class="btn-label"> استماع</span></button>
-      <button class="btn icon sm ghost" id="del" aria-label="حذف المصدر" title="حذف المصدر">${icon.trash}</button>
+      <div class="reader-title-sm en" dir="auto" title="${esc(source.title)}">${esc(source.title)}</div>
+      <span class="goal-chip" id="goalChip" title="هدف اليوم: الكلمات التي مررت عليها"></span>
+      <button type="button" class="btn icon sm ghost set-btn" id="setBtn" aria-expanded="false" title="الإعدادات: التشغيل، العرض، الأدوات">⚙️</button>
     </div>
     <div class="listen-bar hidden" id="listenBar"><span id="listenNote">🎧 يقرأ…</span>
       <div class="segmented" id="listenOrder"><button data-order="ar-en">عربي ← إنجليزي</button><button data-order="en-ar">إنجليزي ← عربي</button></div>
@@ -275,12 +272,13 @@ export async function render(view, { segments, params }) {
     <div class="reader-tabs segmented"><button data-tab="text" class="active">${isVideo ? 'الفيديو والنص' : 'النص'}</button><button data-tab="words">كلمات مقترحة (<span id="wcount">${data.items.length}</span>)</button></div>
     <div class="reader-grid" data-tab="text">
       <div class="reader-main">
-        <div class="reader-tools">
-          <span class="goal-chip" id="goalChip" title="هدف اليوم: الكلمات التي مررت عليها"></span>
-          <span class="tr-search"><input class="input sm" id="trQ" type="search" placeholder="🔎 ابحث في النص" aria-label="ابحث في النص"><span class="tiny muted" id="trQn"></span></span>
+        <div class="rset hidden" id="rset">
+          <div class="rset-sec"><div class="rset-h">▶ التشغيل</div>
           ${isVideo && hasTimes ? `<div class="speed-pick" id="mode"><button type="button" class="btn sm ghost" id="modeBtn" aria-haspopup="true" aria-expanded="false" title="التشغيل: السرعة والتوقف والترديد"><span id="modeVal">▶ تشغيل</span> <span class="en-inline" id="speedVal">1×</span></button>
             <div class="speed-menu mode-menu hidden" role="menu"><div class="menu-label">السرعة</div><div class="gap-chips" id="speed">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" data-rate="${r}" class="en-inline">${r}×</button>`).join('')}</div><div class="mode-sep"></div><label class="mode-switch"><input type="checkbox" class="check" id="gapOn"> ⏸ توقف بعد كل سطر</label><div class="gap-chips" id="gapChips">${[300, 500, 1000, 1500, 2000, 3000].map((ms) => `<button type="button" data-gap="${ms}" class="en-inline">${ms / 1000}ث</button>`).join('')}</div><div class="mode-sep"></div><button type="button" role="menuitem" data-mode="shadow">🗣 ردّد ورائي</button></div><button type="button" class="btn icon sm ghost hidden" id="modeOff" title="إيقاف التوقف — تشغيل عادي">✕</button></div>` : ''}
-          ${isVideo && hasTimes ? '<button type="button" class="btn icon sm ghost" id="loopBtn" aria-pressed="false" title="كرّر الجملة الحالية حتى تفهمها (L)">🔁</button>' : ''}
+          ${isVideo && hasTimes ? '<button type="button" class="btn sm ghost rset-wide" id="loopBtn" aria-pressed="false" title="كل فقرة خضراء تُعاد مرتين ثم يكمل (L)">🔁 أعِد كل فقرة مرتين</button>' : ''}
+          </div>
+          <div class="rset-sec"><div class="rset-h">👁 العرض</div>
           <div class="speed-pick" id="viewPick"><button type="button" class="btn sm ghost" id="viewBtn" aria-haspopup="true" aria-expanded="false" title="العرض: الترجمة، الخط، المتابعة">${icon.subtitles} العرض</button>
             <div class="speed-menu view-menu hidden" id="viewMenu">
               <label class="switch"><input type="checkbox" id="arToggle" ${showAr ? 'checked' : ''}> <span>الترجمة العربية</span></label>
@@ -289,10 +287,20 @@ export async function render(view, { segments, params }) {
               ${hasTimes ? `<label class="switch"><input type="checkbox" id="followToggle" ${follow ? 'checked' : ''}> <span>متابعة تلقائية للنص</span></label>` : ''}
               <div class="view-row"><span class="tiny muted">حجم الخط</span><div class="segmented fontsize" role="group" aria-label="حجم الخط"><button type="button" data-font="-1" title="خط أصغر">A−</button><button type="button" data-font="1" title="خط أكبر">A+</button></div></div>
             </div></div>
-          <button type="button" class="btn icon sm ghost" id="focusBtn" aria-pressed="false" title="توسيع: إخفاء التفاصيل والتركيز على النص"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
-          <span class="tiny mode-note" id="modeNote"></span>
-          <span class="tiny muted" id="trNote"></span>
+            <div class="view-row"><span class="tiny muted">مكان الفيديو</span><div class="segmented" id="vidPos" role="group" aria-label="مكان الفيديو"><button type="button" data-vpos="top">الفيديو فوق</button><button type="button" data-vpos="bottom">الفيديو تحت</button></div></div>
+          </div>
+          <div class="rset-sec"><div class="rset-h">🧰 أدوات</div>
+          <span class="tr-search"><input class="input sm" id="trQ" type="search" placeholder="🔎 ابحث في النص" aria-label="ابحث في النص"><span class="tiny muted" id="trQn"></span></span>
+            <div class="rset-row">
+              <button class="btn sm ghost" id="summaryBtn" title="ملخص المقطع: الفكرة، الفائدة، الخطوات والأقوال">📝 الملخص</button>
+              <button class="btn sm ghost" id="listenBtn" title="يقرأ لك كل جملة بالعربي ثم بالإنجليزي — تابع بأذنك">🎧 استماع</button>
+          <button type="button" class="btn sm ghost" id="focusBtn" aria-pressed="false" title="توسيع: إخفاء التفاصيل والتركيز على النص"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg> توسيع النص</button>
+              ${source.youtube_id && !source.is_demo ? `<a class="btn sm ghost" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">${icon.link} يوتيوب</a>` : ''}
+              <button class="btn sm ghost" id="del" title="حذف المصدر" style="color:var(--bad)">${icon.trash} حذف</button>
+            </div>
+          </div>
         </div>
+        <div class="reader-status"><span class="tiny mode-note" id="modeNote"></span><span class="tiny muted" id="trNote"></span></div>
         ${isVideo ? '<div class="player-box"><div id="player"></div></div><div class="split" id="split" role="separator" aria-orientation="horizontal" title="اسحب لتكبير الفيديو أو النص"><span></span></div>' : ''}
         <button type="button" class="btn sm primary back-now hidden" id="backNow">↓ الجملة الحالية</button>
         <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}${arLayout === 'below' ? ' ar-below' : ''}" id="lines"></div>
@@ -302,6 +310,20 @@ export async function render(view, { segments, params }) {
     </div>`;
 
   const linesEl = $('#lines', view);
+  // ⚙ One settings panel instead of a row of buttons.
+  const rset = $('#rset', view);
+  const toggleSet = (open) => { rset.classList.toggle('hidden', !open); $('#setBtn', view).setAttribute('aria-expanded', String(open)); $('#setBtn', view).classList.toggle('primary', open); };
+  $('#setBtn', view).addEventListener('click', (e) => { e.stopPropagation(); toggleSet(rset.classList.contains('hidden')); });
+  const closeSet = (e) => { if (!rset.classList.contains('hidden') && !e.target.closest?.('#rset, #setBtn')) toggleSet(false); };
+  document.addEventListener('click', closeSet);
+  // Video above the text, or the text above the video.
+  let vidPos = pref('reader.vidPos', 'top') === 'bottom' ? 'bottom' : 'top';
+  const showVidPos = () => {
+    $('.reader-main', view).classList.toggle('video-bottom', vidPos === 'bottom');
+    view.querySelectorAll('#vidPos [data-vpos]').forEach((b) => b.classList.toggle('active', b.dataset.vpos === vidPos));
+  };
+  view.querySelectorAll('#vidPos [data-vpos]').forEach((b) => b.addEventListener('click', () => { vidPos = b.dataset.vpos; setPref('reader.vidPos', vidPos); showVidPos(); }));
+  showVidPos();
   // Arabic beside the English (same row) or under it — the learner chooses.
   const showLayout = () => {
     linesEl.classList.toggle('ar-below', arLayout === 'below');
@@ -906,24 +928,23 @@ export async function render(view, { segments, params }) {
   $('#gapOn', view)?.addEventListener('change', (e) => setMode(e.target.checked ? 'gap' : 'normal'));
   showMode();
 
-  // 🔁 Repeat the current sentence
+  // 🔁 Each green paragraph is played twice, then the video goes on.
+  let repeatPara = pref('reader.repeatPara', '0') === '1';
+  let repeatedPara = null;
   const showLoop = () => {
     const b = $('#loopBtn', view);
     if (!b) return;
-    b.classList.toggle('primary', loopId != null);
-    b.setAttribute('aria-pressed', String(loopId != null));
-    linesEl.querySelectorAll('.line.looping').forEach((l) => l.classList.remove('looping'));
-    if (loopId != null) linesEl.querySelector(`.line[data-id="${loopId}"]`)?.classList.add('looping');
+    b.classList.toggle('primary', repeatPara);
+    b.setAttribute('aria-pressed', String(repeatPara));
   };
   const toggleLoop = () => {
-    loopId = loopId == null ? (currentId ?? timeline[0]?.id ?? null) : null;
-    if (loopId != null) {
-      const e = timeline.find((x) => x.id === loopId);
-      if (e) player?.seek?.(Math.max(0, e.start - 0.05));
-      lastT = null;
-    }
+    repeatPara = !repeatPara;
+    repeatedPara = null;
+    setPref('reader.repeatPara', repeatPara ? '1' : '0');
     showLoop();
+    toast(repeatPara ? '🔁 كل فقرة خضراء تُعاد مرتين' : 'إعادة الفقرات متوقفة');
   };
+  showLoop();
   $('#loopBtn', view)?.addEventListener('click', toggleLoop);
 
   // 🙈 Hide the Arabic until it is touched (try to understand first)
@@ -997,6 +1018,20 @@ export async function render(view, { segments, params }) {
     setCurrent(entry ? entry.id : null, { force: jumped });
     setWord(pos.word);
     if (jumped) gapDoneFor = null; // after a seek, pause again at the end of the sentence reached
+    // 🔁 the end of a green paragraph heard once: back to its start for a second time
+    if (repeatPara && playing && entry && !gapTimer) {
+      const back = (e) => {
+        const key = linesEl.querySelector(`.line[data-id="${e.id}"]`)?.dataset.para;
+        if (key == null || repeatedPara === key || !paraOf(e).last) return false;
+        repeatedPara = key;
+        player.seek(Math.max(0, paraOf(e).start - 0.05));
+        lastT = null;
+        prevEntry = null;
+        return true;
+      };
+      if (t >= entry.end - 0.25 && back(entry)) return;
+      if (!jumped && prevEntry && prevEntry.id !== entry.id && t - entry.start < 1 && back(prevEntry)) return;
+    }
     if (playMode !== 'normal' && loopId == null && playing && entry && !gapTimer) {
       if (gapDoneFor !== entry.id && t >= entry.end - 0.25 && pauseHere(entry)) startGap(entry);
       else if (!jumped && prevEntry && prevEntry.id !== entry.id && gapDoneFor !== prevEntry.id && pauseHere(prevEntry) && entry.start >= prevEntry.end - 0.01 && t - entry.start < 1) {
@@ -1388,6 +1423,7 @@ export async function render(view, { segments, params }) {
     saveProgress(true);
     document.removeEventListener('click', closeSpeed);
     document.removeEventListener('click', closeMode);
+    document.removeEventListener('click', closeSet);
     document.removeEventListener('click', closeView);
     document.removeEventListener('keydown', onKey);
     stopListening();
