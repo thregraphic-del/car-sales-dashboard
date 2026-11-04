@@ -263,9 +263,10 @@ export async function render(view, { segments, params }) {
     <div class="reader-head slim">
       <a class="btn icon sm ghost" href="#/add" aria-label="رجوع">${icon.prev}</a>
       <div class="reader-title-sm en" dir="auto" title="${esc(source.title)}">${esc(source.title)}</div>
-      <span class="goal-chip" id="goalChip" title="هدف اليوم: الكلمات التي مررت عليها"></span>
+      <span class="goal-chip" id="goalChip" title="كلمات مرّت عليك اليوم (بدون تكرار) من هدفك"></span>
       ${isVideo ? '<button type="button" class="btn icon sm play-btn" id="playBtn" title="تشغيل / إيقاف (مسافة)" aria-label="تشغيل أو إيقاف">▶</button>' : ''}
-      <button type="button" class="btn icon sm ghost set-btn" id="setBtn" aria-expanded="false" title="الإعدادات: التشغيل، العرض، الأدوات">⚙️</button>
+      <button type="button" class="btn icon sm ghost" id="focusBtn" aria-pressed="false" title="توسيع الشاشة"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+      <button type="button" class="btn icon sm ghost set-btn" id="setBtn" aria-expanded="false" title="إعدادات المقطع">⚙️</button>
     </div>
     <div class="listen-bar hidden" id="listenBar"><span id="listenNote">🎧 يقرأ…</span>
       <div class="segmented" id="listenOrder"><button data-order="ar-en">عربي ← إنجليزي</button><button data-order="en-ar">إنجليزي ← عربي</button></div>
@@ -274,40 +275,31 @@ export async function render(view, { segments, params }) {
     <div class="reader-grid" data-tab="text">
       <div class="reader-main">
         <div class="rset hidden" id="rset">
-          <div class="rset-sec"><div class="rset-h">▶ التشغيل</div>
-          ${isVideo && hasTimes ? `<div class="speed-pick" id="mode"><button type="button" class="btn sm ghost" id="modeBtn" aria-haspopup="true" aria-expanded="false" title="التشغيل: السرعة والتوقف والترديد"><span id="modeVal">▶ تشغيل</span> <span class="en-inline" id="speedVal">1×</span></button>
-            <div class="speed-menu mode-menu hidden" role="menu"><div class="menu-label">السرعة</div><div class="gap-chips" id="speed">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" data-rate="${r}" class="en-inline">${r}×</button>`).join('')}</div><div class="mode-sep"></div><label class="mode-switch"><input type="checkbox" class="check" id="gapOn"> ⏸ توقف بعد كل سطر</label><div class="gap-chips" id="gapChips">${[300, 500, 1000, 1500, 2000, 3000].map((ms) => `<button type="button" data-gap="${ms}" class="en-inline">${ms / 1000}ث</button>`).join('')}</div><div class="mode-sep"></div><button type="button" role="menuitem" data-mode="shadow">🗣 ردّد ورائي</button></div><button type="button" class="btn icon sm ghost hidden" id="modeOff" title="إيقاف التوقف — تشغيل عادي">✕</button></div>` : ''}
-          ${isVideo && hasTimes ? `<div class="view-row"><span class="tiny muted">🔔 قائمة الكلمات كل</span><div class="segmented" id="wordBatch" role="group">${[[0, 'إيقاف'], [10, '10'], [20, '20'], [30, '30']].map(([n, l]) => `<button type="button" data-wb="${n}">${l}</button>`).join('')}</div></div>
-          <label class="switch"><input type="checkbox" id="recapOn"> <span>📝 ملخص قصير بالعامية كل ٥ دقائق</span></label>` : ''}
-          ${isVideo && hasTimes ? '<button type="button" class="btn sm ghost rset-wide" id="loopBtn" aria-pressed="false" title="كل فقرة خضراء تُعاد مرتين ثم يكمل (L)">🔁 أعِد كل فقرة مرتين</button>' : ''}
+          <div class="rset-title">⚙️ إعدادات المقطع</div>
+          ${isVideo && hasTimes ? `<div id="mode" class="rgrp">
+            <div class="srow"><span class="slabel">السرعة</span><div class="sopts" id="speed">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" class="sopt en-inline" data-rate="${r}">${r}×</button>`).join('')}</div></div>
+            <div class="srow"><span class="slabel">التوقف</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="gapOn"> بعد كل سطر</label><span class="sopts" id="gapChips">${[500, 1000, 2000, 3000].map((ms) => `<button type="button" class="sopt en-inline" data-gap="${ms}">${ms / 1000}ث</button>`).join('')}</span></div></div>
+            <div class="srow"><span class="slabel">التدريب</span><div class="sopts"><button type="button" class="sopt" data-mode="shadow">🗣 ردّد ورائي</button><button type="button" class="sopt" id="loopBtn" aria-pressed="false">🔁 الفقرة مرتين</button><button type="button" class="sopt hidden" id="modeOff">✕ عادي</button></div></div>
           </div>
-          <div class="rset-sec"><div class="rset-h">👁 العرض</div>
-          <div class="speed-pick" id="viewPick"><button type="button" class="btn sm ghost" id="viewBtn" aria-haspopup="true" aria-expanded="false" title="العرض: الترجمة، الخط، المتابعة">${icon.subtitles} العرض</button>
-            <div class="speed-menu view-menu hidden" id="viewMenu">
-              <label class="switch"><input type="checkbox" id="arToggle" ${showAr ? 'checked' : ''}> <span>الترجمة العربية</span></label>
-              <div class="segmented ar-layout${showAr ? '' : ' hidden'}" id="arLayout" role="group" aria-label="مكان الترجمة"><button type="button" data-layout="side" title="العربي بجانب الإنجليزي">⇆ بجانبه</button><button type="button" data-layout="below" title="العربي تحت الإنجليزي">⇅ تحته</button></div>
-              <button type="button" class="btn sm ghost" id="hideArBtn" aria-pressed="false" title="أخفِ العربي، والمسه لتراه (A)">🙈 أخفِ العربي حتى ألمسه</button>
-              ${hasTimes ? `<label class="switch"><input type="checkbox" id="followToggle" ${follow ? 'checked' : ''}> <span>متابعة تلقائية للنص</span></label>` : ''}
-              <div class="view-row"><span class="tiny muted">حجم الخط</span><div class="segmented fontsize" role="group" aria-label="حجم الخط"><button type="button" data-font="-1" title="خط أصغر">A−</button><button type="button" data-font="1" title="خط أكبر">A+</button></div></div>
-            </div></div>
-            <div class="view-row"><span class="tiny muted">مكان الفيديو</span><div class="segmented" id="vidPos" role="group" aria-label="مكان الفيديو"><button type="button" data-vpos="top">الفيديو فوق</button><button type="button" data-vpos="bottom">الفيديو تحت</button></div></div>
-          </div>
-          <div class="rset-sec"><div class="rset-h">🧰 أدوات</div>
-          <span class="tr-search"><input class="input sm" id="trQ" type="search" placeholder="🔎 ابحث في النص" aria-label="ابحث في النص"><span class="tiny muted" id="trQn"></span></span>
-            <div class="rset-row">
-              <button class="btn sm ghost" id="summaryBtn" title="ملخص المقطع: الفكرة، الفائدة، الخطوات والأقوال">📝 الملخص</button>
-              <button class="btn sm ghost" id="listenBtn" title="يقرأ لك كل جملة بالعربي ثم بالإنجليزي — تابع بأذنك">🎧 استماع</button>
-          <button type="button" class="btn sm ghost" id="focusBtn" aria-pressed="false" title="توسيع: إخفاء التفاصيل والتركيز على النص"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg> توسيع النص</button>
-              ${source.youtube_id && !source.is_demo ? `<a class="btn sm ghost" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">${icon.link} يوتيوب</a>` : ''}
-              <button class="btn sm ghost" id="del" title="حذف المصدر" style="color:var(--bad)">${icon.trash} حذف</button>
-            </div>
-          </div>
+          <div class="srow"><span class="slabel">قائمة الكلمات</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="wbOn"> كل</label><input class="input sopt-num" id="wbN" type="number" min="3" max="300" inputmode="numeric"> <span class="tiny">كلمة</span><span class="sopts" id="wbWhen"><button type="button" class="sopt" data-when="before">قبلها</button><button type="button" class="sopt" data-when="after">بعدها</button></span></div></div>
+          <div class="srow"><span class="slabel">الملخص</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="recapOn"> بالعامية كل ٥ دقائق</label></div></div>` : ''}
+          <div id="viewPick" class="rgrp"><button type="button" class="hidden" id="viewBtn"></button><div id="viewMenu" class="rgrp">
+            <div class="srow"><span class="slabel">الترجمة</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="arToggle" ${showAr ? 'checked' : ''}> عربي</label><span class="sopts${showAr ? '' : ' hidden'}" id="arLayout"><button type="button" class="sopt" data-layout="side">بجانبه</button><button type="button" class="sopt" data-layout="below">تحته</button></span><button type="button" class="sopt" id="hideArBtn" aria-pressed="false">🙈 أخفه</button></div></div>
+            <div class="srow"><span class="slabel">النص</span><div class="sopts">${hasTimes ? `<label class="sopt-check"><input type="checkbox" class="check" id="followToggle" ${follow ? 'checked' : ''}> متابعة تلقائية</label>` : ''}<span class="sopts fontsize"><button type="button" class="sopt" data-font="-1">A−</button><button type="button" class="sopt" data-font="1">A+</button></span></div></div>
+          </div></div>
+          ${isVideo ? `<div class="srow"><span class="slabel">الفيديو</span><div class="sopts" id="vidPos"><button type="button" class="sopt" data-vpos="top">فوق</button><button type="button" class="sopt" data-vpos="bottom">تحت</button><button type="button" class="sopt" data-vpos="float">عائم</button></div></div>` : ''}
+          <div class="srow"><span class="slabel">بحث</span><div class="sopts tr-search"><input class="input sm" id="trQ" type="search" placeholder="ابحث في النص" aria-label="ابحث في النص"><span class="tiny muted" id="trQn"></span></div></div>
+          <div class="srow"><span class="slabel">أدوات</span><div class="sopts">
+            <button class="sopt" id="summaryBtn">📝 الملخص</button><button class="sopt" id="listenBtn">🎧 استماع</button>
+            ${source.youtube_id && !source.is_demo ? `<a class="sopt" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">يوتيوب ↗</a>` : ''}
+            <button class="sopt" id="del" style="color:var(--bad)">🗑 حذف</button></div></div>
+          <button type="button" class="btn primary rset-ok" id="setOk">موافق</button>
         </div>
         <div class="reader-status"><span class="tiny mode-note" id="modeNote"></span><span class="tiny muted" id="trNote"></span></div>
         ${isVideo ? '<div class="player-box"><div id="player"></div></div><div class="split" id="split" role="separator" aria-orientation="horizontal" title="اسحب لتكبير الفيديو أو النص"><span></span></div>' : ''}
         <button type="button" class="btn sm primary back-now hidden" id="backNow">↓ الجملة الحالية</button>
         <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}${arLayout === 'below' ? ' ar-below' : ''}" id="lines"></div>
-        <p class="tiny muted reader-hint">${isVideo && hasTimes ? 'اضغط أي كلمة: يقف الفيديو عندها ويظهر معناها، ويكمل حين تغلقها أو تحفظها. اسحب الفاصل تحت الفيديو لتكبيره أو تصغيره. لوحة المفاتيح: مسافة تشغيل/إيقاف · ← → الجملة السابقة/التالية · R أعد الجملة · L كرّرها · A أخفِ العربي.' : 'اضغط على أي كلمة لترى معناها في هذه الجملة.'} <span class="mark s-suggested u-common">شائعة</span> <span class="mark s-suggested u-medium">أقل شيوعًا</span> <span class="mark s-suggested u-rare">نادرة</span> <span class="mark s-saved">محفوظة</span></p>
+        <p class="tiny muted reader-hint">${isVideo && hasTimes ? 'اضغط أي كلمة: يقف الفيديو عندها ويظهر معناها، ويكمل حين تغلقها أو تحفظها. اسحب الفاصل تحت الفيديو لتكبيره أو تصغيره. لوحة المفاتيح: مسافة تشغيل/إيقاف · ← → الجملة السابقة/التالية · R أعد الجملة · L كرّرها · A أخفِ العربي.' : 'اضغط على أي كلمة لترى معناها في هذه الجملة.'} جديدة: <span class="mark s-suggested u-common">شائعة</span> <span class="mark s-suggested u-medium">أقل شيوعًا</span> <span class="mark s-suggested u-rare">نادرة</span> · <span class="mark s-saved">في كلماتي</span></p>
       </div>
       <aside class="reader-side card" id="side"></aside>
     </div>`;
@@ -319,13 +311,74 @@ export async function render(view, { segments, params }) {
   $('#setBtn', view).addEventListener('click', (e) => { e.stopPropagation(); toggleSet(rset.classList.contains('hidden')); });
   const closeSet = (e) => { if (!rset.classList.contains('hidden') && !e.target.closest?.('#rset, #setBtn')) toggleSet(false); };
   document.addEventListener('click', closeSet);
-  // Video above the text, or the text above the video.
-  let vidPos = pref('reader.vidPos', 'top') === 'bottom' ? 'bottom' : 'top';
-  const showVidPos = () => {
-    $('.reader-main', view).classList.toggle('video-bottom', vidPos === 'bottom');
-    view.querySelectorAll('#vidPos [data-vpos]').forEach((b) => b.classList.toggle('active', b.dataset.vpos === vidPos));
+  $('#setOk', view).addEventListener('click', () => toggleSet(false));
+  // Video above the text, below it, or floating in a corner (drag it anywhere, it snaps to a corner).
+  let vidPos = ['top', 'bottom', 'float'].includes(pref('reader.vidPos', 'top')) ? pref('reader.vidPos', 'top') : 'top';
+  let floatW = Math.max(200, Math.min(640, Number(pref('reader.floatW', '320')) || 320));
+  let corner = ['tl', 'tr', 'bl', 'br'].includes(pref('reader.floatCorner', 'br')) ? pref('reader.floatCorner', 'br') : 'br';
+  const pbox = () => $('.player-box', view);
+  // the bar to drag / resize the floating video (added again if the player rebuilt its box)
+  function ensureFloatBar() {
+    const b = pbox();
+    if (!b || b.querySelector('.float-bar')) return;
+    b.insertAdjacentHTML('afterbegin', '<div class="float-bar"><span class="fh" title="اسحب لأي زاوية">⠿</span><button type="button" data-fs="-" title="أصغر">−</button><button type="button" data-fs="+" title="أكبر">＋</button><button type="button" data-fs="dock" title="أرجعه فوق النص">✕</button></div>');
+    bindFloatBar(b.querySelector('.float-bar'));
+  }
+  const clearFloat = () => { const b = pbox(); if (b) ['width', 'left', 'right', 'top', 'bottom'].forEach((k) => b.style.removeProperty(k)); };
+  const placeFloat = () => {
+    const b = pbox();
+    if (!b || vidPos !== 'float') return;
+    clearFloat();
+    const w = Math.min(floatW, Math.round(window.innerWidth * (window.innerWidth < 600 ? 0.6 : 0.9)));
+    b.style.width = `${w}px`;
+    const mobile = window.innerWidth < 900;
+    if (corner[0] === 't') { b.style.top = `${mobile ? 104 : 64}px`; b.style.bottom = 'auto'; } else { b.style.bottom = `${mobile ? 80 : 16}px`; b.style.top = 'auto'; }
+    if (corner[1] === 'l') { b.style.left = '12px'; b.style.right = 'auto'; } else { b.style.right = '12px'; b.style.left = 'auto'; }
   };
-  view.querySelectorAll('#vidPos [data-vpos]').forEach((b) => b.addEventListener('click', () => { vidPos = b.dataset.vpos; setPref('reader.vidPos', vidPos); showVidPos(); }));
+  const showVidPos = () => {
+    const m = $('.reader-main', view);
+    m.classList.toggle('video-bottom', vidPos === 'bottom');
+    m.classList.toggle('video-float', vidPos === 'float');
+    view.querySelectorAll('#vidPos [data-vpos]').forEach((b) => b.classList.toggle('active', b.dataset.vpos === vidPos));
+    if (vidPos === 'float') { ensureFloatBar(); placeFloat(); } else clearFloat();
+  };
+  const setVidPos = (v) => { vidPos = v; setPref('reader.vidPos', vidPos); showVidPos(); };
+  view.querySelectorAll('#vidPos [data-vpos]').forEach((b) => b.addEventListener('click', () => setVidPos(b.dataset.vpos)));
+  function bindFloatBar(bar) {
+  bar.addEventListener('click', (e) => {
+    const f = e.target.closest('[data-fs]')?.dataset.fs;
+    if (!f) return;
+    if (f === 'dock') return setVidPos('top');
+    floatW = Math.max(200, Math.min(640, floatW + (f === '+' ? 80 : -80)));
+    setPref('reader.floatW', String(floatW));
+    placeFloat();
+  });
+  bar.querySelector('.fh').addEventListener('pointerdown', (e) => {
+    const b = pbox();
+    const r = b.getBoundingClientRect();
+    const dx = e.clientX - r.left;
+    const dy = e.clientY - r.top;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    b.style.pointerEvents = 'none';
+    const move = (ev) => {
+      ['right', 'bottom'].forEach((k) => b.style.removeProperty(k));
+      b.style.left = `${Math.max(0, Math.min(window.innerWidth - r.width, ev.clientX - dx))}px`;
+      b.style.top = `${Math.max(0, Math.min(window.innerHeight - r.height, ev.clientY - dy))}px`;
+    };
+    const up = () => {
+      b.style.pointerEvents = '';
+      const q = b.getBoundingClientRect();
+      corner = `${q.top + q.height / 2 < window.innerHeight / 2 ? 't' : 'b'}${q.left + q.width / 2 < window.innerWidth / 2 ? 'l' : 'r'}`;
+      setPref('reader.floatCorner', corner);
+      placeFloat();
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  });
+  }
+  window.addEventListener('resize', placeFloat);
   showVidPos();
 
   // Small cards over the page that never block the view for long.
@@ -341,30 +394,185 @@ export async function render(view, { segments, params }) {
     return n;
   }
 
-  // 🔔 Every N suggested words that went by in the video: the list with meanings, play them or go on.
-  let wordBatch = Number(pref('reader.wordBatch', '20'));
-  if (![0, 10, 20, 30].includes(wordBatch)) wordBatch = 20;
-  const passed = new Map(); // vocabulary_id → item
-  const showBatch = () => view.querySelectorAll('#wordBatch [data-wb]').forEach((b) => b.classList.toggle('active', Number(b.dataset.wb) === wordBatch));
-  view.querySelectorAll('#wordBatch [data-wb]').forEach((b) => b.addEventListener('click', () => { wordBatch = Number(b.dataset.wb); setPref('reader.wordBatch', String(wordBatch)); passed.clear(); showBatch(); }));
-  showBatch();
-  function wordsPassed(lineEl) {
-    if (!wordBatch || !lineEl) return;
-    for (const m of lineEl.querySelectorAll('.mark[data-vid]')) {
-      const vid = Number(m.dataset.vid);
-      const it = data.items.find((x) => x.vocabulary_id === vid);
-      if (it && !passed.has(vid)) passed.set(vid, it);
+  // 🔔 Every N new words of the video: a list with meanings — before they come, or after they went by.
+  // A word shown once in this video is never listed again (so new words always take the place).
+  let wbN = Math.max(3, Math.min(300, Number(pref('reader.wbN', pref('reader.wordBatch', '20'))) || 20));
+  let wbOn = pref('reader.wbOn', pref('reader.wordBatch', '20') === '0' ? '0' : '1') === '1';
+  let wbWhen = pref('reader.wbWhen', 'after') === 'before' ? 'before' : 'after';
+  const shownKey = `reader.shown.${id}`;
+  const shown = new Set((() => { try { return JSON.parse(localStorage.getItem(shownKey) || '[]'); } catch { return []; } })());
+  const saveShown = () => { try { localStorage.setItem(shownKey, JSON.stringify([...shown])); } catch { /* storage unavailable */ } };
+  const passed = new Map(); // vocabulary_id → item (words heard, not listed yet)
+  const showWb = () => {
+    const on = $('#wbOn', view); if (on) on.checked = wbOn;
+    const n = $('#wbN', view); if (n) n.value = String(wbN);
+    view.querySelectorAll('#wbWhen [data-when]').forEach((b) => b.classList.toggle('active', b.dataset.when === wbWhen));
+  };
+  $('#wbOn', view)?.addEventListener('change', (e) => { wbOn = e.target.checked; setPref('reader.wbOn', wbOn ? '1' : '0'); passed.clear(); });
+  $('#wbN', view)?.addEventListener('change', (e) => { wbN = Math.max(3, Math.min(300, Number(e.target.value) || 20)); setPref('reader.wbN', String(wbN)); showWb(); });
+  view.querySelectorAll('#wbWhen [data-when]').forEach((b) => b.addEventListener('click', () => { wbWhen = b.dataset.when; setPref('reader.wbWhen', wbWhen); passed.clear(); showWb(); }));
+  showWb();
+  // the words still to come, in the order they are said, that were never listed
+  const upcoming = (n) => {
+    const out = [];
+    const seen = new Set();
+    const cur = linesEl.querySelector('.line.current');
+    let started = !cur;
+    for (const l of linesEl.querySelectorAll('.line')) {
+      if (!started) { if (l === cur) started = true; else continue; }
+      for (const m of l.querySelectorAll('.mark[data-vid]')) {
+        const vid = Number(m.dataset.vid);
+        if (shown.has(vid) || seen.has(vid)) continue;
+        const it = data.items.find((x) => x.vocabulary_id === vid);
+        if (!it) continue;
+        seen.add(vid);
+        out.push(it);
+        if (out.length >= n) return out;
+      }
     }
-    if (passed.size < wordBatch) return;
-    const list = [...passed.values()];
-    passed.clear();
+    return out;
+  };
+  function listCard(list, title, actionLabel) {
+    list.forEach((w) => shown.add(w.vocabulary_id));
+    saveShown();
     player?.pause?.();
     const href = `#/practice?${new URLSearchParams({ source: id, title: source.title.slice(0, 40), mode: 'quiz', vids: list.map((w) => w.vocabulary_id).join(','), n: Date.now() })}`;
-    const n = popNote(`<div class="lt-title">🔔 مرّت عليك ${list.length} كلمة</div>
-      <div class="lt-words">${list.map((w) => `<div class="lt-w"><b class="en">${esc(w.term)}</b><span>${esc(w.arabic || '')}</span></div>`).join('')}</div>
-      <div class="lt-actions"><a class="btn primary sm" href="${href}">🎮 العبها</a><button type="button" class="btn sm" data-back>↩ عد للمقطع</button></div>`, { cls: 'lt-words-card' });
-    n.querySelector('[data-back]').addEventListener('click', () => { n.remove(); player?.play?.(); });
+    const n = popNote(`<div class="lt-title">${title}</div>
+      <div class="lt-words">${list.map((w) => `<div class="lt-w u-${esc(w.usage || '')}"><b class="en">${esc(w.term)}</b><span>${esc(w.arabic || '')}</span></div>`).join('')}</div>
+      <div class="lt-actions"><a class="btn primary sm" href="${href}">🎮 العبها</a><button type="button" class="btn sm" data-back>${actionLabel}</button></div>`, { cls: 'lt-words-card lt-contrast' });
+    n.querySelector('[data-back]').addEventListener('click', () => { n.remove(); held = false; player?.play?.(); });
   }
+  let previewDone = false;
+  const previewSet = new Set(); // words announced and not yet heard
+  function previewNext() {
+    const list = upcoming(wbN);
+    previewSet.clear();
+    list.forEach((w) => previewSet.add(w.vocabulary_id));
+    if (list.length) listCard(list, `👀 الكلمات القادمة (${list.length})`, '▶ كمّل المقطع');
+  }
+  function wordsPassed(lineEl) {
+    if (!lineEl) return;
+    for (const m of lineEl.querySelectorAll('.mark[data-vid]')) {
+      const vid = Number(m.dataset.vid);
+      countPassed(vid);
+      previewSet.delete(vid);
+      if (shown.has(vid) || passed.has(vid)) continue;
+      const it = data.items.find((x) => x.vocabulary_id === vid);
+      if (it) passed.set(vid, it);
+    }
+    if (!wbOn) return;
+    if (wbWhen === 'before') {
+      // all the announced words were heard: announce the next ones
+      if (previewDone && !previewSet.size) { passed.clear(); previewNext(); }
+      return;
+    }
+    if (passed.size < wbN) return;
+    const list = [...passed.values()];
+    passed.clear();
+    listCard(list, `🔔 مرّت عليك ${list.length} كلمة جديدة`, '↩ عد للمقطع');
+  }
+
+  // 🎯 Words gone through today (each once, in any video) against the daily goal; can pass 100%.
+  const dayKey = `lt.passed.${new Date().toISOString().slice(0, 10)}`;
+  const passedToday = new Set((() => { try { return JSON.parse(localStorage.getItem(dayKey) || '[]'); } catch { return []; } })());
+  let goalTarget = 10;
+  function showGoalChip() {
+    const chip = $('#goalChip', view);
+    if (!chip) return;
+    const n = passedToday.size;
+    const pct = Math.round((100 * n) / Math.max(1, goalTarget));
+    chip.innerHTML = `🎯 <b class="en-inline">${n}/${goalTarget}</b>${n ? ` <span class="tiny en-inline">${pct}%</span>` : ''}`;
+    chip.classList.toggle('done', n >= goalTarget);
+    const inVideo = data.items.filter((it) => passedToday.has(it.vocabulary_id)).length;
+    chip.title = `كلمات مرّت عليك اليوم بدون تكرار: ${n} من هدفك ${goalTarget} — في هذا المقطع ${inVideo} من ${data.items.length}`;
+  }
+  function countPassed(vid) {
+    if (passedToday.has(vid)) return;
+    passedToday.add(vid);
+    try { localStorage.setItem(dayKey, JSON.stringify([...passedToday])); } catch { /* storage unavailable */ }
+    showGoalChip();
+  }
+
+  // 🎛 Practise exactly the words you want: part of the video, how many, level, how common,
+  // new or saved, and a list to tick — then cards, a quiz or games.
+  function openPracticeFilter() {
+    const dur = Number(source.duration_seconds) || Math.max(60, ...data.lines.map((l) => Number(l.start_seconds) || 0));
+    const now = player?.time?.() || 0;
+    const f = JSON.parse(pref('reader.pf', '{}') || '{}');
+    const F = { part: f.part || 'all', from: f.from ?? '', to: f.to ?? '', count: f.count || 'all', n: f.n || 30, levels: f.levels || [], usage: f.usage || [], state: f.state || 'all', mode: f.mode || 'cards' };
+    const chips = (name, opts, multi) => opts.map(([k, l]) => `<button type="button" class="sopt" data-f="${name}" data-v="${k}" data-multi="${multi ? 1 : 0}">${l}</button>`).join('');
+    const box = openModal(`<div class="pf">
+      <div class="rset-title">🎛 تدرّب على كلمات المقطع</div>
+      <div class="srow"><span class="slabel">الجزء</span><div class="sopts">${chips('part', [['all', 'الكل'], ['q1', 'الربع ١'], ['q2', 'الربع ٢'], ['q3', 'الربع ٣'], ['q4', 'الربع ٤'], ['sofar', 'حتى موضعي'], ['range', 'من–إلى']])}
+        <span class="pf-range"><input class="input sopt-num" id="pfFrom" type="number" min="0" placeholder="من" value="${esc(String(F.from))}"> – <input class="input sopt-num" id="pfTo" type="number" min="0" placeholder="إلى" value="${esc(String(F.to))}"> <span class="tiny">دقيقة</span></span></div></div>
+      <div class="srow"><span class="slabel">العدد</span><div class="sopts">${chips('count', [['all', 'الكل'], ['first', 'أول'], ['last', 'آخر']])}<input class="input sopt-num" id="pfN" type="number" min="1" value="${F.n}"> <span class="tiny">كلمة</span></div></div>
+      <div class="srow"><span class="slabel">المستوى</span><div class="sopts">${chips('levels', ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map((l) => [l, l]), true)}</div></div>
+      <div class="srow"><span class="slabel">الشيوع</span><div class="sopts">${chips('usage', [['common', '🟢 شائعة'], ['medium', '🟡 أقل'], ['rare', '🔴 نادرة']], true)}</div></div>
+      <div class="srow"><span class="slabel">الحالة</span><div class="sopts">${chips('state', [['all', 'الكل'], ['new', 'الجديدة'], ['saved', 'المحفوظة']])}</div></div>
+      <div class="srow"><span class="slabel">التمرين</span><div class="sopts">${chips('mode', [['cards', '🃏 بطاقات'], ['quiz', '✅ اختبار'], ['games', '🎮 ألعاب']])}</div></div>
+      <div class="pf-res"><b id="pfCount"></b> <button type="button" class="link-btn" id="pfAll">تحديد الكل</button> · <button type="button" class="link-btn" id="pfNone">إلغاء الكل</button></div>
+      <div class="pf-list" id="pfList"></div>
+      <div class="btn-row"><a class="btn primary" id="pfGo">ابدأ</a><button type="button" class="btn ghost" data-close>إغلاق</button></div></div>`);
+    const off = new Set();
+    const pick = () => {
+      let lo = 0;
+      let hi = Infinity;
+      if (/^q[1-4]$/.test(F.part)) { const k = Number(F.part[1]); lo = (dur * (k - 1)) / 4; hi = (dur * k) / 4; }
+      if (F.part === 'sofar') hi = now + 1;
+      if (F.part === 'range') { lo = (Number(F.from) || 0) * 60; hi = F.to === '' ? Infinity : (Number(F.to) || 0) * 60; }
+      let list = data.items.filter((it) => {
+        const t = Number(it.timestamp_seconds) || 0;
+        if (t < lo || t > hi) return false;
+        if (F.levels.length && !F.levels.includes(it.level)) return false;
+        if (F.usage.length && !F.usage.includes(it.usage)) return false;
+        if (F.state === 'new' && it.user_state === 'saved') return false;
+        if (F.state === 'saved' && it.user_state !== 'saved') return false;
+        return Boolean(it.arabic);
+      }).sort((a, b) => (Number(a.timestamp_seconds) || 0) - (Number(b.timestamp_seconds) || 0));
+      const n = Math.max(1, Number(F.n) || 30);
+      if (F.count === 'first') list = list.slice(0, n);
+      if (F.count === 'last') list = list.slice(-n);
+      return list;
+    };
+    const draw = () => {
+      box.querySelectorAll('[data-f]').forEach((b) => {
+        const v = F[b.dataset.f];
+        b.classList.toggle('active', Array.isArray(v) ? v.includes(b.dataset.v) : v === b.dataset.v);
+      });
+      box.querySelector('.pf-range').classList.toggle('hidden', F.part !== 'range');
+      const list = pick();
+      const chosen = list.filter((it) => !off.has(it.vocabulary_id)).slice(0, 600);
+      box.querySelector('#pfCount').textContent = `${chosen.length} كلمة`;
+      box.querySelector('#pfList').innerHTML = list.map((it) => `<label class="pf-item"><input type="checkbox" class="check" data-pv="${it.vocabulary_id}" ${off.has(it.vocabulary_id) ? '' : 'checked'}> ${usageDot(it.usage)}<b class="en">${esc(it.term)}</b> <span class="tiny ink-2">${esc(it.arabic || '')}</span> <span class="tiny muted en-inline">${fmtTime(Number(it.timestamp_seconds) || 0)}</span></label>`).join('') || '<p class="small muted">لا توجد كلمات بهذه الفلاتر.</p>';
+      const go = box.querySelector('#pfGo');
+      go.href = `#/practice?${new URLSearchParams({ source: id, title: source.title.slice(0, 40), mode: F.mode, vids: chosen.map((it) => it.vocabulary_id).join(','), n: Date.now() })}`;
+      go.classList.toggle('disabled', !chosen.length);
+      setPref('reader.pf', JSON.stringify(F));
+    };
+    box.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-f]');
+      if (b) {
+        const k = b.dataset.f;
+        if (b.dataset.multi === '1') F[k] = F[k].includes(b.dataset.v) ? F[k].filter((x) => x !== b.dataset.v) : [...F[k], b.dataset.v];
+        else F[k] = b.dataset.v;
+        off.clear();
+        return draw();
+      }
+      if (e.target.closest('#pfAll')) { off.clear(); return draw(); }
+      if (e.target.closest('#pfNone')) { pick().forEach((it) => off.add(it.vocabulary_id)); return draw(); }
+      if (e.target.closest('#pfGo') && box.querySelector('#pfGo').classList.contains('disabled')) e.preventDefault();
+    });
+    box.addEventListener('change', (e) => {
+      const c = e.target.closest('[data-pv]');
+      if (c) { const v = Number(c.dataset.pv); if (c.checked) off.delete(v); else off.add(v); draw(); return; }
+      if (e.target.id === 'pfFrom') F.from = e.target.value;
+      if (e.target.id === 'pfTo') F.to = e.target.value;
+      if (e.target.id === 'pfN') F.n = Number(e.target.value) || 30;
+      draw();
+    });
+    draw();
+  }
+  view.addEventListener('click', (e) => { if (e.target.closest('#pfOpen')) openPracticeFilter(); });
 
   // 📝 Every 5 minutes watched: what it is about, in a few words of everyday Saudi Arabic.
   let recapOn = pref('reader.recap', '1') === '1';
@@ -460,7 +668,13 @@ export async function render(view, { segments, params }) {
     const b = $('#focusBtn', view);
     b?.setAttribute('aria-pressed', String(on));
     b?.classList.toggle('primary', on);
-    if (b) b.title = on ? 'إظهار تفاصيل الموقع' : 'توسيع: إخفاء التفاصيل والتركيز على النص';
+    if (b) {
+      b.title = on ? 'تصغير: رجوع للشاشة العادية' : 'توسيع الشاشة';
+      b.innerHTML = on
+        ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>'
+        : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+    }
+    setTimeout(placeFloat, 50);
     if (on && document.documentElement.requestFullscreen && !document.fullscreenElement) {
       document.documentElement.requestFullscreen().then(() => { focusFs = true; }).catch(() => {});
     } else if (!on && focusFs && document.fullscreenElement) {
@@ -570,7 +784,7 @@ export async function render(view, { segments, params }) {
           const q = (extra) => `#/practice?${new URLSearchParams({ source: id, title: source.title.slice(0, 40), ...extra })}`;
           return `<div class="side-practice"><span class="tiny muted">🎯 تدرّب على كلمات المقطع:</span>
             <a class="chip" href="${q({ mode: 'cards' })}">بطاقات</a><a class="chip" href="${q({ mode: 'games', type: 'meaning' })}">المعنى</a>
-            <a class="chip" href="${q({ mode: 'games', type: 'listen' })}">استمع واختر</a><a class="chip" href="${q({ mode: 'games', type: 'connect' })}">روابط</a></div>`;
+            <a class="chip" href="${q({ mode: 'games', type: 'listen' })}">استمع واختر</a><a class="chip" href="${q({ mode: 'games', type: 'connect' })}">روابط</a><button type="button" class="chip pf-open" id="pfOpen">🎛 اختر بدقة</button></div>`;
         })() : ''}
         ${data.items.length > 12 ? `<div class="side-filters">
           <div class="side-levels"><button class="lv ${sideF.level ? '' : 'on'}" data-lv="">الكل</button>${levels.map((l) => `<button class="lv ${sideF.level === l ? 'on' : ''}" data-lv="${l}">${l}</button>`).join('')}</div>
@@ -770,13 +984,8 @@ export async function render(view, { segments, params }) {
     }
   }
   refineWords();
-  // 🎯 Today's goal: words gone through (opened or saved one by one) in any video.
-  const showGoal = (g) => {
-    const chip = $('#goalChip', view);
-    if (!chip || !g) return;
-    chip.innerHTML = `🎯 <b class="en-inline">${Math.min(g.count, g.goal)}/${g.goal}</b>${g.count >= g.goal ? ' ✓' : ''}`;
-    chip.classList.toggle('done', g.count >= g.goal);
-  };
+  // 🎯 Today's goal (target from the learner's settings; the count is the words gone through).
+  const showGoal = (g) => { if (g?.goal) goalTarget = g.goal; showGoalChip(); };
   api.today().then((t) => showGoal(t.watch_goal)).catch(() => {});
   const onGoal = (e) => {
     showGoal(e.detail);
@@ -814,6 +1023,7 @@ export async function render(view, { segments, params }) {
     const box = $('#player', view);
     if (source.is_demo) {
       player = demoPlayer(box.parentElement, source.duration_seconds || 600);
+      setTimeout(showVidPos, 0);
       player.setRate(rate);
       if (resumeAt != null) player.seek(resumeAt, { play: false });
     } else {
@@ -821,6 +1031,7 @@ export async function render(view, { segments, params }) {
       youtubePlayer($('#player', view), source.youtube_id, startAt ?? resumeAt, (isPlaying) => setPlaying(isPlaying)).then((p) => {
         player = p;
         player.setRate?.(rate);
+        showVidPos();
       }).catch(() => {
         $('.player-box', view).innerHTML = `<div class="alert info">تعذّر تحميل مشغّل يوتيوب. يمكنك القراءة هنا، أو <a href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">فتح الفيديو في يوتيوب</a>.</div>`;
       });
@@ -1144,6 +1355,7 @@ export async function render(view, { segments, params }) {
   function setPlaying(isPlaying) {
     if (playing && !isPlaying && !gapTimer) setTimeout(() => saveProgress(), 0);
     if (isPlaying) held = false; // started again (here or on the YouTube player)
+    if (isPlaying && wbOn && wbWhen === 'before' && !previewDone) { previewDone = true; setTimeout(previewNext, 0); }
     playing = isPlaying;
     showPlayBtn();
     linesEl.classList.toggle('is-playing', isPlaying);
@@ -1525,6 +1737,7 @@ export async function render(view, { segments, params }) {
     stopListening();
     clearInterval(backTimer);
     clearInterval(recapTimer);
+    window.removeEventListener('resize', placeFloat);
     document.querySelectorAll('.lt-note').forEach((n) => n.remove());
     window.removeEventListener('lexitube:goal', onGoal);
     window.removeEventListener('resize', onResize);

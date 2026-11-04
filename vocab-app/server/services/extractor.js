@@ -402,11 +402,23 @@ export async function translateWithAi(lines, title = '') {
       user: `${strict ? 'Check carefully: one Arabic line per English fragment, nothing moved between lines.\n' : ''}${title ? `Video: ${title}\n` : ''}${lines.map((l) => `[${l.idx}] ${l.text}`).join('\n')}`,
       schema: TRANSLATE_SCHEMA,
       zod: TranslateZ,
-      maxTokens: Math.min(32000, 120 * lines.length + 1000),
+      maxTokens: Math.min(32000, 320 * lines.length + 1500),
     });
     return new Map(r.lines.map((l) => [l.i, l.ar]));
   };
-  const first = await ask(false);
+  let first;
+  try {
+    first = await ask(false);
+  } catch (err) {
+    // the answer was cut off (too long): translate the two halves separately
+    if (err instanceof AiError && err.status === 422 && lines.length > 1) {
+      const mid = Math.ceil(lines.length / 2);
+      const a = await translateWithAi(lines.slice(0, mid), title);
+      const b = await translateWithAi(lines.slice(mid), title);
+      return new Map([...a, ...b]);
+    }
+    throw err;
+  }
   const bad = suspiciousTranslations(lines, first);
   if (!bad.size) return first;
   const second = await ask(true).catch(() => null);

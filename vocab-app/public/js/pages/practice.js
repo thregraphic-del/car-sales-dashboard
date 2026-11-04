@@ -69,7 +69,7 @@ export async function render(view, { params }) {
   const groupObj = state.groups.find((g) => g.id === group);
   if (groupObj) label = `مجموعة: ${groupObj.name}`;
 
-  if (params.source) label = `${params.vids ? 'الكلمات الصعبة من المقطع' : 'كلمات المقطع'}${params.title ? `: ${params.title}` : ''}`;
+  if (params.source) label = `${params.vids ? 'كلمات مختارة من المقطع' : 'كلمات المقطع'}${params.title ? `: ${params.title}` : ''}`;
   const base = { mode, focus: params.ids || params.session || params.source ? undefined : focus, group: group || undefined, ids: params.ids, session: params.session, replay: params.replay, source: params.source, vids: params.vids, title: params.title, type: type !== 'mixed' ? type : undefined };
 
   view.innerHTML = `
