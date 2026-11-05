@@ -315,18 +315,34 @@ async function plainTimedtext(videoId, ms) {
  * servers). provider "supadata" (https://supadata.ai, TRANSCRIPT_API_KEY), or a
  * generic URL with {id} returning [{start, dur, text}] / {segments: [...]}.
  */
-async function supadataTranscript(videoId, key) {
+async function supadataTranscript(videoId, key, { deadline = Date.now() + 18000, jobs = null } = {}) {
   const headers = { 'x-api-key': key, Accept: 'application/json' };
-  let res = await fetchWithTimeout(`https://api.supadata.ai/v1/youtube/transcript?videoId=${videoId}&lang=en`, { headers }, 20000);
-  let data = await res.json().catch(() => ({}));
-  // Long videos are processed as a job: poll briefly.
-  for (let i = 0; res.ok && data.jobId && !data.content && i < 8; i += 1) {
-    await new Promise((r) => setTimeout(r, 2000));
-    res = await fetchWithTimeout(`https://api.supadata.ai/v1/transcript/${encodeURIComponent(data.jobId)}`, { headers }, 10000);
+  const left = () => deadline - Date.now();
+  let jobId = (await jobs?.get(videoId).catch(() => null)) || null;
+  let res = null;
+  let data = {};
+  if (!jobId) {
+    res = await fetchWithTimeout(`https://api.supadata.ai/v1/youtube/transcript?videoId=${videoId}&lang=en`, { headers }, Math.max(4000, Math.min(15000, left() - 2000)));
     data = await res.json().catch(() => ({}));
-    if (data.status && data.status !== 'completed' && data.status !== 'active' && data.status !== 'queued') break;
-    if (data.result) data = data.result;
+    if (res.ok && data.jobId && !data.content) jobId = data.jobId;
   }
+  // Long videos are processed as a job: poll while there is time, otherwise come back later.
+  while (jobId && !data.content && left() > 3500) {
+    res = await fetchWithTimeout(`https://api.supadata.ai/v1/transcript/${encodeURIComponent(jobId)}`, { headers }, Math.min(8000, left() - 1000));
+    data = await res.json().catch(() => ({}));
+    if (data.result) data = data.result;
+    if (data.content) break;
+    if (data.status && !['completed', 'active', 'queued'].includes(data.status)) { await jobs?.clear(videoId).catch(() => {}); jobId = null; break; }
+    if (left() > 5500) await new Promise((r) => setTimeout(r, 2000)); else break;
+  }
+  if (jobId && !data.content) {
+    await jobs?.set(videoId, jobId).catch(() => {});
+    const err = new Error('transcript is being prepared');
+    err.pending = true;
+    throw err;
+  }
+  if (jobId) await jobs?.clear(videoId).catch(() => {});
+  if (!res) throw new Error('transcript service: no answer');
   if (res.status === 404 || /not.?found|no transcript|unavailable/i.test(String(data.error || data.message || ''))) {
     const err = new Error(`transcript service: ${String(data.message || data.error || 'no transcript').slice(0, 100)}`);
     err.noTranscript = true;
@@ -338,8 +354,8 @@ async function supadataTranscript(videoId, key) {
     .filter((s) => s.text);
 }
 
-export async function externalTranscript(videoId, { transcriptProvider: provider, transcriptApiUrl: base, transcriptApiKey: key } = {}) {
-  if (provider === 'supadata' && key) return supadataTranscript(videoId, key);
+export async function externalTranscript(videoId, { transcriptProvider: provider, transcriptApiUrl: base, transcriptApiKey: key, deadline, jobs } = {}) {
+  if (provider === 'supadata' && key) return supadataTranscript(videoId, key, { deadline, jobs });
   if (!base) return null;
   const url = base.replace('{id}', encodeURIComponent(videoId));
   const headers = {};

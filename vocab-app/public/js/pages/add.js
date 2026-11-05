@@ -86,7 +86,16 @@ export async function render(view, { params }) {
   async function openVideo() {
     const stop = steps(['جلب الفيديو', 'قراءة النص كاملًا', 'اختيار الكلمات المفيدة', 'تجهيز الترجمة']);
     try {
-      const r = await api.analyzeYoutube({ url: input.value.trim(), transcript: manual.classList.contains('hidden') ? '' : $('#transcript', view).value });
+      const body = { url: input.value.trim(), transcript: manual.classList.contains('hidden') ? '' : $('#transcript', view).value };
+      let r = await api.analyzeYoutube(body);
+      // A long video: its transcript is prepared in the background — ask again every few seconds (up to ~3 min).
+      for (let i = 0; r?.pending && i < 45 && view.isConnected; i++) {
+        status.innerHTML = `<p class="small muted" style="margin-top:12px"><span class="spinner"></span> ${esc(r.message || 'نجهّز نص الفيديو…')} (${(i + 1) * 4} ث)</p>`;
+        await new Promise((res) => setTimeout(res, 4000));
+        r = await api.analyzeYoutube(body);
+      }
+      if (r?.pending) throw Object.assign(new Error('الفيديو طويل جدًا وما زال نصّه يُجهَّز — جرّب بعد دقيقة.'), { data: {} });
+      status.innerHTML = '';
       stop();
       location.hash = `#/source/${r.source_id}`;
     } catch (err) {

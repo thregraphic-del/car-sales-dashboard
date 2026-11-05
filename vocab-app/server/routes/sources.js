@@ -19,6 +19,11 @@ router.post('/youtube', wrap(async (req, res) => {
     const origin = `${req.protocol}://${req.get('x-forwarded-host') || req.get('host')}`;
     return await service.analyzeYoutube({ url: str(b.url, 500), transcript: b.transcript ? String(b.transcript) : '', force: Boolean(b.force), origin }, req.userId);
   } catch (err) {
+    if (err.pending) {
+      // a long video: its transcript is still being prepared — the page asks again shortly
+      res.status(202).json({ pending: true, message: 'فيديو طويل — نجهّز نصّه، لحظات…' });
+      return undefined;
+    }
     if (err instanceof TranscriptError) {
       // details: which attempts failed and why (no secrets) — shown under "تفاصيل" for troubleshooting.
       res.status(err.status).json({ error: err.message, code: err.code, video: err.meta, details: (err.details || []).slice(0, 12) });

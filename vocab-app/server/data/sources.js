@@ -183,7 +183,7 @@ async function storeItems(sourceId, lineList, items, rankBase = 0) {
     if (line && !already) added += 1;
     let extra = 0;
     for (const l of lineList) {
-      if (l === line || extra >= 20) continue;
+      if (l === line || extra >= 8) continue;
       const sp = findSpan(raw.term, l.text, { pos: raw.part_of_speech, type: raw.item_type }) || findSpan(item.term, l.text, opts);
       if (sp) {
         await addOccurrence(sourceId, vocabId, l, sp);

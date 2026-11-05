@@ -250,6 +250,21 @@ test('transcript service (Supadata): direct answer, long-video job, no transcrip
   assert.equal(await yt.externalTranscript('AAAAAAAAAAA', {}), null, 'not configured → skipped');
 });
 
+test('transcript service: a long video still being written is remembered and fetched on the next try', async () => {
+  let ready = false;
+  routes['api.supadata.ai/v1/youtube/transcript'] = () => ({ body: { jobId: 'job-slow' } });
+  routes['api.supadata.ai/v1/transcript/job-slow'] = () => (ready ? { body: { status: 'completed', content: [{ text: 'Finally ready.', offset: 0, duration: 900 }] } } : { body: { status: 'active' } });
+  const store = new Map();
+  const jobs = { get: async (v) => store.get(v) || null, set: async (v, j) => { store.set(v, j); }, clear: async (v) => { store.delete(v); } };
+  const opts = { transcriptProvider: 'supadata', transcriptApiKey: 'test-key', jobs };
+  await assert.rejects(yt.externalTranscript('SLOWSLOWSLO', { ...opts, deadline: Date.now() + 3000 }), (err) => err.pending === true);
+  assert.equal(store.get('SLOWSLOWSLO'), 'job-slow', 'the job is remembered');
+  ready = true;
+  const segs = await yt.externalTranscript('SLOWSLOWSLO', { ...opts, deadline: Date.now() + 8000 });
+  assert.equal(segs[0].text, 'Finally ready.');
+  assert.equal(store.has('SLOWSLOWSLO'), false, 'forgotten once done');
+});
+
 test("pasted transcript in YouTube's 'Show transcript' copy format keeps the times", () => {
   const copied = '0:00\nhello everyone and welcome\n\n0:04\nso today we talk about data\n1:02:03\nmuch later on\n';
   const segs = yt.parsePastedTranscript(copied);

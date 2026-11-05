@@ -35,22 +35,31 @@ export async function fetchTranscript(videoId, origin) {
     budgetMs: yt.budgetMs, timeoutMs: yt.timeoutMs, transcriptProvider: yt.transcriptProvider, transcriptApiUrl: yt.transcriptApiUrl, transcriptApiKey: yt.transcriptApiKey(),
   };
   const details = [];
+  // Everything must fit in one hosting request (about 30 s): the transcript gets ~18 s.
+  const deadline = Date.now() + 18000;
+  const left = () => deadline - Date.now();
+  const jobs = {
+    get: async (v) => (await get('SELECT value FROM app_settings WHERE key = ?', `ytjob:${v}`))?.value || null,
+    set: (v, j) => run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', `ytjob:${v}`, j),
+    clear: (v) => run('DELETE FROM app_settings WHERE key = ?', `ytjob:${v}`),
+  };
   // 1) A configured transcript service: the most reliable path on hosted servers.
   if ((options.transcriptProvider && options.transcriptApiKey) || options.transcriptApiUrl) {
     try {
-      const segments = await externalTranscript(videoId, options);
+      const segments = await externalTranscript(videoId, { ...options, deadline, jobs });
       if (segments?.length) {
         await recordTranscript();
         return { meta: await getVideoMeta(videoId), segments, source: 'transcript-service', via: 'service' };
       }
       details.push('service: empty transcript');
     } catch (err) {
+      if (err.pending) throw err; // a long video: the service is still writing its transcript
       details.push(err.message.slice(0, 160));
     }
   }
-  if (origin && yt.internalKey()) {
+  if (origin && yt.internalKey() && left() > 4000) {
     try {
-      const ctrl = AbortSignal.timeout(Math.min(32000, yt.budgetMs));
+      const ctrl = AbortSignal.timeout(Math.max(3000, Math.min(left() - 1000, yt.budgetMs)));
       const res = await fetch(`${origin}/internal/youtube-transcript?v=${encodeURIComponent(videoId)}`, { headers: { 'x-lexitube-key': yt.internalKey() }, signal: ctrl });
       const r = res.ok ? await res.json() : { ok: false, code: 'fetch_failed', details: [`HTTP ${res.status}`] };
       if (r.ok && r.segments?.length) return { ...r, via: `edge:${r.via || ''}` };
@@ -62,7 +71,7 @@ export async function fetchTranscript(videoId, origin) {
     }
   }
   try {
-    const r = await getVideoWithTranscript(videoId, { ...options, skip: ['external'], budgetMs: Math.max(8000, options.budgetMs - 20000) });
+    const r = await getVideoWithTranscript(videoId, { ...options, skip: ['external'], budgetMs: Math.max(4000, Math.min(left(), options.budgetMs - 20000)) });
     return { ...r, via: `direct:${r.via || ''}` };
   } catch (err) {
     if (err instanceof TranscriptError) err.details = [...details, ...(err.details || []).map((d) => `direct ${d}`)];
