@@ -271,7 +271,7 @@ export async function render(view, { segments, params }) {
     <div class="listen-bar hidden" id="listenBar"><span id="listenNote">🎧 يقرأ…</span>
       <div class="segmented" id="listenOrder"><button data-order="ar-en">عربي ← إنجليزي</button><button data-order="en-ar">إنجليزي ← عربي</button></div>
       <button class="btn sm" id="listenStop">⏹ إيقاف</button></div>
-    <div class="reader-tabs segmented"><button data-tab="text" class="active">${isVideo ? 'الفيديو والنص' : 'النص'}</button><button data-tab="words">كلمات مقترحة (<span id="wcount">${data.items.length}</span>)</button></div>
+    <div class="reader-tabs segmented"><button data-tab="text" class="active">${isVideo ? 'الفيديو والنص' : 'النص'}</button><button data-tab="words">كلمات جديدة (<span id="wcount">${data.items.length}</span>)</button></div>
     <div class="reader-grid" data-tab="text">
       <div class="reader-main">
         <div class="rset hidden" id="rset">
@@ -422,7 +422,7 @@ export async function render(view, { segments, params }) {
       if (!started) { if (l === cur) started = true; else continue; }
       for (const m of l.querySelectorAll('.mark[data-vid]')) {
         const vid = Number(m.dataset.vid);
-        if (shown.has(vid) || seen.has(vid)) continue;
+        if (shown.has(vid) || seen.has(vid) || knownBefore.has(vid)) continue;
         const it = data.items.find((x) => x.vocabulary_id === vid);
         if (!it) continue;
         seen.add(vid);
@@ -456,7 +456,7 @@ export async function render(view, { segments, params }) {
       const vid = Number(m.dataset.vid);
       countPassed(vid);
       previewSet.delete(vid);
-      if (shown.has(vid) || passed.has(vid)) continue;
+      if (shown.has(vid) || passed.has(vid) || knownBefore.has(vid)) continue;
       const it = data.items.find((x) => x.vocabulary_id === vid);
       if (it) passed.set(vid, it);
     }
@@ -768,18 +768,33 @@ export async function render(view, { segments, params }) {
   const sideKey = `reader.side.${id}`;
   const sideF = (() => { try { return { level: '', q: '', unsaved: false, ...JSON.parse(pref(sideKey, '{}')) }; } catch { return { level: '', q: '', unsaved: false }; } })();
   let sideLimit = 150;
-  const sideShown = () => data.items.filter((it) => (!sideF.level || it.level === sideF.level)
+  // Only NEW words are suggested: words already in «كلماتي» (or marked «أعرفها») before this
+  // video was opened are left out; a word saved here stays in the list (with ✓) until you leave.
+  const seenItems = new Set();
+  const knownBefore = new Set();
+  const noteKnown = () => {
+    for (const it of data.items) {
+      if (seenItems.has(it.vocabulary_id)) continue;
+      seenItems.add(it.vocabulary_id);
+      if (it.user_state === 'saved' || it.user_state === 'dismissed') knownBefore.add(it.vocabulary_id);
+    }
+  };
+  noteKnown();
+  const isNew = (it) => !knownBefore.has(it.vocabulary_id);
+  const sideShown = () => data.items.filter(isNew).filter((it) => (!sideF.level || it.level === sideF.level)
     && (!sideF.unsaved || !it.user_state)
     && (!sideF.q || `${it.term} ${it.arabic || ''}`.toLowerCase().includes(sideF.q.toLowerCase())));
   const drawSide = () => {
     const shown = sideShown();
     const unsavedShown = shown.filter((i) => !i.user_state);
-    const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].filter((l) => data.items.some((i) => i.level === l));
-    $('#wcount', view).textContent = data.items.length;
+    const fresh = data.items.filter(isNew);
+    const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].filter((l) => fresh.some((i) => i.level === l));
+    $('#wcount', view).textContent = fresh.length;
     side.innerHTML = `
       <div class="side-head">
-        <div class="row between"><b>كلمات مقترحة <span class="tiny muted en-inline">(${shown.length}${shown.length !== data.items.length ? `/${data.items.length}` : ''})</span></b>
-          ${unsavedShown.length ? `<button class="btn sm" id="saveAll">${icon.bookmark} حفظ ${shown.length !== data.items.length ? 'المعروض' : 'الكل'} (${unsavedShown.length})</button>` : ''}</div>
+        <div class="row between"><b>كلمات جديدة <span class="tiny muted en-inline">(${shown.length}${shown.length !== fresh.length ? `/${fresh.length}` : ''})</span></b>
+          ${unsavedShown.length ? `<button class="btn sm" id="saveAll">${icon.bookmark} حفظ ${shown.length !== fresh.length ? 'المعروض' : 'الكل'} (${unsavedShown.length})</button>` : ''}</div>
+        ${knownBefore.size ? `<p class="tiny muted" style="margin:2px 0 0">🟣 ${knownBefore.size} كلمة من هذا المقطع موجودة عندك مسبقًا — لا تظهر هنا (ملوّنة بالبنفسجي في النص).</p>` : ''}
         ${data.items.length >= 4 ? (() => {
           const q = (extra) => `#/practice?${new URLSearchParams({ source: id, title: source.title.slice(0, 40), ...extra })}`;
           return `<div class="side-practice"><span class="tiny muted">🎯 تدرّب على كلمات المقطع:</span>
@@ -826,6 +841,7 @@ export async function render(view, { segments, params }) {
 
   const refresh = async () => {
     data = await api.source(id);
+    noteKnown?.();
     timeline = buildTimeline(data.lines);
     drawLines();
     drawSide();
