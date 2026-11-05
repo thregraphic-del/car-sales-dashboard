@@ -1088,3 +1088,25 @@ body.reader-focus .reader-head.slim { display: flex !important; }
 .chip.pf-open { cursor: pointer; border: 1px solid var(--accent); color: var(--accent); background: none; font: inherit; font-size: 12px; }
 .rset #mode { display: contents; }
 .q-say { display: flex; gap: 4px; justify-content: center; margin-top: 6px; } .tab.pf-open-btn { border: 1px solid var(--accent); color: var(--accent); background: none; cursor: pointer; font: inherit; }
+/* «جهّز تدريبك»: presets, five folding filters, the result and the start */
+.pb { padding: 14px; display: grid; gap: 8px; }
+.pb-presets { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.pb-preset { flex: none; border: 1px solid var(--line); background: var(--surface-2, var(--surface)); color: var(--ink); border-radius: 999px; padding: 6px 12px; font: inherit; font-size: 13.5px; cursor: pointer; white-space: nowrap; }
+.pb-preset.active { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.pb-sec { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.pb-head { width: 100%; display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: none; border: 0; color: var(--ink); font: inherit; cursor: pointer; text-align: start; }
+.pb-title { font-weight: 700; font-size: 14px; color: var(--accent); white-space: nowrap; }
+.pb-sum { flex: 1; min-width: 0; font-size: 13px; color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pb-arrow { transition: transform .2s; color: var(--ink-3, #888); }
+.pb-sec.open .pb-arrow { transform: rotate(180deg); }
+.pb-body { display: none; padding: 0 12px 12px; }
+.pb-sec.open .pb-body { display: block; }
+.pb-pick { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; max-height: 30vh; overflow-y: auto; }
+.pb-result { display: grid; gap: 8px; padding-top: 4px; }
+.pb-count { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 15px; }
+.pb-count b { font-size: 22px; }
+.pb-levels { display: flex; flex-wrap: wrap; gap: 8px; }
+.pb-list summary { cursor: pointer; color: var(--accent); }
+.pb-actions { margin: 6px 0; font-size: 13px; }
+.pb-go { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; position: sticky; bottom: 0; background: var(--surface); padding: 8px 0 2px; border-top: 1px dashed var(--line); }
+@media (max-width: 899px) { .pb-go { bottom: 64px; } .pb-go .btn { width: 100%; } }

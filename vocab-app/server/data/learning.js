@@ -129,7 +129,7 @@ async function planView(userId, plan, words = null) {
  *  - group_id: words of one group
  *  - focus 'difficult' | 'due' | 'new' | 'smart' (default)
  */
-export async function practiceSet(userId, { ids, group_id, source_id, vids, seen, focus = 'smart', size = 10 } = {}) {
+export async function practiceSet(userId, { ids, exact = false, group_id, source_id, vids, seen, focus = 'smart', size = 10 } = {}) {
   if (source_id) return sourcePractice(userId, source_id, size, { vids, seen });
   const everything = await listWords(userId);
   const now = Date.now();
@@ -152,7 +152,7 @@ export async function practiceSet(userId, { ids, group_id, source_id, vids, seen
     let words = everything.filter((w) => order.has(w.uv_id)).sort((a, b) => order.get(a.uv_id) - order.get(b.uv_id));
     // Support words so a round never feels empty: the weakest other words.
     const minRound = config.learning.replayMinRound;
-    if (words.length < minRound) {
+    if (!exact && words.length < minRound) {
       const support = everything.filter((w) => !order.has(w.uv_id)).sort((a, b) => need(b) - need(a)).slice(0, minRound - words.length);
       words = [...words, ...support.map((w) => ({ ...w, support: true }))];
     }

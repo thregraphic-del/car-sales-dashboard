@@ -20,6 +20,7 @@ router.get('/stats', wrap(async (req) => learning.stats(req.userId)));
 
 router.get('/practice', wrap(async (req) => learning.practiceSet(req.userId, {
   ids: req.query.ids ? idList(req.query.ids, 1000) : undefined,
+  exact: req.query.exact === '1',
   group_id: num(req.query.group_id),
   source_id: num(req.query.source_id),
   vids: req.query.vids ? idList(req.query.vids, 1000) : undefined,

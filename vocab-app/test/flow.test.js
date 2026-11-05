@@ -217,11 +217,12 @@ test('export: Excel file by default, one column each for English, Arabic, exampl
     if (name === 'xl/worksheets/sheet1.xml') sheet = inflateRawSync(data).toString('utf8');
     p += 30 + nameLen + size;
   }
-  const header = [...sheet.match(/<row r="1">(.*?)<\/row>/)[1].matchAll(/<t[^>]*>(.*?)<\/t>/g)].map((m) => m[1]);
+  assert.match(sheet, /<f>SUBTOTAL\(103,A3:A\d+\)<\/f>/, 'a live count that follows Excel\'s filter');
+  const header = [...sheet.match(/<row r="2">(.*?)<\/row>/)[1].matchAll(/<t[^>]*>(.*?)<\/t>/g)].map((m) => m[1]);
   assert.deepEqual(header, ['English', 'العربي', 'Example', 'ترجمة المثال', 'Level'], 'no dates or other columns');
-  assert.equal((sheet.match(/<row /g) || []).length - 1, (await words()).length);
+  assert.equal((sheet.match(/<row /g) || []).length - 2, (await words()).length);
   // A → Z, each row coloured by how common the word is (styles 4–9 = green / yellow / red)
-  const firstCol = [...sheet.matchAll(/<c r="A(\d+)" s="(\d+)"[^>]*><is><t[^>]*>(.*?)<\/t>/g)].filter((m) => m[1] !== '1');
+  const firstCol = [...sheet.matchAll(/<c r="A(\d+)" s="(\d+)"[^>]*><is><t[^>]*>(.*?)<\/t>/g)].filter((m) => Number(m[1]) > 2);
   const terms = firstCol.map((m) => m[3]);
   assert.deepEqual(terms, [...terms].sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' })));
   assert.ok(firstCol.every((m) => ['4', '6', '8'].includes(m[2])), 'every row has a colour');

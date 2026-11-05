@@ -83,22 +83,29 @@ function zip(files) {
  * rows: array of objects; columns: [{key, title, width, rtl?}] in order.
  * Header row is bold and frozen; text wraps inside its own column.
  */
-export function toXlsx(rows, columns, sheetName = 'Words') {
+export function toXlsx(rows, columns, sheetName = 'Words', { countLabel = null } = {}) {
   const cell = (r, c, v, style) => {
     const ref = `${colName(c)}${r}`;
     if (typeof v === 'number' && Number.isFinite(v)) return `<c r="${ref}" s="${style}"><v>${v}</v></c>`;
     return `<c r="${ref}" s="${style}" t="inlineStr"><is><t xml:space="preserve">${escXml(v)}</t></is></c>`;
   };
-  const header = `<row r="1">${columns.map((col, c) => cell(1, c, col.title, 1)).join('')}</row>`;
+  // optional first row: a live count of the rows still shown by Excel's filter (SUBTOTAL 103 skips hidden rows)
+  const top = countLabel ? 1 : 0;
+  const h = 1 + top; // header row number
+  const lastRow = rows.length + h;
+  const countRow = countLabel
+    ? `<row r="1"><c r="A1" s="1" t="inlineStr"><is><t xml:space="preserve">${escXml(countLabel)}</t></is></c><c r="B1" s="1"><f>SUBTOTAL(103,A${h + 1}:A${Math.max(h + 1, lastRow)})</f><v>${rows.length}</v></c></row>`
+    : '';
+  const header = `<row r="${h}">${columns.map((col, c) => cell(h, c, col.title, 1)).join('')}</row>`;
   // a row may carry __fill: 'common' | 'medium' | 'rare' → a light green / yellow / red background
   const FILL = { common: 2, medium: 4, rare: 6 };
   const body = rows.map((row, i) => {
     const base = FILL[row.__fill] ?? 0;
-    return `<row r="${i + 2}">${columns.map((col, c) => cell(i + 2, c, row[col.key] ?? '', base ? base + 2 + (col.rtl ? 1 : 0) : (col.rtl ? 3 : 2))).join('')}</row>`;
+    return `<row r="${i + h + 1}">${columns.map((col, c) => cell(i + h + 1, c, row[col.key] ?? '', base ? base + 2 + (col.rtl ? 1 : 0) : (col.rtl ? 3 : 2))).join('')}</row>`;
   }).join('');
   const cols = `<cols>${columns.map((col, c) => `<col min="${c + 1}" max="${c + 1}" width="${col.width || 16}" customWidth="1"/>`).join('')}</cols>`;
-  const last = `${colName(columns.length - 1)}${rows.length + 1}`;
-  const sheet = `${XML}<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>${cols}<sheetData>${header}${body}</sheetData><autoFilter ref="A1:${last}"/></worksheet>`;
+  const last = `${colName(columns.length - 1)}${lastRow}`;
+  const sheet = `${XML}<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane ySplit="${h}" topLeftCell="A${h + 1}" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>${cols}<sheetData>${countRow}${header}${body}</sheetData><autoFilter ref="A${h}:${last}"/></worksheet>`;
   const styles = `${XML}<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><color rgb="FFFFFFFF"/><name val="Calibri"/></font></fonts>
 <fills count="6"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1F5C55"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDDF3E4"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF2C2"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFBDADA"/><bgColor indexed="64"/></patternFill></fill></fills>

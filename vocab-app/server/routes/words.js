@@ -110,7 +110,7 @@ router.get('/export', wrap(async (req, res) => {
   if (q.format !== 'csv') {
     res.set('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
       .set('Content-Disposition', `attachment; filename="lexitube-words-${stamp}.xlsx"`)
-      .send(toXlsx(rows, XLSX_COLUMNS, 'كلماتي'));
+      .send(toXlsx(rows, XLSX_COLUMNS, 'كلماتي', { countLabel: 'عدد الكلمات (يتغيّر مع الفلتر)' }));
     return undefined;
   }
   res.set('Content-Type', 'text/csv; charset=utf-8').set('Content-Disposition', `attachment; filename="lexitube-words-${stamp}.csv"`).send(toCsv(rows));
