@@ -146,3 +146,38 @@ export async function scheduledFormsRun() {
   await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', KEY, JSON.stringify(st));
   return { ...st, errors: results.filter((r) => r.status === 'rejected').map((r) => String(r.reason?.message || r.reason).slice(0, 120)) };
 }
+
+/**
+ * One step of re-levelling every word in the shared vocabulary by the learner dictionaries
+ * (Oxford 3000/5000, English Vocabulary Profile). Continues after the last word done, so new
+ * words from new videos are levelled too.
+ */
+export async function relevelStep({ batches = 2, size = 80 } = {}) {
+  const { levelsWithAi } = await import('./extractor.js');
+  const KEY = 'relevel';
+  const st = JSON.parse((await get('SELECT value FROM app_settings WHERE key = ?', KEY))?.value || '{"cursor":0,"done":0}');
+  const rows = await all('SELECT id, term FROM vocabulary WHERE id > ? ORDER BY id LIMIT ?', st.cursor, batches * size);
+  if (!rows.length) return { idle: true, ...st };
+  const parts = [];
+  for (let i = 0; i < rows.length; i += size) parts.push(rows.slice(i, i + size));
+  const results = await Promise.allSettled(parts.map((p) => levelsWithAi(p.map((r) => r.term))));
+  let changed = 0;
+  for (const [k, res] of results.entries()) {
+    if (res.status !== 'fulfilled') continue;
+    const byTerm = new Map(res.value.map((it) => [it.term.trim().toLowerCase(), it.level]));
+    for (const r of parts[k]) {
+      const lvl = byTerm.get(r.term.trim().toLowerCase());
+      if (!LEVEL.includes(lvl)) continue;
+      await run('UPDATE vocabulary SET level = ? WHERE id = ? AND (level IS NULL OR level <> ?)', lvl, r.id, lvl);
+      changed += 1;
+    }
+  }
+  // move on only past the batches that succeeded (a failed one is tried again next time)
+  const okUpTo = results.findIndex((r) => r.status !== 'fulfilled');
+  const lastOk = okUpTo === -1 ? rows.at(-1) : (okUpTo === 0 ? null : parts[okUpTo - 1].at(-1));
+  if (lastOk) st.cursor = lastOk.id;
+  st.done = (st.done || 0) + changed;
+  st.at = new Date().toISOString();
+  await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', KEY, JSON.stringify(st));
+  return { changed, ...st, errors: results.filter((r) => r.status === 'rejected').map((r) => String(r.reason?.message || r.reason).slice(0, 100)) };
+}

@@ -218,8 +218,17 @@ test('export: Excel file by default, one column each for English, Arabic, exampl
     p += 30 + nameLen + size;
   }
   const header = [...sheet.match(/<row r="1">(.*?)<\/row>/)[1].matchAll(/<t[^>]*>(.*?)<\/t>/g)].map((m) => m[1]);
-  assert.deepEqual(header.slice(0, 4), ['English', 'العربي', 'Example', 'ترجمة المثال']);
+  assert.deepEqual(header, ['English', 'العربي', 'Example', 'ترجمة المثال', 'Level'], 'no dates or other columns');
   assert.equal((sheet.match(/<row /g) || []).length - 1, (await words()).length);
+  // A → Z, each row coloured by how common the word is (styles 4–9 = green / yellow / red)
+  const firstCol = [...sheet.matchAll(/<c r="A(\d+)" s="(\d+)"[^>]*><is><t[^>]*>(.*?)<\/t>/g)].filter((m) => m[1] !== '1');
+  const terms = firstCol.map((m) => m[3]);
+  assert.deepEqual(terms, [...terms].sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' })));
+  assert.ok(firstCol.every((m) => ['4', '6', '8'].includes(m[2])), 'every row has a colour');
+  const { usageOf } = await import('../server/lib/usage.js');
+  assert.equal(usageOf('anything', 'A2'), 'common');
+  assert.equal(usageOf('anything', 'B2'), 'medium');
+  assert.equal(usageOf('anything', 'C1'), 'rare');
 });
 
 test('export: CSV with useful columns and working filters', async () => {

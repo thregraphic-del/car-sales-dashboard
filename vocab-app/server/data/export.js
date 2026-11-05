@@ -2,6 +2,7 @@
 import { all } from '../db/index.js';
 import { localDate, startOfDay } from '../lib/time.js';
 import { listWords } from './words.js';
+import { usageOf } from '../lib/usage.js';
 
 /**
  * filters: range (all|3m|month|week|custom), from, to, group_id, level, difficult
@@ -18,7 +19,7 @@ export async function exportRows(userId, f = {}) {
   if (f.difficult === '1' || f.difficult === true) filters.status = 'difficult';
   const words = await listWords(userId, filters);
   const groups = new Map((await all('SELECT id, name FROM word_groups WHERE user_id = ?', userId)).map((g) => [g.id, g.name]));
-  return words.map((w) => {
+  return [...words].sort((a, b) => a.term.localeCompare(b.term, 'en', { sensitivity: 'base' })).map((w) => {
     // An example together with its Arabic: the sentence it was saved from when it is
     // translated, otherwise another example that has a translation.
     const withAr = (e) => e?.sentence && e.arabic;
@@ -41,29 +42,23 @@ export async function exportRows(userId, f = {}) {
       Correct: w.correct_count,
       Wrong: w.wrong_count,
       Difficult: w.difficult ? 'yes' : 'no',
+      __fill: usageOf(w.term, w.level), // row colour in Excel: green common, yellow medium, red rare
     };
   });
 }
 
 /** Excel columns: English, Arabic, example and its translation side by side, then the details. */
 export const XLSX_COLUMNS = [
-  { key: 'Word', title: 'English', width: 24 },
-  { key: 'Arabic', title: 'العربي', width: 26, rtl: true },
-  { key: 'Example', title: 'Example', width: 50 },
-  { key: 'Example Arabic', title: 'ترجمة المثال', width: 50, rtl: true },
-  { key: 'CEFR Level', title: 'Level', width: 8 },
-  { key: 'Part of Speech', title: 'Part of speech', width: 14 },
-  { key: 'Simple English', title: 'Simple English', width: 34 },
-  { key: 'Group', title: 'المجموعة', width: 22, rtl: true },
-  { key: 'Source', title: 'Source', width: 30 },
-  { key: 'Saved Date', title: 'Saved', width: 12 },
-  { key: 'Mastery', title: 'Mastery %', width: 10 },
-  { key: 'Difficult', title: 'Difficult', width: 10 },
+  { key: 'Word', title: 'English', width: 26 },
+  { key: 'Arabic', title: 'العربي', width: 30, rtl: true },
+  { key: 'Example', title: 'Example', width: 55 },
+  { key: 'Example Arabic', title: 'ترجمة المثال', width: 55, rtl: true },
+  { key: 'CEFR Level', title: 'Level', width: 9 },
 ];
 
 export function toCsv(rows) {
   if (!rows.length) return '﻿Word,Arabic\r\n';
-  const cols = Object.keys(rows[0]);
+  const cols = Object.keys(rows[0]).filter((k) => !k.startsWith('__'));
   const cell = (v) => {
     let s = String(v ?? '');
     if (/^[=+\-@]/.test(s)) s = `'${s}`; // never let a spreadsheet run a cell as a formula

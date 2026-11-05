@@ -145,6 +145,7 @@ For each item:
 - context_arabic: a natural Arabic translation of that line.
 - example: a new natural sentence; easy_example: a very short easy sentence; both with Arabic translations.
 - similar: 1–3 EASIER words or phrases with similar meaning, each with Arabic; if not an exact synonym, explain the difference in a short English note, otherwise "".
+- level: the CEFR level as the Oxford 3000/5000 lists and the English Vocabulary Profile give it for that meaning; words outside the Oxford 5000 are C1/C2.
 - usefulness: 0–100 for this learner.
 Order items from most to least useful.`;
 
@@ -316,7 +317,7 @@ const LookupZ = z.object({
 export async function lookupWithAi({ word, sentence }) {
   const r = await jsonCall({
     task: 'word_in_context',
-    system: 'You explain English vocabulary to an intermediate Arabic-speaking learner. Answer about the clicked word AS USED IN THE GIVEN SENTENCE. If the clicked word is part of a phrasal verb or fixed expression in that sentence, explain the whole expression and put its dictionary form (with something/someone slots) in "term"; otherwise use the lemma. Fields: "arabic" = the Arabic meaning in THIS sentence (short); "arabic_general" = the most common general Arabic meaning; "context_note" = one short Arabic sentence explaining what the word means here; "sentence_arabic" = natural Arabic translation of the whole sentence; "simple_english" = a definition with easier words; "level" = CEFR A1–C2; "part_of_speech" in English; "example" = a new natural example sentence with the same meaning, "easy_example" = a very short easy one, each with Arabic translation; "similar" = 0–3 easier words, with a short English note when not an exact synonym (else "").',
+    system: 'You explain English vocabulary to an intermediate Arabic-speaking learner. Answer about the clicked word AS USED IN THE GIVEN SENTENCE. If the clicked word is part of a phrasal verb or fixed expression in that sentence, explain the whole expression and put its dictionary form (with something/someone slots) in "term"; otherwise use the lemma. Fields: "arabic" = the Arabic meaning in THIS sentence (short); "arabic_general" = the most common general Arabic meaning; "context_note" = one short Arabic sentence explaining what the word means here; "sentence_arabic" = natural Arabic translation of the whole sentence; "simple_english" = a definition with easier words; "level" = the CEFR level as the Oxford 3000/5000 lists and the English Vocabulary Profile give it for that meaning; words outside the Oxford 5000 are C1/C2; "part_of_speech" in English; "example" = a new natural example sentence with the same meaning, "easy_example" = a very short easy one, each with Arabic translation; "similar" = 0–3 easier words, with a short English note when not an exact synonym (else "").',
     user: `Clicked word: ${word}\nSentence: ${sentence}`,
     schema: LOOKUP_SCHEMA,
     zod: LookupZ,
@@ -519,7 +520,7 @@ export async function extractFromFileWithAi({ kind, data, name = 'file.pdf' }) {
     : [{ type: 'file', file: { filename: name, file_data: data } }];
   const r = await jsonCall({
     task: 'extract_file',
-    system: 'You help an intermediate Arabic-speaking learner of English. Read the attached photo or document. If it is a list of words (a vocabulary list, notes, a page of a word book), return every English word or expression in it, in order. If it is running text, return the English words and expressions worth learning for an intermediate learner (skip very basic words like "the", "is", "good"), up to 80. Use the dictionary form (e.g. "decide", not "decided"; keep phrasal verbs and idioms whole). "arabic" = a short natural Arabic meaning; if the document already gives an Arabic meaning, use it. "level" = CEFR level. Return at most 150 items. If there is no English text, return an empty list.',
+    system: 'You help an intermediate Arabic-speaking learner of English. Read the attached photo or document. If it is a list of words (a vocabulary list, notes, a page of a word book), return every English word or expression in it, in order. If it is running text, return the English words and expressions worth learning for an intermediate learner (skip very basic words like "the", "is", "good"), up to 80. Use the dictionary form (e.g. "decide", not "decided"; keep phrasal verbs and idioms whole). "arabic" = a short natural Arabic meaning; if the document already gives an Arabic meaning, use it. "level" = the CEFR level as the Oxford 3000/5000 lists and the English Vocabulary Profile give it for that meaning; words outside the Oxford 5000 are C1/C2. Return at most 150 items. If there is no English text, return an empty list.',
     user: `Attached ${kind === 'image' ? 'photo' : 'document'}: ${name}`,
     attachments,
     extra: kind === 'pdf' ? { plugins: [{ id: 'file-parser', pdf: { engine: 'pdf-text' } }] } : {},
@@ -650,7 +651,7 @@ const DictZ = z.object({
 export async function dictionaryBatchWithAi(words) {
   const r = await jsonCall({
     task: 'dictionary_batch',
-    system: 'You write a bilingual English–Arabic learner dictionary. For EACH input word return one item (keep "input" exactly). Set skip=true (other fields empty) for personal names, place names, brands, interjections and fillers (uh, hey), fragments of contractions (don, didn), vulgar words and non-English tokens. Otherwise: "lemma" = the dictionary form of the input (went→go, children→child, better→good only if it is the comparative; keep words like "completely" or "decision" as their own lemma); "part_of_speech" in English (noun, verb, adjective, adverb, phrasal verb…); "level" = CEFR A1–C2; "arabic" = the most common Arabic meanings, natural and accurate, up to three separated by " / "; "simple_english" = a short easy definition; "pronunciation" = IPA in slashes; "example" = one short natural sentence, "example_ar" = its Arabic; "inflections" = the lemma\'s inflected forms (plural, -s, past, past participle, -ing, comparative, superlative) that exist; "family" = the other common words of the same family with a different part of speech (فعل، اسم، صفة، ظرف، اسم فاعل), each with a short Arabic meaning — up to 5.',
+    system: 'You write a bilingual English–Arabic learner dictionary. For EACH input word return one item (keep "input" exactly). Set skip=true (other fields empty) for personal names, place names, brands, interjections and fillers (uh, hey), fragments of contractions (don, didn), vulgar words and non-English tokens. Otherwise: "lemma" = the dictionary form of the input (went→go, children→child, better→good only if it is the comparative; keep words like "completely" or "decision" as their own lemma); "part_of_speech" in English (noun, verb, adjective, adverb, phrasal verb…); "level" = the CEFR level as the Oxford 3000/5000 lists and the English Vocabulary Profile give it for that meaning; words outside the Oxford 5000 are C1/C2; "arabic" = the most common Arabic meanings, natural and accurate, up to three separated by " / "; "simple_english" = a short easy definition; "pronunciation" = IPA in slashes; "example" = one short natural sentence, "example_ar" = its Arabic; "inflections" = the lemma\'s inflected forms (plural, -s, past, past participle, -ing, comparative, superlative) that exist; "family" = the other common words of the same family with a different part of speech (فعل، اسم، صفة، ظرف، اسم فاعل), each with a short Arabic meaning — up to 5.',
     user: words.join('\n'),
     schema: DICT_SCHEMA,
     zod: DictZ,
@@ -712,7 +713,7 @@ const LadderZ = z.object({ items: z.array(z.object({ term: z.string(), level: z.
 export async function ladderWithAi({ term, arabic }) {
   return jsonCall({
     task: 'meaning_ladder',
-    system: 'You help an Arabic-speaking learner of English. For the given word, list 4–7 English words or short expressions with the SAME core meaning, from the simplest everyday word (A1/A2) to formal or advanced ones (C1/C2), including the given word. Use dictionary forms (the shortest basic form, e.g. "decide" not "decision" when the meaning allows). "level" = CEFR; "arabic" = short Arabic meaning; "note_ar" = a very short Arabic note on when to use it (formal, spoken, stronger…); "example" = one short natural English sentence. Order from simplest to most advanced.',
+    system: 'You help an Arabic-speaking learner of English. For the given word, list 4–7 English words or short expressions with the SAME core meaning, from the simplest everyday word (A1/A2) to formal or advanced ones (C1/C2), including the given word. Use dictionary forms (the shortest basic form, e.g. "decide" not "decision" when the meaning allows). "level" = the CEFR level as the Oxford 3000/5000 lists and the English Vocabulary Profile give it for that meaning; words outside the Oxford 5000 are C1/C2; "arabic" = short Arabic meaning; "note_ar" = a very short Arabic note on when to use it (formal, spoken, stronger…); "example" = one short natural English sentence. Order from simplest to most advanced.',
     user: `Word: ${term}${arabic ? `\nArabic meaning: ${arabic}` : ''}`,
     schema: LADDER_SCHEMA,
     zod: LadderZ,
@@ -745,7 +746,7 @@ const SynZ = z.object({ items: z.array(z.object({ word: z.string(), arabic: z.st
 export async function synonymsWithAi(word) {
   const r = await jsonCall({
     task: 'easy_synonyms',
-    system: 'You help an Arabic-speaking learner of English. For the given English word, give 1–5 EASIER and MORE COMMON English words or very short phrases with the same core meaning, easiest and most common first. Use the shortest basic dictionary form (e.g. "decide", "help", "big"). Never repeat the given word. "arabic" = a very short Arabic meaning (one or two words). "level" = CEFR.',
+    system: 'You help an Arabic-speaking learner of English. For the given English word, give 1–5 EASIER and MORE COMMON English words or very short phrases with the same core meaning, easiest and most common first. Use the shortest basic dictionary form (e.g. "decide", "help", "big"). Never repeat the given word. "arabic" = a very short Arabic meaning (one or two words). "level" = the CEFR level as the Oxford 3000/5000 lists and the English Vocabulary Profile give it for that meaning; words outside the Oxford 5000 are C1/C2.',
     user: `Word: ${word}`,
     schema: SYN_SCHEMA,
     zod: SynZ,
@@ -774,4 +775,25 @@ export async function recapWithAi({ title, text }) {
     maxTokens: 250,
   });
   return r.text.trim();
+}
+
+const LEVEL_SCHEMA = obj({ items: { type: 'array', items: obj({ term: str, level: { type: 'string', enum: LEVELS } }) } });
+const LevelZ = z.object({ items: z.array(z.object({ term: z.string(), level: z.enum(LEVELS) })) });
+
+/**
+ * The CEFR level of each word as the learner dictionaries give it: Oxford 3000 / Oxford 5000
+ * and the English Vocabulary Profile, for its most common meaning.
+ */
+export async function levelsWithAi(terms) {
+  const r = await jsonCall({
+    task: 'cefr_levels_v1',
+    system: 'You are a lexicographer. For EACH input English word or expression (keep "term" exactly as given) give its CEFR level exactly as the learner dictionaries list it: the Oxford 3000 and Oxford 5000 word lists (Oxford Learner\'s Dictionaries) and the Cambridge English Vocabulary Profile, for its most common meaning. Basic everyday words are A1/A2 (e.g. house, help, big, decide = A2), common general words B1 (opportunity, improve, relationship), wider vocabulary B2 (identity, evidence, consistent, deadline), and words outside the Oxford 5000 are C1, or C2 when rare, literary, formal or technical (integrity = C1, procrastinate = C2). For phrasal verbs and idioms use the English Vocabulary Profile level. Never guess higher than the dictionaries; when unsure, choose the nearest level.',
+    user: terms.join('\n'),
+    schema: LEVEL_SCHEMA,
+    zod: LevelZ,
+    maxTokens: Math.min(8000, 30 * terms.length + 300),
+    timeoutMs: 45000,
+    cache: false,
+  });
+  return r.items;
 }

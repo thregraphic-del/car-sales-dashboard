@@ -618,3 +618,22 @@ test('word panel synonyms and the Saudi recap of a part of the video', async () 
   const sent = calls.filter((c) => c.u.endsWith('/chat/completions')).at(-1).body.messages;
   assert.match(sent[0].content, /Saudi/);
 });
+
+test('levels: every word is re-levelled by the learner dictionaries, a batch at a time', async () => {
+  const { run, get, all } = await import('../server/db/index.js');
+  await run("INSERT INTO vocabulary (term, match_key, level, origin) VALUES ('integrityzz', 'integrityzz', 'A1', 'ai') ON CONFLICT (match_key) DO NOTHING");
+  await run('DELETE FROM app_settings WHERE key = ?', 'relevel');
+  reply = () => {
+    const sent = calls.at(-1).body.messages.at(-1).content.split('\n');
+    const items = sent.map((t) => ({ term: t, level: t === 'integrityzz' ? 'C1' : 'B1' }));
+    return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ items }) }, finish_reason: 'stop' }] }), { status: 200 });
+  };
+  const { relevelStep } = await import('../server/services/dictionary.js');
+  let r;
+  for (let i = 0; i < 200; i++) { r = await relevelStep({ batches: 2, size: 80 }); if (r.idle) break; }
+  assert.equal(r.idle, true);
+  assert.equal((await get("SELECT level FROM vocabulary WHERE match_key = 'integrityzz'")).level, 'C1');
+  const sent = calls.filter((c) => c.u.endsWith('/chat/completions')).at(-1).body.messages[0].content;
+  assert.match(sent, /Oxford 3000/);
+  assert.ok((await all("SELECT id FROM vocabulary WHERE level IS NULL AND origin = 'dictionary'")).length === 0);
+});
