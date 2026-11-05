@@ -1087,3 +1087,4 @@ body.reader-focus .reader-head.slim { display: flex !important; }
 .btn.disabled { opacity: .5; pointer-events: none; }
 .chip.pf-open { cursor: pointer; border: 1px solid var(--accent); color: var(--accent); background: none; font: inherit; font-size: 12px; }
 .rset #mode { display: contents; }
+.q-say { display: flex; gap: 4px; justify-content: center; margin-top: 6px; } .tab.pf-open-btn { border: 1px solid var(--accent); color: var(--accent); background: none; cursor: pointer; font: inherit; }

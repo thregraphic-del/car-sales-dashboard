@@ -19,7 +19,7 @@ router.post('/today/extend', wrap(async (req) => learning.extendTodayPlan(req.us
 router.get('/stats', wrap(async (req) => learning.stats(req.userId)));
 
 router.get('/practice', wrap(async (req) => learning.practiceSet(req.userId, {
-  ids: req.query.ids ? idList(req.query.ids, 200) : undefined,
+  ids: req.query.ids ? idList(req.query.ids, 1000) : undefined,
   group_id: num(req.query.group_id),
   source_id: num(req.query.source_id),
   vids: req.query.vids ? idList(req.query.vids, 1000) : undefined,

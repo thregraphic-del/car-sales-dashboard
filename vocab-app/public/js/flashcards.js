@@ -17,6 +17,7 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
   const total = words.length;
   let finished = 0;
 
+  let lastSaid = -1;
   function card() {
     const w = queue[idx];
     const easy = w.examples?.find((e) => e.kind === 'easy') || w.examples?.[0];
@@ -53,6 +54,8 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
         </div>
         ${flipped ? '' : `<div style="text-align:center;margin-top:18px"><button class="btn primary lg" id="flipBtn">اقلب البطاقة</button></div>`}
       </div>`;
+    // a new card: hear the word straight away (the 🔊 button plays it again)
+    if (!flipped && lastSaid !== idx) { lastSaid = idx; speak(w.term).catch(() => {}); }
   }
 
   function done() {
@@ -123,10 +126,7 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
     const g = e.target.closest('[data-g]');
     if (g) return grade(g.dataset.g);
     if (e.target.closest('#flipBtn') || e.target.closest('#fc')) {
-      if (!flipped) {
-        flip();
-        speak(w.term).catch(() => {});
-      }
+      if (!flipped) flip();
     }
   };
   const onKey = (e) => {
@@ -134,7 +134,6 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
     if (e.target.matches('input, textarea')) return;
     if (e.code === 'Space') {
       e.preventDefault();
-      if (!flipped) speak(queue[idx].term).catch(() => {});
       flip();
     } else if (flipped && ['1', '2', '3'].includes(e.key)) {
       grade(['hard', 'good', 'easy'][Number(e.key) - 1]);

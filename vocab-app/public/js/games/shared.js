@@ -70,10 +70,13 @@ export function distractors(target, pool, n, key) {
 export function choice(stage, w, { prompt, options, text, after = '', sentence = null }) {
   return new Promise((resolve) => {
     const opts = shuffle([w, ...options]);
-    stage.innerHTML = `<div class="card question">${prompt}</div>
+    // the English word is on the screen: it can be heard too (said once by itself)
+    const showsWord = prompt.includes(esc(w.term));
+    stage.innerHTML = `<div class="card question">${prompt}${showsWord ? `<div class="q-say"><button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="1" aria-label="استمع">🔊</button><button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="0.65" aria-label="ببطء">🐢</button></div>` : ''}</div>
       <div class="options">${opts.map((o, k) => `<button class="option" data-k="${k}">${text(o)}</button>`).join('')}</div>
       <div class="feedback" id="fb"></div>
       <div class="next-wrap"><button class="btn primary hidden" id="nextBtn">التالي ←</button></div>`;
+    if (showsWord) speak(w.term).catch(() => {});
     let done = false;
     stage.querySelectorAll('.option').forEach((btn) => btn.addEventListener('click', () => {
       if (done) return;
@@ -96,6 +99,6 @@ export function choice(stage, w, { prompt, options, text, after = '', sentence =
 export function reveal(stage, w, ok, extra = '', sentence = null) {
   const fb = stage.querySelector('#fb');
   fb.className = `feedback show ${ok ? 'ok' : 'no'}`;
-  fb.innerHTML = `<b>${ok ? 'صحيح ✓' : 'ليست صحيحة'}</b> — <span class="en-inline"><b>${esc(w.term)}</b></span>: ${esc(w.arabic || '')}${extra}${exampleHtml(w, sentence)}`;
-  if (ok) speak(w.term).catch(() => {});
+  fb.innerHTML = `<b>${ok ? 'صحيح ✓' : 'ليست صحيحة'}</b> — <span class="en-inline"><b>${esc(w.term)}</b></span> <button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="1" aria-label="استمع">🔊</button><button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="0.65" aria-label="ببطء">🐢</button>: ${esc(w.arabic || '')}${extra}${exampleHtml(w, sentence)}`;
+  speak(w.term).catch(() => {}); // every game: hear the word after answering
 }

@@ -3,7 +3,7 @@
 // After every round, missed words can be replayed immediately.
 import { api } from '../api.js';
 import { state, loadGroups } from '../state.js';
-import { esc, icon, emptyState } from '../ui.js';
+import { esc, icon, emptyState, openModal, levelChip, usageDot } from '../ui.js';
 import { runQuiz, TYPES, canPlay, GAME_ORDER } from '../quiz.js';
 import { runFlashcards } from '../flashcards.js';
 import { runListening } from '../listen.js';
@@ -77,11 +77,12 @@ export async function render(view, { params }) {
       <div class="segmented mode-tabs">${MODES.map(([k, l, ic]) => `<a class="${k === mode ? 'active' : ''}" href="${href({ ...base, mode: k })}">${icon[ic]} ${l}</a>`).join('')}</div>
     </div>
     ${label ? `<div class="chip-row"><span class="gchip on">${esc(label)}</span>${params.source ? `<a class="link-btn" href="#/source/${esc(params.source)}">↩ رجوع للمقطع</a>` : `<a class="link-btn" href="${href({ mode })}">✕ اختيار ذكي بدلًا منها</a>`}</div>`
-      : `<div class="chip-row">${mode === 'story' ? `<a class="tab active" href="${href({ mode })}">كلماتي الأخيرة</a>` : FOCUS.map(([k, l]) => `<a class="tab ${k === focus ? 'active' : ''}" href="${href({ ...base, focus: k })}">${l}</a>`).join('')}
+      : `<div class="chip-row">${mode === 'story' ? `<a class="tab active" href="${href({ mode })}">كلماتي الأخيرة</a>` : FOCUS.map(([k, l]) => `<a class="tab ${k === focus ? 'active' : ''}" href="${href({ ...base, focus: k })}">${l}</a>`).join('') + '<button type="button" class="tab pf-open-btn" id="pfOpen">🎛 فلترة دقيقة</button>'}
         ${state.groups.length > 6 ? `<select class="input sm group-select" id="groupSelect" aria-label="مجموعة"><option value="">أو اختر مجموعة…</option>${state.groups.map((g) => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>`
     : state.groups.length ? `<span class="tiny muted" style="margin-inline-start:6px">أو مجموعة:</span>${state.groups.map((g) => `<a class="gchip" href="${href({ mode, group: g.id })}">${esc(g.name)}</a>`).join('')}` : ''}</div>`}
     <div id="stage"></div>`;
   const stage = view.querySelector('#stage');
+  view.querySelector('#pfOpen')?.addEventListener('click', () => openFilter(mode));
   view.querySelector('#groupSelect')?.addEventListener('change', (e) => {
     if (e.target.value) location.hash = href({ mode, group: e.target.value });
   });
@@ -116,7 +117,7 @@ export async function render(view, { params }) {
     if (mode === 'cards') {
       cleanup = runFlashcards(stage, words, {
         source: params.session === 'today' ? 'today' : 'flashcard',
-        doneActions: params.source ? sourceActions() : `<a class="btn" href="${href({ ...base, mode: 'quiz' })}">${icon.game} اختبار على نفس الكلمات</a><a class="btn ghost" href="#/">انتهيت</a>`,
+        doneActions: params.source ? sourceActions() : `<a class="btn" href="${href({ ...base, mode: 'quiz' })}">${icon.game} اختبار على نفس الكلمات</a><a class="btn ghost" href="#/practice">انتهيت</a>`,
         hardHref: params.source ? (list) => href({ ...base, mode: 'cards', vids: list.map((m) => m.vocabulary_id).join(','), n: Date.now() }) : null,
       });
       return;
@@ -173,7 +174,7 @@ export async function render(view, { params }) {
         <div class="btn-row" style="justify-content:center;margin-top:18px">
           ${params.source ? sourceActions(missed) : `${mode === 'games' ? `<a class="btn" href="${href({ ...base, mode: 'games', type: undefined })}">${icon.game} لعبة أخرى</a>` : ''}
           <a class="btn" href="${href(mode === 'games' ? { ...base, mode: 'games', ids: undefined, replay: undefined } : { mode: 'quiz' })}">${icon.repeat} ${mode === 'games' ? 'العب مجددًا' : 'جولة جديدة'}</a>
-          <a class="btn ghost" href="#/">انتهيت</a>`}
+          <a class="btn ghost" href="#/practice">انتهيت</a>`}
         </div>
       </div>`;
   }
@@ -207,4 +208,98 @@ export async function render(view, { params }) {
     });
   }
   return () => cleanup?.();
+}
+
+/* 🎛 Exact choice of the words to practise, with filters like «كلماتي». */
+async function openFilter(mode0) {
+  const all = await api.words();
+  const DAY = 86400000;
+  const today0 = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); })();
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('practice.filter') || '{}'); } catch { /* none */ }
+  const F = { when: 'all', from: '', to: '', groups: [], source: '', levels: [], usage: [], status: 'all', count: 'all', n: 20, sort: 'new', mode: ['cards', 'quiz', 'games', 'listen'].includes(mode0) ? mode0 : 'cards', ...saved };
+  const sources = [...new Map(all.filter((w) => w.source?.id).map((w) => [w.source.id, w.source])).values()];
+  const chips = (name, opts, multi) => opts.map(([k, l]) => `<button type="button" class="sopt" data-f="${name}" data-v="${esc(String(k))}" data-multi="${multi ? 1 : 0}">${l}</button>`).join('');
+  const box = openModal(`<div class="pf">
+    <div class="rset-title">🎛 اختر كلمات التدريب</div>
+    <div class="srow"><span class="slabel">الوقت</span><div class="sopts">${chips('when', [['all', 'الكل'], ['today', 'اليوم'], ['yesterday', 'أمس'], ['week', 'آخر أسبوع'], ['month', 'آخر شهر'], ['range', 'من–إلى']])}
+      <span class="pf-dates"><input class="input sopt-num" style="width:140px" type="date" id="fFrom" value="${esc(F.from)}"> – <input class="input sopt-num" style="width:140px" type="date" id="fTo" value="${esc(F.to)}"></span></div></div>
+    ${state.groups.length ? `<div class="srow"><span class="slabel">المجموعة</span><div class="sopts">${chips('groups', state.groups.map((g) => [g.id, esc(g.name)]), true)}</div></div>` : ''}
+    ${sources.length ? `<div class="srow"><span class="slabel">المقطع</span><div class="sopts"><select class="input sm" id="fSource" style="max-width:100%"><option value="">كل المقاطع</option>${sources.map((x) => `<option value="${x.id}" ${String(F.source) === String(x.id) ? 'selected' : ''}>${esc(x.title.slice(0, 50))}</option>`).join('')}</select></div></div>` : ''}
+    <div class="srow"><span class="slabel">المستوى</span><div class="sopts">${chips('levels', ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map((l) => [l, l]), true)}</div></div>
+    <div class="srow"><span class="slabel">الشيوع</span><div class="sopts">${chips('usage', [['common', '🟢 شائعة'], ['medium', '🟡 متوسطة'], ['rare', '🔴 نادرة']], true)}</div></div>
+    <div class="srow"><span class="slabel">الحالة</span><div class="sopts">${chips('status', [['all', 'الكل'], ['new', 'جديدة'], ['practice', 'تحتاج تدريب'], ['due', 'للمراجعة'], ['mastered', 'متقنة']])}</div></div>
+    <div class="srow"><span class="slabel">العدد</span><div class="sopts">${chips('count', [['all', 'الكل'], ['first', 'أول'], ['last', 'آخر'], ['random', 'عشوائي']])}<input class="input sopt-num" id="fN" type="number" min="1" value="${F.n}"> <span class="tiny">كلمة</span></div></div>
+    <div class="srow"><span class="slabel">الترتيب</span><div class="sopts">${chips('sort', [['new', 'الأحدث'], ['old', 'الأقدم'], ['az', 'أبجدي'], ['hard', 'الأصعب']])}</div></div>
+    <div class="srow"><span class="slabel">التمرين</span><div class="sopts">${chips('mode', [['cards', '🃏 بطاقات'], ['quiz', '✅ اختبار'], ['games', '🎮 ألعاب'], ['listen', '🎧 استماع']])}</div></div>
+    <div class="pf-res"><b id="fCount"></b> <button type="button" class="link-btn" id="fAll">تحديد الكل</button> · <button type="button" class="link-btn" id="fNone">إلغاء الكل</button></div>
+    <div class="pf-list" id="fList"></div>
+    <div class="btn-row"><a class="btn primary" id="fGo">ابدأ</a><button type="button" class="btn ghost" data-close>إغلاق</button></div></div>`);
+  const off = new Set();
+  const inWhen = (w) => {
+    const t = new Date(w.saved_at).getTime();
+    if (F.when === 'today') return t >= today0;
+    if (F.when === 'yesterday') return t >= today0 - DAY && t < today0;
+    if (F.when === 'week') return t >= today0 - 6 * DAY;
+    if (F.when === 'month') return t >= today0 - 29 * DAY;
+    if (F.when === 'range') return (!F.from || t >= new Date(F.from).getTime()) && (!F.to || t < new Date(F.to).getTime() + DAY);
+    return true;
+  };
+  let randomOrder = new Map();
+  const pick = () => {
+    let list = all.filter((w) => inWhen(w)
+      && (!F.groups.length || F.groups.some((g) => w.group_ids.includes(Number(g))))
+      && (!F.source || w.source?.id === Number(F.source))
+      && (!F.levels.length || F.levels.includes(w.level))
+      && (!F.usage.length || F.usage.includes(w.usage))
+      && (F.status === 'all' || (F.status === 'new' && w.status === 'new') || (F.status === 'practice' && (w.difficult || w.due)) || (F.status === 'due' && w.due) || (F.status === 'mastered' && w.status === 'mastered')));
+    const sorters = { new: (a, b) => new Date(b.saved_at) - new Date(a.saved_at), old: (a, b) => new Date(a.saved_at) - new Date(b.saved_at), az: (a, b) => a.term.localeCompare(b.term), hard: (a, b) => (b.difficulty || 0) - (a.difficulty || 0) || a.mastery - b.mastery };
+    list.sort(sorters[F.sort] || sorters.new);
+    const n = Math.max(1, Number(F.n) || 20);
+    if (F.count === 'first') list = list.slice(0, n);
+    if (F.count === 'last') list = list.slice(-n);
+    if (F.count === 'random') {
+      list.forEach((w) => { if (!randomOrder.has(w.uv_id)) randomOrder.set(w.uv_id, Math.random()); });
+      list = [...list].sort((a, b) => randomOrder.get(a.uv_id) - randomOrder.get(b.uv_id)).slice(0, n);
+    }
+    return list;
+  };
+  const draw = () => {
+    box.querySelectorAll('[data-f]').forEach((b) => {
+      const v = F[b.dataset.f];
+      b.classList.toggle('active', Array.isArray(v) ? v.map(String).includes(b.dataset.v) : String(v) === b.dataset.v);
+    });
+    box.querySelector('.pf-dates').classList.toggle('hidden', F.when !== 'range');
+    const list = pick();
+    const chosen = list.filter((w) => !off.has(w.uv_id)).slice(0, 1000);
+    box.querySelector('#fCount').textContent = `${chosen.length} كلمة`;
+    box.querySelector('#fList').innerHTML = list.map((w) => `<label class="pf-item"><input type="checkbox" class="check" data-pv="${w.uv_id}" ${off.has(w.uv_id) ? '' : 'checked'}> ${usageDot(w.usage)}<b class="en">${esc(w.term)}</b> ${levelChip(w.level)} <span class="tiny ink-2">${esc(w.arabic || '')}</span></label>`).join('') || '<p class="small muted">لا توجد كلمات بهذه الفلاتر.</p>';
+    const go = box.querySelector('#fGo');
+    go.href = href({ mode: F.mode, ids: chosen.map((w) => w.uv_id).join(','), n: Date.now() });
+    go.classList.toggle('disabled', !chosen.length);
+    try { localStorage.setItem('practice.filter', JSON.stringify({ ...F, from: F.from, to: F.to })); } catch { /* storage unavailable */ }
+  };
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-f]');
+    if (b) {
+      const k = b.dataset.f;
+      if (b.dataset.multi === '1') F[k] = F[k].map(String).includes(b.dataset.v) ? F[k].filter((x) => String(x) !== b.dataset.v) : [...F[k], b.dataset.v];
+      else F[k] = b.dataset.v;
+      off.clear();
+      return draw();
+    }
+    if (e.target.closest('#fAll')) { off.clear(); return draw(); }
+    if (e.target.closest('#fNone')) { pick().forEach((w) => off.add(w.uv_id)); return draw(); }
+    if (e.target.closest('#fGo') && box.querySelector('#fGo').classList.contains('disabled')) e.preventDefault();
+  });
+  box.addEventListener('change', (e) => {
+    const c = e.target.closest('[data-pv]');
+    if (c) { const v = Number(c.dataset.pv); if (c.checked) off.delete(v); else off.add(v); return draw(); }
+    if (e.target.id === 'fFrom') F.from = e.target.value;
+    if (e.target.id === 'fTo') F.to = e.target.value;
+    if (e.target.id === 'fN') { F.n = Number(e.target.value) || 20; randomOrder = new Map(); }
+    if (e.target.id === 'fSource') F.source = e.target.value;
+    draw();
+  });
+  draw();
 }
