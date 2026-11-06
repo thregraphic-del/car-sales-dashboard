@@ -9,8 +9,17 @@ const isYoutube = (s) => /^\s*(https?:\/\/)?((www|m|music)\.)?(youtube\.com|yout
 // Pasting the transcript is offered for every reason except a bad link.
 const PASTE_HELP = new Set(['no_captions', 'blocked', 'fetch_failed', 'age_restricted', 'region_blocked', 'transcript_fetch_failed']);
 
+// «مقاطعي»: drawn at once from the last list kept on this device, then refreshed quietly.
+const srcKey = () => `add.sources.${state.user?.id || 'me'}`; // per account on a shared device
+const sourcesHtml = (sources) => (sources.length ? `<div class="section-title"><h2>🎬 مقاطعي <span class="tiny muted en-inline">(${sources.length})</span></h2></div>
+    <div class="grid cols-3">${sources.map((s) => `
+      <a class="video-mini" href="#/source/${s.id}">${thumbHtml(s, { duration: s.duration_seconds })}
+        <div style="min-width:0"><div class="en small clamp2" style="font-weight:600">${esc(s.title)}</div>
+        <div class="tiny muted">${s.saved_count} محفوظة من ${s.item_count} · ${esc(relDate(s.analyzed_at))}${s.progress_seconds > 5 ? ` · <span class="resume-chip">▶ ${fmtTime(s.progress_seconds)}</span>` : ''}</div></div></a>`).join('')}</div>` : '');
+
 export async function render(view, { params }) {
-  const sources = await api.sources();
+  let cached = [];
+  try { cached = JSON.parse(localStorage.getItem(srcKey()) || '[]'); } catch { /* none yet */ }
   view.innerHTML = `
     <div class="page-head compact"><div><h1>أضف</h1><p>الصق رابط فيديو يوتيوب، أو كلمات، أو ملاحظاتك، أو أي نص إنجليزي.</p></div></div>
     <div class="card add-box">
@@ -31,15 +40,16 @@ export async function render(view, { params }) {
       <div id="status"></div>
     </div>
     <div id="result"></div>
+    <div id="sources">${sourcesHtml(cached)}</div>
     ${packsHtml()}
     ${suggestWordsHtml()}
     ${channelsHtml()}
-    ${suggestionsHtml()}
-    ${sources.length ? `<div class="section-title"><h2>مصادرك</h2></div>
-    <div class="grid cols-3" id="sources">${sources.map((s) => `
-      <a class="video-mini" href="#/source/${s.id}">${thumbHtml(s, { duration: s.duration_seconds })}
-        <div style="min-width:0"><div class="en small clamp2" style="font-weight:600">${esc(s.title)}</div>
-        <div class="tiny muted">${s.saved_count} محفوظة من ${s.item_count} · ${esc(relDate(s.analyzed_at))}${s.progress_seconds > 5 ? ` · <span class="resume-chip">▶ ${fmtTime(s.progress_seconds)}</span>` : ''}</div></div></a>`).join('')}</div>` : ''}`;
+    ${suggestionsHtml()}`;
+  api.sources().then((list) => {
+    try { localStorage.setItem(srcKey(), JSON.stringify(list.slice(0, 60))); } catch { /* storage unavailable */ }
+    const box = view.querySelector('#sources');
+    if (box) box.innerHTML = sourcesHtml(list);
+  }).catch(() => {});
 
   const input = $('#input', view);
   const go = $('#go', view);

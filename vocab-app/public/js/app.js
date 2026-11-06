@@ -1,7 +1,7 @@
 // App shell: four everyday destinations + settings, and a tiny hash router.
 import { api } from './api.js';
 import { state, loadGroups } from './state.js';
-import { stop as stopAudio } from './audio.js';
+import { stop as stopAudio, speak } from './audio.js';
 import { closeWordPanel } from './components.js';
 import { icon, $, closeModal, esc } from './ui.js';
 import { openFeedback } from './feedback.js';
@@ -148,6 +148,14 @@ async function init() {
   } catch {
     /* storage unavailable */
   }
+  // 🔊 Every listen button on every page works, as many times as you like (pages that
+  // handle their own buttons stop the click before it gets here).
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest?.('[data-say]');
+    if (!b || b.disabled) return;
+    e.preventDefault();
+    speak(b.dataset.say, { rate: Number(b.dataset.rate) || 1, lang: b.dataset.lang || 'en' }).catch(() => {});
+  });
   $('#menuBtn').addEventListener('click', () => document.body.classList.add('nav-open'));
   $('#scrim').addEventListener('click', () => document.body.classList.remove('nav-open'));
   $('#sidebarFoot').addEventListener('click', (e) => {

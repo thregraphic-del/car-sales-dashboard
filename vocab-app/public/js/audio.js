@@ -77,9 +77,11 @@ function playUrl(url, rate) {
   audio.playbackRate = rate;
   currentAudio = audio;
   return new Promise((resolve, reject) => {
+    // stopped because another sound started (a second tap): end quietly, no fallback voice
+    const fail = (err) => (currentAudio === audio ? reject(err) : resolve());
     audio.onended = resolve;
-    audio.onerror = reject;
-    audio.play().catch(reject);
+    audio.onerror = fail;
+    audio.play().catch(fail);
   });
 }
 
