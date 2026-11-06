@@ -10,5 +10,6 @@
 | 6 | 🎛 Reader top bar redesign: one clean, short row with clear labelled controls (play/stop, repeat, video position, settings), a plain goal counter (e.g. «108 كلمة · هدفك 10 ✓» instead of «1080% 108/10»), tabs clearly separated below; settings sheet grouped and short | to build | in the batch | 0 (browser only) |
 | 7 | 📖 Stories: creative, modern, family-friendly for all ages (no romance/inappropriate themes); stories become a game inside «تدرّب» that uses the general practice filters to pick the words | to build | in the batch | small: AI writes each story once (new rule), then saved |
 | 8 | 🃏 Flashcards become a game inside «تدرّب» like the others, using the same practice filters | to build | in the batch | 0 (browser only) |
+| 9 | 🔊 Audio everywhere: every word and every sentence on every page and in every game has a 🔊 button; it can be played again as many times as wanted (review all pages and games, fix any that play only once or have no button) | to build | in the batch | 0 (the browser's own voice) |
 
 Bug noticed (fixed with the batch, not counted): «تعذّرت الترجمة الآن» shows on some videos — check why and repair once.
