@@ -2,17 +2,9 @@
 
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
-| 1 | 🟩 Reader follow: the highlighted (current) sentence stays fixed at the 2nd–3rd line from the top of the text (not at the bottom); the lines above it are faded to 80% transparency (20% visible) | to build | in the batch | 0 (browser only) |
-| 2 | 🎬 Reader: (a) default video position = top (float/bottom only if the learner picks it); (b) the top bar fits on ONE row (title, settings, play, repeat, zoom, counter) to save space; (c) «🔁 أعد الجملة» becomes an on/off switch: when on, every sentence of the whole video plays twice automatically | to build | in the batch | 0 (browser only) |
-| 3 | 🔤 Exact line-by-line translation: each English line has exactly its own Arabic (nothing from the next/previous line). Old videos with shifted translations are re-translated strictly once (line by line) when opened, then saved; tighten the check that finds shifted lines | to build | in the batch | small: AI once per old video, then saved |
-| 4 | 🎮 Practice page redesign: one page — compact smart filter on top (fewer filters: merge similar ones into a few icon buttons that open drop-down menus), and right under it ALL games in one grid (quiz, listening, stories, flashcards and every game) using the chosen words; remove the top tabs and the separate mode row | to build | in the batch | 0 (browser only) |
-| 5 | 🧩 «الكلمة الأوضح للحفظ» (word clusters) made strict: a group only holds TRUE synonyms with the same meaning (checked against dictionary meanings), headed by the simplest/most common word; harder/rarer ones go under it; a word with no true synonym stays alone. Rebuild the saved groups once with the strict rule | to build | in the batch | small: AI once per word list, then saved |
-| 6 | 🔤 Word details (كلماتي): at the end, after forms and examples, one short line «مرادفات أسهل» with true same-meaning easier words; nothing shown if there are none | to build | in the batch | small: reuses the saved synonyms (AI once per word) |
-| 7 | 📺 Channels by field — verified: every channel opens its real YouTube channel page directly (no search page), with its real logo. The server checks each channel ONCE (YouTube page → real link + logo), saves it for everyone; a channel that can't be verified is not shown. Remove unsuitable channels (e.g. the horror «Bedtime Stories»); only family-friendly. Stories field: ~30 channels (10 per level), any good story channels — learning ones plus general stories, kids' stories and novels/audiobooks — with a story-type tag | to build | in the batch | tiny: one check per channel, once, then saved |
-| 8 | ⭐ Merge «قنوات مقترحة» into the fields row as a «⭐ المفضلة» chip: my channels (from my videos + similar to my taste), with add / edit / similar inside it. The ⭐ chip stands out (own colour, at the far left of the row); inside, «✨ ابحث عن قنوات مشابهة» is the main, most visible button. ALSO «🎬 مقاطعي» on the Add page: show only the first row; «المزيد» opens the full list (max ~3 rows tall, scrolls inside); a select mode to mark videos as ⭐ favourite, move up/down, delete, hide, put in sections (own names), ✅ green «أتقنته», 🟡 yellow «يحتاج مراجعة» (saved per user in one small JSON setting) | to build | in the batch | 0 |
-| 9 | ➕ 10 more fields (neuroscience, psychology, cartoons, comedy, vlogs, tech, cooking, sport, history, health) + 3 more: ✨ spirituality & motivation (mindset, inner peace, energy, famous English motivational videos), 🎤 famous speakers (well-known motivational speakers), 🎙 famous podcasts — each with easy / medium / hard channels so no level is empty; all family-friendly | to build | in the batch | 0 (same once-only check as #7) |
 
-(Batch of 10 deployed on 2026-11-06: credits bell, channels by field, auto-retry for links,
-large floating video, strict easier synonyms, reader top bar, family-friendly stories + cards
-as games, audio everywhere, friends/challenges/share/leaderboard + 3 new games + quiz after
-video + repeat sentence + simpler Today + fewer stats calls; translation step retries.)
+(Batch 2 deployed on 2026-11-06: fixed current line + faded past lines, video on top by default +
+one-row bar + repeat-twice switch, strict line-by-line re-translation of old videos, practice page =
+filters + all games, strict word clusters, easier-synonyms line in word details, verified channels
+with logos + 23 fields + stories 30, ⭐ favourites, my-videos list organizing, faster suggest-words,
+friends card with nickname/background/share.)

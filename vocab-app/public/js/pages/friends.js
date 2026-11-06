@@ -12,9 +12,18 @@ export async function render(view, { params }) {
   const box = view.querySelector('#fr');
   const me = state.user?.username;
   const draw = async () => {
-    const [{ friends }, { challenges }] = await Promise.all([api.friends(), api.challenges()]);
+    const [{ friends }, { challenges }, card] = await Promise.all([api.friends(), api.challenges(), api.myCard()]);
     const others = friends.filter((f) => !f.me);
     box.innerHTML = `
+      <div class="card fr-card me-card bg-${esc(card.bg)}">
+        <div class="me-row"><span class="me-ava">${esc((card.name || '?').slice(0, 1))}</span>
+          <div style="min-width:0"><b class="me-name">${esc(card.name)}</b>${card.username ? `<div class="en-inline me-user">@${esc(card.username)}</div>` : '<div class="tiny">سجّل باسم مستخدم ليضيفك أصدقاؤك</div>'}</div></div>
+        <div class="btn-row">${card.username ? '<button class="btn sm" id="shareUser">📤 شارك اسمي</button>' : ''}<button class="btn sm ghost" id="editCard">✎ اسم مستعار وخلفية</button></div>
+        <div id="cardEdit" class="hidden" style="margin-top:8px">
+          <input class="input" id="nick" maxlength="40" placeholder="اسمك المستعار" value="${esc(card.name)}">
+          <div class="bg-pick">${card.backgrounds.map((b) => `<button type="button" class="bg-dot bg-${b}${b === card.bg ? ' on' : ''}" data-bg="${b}" aria-label="${b}"></button>`).join('')}</div>
+          <button class="btn primary sm" id="saveCard">حفظ</button></div>
+      </div>` + `
       <div class="card fr-card">
         <b>🔗 شارك تقدمك</b>
         <p class="small ink-2">رابط فيه أيامك المتتالية وعدد كلماتك وآخر ما تعلمته — يفتحه أي أحد بدون حساب.</p>
@@ -28,7 +37,7 @@ export async function render(view, { params }) {
       <div class="card fr-card">
         <b>🏆 ترتيب هذا الأسبوع</b>
         <p class="tiny muted">النقاط = الإجابات الصحيحة + ٢ لكل كلمة حفظتها (آخر ٧ أيام).</p>
-        <div class="lb">${friends.map((f, i) => `<div class="lb-row ${f.me ? 'me' : ''}"><span class="lb-rank">${medal(i)}</span><span class="lb-name">${esc(f.me ? 'أنت' : f.name)}</span><b class="en-inline">${f.points}</b>
+        <div class="lb">${friends.map((f, i) => `<div class="lb-row ${f.me ? 'me' : ''}"><span class="lb-rank">${medal(i)}</span><span class="me-ava sm bg-${esc(f.bg || 'teal')}">${esc((f.name || '?').slice(0, 1))}</span><span class="lb-name">${esc(f.me ? 'أنت' : f.name)}</span><b class="en-inline">${f.points}</b>
           ${f.me ? '' : `<button class="btn sm" data-ch="${f.id}">⚔️ تحدَّ</button>`}</div>`).join('')}</div>
         ${others.length ? '' : '<p class="tiny muted">أضف صديقًا ليظهر هنا وتتحدّوا.</p>'}
       </div>
@@ -44,7 +53,21 @@ export async function render(view, { params }) {
         }).join('') : '<p class="tiny muted">لا توجد تحدّيات بعد.</p>'}
       </div>`;
   };
+  let pickBg = null;
   box.addEventListener('click', async (e) => {
+    if (e.target.closest('#editCard')) { box.querySelector('#cardEdit').classList.toggle('hidden'); return; }
+    const dot = e.target.closest('[data-bg]');
+    if (dot) { pickBg = dot.dataset.bg; box.querySelectorAll('[data-bg]').forEach((d) => d.classList.toggle('on', d === dot)); return; }
+    if (e.target.closest('#saveCard')) {
+      try { await api.saveMyCard({ name: box.querySelector('#nick').value, bg: pickBg }); toast('تم الحفظ ✓'); await draw(); } catch (err) { toast(err.message); }
+      return;
+    }
+    if (e.target.closest('#shareUser')) {
+      const text = `أضفني في LexiTube ونتحدّى في الإنجليزي 💪\nاسم المستخدم: @${me}\n${location.origin}`;
+      if (navigator.share) await navigator.share({ title: 'LexiTube', text }).catch(() => {});
+      else { await navigator.clipboard?.writeText(text).catch(() => {}); window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener'); toast('نسخنا اسمك ✓'); }
+      return;
+    }
     if (e.target.closest('#shareBtn')) {
       try {
         const { token } = await api.shareLink();

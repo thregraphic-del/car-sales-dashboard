@@ -41,6 +41,23 @@ async function progressOf(userId) {
   };
 }
 
+/* ------------------------------------------------------------- my card */
+const BGS = ['teal', 'sunset', 'ocean', 'forest', 'violet', 'gold', 'rose', 'night'];
+router.get('/me', wrap(async (req) => {
+  const u = await getUser(req.userId);
+  const p = await kvGet(`profile:${req.userId}`, {});
+  return { name: nameOf(u), username: u?.username || null, bg: BGS.includes(p.bg) ? p.bg : 'teal', backgrounds: BGS };
+}));
+router.post('/me', wrap(async (req) => {
+  const bg = String(req.body?.bg || '');
+  const p = await kvGet(`profile:${req.userId}`, {});
+  if (BGS.includes(bg)) p.bg = bg;
+  await kvSet(`profile:${req.userId}`, p);
+  const name = str(req.body?.name, 40).trim();
+  if (name) await run('UPDATE users SET name = ? WHERE id = ?', name, req.userId);
+  return { ok: true };
+}));
+
 /* ------------------------------------------------------------- friends */
 router.get('/friends', wrap(async (req) => {
   const ids = await kvGet(`friends:${req.userId}`, []);
@@ -48,7 +65,7 @@ router.get('/friends', wrap(async (req) => {
   for (const id of [req.userId, ...ids]) {
     const u = await getUser(id);
     if (!u) continue;
-    rows.push({ id, name: nameOf(u), username: u.username || null, me: id === req.userId, ...(await weekPoints(id)) });
+    rows.push({ id, name: nameOf(u), username: u.username || null, bg: (await kvGet(`profile:${id}`, {})).bg || 'teal', me: id === req.userId, ...(await weekPoints(id)) });
   }
   rows.sort((a, b) => b.points - a.points);
   return { friends: rows };
@@ -127,6 +144,21 @@ router.post('/challenges/:id/score', wrap(async (req) => {
     await kvSet(key, ch);
   }
   return challengeView(ch, req.userId);
+}));
+
+/* --------------------------------------------- my videos: order, marks, sections */
+router.get('/vidprefs', wrap(async (req) => ({ prefs: await kvGet(`vidprefs:${req.userId}`, null) })));
+router.post('/vidprefs', wrap(async (req) => {
+  const p = req.body?.prefs || {};
+  const ids = (a) => (Array.isArray(a) ? a.map(Number).filter((x) => x > 0).slice(0, 2000) : []);
+  const map = (o, ok) => Object.fromEntries(Object.entries(o && typeof o === 'object' ? o : {}).filter(([k, v]) => Number(k) > 0 && ok(v)).slice(0, 2000));
+  const clean = {
+    fav: ids(p.fav), order: ids(p.order), hidden: ids(p.hidden),
+    mark: map(p.mark, (v) => v === 'ok' || v === 'review'),
+    sec: map(p.sec, (v) => typeof v === 'string' && v.length <= 30),
+  };
+  await kvSet(`vidprefs:${req.userId}`, clean);
+  return { ok: true };
 }));
 
 /* --------------------------------------------------- share my progress */

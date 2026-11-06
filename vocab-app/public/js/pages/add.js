@@ -1,4 +1,5 @@
 // أضف — one box for everything: a YouTube link, a word list, notes or a text.
+import { bindMyVideos } from '../my-videos.js';
 import { api } from '../api.js';
 import { state, loadGroups } from '../state.js';
 import { esc, icon, levelChip, thumbHtml, relDate, toast, fmtTime, $ } from '../ui.js';
@@ -11,12 +12,6 @@ const PASTE_HELP = new Set(['no_captions', 'blocked', 'fetch_failed', 'age_restr
 
 // «مقاطعي»: drawn at once from the last list kept on this device, then refreshed quietly.
 const srcKey = () => `add.sources.${state.user?.id || 'me'}`; // per account on a shared device
-const sourcesHtml = (sources) => (sources.length ? `<div class="section-title"><h2>🎬 مقاطعي <span class="tiny muted en-inline">(${sources.length})</span></h2></div>
-    <div class="grid cols-3">${sources.map((s) => `
-      <a class="video-mini" href="#/source/${s.id}">${thumbHtml(s, { duration: s.duration_seconds })}
-        <div style="min-width:0"><div class="en small clamp2" style="font-weight:600">${esc(s.title)}</div>
-        <div class="tiny muted">${s.saved_count} محفوظة من ${s.item_count} · ${esc(relDate(s.analyzed_at))}${s.progress_seconds > 5 ? ` · <span class="resume-chip">▶ ${fmtTime(s.progress_seconds)}</span>` : ''}</div></div></a>`).join('')}</div>` : '');
-
 export async function render(view, { params }) {
   let cached = [];
   try { cached = JSON.parse(localStorage.getItem(srcKey()) || '[]'); } catch { /* none yet */ }
@@ -40,16 +35,16 @@ export async function render(view, { params }) {
       <div id="status"></div>
     </div>
     <div id="result"></div>
-    <div id="sources">${sourcesHtml(cached)}</div>
+    <div id="sources"></div>
     ${packsHtml()}
     ${suggestWordsHtml()}
     ${fieldsHtml()}
     ${channelsHtml()}
     ${suggestionsHtml()}`;
+  const myVids = bindMyVideos(view.querySelector('#sources'), cached);
   api.sources().then((list) => {
     try { localStorage.setItem(srcKey(), JSON.stringify(list.slice(0, 60))); } catch { /* storage unavailable */ }
-    const box = view.querySelector('#sources');
-    if (box) box.innerHTML = sourcesHtml(list);
+    if (view.isConnected) myVids.update(list);
   }).catch(() => {});
 
   const input = $('#input', view);

@@ -260,16 +260,14 @@ export async function render(view, { segments, params }) {
   let tab = 'text';
 
   view.innerHTML = `
-    <div class="reader-head slim">
+    <div class="reader-head slim one-row">
       <a class="btn icon sm ghost" href="#/add" aria-label="رجوع">${icon.prev}</a>
       <div class="reader-title-sm en" dir="auto" title="${esc(source.title)}">${esc(source.title)}</div>
-      <button type="button" class="btn icon sm ghost set-btn" id="setBtn" aria-expanded="false" title="إعدادات المقطع">⚙️</button>
-    </div>
-    <div class="reader-bar">
-      ${isVideo ? '<button type="button" class="rb-btn play-btn" id="playBtn" title="تشغيل / إيقاف (مسافة)">▶ تشغيل</button>' : ''}
-      ${isVideo && hasTimes ? '<button type="button" class="rb-btn" id="againBtn" title="أعد الجملة الحالية (R)">🔁 أعد الجملة</button>' : ''}
-      <button type="button" class="rb-btn" id="focusBtn" aria-pressed="false" title="توسيع الشاشة">⛶ تكبير</button>
+      ${isVideo ? '<button type="button" class="rb-btn play-btn" id="playBtn" title="تشغيل / إيقاف (مسافة)">▶</button>' : ''}
+      ${isVideo && hasTimes ? '<button type="button" class="rb-btn" id="againBtn" aria-pressed="false" title="كل جملة تُعاد مرتين تلقائيًا (L)">🔁 ×2</button>' : ''}
+      <button type="button" class="rb-btn" id="focusBtn" aria-pressed="false" title="توسيع الشاشة">⛶</button>
       <span class="goal-chip" id="goalChip" title="كلمات مرّت عليك اليوم (بدون تكرار) من هدفك"></span>
+      <button type="button" class="btn icon sm ghost set-btn" id="setBtn" aria-expanded="false" title="إعدادات المقطع">⚙️</button>
     </div>
     <div class="listen-bar hidden" id="listenBar"><span id="listenNote">🎧 يقرأ…</span>
       <div class="segmented" id="listenOrder"><button data-order="ar-en">عربي ← إنجليزي</button><button data-order="en-ar">إنجليزي ← عربي</button></div>
@@ -282,7 +280,7 @@ export async function render(view, { segments, params }) {
           ${isVideo && hasTimes ? `<div class="sgroup">🎬 التشغيل</div><div id="mode" class="rgrp">
             <div class="srow"><span class="slabel">السرعة</span><div class="sopts" id="speed">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" class="sopt en-inline" data-rate="${r}">${r}×</button>`).join('')}</div></div>
             <div class="srow"><span class="slabel">التوقف</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="gapOn"> بعد كل سطر</label><span class="sopts" id="gapChips">${[500, 1000, 2000, 3000].map((ms) => `<button type="button" class="sopt en-inline" data-gap="${ms}">${ms / 1000}ث</button>`).join('')}</span></div></div>
-            <div class="srow"><span class="slabel">التدريب</span><div class="sopts"><button type="button" class="sopt" data-mode="shadow">🗣 ردّد ورائي</button><button type="button" class="sopt" id="loopBtn" aria-pressed="false">🔁 الفقرة مرتين</button><button type="button" class="sopt hidden" id="modeOff">✕ عادي</button></div></div>
+            <div class="srow"><span class="slabel">التدريب</span><div class="sopts"><button type="button" class="sopt" data-mode="shadow">🗣 ردّد ورائي</button><button type="button" class="sopt" id="loopBtn" aria-pressed="false">🔁 كل جملة مرتين</button><button type="button" class="sopt hidden" id="modeOff">✕ عادي</button></div></div>
           </div>
           <div class="sgroup">📝 المساعدة</div>
           <div class="srow"><span class="slabel">قائمة الكلمات</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="wbOn"> كل</label><input class="input sopt-num" id="wbN" type="number" min="3" max="300" inputmode="numeric"> <span class="tiny">كلمة</span><span class="sopts" id="wbWhen"><button type="button" class="sopt" data-when="before">قبلها</button><button type="button" class="sopt" data-when="after">بعدها</button></span></div></div>
@@ -319,9 +317,9 @@ export async function render(view, { segments, params }) {
   document.addEventListener('click', closeSet);
   $('#setOk', view).addEventListener('click', () => toggleSet(false));
   // Video above the text, below it, or floating in a corner (drag it anywhere, it snaps to a corner).
-  // 🎬 By default the video floats, large, over the lower half of the screen; it can be moved
+  // 🎬 The video sits above the text by default; when the learner picks «عائم» it floats, large, over the lower half; it can be moved
   // anywhere (drag its top bar) and resized (drag its corner ↘ or pinch the bar with two fingers).
-  let vidPos = ['top', 'bottom', 'float'].includes(pref('reader.vp', 'float')) ? pref('reader.vp', 'float') : 'float';
+  let vidPos = ['top', 'bottom', 'float'].includes(pref('reader.vp', 'top')) ? pref('reader.vp', 'top') : 'top';
   const vw = () => window.innerWidth;
   const vh = () => window.innerHeight;
   let floatW = Number(pref('reader.fw', '0')) || 0; // 0 = automatic (large)
@@ -554,7 +552,7 @@ export async function render(view, { segments, params }) {
     if (!chip) return;
     const n = passedToday.size;
     const pct = Math.round((100 * n) / Math.max(1, goalTarget));
-    chip.innerHTML = `🎯 <b class="en-inline">${n}</b> كلمة اليوم · هدفك <b class="en-inline">${goalTarget}</b>${n >= goalTarget ? ' ✓' : ''}`;
+    chip.innerHTML = `🎯 <b class="en-inline">${n}</b><span class="tiny">/${goalTarget}${n >= goalTarget ? ' ✓' : ''}</span>`;
     void pct;
     chip.classList.toggle('done', n >= goalTarget);
     const inVideo = data.items.filter((it) => passedToday.has(it.vocabulary_id)).length;
@@ -744,7 +742,7 @@ export async function render(view, { segments, params }) {
     b?.classList.toggle('primary', on);
     if (b) {
       b.title = on ? 'تصغير: رجوع للشاشة العادية' : 'توسيع الشاشة';
-      b.textContent = on ? '⛶ تصغير' : '⛶ تكبير';
+      b.textContent = '⛶';
     }
     setTimeout(placeFloat, 50);
     if (on && document.documentElement.requestFullscreen && !document.fullscreenElement) {
@@ -832,7 +830,9 @@ export async function render(view, { segments, params }) {
       x.classList.toggle('para-first', k === 0);
       x.classList.toggle('para-last', k === lines.length - 1);
     });
-    if (fadePrev) linesEl.querySelectorAll(`.line[data-para="${Number(p) - 1}"]`).forEach((x) => x.classList.add('past-fade'));
+    // everything already said is faded (80% transparent), so the eye stays on the green block
+    void fadePrev;
+    for (const x of linesEl.querySelectorAll('.line[data-para]')) if (Number(x.dataset.para) < Number(p)) x.classList.add('past-fade');
     return lines[0];
   }
 
@@ -1322,20 +1322,22 @@ export async function render(view, { segments, params }) {
   let repeatPara = pref('reader.repeatPara', '0') === '1';
   let repeatedPara = null;
   const showLoop = () => {
-    const b = $('#loopBtn', view);
-    if (!b) return;
-    b.classList.toggle('primary', repeatPara);
-    b.setAttribute('aria-pressed', String(repeatPara));
+    for (const b of [$('#loopBtn', view), $('#againBtn', view)]) {
+      if (!b) continue;
+      b.classList.toggle('primary', repeatPara);
+      b.setAttribute('aria-pressed', String(repeatPara));
+    }
   };
   const toggleLoop = () => {
     repeatPara = !repeatPara;
     repeatedPara = null;
     setPref('reader.repeatPara', repeatPara ? '1' : '0');
     showLoop();
-    toast(repeatPara ? '🔁 كل فقرة خضراء تُعاد مرتين' : 'إعادة الفقرات متوقفة');
+    toast(repeatPara ? '🔁 كل جملة تُعاد مرتين تلقائيًا' : 'الإعادة متوقفة');
   };
   showLoop();
   $('#loopBtn', view)?.addEventListener('click', toggleLoop);
+  $('#againBtn', view)?.addEventListener('click', toggleLoop);
 
   // 🙈 Hide the Arabic until it is touched (try to understand first)
   let hideAr = pref('reader.hideAr', '0') === '1';
@@ -1378,7 +1380,7 @@ export async function render(view, { segments, params }) {
     const b = $('#playBtn', view);
     if (!b) return;
     const on = (playing || Boolean(gapTimer)) && !held;
-    b.textContent = on ? '⏸ إيقاف' : '▶ تشغيل';
+    b.textContent = on ? '⏸' : '▶';
     b.classList.toggle('primary', on);
   }
   function togglePlay() {
@@ -1406,7 +1408,7 @@ export async function render(view, { segments, params }) {
     player.play();
     showPlayBtn();
   }
-  $('#againBtn', view)?.addEventListener('click', againLine);
+
   const onKey = (e) => {
     if (e.target.closest?.('input, textarea, select, [contenteditable]') || e.metaKey || e.ctrlKey || e.altKey || isPanelOpen()) return;
     const k = e.key.toLowerCase();

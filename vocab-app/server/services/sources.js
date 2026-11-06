@@ -218,14 +218,15 @@ export async function translateSource(sourceId, userId) {
  */
 export async function repairTranslation(sourceId, userId, { budgetMs = 15000 } = {}) {
   const src = await requireSource(sourceId, userId);
-  const key = `tr-fix:${sourceId}`;
+  // v2: every window of a video is translated again once, strictly line by line (old videos
+  // could carry words from the next line); kept only when it is not worse than before.
+  const key = `tr-fix2:${sourceId}`;
   const state = (await get('SELECT value FROM app_settings WHERE key = ?', key))?.value || '0';
   if (state === 'done' || src.is_demo) return { more: false, fixed: 0 };
   if (!aiAvailable()) return { more: false, fixed: 0, ai_error: unavailableMessage() };
   const started = Date.now();
   let cursor = Number(state) || 0;
   let fixed = 0;
-  let carry = false; // a shift often runs on into the next window: check it again too
   const W = 20;
   while (Date.now() - started < budgetMs) {
     const win = await all('SELECT id, idx, text, text_ar FROM transcript_lines WHERE source_id = ? AND idx >= ? ORDER BY idx LIMIT ?', sourceId, cursor, W);
@@ -235,8 +236,8 @@ export async function repairTranslation(sourceId, userId, { budgetMs = 15000 } =
     }
     const have = new Map(win.map((l) => [l.idx, l.text_ar]));
     const badNow = win.every((l) => l.text_ar) ? suspiciousTranslations(win, have).size : 0;
-    if (badNow || (carry && win.every((l) => l.text_ar))) {
-      const map = await translateWithAi(win, src.title);
+    if (win.every((l) => l.text_ar)) {
+      const map = await translateWithAi(win, src.title, { strict: true });
       if (suspiciousTranslations(win, map).size <= badNow) {
         await tx(async () => {
           for (const l of win) {
@@ -246,7 +247,6 @@ export async function repairTranslation(sourceId, userId, { budgetMs = 15000 } =
         });
       }
     }
-    carry = badNow > 0;
     cursor = win.at(-1).idx + 1;
     await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', key, String(cursor));
   }

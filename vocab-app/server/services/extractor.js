@@ -395,7 +395,7 @@ export function suspiciousTranslations(lines, ar) {
 }
 
 /** Translate a batch of transcript lines → Map(idx → Arabic), one line each; asked again strictly if lines got shifted. */
-export async function translateWithAi(lines, title = '') {
+export async function translateWithAi(lines, title = '', { strict = false } = {}) {
   const ask = async (strict) => {
     const r = await jsonCall({
       task: 'translate_lines_v2',
@@ -409,19 +409,19 @@ export async function translateWithAi(lines, title = '') {
   };
   let first;
   try {
-    first = await ask(false);
+    first = await ask(strict);
   } catch (err) {
     // the answer was cut off (too long): translate the two halves separately
     if (err instanceof AiError && err.status === 422 && lines.length > 1) {
       const mid = Math.ceil(lines.length / 2);
-      const a = await translateWithAi(lines.slice(0, mid), title);
-      const b = await translateWithAi(lines.slice(mid), title);
+      const a = await translateWithAi(lines.slice(0, mid), title, { strict });
+      const b = await translateWithAi(lines.slice(mid), title, { strict });
       return new Map([...a, ...b]);
     }
     throw err;
   }
   const bad = suspiciousTranslations(lines, first);
-  if (!bad.size) return first;
+  if (!bad.size || strict) return first;
   const second = await ask(true).catch(() => null);
   if (!second) return first;
   return suspiciousTranslations(lines, second).size <= bad.size ? second : first;
@@ -614,11 +614,15 @@ const SUGGEST_WORDS_SCHEMA = obj({
 const SuggestWordsZ = z.object({ items: z.array(z.object({ term: z.string(), arabic: z.string(), level: z.enum(LEVELS), example: z.string(), example_ar: z.string() })) });
 
 /** Useful words in a field, avoiding words the learner already has. */
-export async function suggestWordsWithAi({ count, topic = '', level = '', avoid = [] }) {
+export async function suggestWordsWithAi({ count, topic = '', level = '', avoid = [], part = 0, parts = 1 }) {
+  // parallel batches ask for different first letters so they rarely overlap
+  const ab = 'abcdefghijklmnoprstw';
+  const per = Math.ceil(ab.length / Math.max(1, parts));
+  const slice = parts > 1 ? ab.slice(part * per, part * per + per).split('').join(', ') : 'any letter';
   return jsonCall({
     task: 'suggest_words',
     system: 'You suggest English vocabulary for an Arabic-speaking learner of English. Suggest useful, commonly used words and expressions (single words, phrasal verbs, collocations) for the requested field and level, varied, in dictionary form, none of the listed words to avoid. "arabic" = short natural Arabic meaning; "example" = one natural example sentence (8–16 words); "example_ar" = its Arabic translation.',
-    user: `Number of items: ${count}\nField: ${topic || 'general everyday English'}\nLevel: ${level || 'a balanced mix of ALL levels A1, A2, B1, B2, C1 and C2'}\nVariant: ${Date.now()}\nAvoid: ${avoid.slice(0, 400).join(', ') || '(none)'}`,
+    user: `Number of items: ${count}\nField: ${topic || 'general everyday English'}\nLevel: ${level || 'a balanced mix of ALL levels A1, A2, B1, B2, C1 and C2'}\nVariant: ${Date.now()}\nPrefer words starting with: ${slice}\nAvoid: ${avoid.slice(0, 400).join(', ') || '(none)'}`,
     schema: SUGGEST_WORDS_SCHEMA,
     zod: SuggestWordsZ,
     maxTokens: Math.min(12000, 160 * count + 600),
@@ -796,4 +800,21 @@ export async function levelsWithAi(terms) {
     cache: false,
   });
   return r.items;
+}
+
+/* ------------------------------------- strict synonym check (word clusters) */
+const SYNCHK_SCHEMA = obj({ same: { type: 'array', items: str } });
+const SynChkZ = z.object({ same: z.array(z.string()) });
+
+/** Which candidates are TRUE synonyms of the head word (same core meaning)? Saved once per group. */
+export async function sameMeaningWithAi(head, candidates) {
+  const r = await jsonCall({
+    task: 'synonym_check_v1',
+    system: 'You are a careful English lexicographer. Given a HEAD word (with its Arabic meaning) and CANDIDATE words (with theirs), return in "same" ONLY the candidates that are true synonyms of the head in its main dictionary sense: they mean the same thing and could replace it in a normal sentence (e.g. small ~ tiny ~ little; big ~ huge). Exclude related words, opposites, words of another sense, broader/narrower words, and other parts of speech. When unsure, exclude. Return the candidate words exactly as given.',
+    user: `HEAD: ${head.term} (${head.arabic || ''})\nCANDIDATES:\n${candidates.map((c) => `${c.term} (${c.arabic || ''})`).join('\n')}`,
+    schema: SYNCHK_SCHEMA,
+    zod: SynChkZ,
+    maxTokens: 300,
+  });
+  return new Set(r.same.map((x) => x.trim().toLowerCase()));
 }

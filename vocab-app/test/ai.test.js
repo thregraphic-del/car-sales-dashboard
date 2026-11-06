@@ -597,6 +597,7 @@ test('my words: saved in the simplest form, older words simplified, «الأوض
   }
   await run("UPDATE vocabulary SET arabic = 'كبير / ضخم' WHERE match_key = 'huge'");
   await run("UPDATE vocabulary SET arabic = 'ضخم / هائل' WHERE match_key = 'enormous'");
+  reply = ok({ same: ['huge', 'enormous'] }); // the strict synonym check agrees
   const c = (await (await realFetch(`${app.base}/api/words/clusters`)).json()).clusters;
   const big = c.find((x) => x.members.some((m) => m.term === 'enormous'));
   assert.equal(big.head.term, 'big');

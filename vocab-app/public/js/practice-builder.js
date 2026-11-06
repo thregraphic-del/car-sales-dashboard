@@ -136,7 +136,7 @@ function summary(F, key, ctx) {
  * Draw the builder into `stage`. groups: [{id,name}]. onGo(list, mode) starts the practice.
  * Returns nothing; everything lives inside `stage`.
  */
-export function renderBuilder(stage, { words: all, groups = [], mode = 'cards', onGo }) {
+export function renderBuilder(stage, { words: all, groups = [], games = [], onGo }) {
   let F = { ...DEFAULTS };
   try { F = { ...DEFAULTS, ...JSON.parse(localStorage.getItem('practice.builder') || '{}') }; } catch { /* first time */ }
   F.seed = Math.floor(Math.random() * 100000) + 1;
@@ -147,9 +147,12 @@ export function renderBuilder(stage, { words: all, groups = [], mode = 'cards', 
   const save = () => { try { localStorage.setItem('practice.builder', JSON.stringify({ ...F, seed: undefined })); } catch { /* storage unavailable */ } };
 
   const chip = (name, v, label, active, multi = false) => `<button type="button" class="sopt${active ? ' active' : ''}" data-f="${name}" data-v="${esc(String(v))}" data-multi="${multi ? 1 : 0}">${label}</button>`;
-  const section = (key, icon, title, body) => `<div class="pb-sec${open === key ? ' open' : ''}" data-sec="${key}">
-      <button type="button" class="pb-head" data-open="${key}"><span class="pb-title">${icon} ${title}</span><span class="pb-sum">${esc(summary(F, key, { vids }))}</span><span class="pb-arrow">▾</span></button>
-      <div class="pb-body">${body}</div></div>`;
+  // three icon buttons, each opens one drop-down panel (similar filters merged)
+  const GROUPS = [['words', '📚', 'الكلمات', ['from', 'when']], ['level', '📈', 'مستواي', ['perf', 'level']], ['count', '🎯', 'العدد', ['count']]];
+  const bodies = {};
+  const section = (key, icon, title, body) => { bodies[key] = `<div class="pb-sub"><div class="pb-sublabel">${icon} ${title}</div>${body}</div>`; return ''; };
+  const groupsHtml = () => `<div class="pb-icons">${GROUPS.map(([k, ic, t, keys]) => `<button type="button" class="pb-icon${open === k ? ' open' : ''}" data-open="${k}"><span>${ic} ${t} ▾</span><span class="pb-sum">${esc(keys.map((x) => summary(F, x, { vids })).join(' · '))}</span></button>`).join('')}</div>
+      ${open ? `<div class="pb-drop">${GROUPS.find(([k]) => k === open)[3].map((x) => bodies[x]).join('')}</div>` : ''}`;
 
   // when nothing matches: which single filter, if reset, gives words back — and how many
   const loosen = () => {
@@ -183,6 +186,7 @@ export function renderBuilder(stage, { words: all, groups = [], mode = 'cards', 
       ${section('count', '🎯', 'كم وبأي ترتيب', `<div class="sopts">${[10, 20, 30, 50].map((n) => chip('count', n, String(n), Number(F.count) === n)).join('')}${chip('count', 0, 'كل النتائج', !Number(F.count))}<input class="input sopt-num" id="pbCount" type="number" min="1" value="${Number(F.count) || ''}" placeholder="عدد"></div>
         <div class="sopts" style="margin-top:6px">${[['smart', '🧠 ذكي'], ['random', '🎲 عشوائي'], ['new', 'الأحدث'], ['old', 'الأقدم'], ['hard', 'الأصعب']].map(([k, l]) => chip('order', k, l, F.order === k)).join('')}</div>
         <label class="sopt-check" style="margin-top:6px"><input type="checkbox" class="check" id="pbNotToday" ${F.notToday ? 'checked' : ''}> بلا تكرار: تخطَّ ما تدرّبت عليه اليوم</label>`)}
+      ${groupsHtml()}
       <div class="pb-result">
         <div class="pb-count"><b>${chosen.length}</b> كلمة جاهزة
           ${chosen.length ? `<span class="tiny muted">${[counts.wrong && `🔥 ${counts.wrong} أخطاء حديثة`, counts.due && `⏰ ${counts.due} مستحقة`, counts.never && `🌱 ${counts.never} جديدة`].filter(Boolean).join(' · ')}</span>` : ''}</div>
@@ -193,8 +197,8 @@ export function renderBuilder(stage, { words: all, groups = [], mode = 'cards', 
         })() : `<details class="pb-list"><summary class="small">عرض الكلمات واختيار ما تريد (${chosen.length}/${list.length})</summary>
           <div class="pb-actions"><button type="button" class="link-btn" data-all>تحديد الكل</button> · <button type="button" class="link-btn" data-none>إلغاء الكل</button></div>
           <div class="pf-list">${list.map((w) => `<label class="pf-item"><input type="checkbox" class="check" data-pv="${w.uv_id}" ${off.has(w.uv_id) ? '' : 'checked'}> ${usageDot(w.usage)}<b class="en">${esc(w.term)}</b> ${levelChip(w.level)} <span class="tiny ink-2">${esc(w.arabic || '')}</span>${sig.get(w.uv_id).wrong ? ' <span class="tiny">🔥</span>' : ''}</label>`).join('')}</div></details>`}
-        <div class="pb-go"><div class="sopts">${[['cards', '🃏 بطاقات'], ['quiz', '✅ اختبار'], ['games', '🎮 ألعاب'], ['story', '📖 قصة'], ['listen', '🎧 استماع']].map(([k, l]) => `<button type="button" class="sopt${mode === k ? ' active' : ''}" data-mode="${k}">${l}</button>`).join('')}</div>
-          <button type="button" class="btn primary lg" id="pbGo" ${chosen.length ? '' : 'disabled'}>ابدأ (${chosen.length}) ←</button></div>
+        <div class="pb-games-title">${chosen.length ? `اختر لعبة — تبدأ بهذه الـ ${chosen.length} كلمة:` : 'اختر كلمات أولًا.'}</div>
+        <div class="pb-games">${games.map((g) => `<button type="button" class="pb-game" data-game="${g.mode}:${g.type || ''}" ${chosen.length ? '' : 'disabled'}><span class="pb-gi">${g.icon}</span><b>${g.name}</b><span class="tiny muted">${g.desc || ''}</span></button>`).join('')}</div>
       </div></div>`;
     save();
     stage._chosen = chosen;
@@ -233,9 +237,8 @@ export function renderBuilder(stage, { words: all, groups = [], mode = 'cards', 
     if (t.closest('[data-reset]')) { F = { ...DEFAULTS, seed: F.seed }; preset = ''; return draw(); }
     if (t.closest('[data-all]')) { off.clear(); return draw(); }
     if (t.closest('[data-none]')) { selectWords(all, F).list.forEach((w) => off.add(w.uv_id)); return draw(); }
-    const m = t.closest('[data-mode]');
-    if (m) { mode = m.dataset.mode; stage.querySelectorAll('[data-mode]').forEach((x) => x.classList.toggle('active', x === m)); return undefined; }
-    if (t.closest('#pbGo')) return onGo(stage._chosen || [], mode);
+    const g = t.closest('[data-game]');
+    if (g) { const [m, type] = g.dataset.game.split(':'); return onGo(stage._chosen || [], m, type || undefined); }
     return undefined;
   };
   stage.onchange = (e) => {

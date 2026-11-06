@@ -309,8 +309,15 @@ export function bindSuggestWords(view) {
     box.innerHTML = '<p class="tiny muted" style="margin-top:10px"><span class="spinner"></span> نختار كلمات جديدة لك…</p>';
     const topic = topicEl.value.trim();
     try {
-      const r = await api.suggestWords({ count: Number($('#swCount', view).value), level: $('#swLevel', view).value, topic: FIELD_EN[topic] || topic });
-      const items = r.items;
+      // ⚡ Small parallel batches of 10: each answers in a few seconds (a single 50-word call ran past the server's time limit).
+      const want = Number($('#swCount', view).value) || 20;
+      const body = { level: $('#swLevel', view).value, topic: FIELD_EN[topic] || topic };
+      const parts = Array.from({ length: Math.ceil(want / 10) }, (_, k) => Math.min(10, want - k * 10));
+      const got = await Promise.allSettled(parts.map((n, k) => api.suggestWords({ ...body, count: Math.max(5, n), part: k, parts: parts.length })));
+      const ok = got.filter((g) => g.status === 'fulfilled').map((g) => g.value.items).flat();
+      if (!ok.length) throw got.find((g) => g.status === 'rejected')?.reason || new Error('حاول مرة أخرى.');
+      const seenT = new Set();
+      const items = ok.filter((it) => { const k = it.term.toLowerCase(); if (seenT.has(k)) return false; seenT.add(k); return true; }).slice(0, want);
       if (!items.length) {
         box.innerHTML = '<p class="tiny muted" style="margin-top:10px">لم نجد كلمات جديدة — جرّب مجالًا آخر.</p>';
         return;
@@ -353,10 +360,11 @@ export function bindSuggestWords(view) {
 /* --------------------------------------------------- suggested channels */
 
 export const channelsHtml = () => `
-  <div class="section-title row between wrap" style="gap:8px"><h2>📺 قنوات مقترحة</h2>
-    <div class="row" style="gap:6px"><button class="btn sm ghost" id="chSimilar">✨ قنوات مشابهة</button><button class="btn sm ghost" id="chAdd">＋ قناة</button><button class="btn sm ghost" id="chEdit">✎ تعديل</button></div></div>
-  <div id="chBox"><p class="tiny muted"><span class="spinner"></span></p></div>
-  <div id="chExtra"></div>`;
+  <div id="favBox" class="fav-box hidden">
+    <div class="row wrap" style="gap:6px;margin-bottom:8px"><button class="btn primary" id="chSimilar">✨ ابحث عن قنوات مشابهة لذوقي</button><button class="btn sm ghost" id="chAdd">＋ قناة</button><button class="btn sm ghost" id="chEdit">✎ تعديل</button></div>
+    <div id="chBox"><p class="tiny muted"><span class="spinner"></span></p></div>
+    <div id="chExtra"></div>
+  </div>`;
 
 const initials = (name) => esc(String(name || '?').trim().slice(0, 1).toUpperCase());
 const avatar = (c) => `<span class="ch-ava" aria-hidden="true">${c.handle ? `<img src="https://unavatar.io/youtube/${encodeURIComponent(c.handle)}?fallback=false" alt="" loading="lazy" onerror="this.remove()">` : ''}<span>${initials(c.name)}</span></span>`;
@@ -458,13 +466,15 @@ export function bindChannels(view, { onPick }) {
   load();
 }
 
-/* ------------------------------------------- 📚 channels by field (fixed list, no server) */
-
-const LV = [['', 'كل المستويات'], ['1', '🌱 مبتدئ'], ['2', '🌿 متوسط'], ['3', '🌳 متقدم']];
-const chUrl = ([name, h, , sure]) => (sure === 0 ? `https://www.youtube.com/results?search_query=${encodeURIComponent(name)}&sp=EgIQAg%253D%253D` : `https://www.youtube.com/@${encodeURIComponent(h)}`);
+/* ------------------------------------------- 📚 channels by field (checked once on the server) */
+const LV = [['', 'كل المستويات'], ['1', '🌱 سهل'], ['2', '🌿 متوسط'], ['3', '🌳 صعب']];
+const CHK_KEY = 'ytch.v1';
+const chkCache = (() => { try { return JSON.parse(localStorage.getItem(CHK_KEY) || '{}'); } catch { return {}; } })();
+const saveChk = () => { try { localStorage.setItem(CHK_KEY, JSON.stringify(chkCache)); } catch { /* ignore */ } };
 
 export const fieldsHtml = () => `
-  <div class="section-title"><h2>🎯 قنوات لتعلّم الإنجليزي حسب المجال</h2></div>
+  <div class="section-title row between" style="gap:8px"><h2>🎯 قنوات لتعلّم الإنجليزي</h2>
+    <button type="button" class="fav-chip" id="favChip">⭐ المفضلة</button></div>
   <div class="chip-row" id="fdChips">${CH_FIELDS.map((f) => `<button type="button" class="gchip" data-fd="${f.k}">${f.n}</button>`).join('')}</div>
   <div id="fdBox"></div>`;
 
@@ -474,17 +484,35 @@ export function bindFields(view) {
   let field = null;
   let lv = '';
   try { lv = localStorage.getItem('fields.level') || ''; } catch { /* ignore */ }
+  const fav = $('#favBox', view);
+  const showFav = (on) => { fav?.classList.toggle('hidden', !on); $('#favChip', view)?.classList.toggle('on', on); };
   const draw = () => {
     view.querySelectorAll('[data-fd]').forEach((b) => b.classList.toggle('on', b.dataset.fd === field?.k));
-    if (!field) { box.innerHTML = '<p class="tiny muted">اختر مجالًا لتظهر أشهر قنواته.</p>'; return; }
-    const list = field.c.filter((c) => !lv || String(c[2]) === lv);
+    if (!field) { box.innerHTML = '<p class="tiny muted">اختر مجالًا لتظهر أشهر قنواته — أو ⭐ المفضلة لقنواتك.</p>'; return; }
+    const list = field.c.filter((c) => (!lv || String(c[2]) === lv) && chkCache[c[1]]?.ok !== false);
+    const logo = (c) => {
+      const k = chkCache[c[1]];
+      return `<span class="ch-ava" aria-hidden="true">${k?.logo ? `<img src="${esc(k.logo)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<span>${esc(c[0].slice(0, 1).toUpperCase())}</span></span>`;
+    };
     box.innerHTML = `<div class="sopts" style="margin:8px 0">${LV.map(([k, l]) => `<button type="button" class="sopt${k === lv ? ' active' : ''}" data-lv="${k}">${l}</button>`).join('')}</div>
-      <div class="fd-grid">${list.map((c) => `<a class="fd-card" href="${esc(chUrl(c))}" target="_blank" rel="noopener" title="${esc(c[0])}">${avatar({ name: c[0], handle: c[3] === 0 ? '' : c[1] })}<b class="en">${esc(c[0])}</b><span class="tiny muted">${LV[c[2]][1]}</span></a>`).join('') || '<p class="tiny muted">لا توجد قنوات بهذا المستوى هنا.</p>'}</div>
-      <p class="tiny muted">اضغط شعار القناة لتفتحها في يوتيوب، وانسخ رابط أي فيديو والصقه فوق.</p>`;
+      <div class="fd-grid">${list.map((c) => `<a class="fd-card" href="${esc(chkCache[c[1]]?.url || `https://www.youtube.com/@${encodeURIComponent(c[1])}`)}" target="_blank" rel="noopener" title="${esc(c[0])}">${logo(c)}<b class="en">${esc(c[0])}</b><span class="tiny muted">${c[3] ? esc(c[3]) : LV[c[2]][1]}</span></a>`).join('') || '<p class="tiny muted">لا توجد قنوات بهذا المستوى هنا.</p>'}</div>
+      <p class="tiny muted">اضغط القناة لتفتح صفحتها في يوتيوب، وانسخ رابط أي فيديو والصقه فوق.</p>`;
+  };
+  // ask the server only about channels this browser hasn't checked yet (each is checked once for everyone)
+  const check = async (f) => {
+    const need = [...new Set(f.c.map((c) => c[1]).filter((h) => !chkCache[h]))];
+    if (!need.length) return;
+    try {
+      const r = await api.channelCheck(need);
+      for (const [h, v] of Object.entries(r.channels || {})) if (v) chkCache[h] = v;
+      saveChk();
+      if (field === f) draw();
+    } catch { /* show them unchecked for now */ }
   };
   view.addEventListener('click', (e) => {
+    if (e.target.closest('#favChip')) { const on = fav?.classList.contains('hidden'); showFav(on); if (on) { field = null; draw(); } return; }
     const f = e.target.closest('[data-fd]');
-    if (f) { field = field?.k === f.dataset.fd ? null : CH_FIELDS.find((x) => x.k === f.dataset.fd); draw(); return; }
+    if (f) { field = field?.k === f.dataset.fd ? null : CH_FIELDS.find((x) => x.k === f.dataset.fd); showFav(false); draw(); if (field) check(field); return; }
     const l = e.target.closest('[data-lv]');
     if (l && box.contains(l)) { lv = l.dataset.lv; try { localStorage.setItem('fields.level', lv); } catch { /* ignore */ } draw(); }
   });

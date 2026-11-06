@@ -109,7 +109,9 @@ router.post('/suggest-words', wrap(async (req, res) => {
   const mine = await listWords(req.userId);
   const have = new Set(mine.map((w) => matchKey(w.term)));
   return withAi(res, async () => {
-    const r = await suggestWordsWithAi({ count: Math.ceil(count * 1.3), topic, level, avoid: mine.map((w) => w.term) });
+    const parts = Math.max(1, Math.min(10, Number(req.body?.parts) || 1));
+    const part = Math.max(0, Math.min(parts - 1, Number(req.body?.part) || 0));
+    const r = await suggestWordsWithAi({ count: Math.ceil(count * 1.3), topic, level, avoid: mine.map((w) => w.term), part, parts });
     const seen = new Set();
     const items = r.items.filter((it) => {
       const k = matchKey(it.term);

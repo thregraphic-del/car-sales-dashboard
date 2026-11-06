@@ -110,6 +110,43 @@ router.post('/', wrap(async (req) => {
 }));
 
 /** Channels like the learner's (AI). */
+// ✔ Channels by field: each @handle is checked ONCE on YouTube (real page link + logo) and saved
+// for everyone. A handle YouTube doesn't know is remembered as missing and never shown.
+async function checkHandle(handle) {
+  const key = `ytch:${handle.toLowerCase()}`;
+  const hit = await get('SELECT value FROM app_settings WHERE key = ?', key);
+  if (hit) { try { return JSON.parse(hit.value); } catch { /* re-check */ } }
+  let out = null;
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 5000);
+    const res = await fetch(`https://www.youtube.com/@${encodeURIComponent(handle)}`, {
+      signal: ctl.signal, headers: { 'Accept-Language': 'en', 'User-Agent': 'Mozilla/5.0 (compatible; LexiTube)', Cookie: 'CONSENT=YES+1; SOCS=CAI' },
+    });
+    clearTimeout(t);
+    if (res.status === 404) out = { ok: false };
+    else if (res.ok) {
+      const html = await res.text();
+      const canon = html.match(/<link rel="canonical" href="(https:\/\/www\.youtube\.com\/channel\/[\w-]+)"/)?.[1];
+      const logo = html.match(/<meta property="og:image" content="([^"]+)"/)?.[1] || '';
+      out = canon ? { ok: true, url: `https://www.youtube.com/@${handle}`, logo: /^https:\/\/yt3\.(googleusercontent|ggpht)\.com\//.test(logo) ? logo : '' } : null;
+    }
+  } catch { out = null; }
+  if (out) await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', key, JSON.stringify(out));
+  return out; // null = YouTube didn't answer now: try again another time
+}
+
+router.post('/check', wrap(async (req) => {
+  const handles = [...new Set((Array.isArray(req.body?.handles) ? req.body.handles : []).map((h) => String(h).replace(/[^\w.-]/g, '')).filter(Boolean))].slice(0, 40);
+  const started = Date.now();
+  const result = {};
+  await Promise.all(handles.map(async (h) => {
+    if (Date.now() - started > 15000) return;
+    result[h] = await checkHandle(h);
+  }));
+  return { channels: result };
+}));
+
 router.post('/similar', wrap(async (req, res) => {
   const prefs = await prefsOf(req.userId);
   const mine = (await ownChannels(req.userId, prefs)).map((c) => c.name);

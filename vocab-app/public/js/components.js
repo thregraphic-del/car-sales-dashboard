@@ -393,11 +393,10 @@ export async function openWordCard(uvId, { onChange } = {}) {
         <a class="tiny muted ctx-src" href="#/source/${c.source_id}${c.line_id ? `?line=${c.line_id}` : ''}" data-close>${c.kind === 'text' ? '📄' : '▶'} ${esc(c.title)}</a></div>`).join('')}
       ${contexts.length > 4 ? `<p class="tiny muted">و${contexts.length - 4} سياقات أخرى</p>` : ''}</div>` : ''}
 
-    ${w.similar?.length ? `<div class="wd-section"><div class="wd-label">كلمات أسهل بمعنى قريب</div><div class="sim-list">
-      ${w.similar.map((s) => `<div class="sim"><span class="w">${esc(s.word)}</span><span class="a">— ${esc(s.arabic)}</span>${s.note ? `<span class="note">${esc(s.note)}</span>` : ''}</div>`).join('')}</div></div>` : ''}
-
     ${easy || otherExamples.length ? `<div class="wd-section"><div class="wd-label">أمثلة</div>
       ${[easy, ...otherExamples].filter(Boolean).map((e) => `<div class="quote" style="margin-bottom:8px"><p class="en">${highlight(e.sentence, w.term)} ${listenRow(e.sentence)}</p>${e.arabic ? `<p class="small ink-2">${esc(e.arabic)}</p>` : ''}</div>`).join('')}</div>` : ''}
+
+    <div class="wd-section hidden" id="wdSyn"></div>
 
     <div class="wd-section"><div class="wd-label">المجموعات</div><div id="gp">${groupPickerHtml(w.group_ids)}</div></div>
 
@@ -410,6 +409,15 @@ export async function openWordCard(uvId, { onChange } = {}) {
       <button class="btn sm ghost" data-act="remove" style="color:var(--bad)">${icon.trash} إزالة من كلماتي</button>
     </div>`);
   bindSpeech(box);
+  // 🔤 One short line at the end: easier words with exactly the same meaning (nothing if none).
+  if (state.config?.ai?.configured) {
+    api.synonyms(w.term, (w.user_arabic || w.arabic || '').split(/[،,؛\/]/)[0].trim()).then((r) => {
+      const el = box.querySelector('#wdSyn');
+      if (!el || !r.items?.length) return;
+      el.innerHTML = `<div class="syn-row"><span class="tiny muted">مرادفات أسهل:</span>${r.items.map((x) => `<button type="button" class="syn-chip" data-say="${esc(x.word)}"><b class="en">${esc(x.word)}</b>${x.arabic ? `<span>${esc(x.arabic)}</span>` : ''}</button>`).join('')}</div>`;
+      el.classList.remove('hidden');
+    }).catch(() => {});
+  }
   // All forms of the word (verb, noun, adjective…), each can be saved on its own.
   const formsBox = box.querySelector('#wdForms');
   if (formsBox) {

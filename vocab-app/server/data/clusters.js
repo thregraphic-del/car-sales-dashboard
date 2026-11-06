@@ -2,6 +2,7 @@
 // simplest, most common one. Words are joined when they share an Arabic meaning or
 // list each other as similar words.
 import { listWords } from './words.js';
+import { sameMeaningWithAi, aiAvailable } from '../services/extractor.js';
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const lv = (l) => (LEVELS.includes(l) ? LEVELS.indexOf(l) : 3);
@@ -27,9 +28,7 @@ export function meaningKeys(arabic) {
 export async function wordClusters(userId) {
   const words = (await listWords(userId)).filter((w) => w.item_type !== 'expression' || !/\s.*\s/.test(w.term));
   const rank = await ranks();
-  const parent = words.map((_, i) => i);
-  const find = (i) => (parent[i] === i ? i : (parent[i] = find(parent[i])));
-  const join = (a, b) => { parent[find(a)] = find(b); };
+  const pickAr = (w) => ({ term: w.term, arabic: w.user_arabic || w.arabic || '' });
   const posOf = (w) => {
     const p = String(w.part_of_speech || '').toLowerCase();
     if (/adverb/.test(p)) return 'adv';
@@ -39,18 +38,6 @@ export async function wordClusters(userId) {
     return null;
   };
   const keys = words.map((w) => meaningKeys(w.user_arabic || w.arabic));
-  const byTerm = new Map(words.map((w, i) => [w.term.toLowerCase(), i]));
-  const byKey = new Map();
-  words.forEach((w, i) => {
-    for (const k of new Set(keys[i])) {
-      if (!byKey.has(k)) byKey.set(k, []);
-      byKey.get(k).push(i);
-    }
-    for (const s of w.similar || []) {
-      const j = byTerm.get(String(s.term || s).toLowerCase());
-      if (j !== undefined) join(i, j);
-    }
-  });
   // same part of speech, and the same main meaning (or two meanings in common)
   const close = (i, j) => {
     const a = posOf(words[i]);
@@ -62,19 +49,51 @@ export async function wordClusters(userId) {
     // one word's main meaning is another meaning of the other (huge "كبير / ضخم" ~ enormous "ضخم")
     return !!(a && b) && shared.some((k) => k === keys[i][0] || k === keys[j][0]);
   };
-  for (const list of byKey.values()) {
-    if (list.length < 2 || list.length > 8) continue; // a very common meaning would join everything
-    for (let x = 0; x < list.length; x++) for (let y = x + 1; y < list.length; y++) if (close(list[x], list[y])) join(list[x], list[y]);
-  }
-  const groups = new Map();
-  words.forEach((w, i) => {
-    const r = find(i);
-    if (!groups.has(r)) groups.set(r, []);
-    groups.get(r).push(w);
-  });
   const score = (w) => lv(w.level) * 10000 + (rank.get(w.term.toLowerCase()) ?? 9000) + w.term.length * 50;
+  // ⭐ Star groups, no chains: the simplest word heads a group, and only words close to IT
+  // join (never a friend of a friend). Each group is checked once by AI: only true synonyms
+  // of the head stay; when AI isn't available or unsure, a word stays on its own.
+  const cand = (i, j) => {
+    const sim = (words[i].similar || []).some((s) => String(s.term || s).toLowerCase() === words[j].term.toLowerCase())
+      || (words[j].similar || []).some((s) => String(s.term || s).toLowerCase() === words[i].term.toLowerCase());
+    return close(i, j) || sim;
+  };
+  // only words sharing a meaning (or listed as similar) are ever compared — fast on long lists
+  const byKey = new Map();
+  keys.forEach((ks, i) => { for (const k of new Set(ks)) { if (!byKey.has(k)) byKey.set(k, []); byKey.get(k).push(i); } });
+  const byTerm = new Map(words.map((w, i) => [w.term.toLowerCase(), i]));
+  const nb = words.map((w, i) => {
+    const set = new Set();
+    for (const k of keys[i]) for (const j of byKey.get(k) || []) if (j !== i) set.add(j);
+    for (const x of w.similar || []) { const j = byTerm.get(String(x.term || x).toLowerCase()); if (j !== undefined && j !== i) set.add(j); }
+    return [...set];
+  });
+  nb.forEach((list, i) => list.forEach((j) => { if (!nb[j].includes(i)) nb[j].push(i); }));
+  const order = words.map((_, i) => i).sort((a, b) => score(words[a]) - score(words[b]));
+  const rankIdx = new Map(order.map((i, k) => [i, k]));
+  const byOrder = (a, b) => rankIdx.get(a) - rankIdx.get(b);
+  const used = new Set();
+  const started = Date.now();
+  const out = [];
+  for (const h of order) {
+    if (used.has(h)) continue;
+    used.add(h);
+    // direct candidates, plus theirs (one step further) — the AI check decides, so no chains slip in
+    const d1 = nb[h].filter((j) => !used.has(j) && cand(h, j)).sort(byOrder);
+    const d2 = [...new Set(d1.flatMap((i) => nb[i].filter((j) => j !== h && !used.has(j) && !d1.includes(j) && cand(i, j))))].sort(byOrder);
+    const near = [...d1, ...d2].slice(0, 8);
+    let keep = [];
+    if (near.length && aiAvailable() && Date.now() - started < 15000) {
+      try {
+        const same = await sameMeaningWithAi(pickAr(words[h]), near.map((j) => pickAr(words[j])));
+        keep = near.filter((j) => same.has(words[j].term.toLowerCase()));
+      } catch { keep = []; }
+    }
+    keep.forEach((j) => used.add(j));
+    out.push([words[h], ...keep.map((j) => words[j])]);
+  }
   const pick = (w) => ({ uv_id: w.uv_id, vocabulary_id: w.vocabulary_id, term: w.term, level: w.level, arabic: w.user_arabic || w.arabic, status: w.status, mastery: w.mastery });
-  return [...groups.values()]
+  return out
     .map((list) => {
       const sorted = [...list].sort((a, b) => score(a) - score(b));
       return { head: pick(sorted[0]), members: sorted.map(pick).sort((a, b) => lv(a.level) - lv(b.level)) };

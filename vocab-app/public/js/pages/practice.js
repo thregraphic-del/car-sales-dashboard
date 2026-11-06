@@ -11,11 +11,6 @@ import { runStory } from '../story.js';
 import { refreshStats } from '../app.js';
 import { renderBuilder } from '../practice-builder.js';
 
-const MODES = [
-  ['quiz', 'اختبار', 'check'],
-  ['games', 'ألعاب', 'game'],
-  ['listen', 'استماع', 'headphones'],
-];
 // البطاقات والقصة صارت ضمن الألعاب (وفي اختيار التدريب)، وروابطها القديمة تعمل.
 const FOCUS = [
   ['smart', 'اختيار ذكي'],
@@ -74,7 +69,7 @@ export async function render(view, { params }) {
 
   view.innerHTML = `
     <div class="page-head compact"><div><h1>تدرّب</h1></div>
-      <div class="segmented mode-tabs">${MODES.map(([k, l, ic]) => `<a class="${k === mode || (k === 'games' && (mode === 'cards' || mode === 'story')) ? 'active' : ''}" href="${href({ ...base, mode: k })}">${icon[ic]} ${l}</a>`).join('')}</div>
+      <a class="btn sm ghost" href="#/practice">🎛 الفلتر وكل الألعاب</a>
     </div>
     ${label ? `<div class="chip-row"><span class="gchip on">${esc(label)}</span>${params.source ? `<a class="link-btn" href="#/source/${esc(params.source)}">↩ رجوع للمقطع</a>` : `<a class="link-btn" href="${href({ mode })}">↩ غيّر الاختيار</a>`}</div>`
       : `<div class="chip-row">${mode === 'story' ? `<a class="tab active" href="${href({ mode })}">كلماتي الأخيرة</a>` : params.focus ? FOCUS.map(([k, l]) => `<a class="tab ${k === focus ? 'active' : ''}" href="${href({ ...base, focus: k })}">${l}</a>`).join('') : ''}
@@ -98,9 +93,18 @@ export async function render(view, { params }) {
       stage.innerHTML = emptyState('📚', 'لم تحفظ كلمات بعد', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`);
       return;
     }
+    // one page: the smart filter on top, every way to practise right under it
+    view.querySelector('.page-head .btn')?.remove();
+    const games = [
+      { mode: 'quiz', icon: '✅', name: 'اختبار', desc: 'أسئلة متنوعة' },
+      { mode: 'cards', icon: '🃏', name: 'البطاقات', desc: 'تذكّر وقيّم نفسك' },
+      { mode: 'listen', icon: '🎧', name: 'استماع', desc: 'اسمع الكلمة ومعناها' },
+      { mode: 'story', icon: '📖', name: 'قصة', desc: 'قصة بكلماتك' },
+      ...GAME_ORDER.map((k) => ({ mode: 'games', type: k, icon: icon[TYPES[k].icon] || '🎮', name: TYPES[k].name, desc: TYPES[k].description })),
+    ];
     renderBuilder(stage, {
-      words: all, groups: state.groups, mode,
-      onGo: (list, m) => { location.hash = href({ mode: m, ids: list.map((w) => w.uv_id).join(','), exact: 1, n: Date.now() }); },
+      words: all, groups: state.groups, games,
+      onGo: (list, m, t) => { location.hash = href({ mode: m, type: t, ids: list.map((w) => w.uv_id).slice(0, m === 'story' ? 30 : 1000).join(','), exact: 1, n: Date.now() }); },
     });
     return;
   }
