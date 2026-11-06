@@ -17,6 +17,7 @@
   "dependencies": {
     "@netlify/database": "^2.0.1",
     "express": "^5.1.0",
+    "nodemailer": "^6.9.16",
     "pg": "^8.23.1",
     "serverless-http": "^4.0.0",
     "zod": "^4.1.0"

@@ -37,5 +37,5 @@ test('invite code required after the first account', async () => {
   assert.equal(ok.status, 200);
   assert.equal(ok.body.user.role, 'user');
   assert.equal((await post('/api/auth/register', { username: 'x', password: 'a-long-password', code: 'family-2026' })).status, 400, 'username too short');
-  assert.equal((await post('/api/auth/register', { username: 'guest2', password: 'short', code: 'family-2026' })).status, 400, 'password too short');
+  assert.equal((await post('/api/auth/register', { username: 'guest2', password: '', code: 'family-2026' })).status, 400, 'empty password');
 });

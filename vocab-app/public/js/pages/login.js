@@ -32,11 +32,13 @@ export async function render(view, { onDone, mode: initial }) {
         <form id="authForm" autocomplete="on">
           ${reg && needCode ? `<label class="field">${first ? 'رمز الإعداد' : 'رمز الدعوة'}<input class="input en" id="code" autocomplete="one-time-code" required></label>` : ''}
           ${reg ? '<label class="field">اسمك <span class="tiny muted">(اختياري)</span><input class="input" id="name" autocomplete="name" maxlength="60"></label>' : ''}
+          ${reg ? '<label class="field">الإيميل <span class="tiny muted">(لاسترجاع حسابك إذا نسيت كلمة المرور)</span><input class="input en" id="email" type="email" autocomplete="email" maxlength="200"></label>' : ''}
           <label class="field">اسم المستخدم<input class="input en" id="user" autocomplete="username" required minlength="3" maxlength="40"></label>
-          <label class="field">كلمة المرور${reg ? ' <span class="tiny muted">(10 أحرف على الأقل)</span>' : ''}<input class="input en" id="pass" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}" required minlength="${reg ? 10 : 1}"></label>
+          <label class="field">كلمة المرور<input class="input en" id="pass" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}" required></label>
           <div class="alert bad hidden" id="err" role="alert"></div>
           <button class="btn primary" type="submit" id="go">${reg ? 'إنشاء الحساب والدخول' : 'دخول'}</button>
         </form>
+        ${reg ? '' : '<button type="button" class="link-btn" id="forgot" style="justify-self:start">نسيت كلمة المرور؟</button>'}
       </div>
     </div>`;
     const $ = (s) => view.querySelector(s);
@@ -46,13 +48,14 @@ export async function render(view, { onDone, mode: initial }) {
       history.replaceState(null, '', `/${mode === 'register' ? 'register' : 'login'}${location.hash}`);
       draw();
     }));
+    $('#forgot')?.addEventListener('click', () => forgot($('#user').value.trim()));
     $('#authForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = $('#go');
       btn.disabled = true;
       $('#err').classList.add('hidden');
       try {
-        if (reg) await api.register({ username: $('#user').value.trim(), password: $('#pass').value, name: $('#name')?.value.trim(), code: $('#code')?.value.trim() });
+        if (reg) await api.register({ username: $('#user').value.trim(), password: $('#pass').value, name: $('#name')?.value.trim(), code: $('#code')?.value.trim(), email: $('#email')?.value.trim() });
         else await api.login($('#user').value.trim(), $('#pass').value);
         if (/^\/(login|register)\/?$/.test(location.pathname)) history.replaceState(null, '', `/${location.hash}`);
         view.innerHTML = '';
@@ -62,6 +65,40 @@ export async function render(view, { onDone, mode: initial }) {
         $('#err').classList.remove('hidden');
         btn.disabled = false;
       }
+    });
+  };
+  // 🔐 «نسيت كلمة المرور»: a 6-digit code by email, then a new password
+  const forgot = (login0 = '') => {
+    view.innerHTML = `<div class="auth-wrap"><div class="brand"><div class="brand-mark">L</div><div><div class="brand-name">LexiTube</div></div></div>
+      <div class="card stack"><h2 style="margin:0">استرجاع الحساب</h2>
+        <p class="small ink-2">اكتب اسم المستخدم أو الإيميل، ويوصلك كود من ٦ أرقام على إيميلك.</p>
+        <form id="f1"><label class="field">اسم المستخدم أو الإيميل<input class="input en" id="login" value="${esc(login0)}" required></label>
+          <button class="btn primary" id="send">أرسل الكود</button></form>
+        <form id="f2" class="hidden"><p class="small">✉️ إذا كان للحساب إيميل، وصلك كود (شوف السبام كمان).</p>
+          <label class="field">الكود<input class="input en" id="rcode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required></label>
+          <label class="field">كلمة المرور الجديدة<input class="input en" id="npass" type="password" autocomplete="new-password" required></label>
+          <button class="btn primary" id="reset">غيّر كلمة المرور وادخل</button></form>
+        <div class="alert bad hidden" id="ferr" role="alert"></div>
+        <button type="button" class="link-btn" id="back" style="justify-self:start">↩ رجوع لتسجيل الدخول</button></div></div>`;
+    const q = (s) => view.querySelector(s);
+    const fail = (err) => { q('#ferr').textContent = err.message; q('#ferr').classList.remove('hidden'); };
+    q('#back').addEventListener('click', draw);
+    q('#f1').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      q('#ferr').classList.add('hidden');
+      q('#send').disabled = true;
+      try { await api.forgotPassword(q('#login').value.trim()); q('#f2').classList.remove('hidden'); q('#rcode').focus(); } catch (err) { fail(err); }
+      q('#send').disabled = false;
+    });
+    q('#f2').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      q('#ferr').classList.add('hidden');
+      try {
+        await api.resetPassword({ login: q('#login').value.trim(), code: q('#rcode').value.trim(), password: q('#npass').value });
+        if (/^\/(login|register)\/?$/.test(location.pathname)) history.replaceState(null, '', `/${location.hash}`);
+        view.innerHTML = '';
+        onDone();
+      } catch (err) { fail(err); }
     });
   };
   draw();

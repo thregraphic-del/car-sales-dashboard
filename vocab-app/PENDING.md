@@ -2,10 +2,11 @@
 
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
-| 1 | 🔐 Accounts: email at sign-up; «نسيت كلمة المرور» sends a 6-digit code by email (Gmail SMTP with an app password; Netlify env GMAIL_USER + GMAIL_APP_PASSWORD — already set), valid 15 min, then a new password; no password length rules | to build | in the batch | one email only when a code is asked |
 
 (Batch 2 deployed on 2026-11-06: fixed current line + faded past lines, video on top by default +
 one-row bar + repeat-twice switch, strict line-by-line re-translation of old videos, practice page =
 filters + all games, strict word clusters, easier-synonyms line in word details, verified channels
 with logos + 23 fields + stories 30, ⭐ favourites, my-videos list organizing, faster suggest-words,
 friends card with nickname/background/share.)
+
+(Deployed on «ارفع» 2026-11-06: email on accounts + reset code by Gmail, no password rules.)

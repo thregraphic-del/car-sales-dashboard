@@ -21,7 +21,7 @@ import feedbackRoutes from './routes/feedback.js';
 import channelRoutes from './routes/channels.js';
 import aiRoutes from './routes/ai.js';
 
-const PUBLIC_PATHS = new Set(['/api/version', '/api/auth/status', '/api/auth/login', '/api/auth/setup', '/api/auth/register', '/api/auth/logout']);
+const PUBLIC_PATHS = new Set(['/api/version', '/api/auth/status', '/api/auth/login', '/api/auth/setup', '/api/auth/register', '/api/auth/logout', '/api/auth/forgot', '/api/auth/reset']);
 
 function readCookie(req, name) {
   const header = req.headers.cookie || '';

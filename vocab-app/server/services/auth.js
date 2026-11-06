@@ -86,7 +86,7 @@ export function validCredentials(username, password) {
   const u = String(username || '').trim();
   const p = String(password || '');
   if (!/^[\p{L}\p{N}._@-]{3,40}$/u.test(u)) throw httpError(400, 'اسم المستخدم: من 3 إلى 40 حرفًا أو رقمًا بدون مسافات.');
-  if (p.length < 10 || p.length > 200) throw httpError(400, 'كلمة المرور يجب أن تكون 10 أحرف على الأقل.');
+  if (!p.length || p.length > 200) throw httpError(400, 'اكتب كلمة المرور.');
   return { u, p };
 }
 

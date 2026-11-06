@@ -50,8 +50,8 @@ test('everything except login is closed before the owner signs in', async () => 
 test('the first account needs the setup code and becomes the administrator', async () => {
   const bad = await call('POST', '/api/auth/setup', { setup_code: 'wrong', username: 'owner', password: 'a-long-password' });
   assert.equal(bad.status, 401);
-  const weak = await call('POST', '/api/auth/setup', { setup_code: 'test-setup-code', username: 'owner', password: 'short' });
-  assert.equal(weak.status, 400);
+  const empty = await call('POST', '/api/auth/setup', { setup_code: 'test-setup-code', username: 'owner', password: '' });
+  assert.equal(empty.status, 400); // any password is fine, but not an empty one
   const ok = await call('POST', '/api/auth/setup', { setup_code: 'test-setup-code', username: 'owner', password: 'a-long-password' });
   assert.equal(ok.status, 200);
   assert.match(ok.set, /HttpOnly/);

@@ -47,10 +47,11 @@ export async function render(view) {
         <div class="row between small"><span>اسم المستخدم</span><span class="chip en-inline">${esc(u.username || '')}</span></div>
         <div class="row between small"><span>نوع الحساب</span><span class="chip ar-chip">${u.role === 'admin' ? 'المسؤول' : 'متعلّم'}</span></div>
         <p class="tiny muted">كلماتك ومجموعاتك وتقدّمك وفيديوهاتك خاصة بحسابك — لا يراها أي حساب آخر.</p>
+        <form id="emForm" class="row wrap" style="gap:8px;align-items:flex-end"><label class="field" style="flex:1;min-width:200px">✉️ الإيميل <span class="tiny muted">(يوصلك عليه كود إذا نسيت كلمة المرور)</span><input class="input en" type="email" id="emIn" autocomplete="email" placeholder="you@gmail.com"></label><button class="btn" type="submit">حفظ الإيميل</button></form>
         <form id="pwForm" class="stack" autocomplete="on">
           <input class="hidden" autocomplete="username" value="${esc(u.username || '')}" readonly>
           <label class="field">كلمة المرور الحالية<input class="input en" type="password" id="pwOld" autocomplete="current-password" required></label>
-          <label class="field">كلمة مرور جديدة <span class="tiny muted">(10 أحرف على الأقل)</span><input class="input en" type="password" id="pwNew" autocomplete="new-password" minlength="10" required></label>
+          <label class="field">كلمة مرور جديدة<input class="input en" type="password" id="pwNew" autocomplete="new-password" required></label>
           <button class="btn" type="submit" style="justify-self:start">تغيير كلمة المرور</button>
         </form>
         <button class="btn ghost" id="logout" style="justify-self:start">تسجيل الخروج</button>
@@ -124,6 +125,13 @@ export async function render(view) {
     location.hash = '#/';
   });
 
+  if ($('#emForm')) {
+    api.myEmail().then((r) => { if (r.email) $('#emIn').value = r.email; }).catch(() => {});
+    $('#emForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try { await api.saveEmail($('#emIn').value.trim()); toast('تم حفظ الإيميل ✓'); } catch (err) { toast(err.message); }
+    });
+  }
   $('#pwForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
