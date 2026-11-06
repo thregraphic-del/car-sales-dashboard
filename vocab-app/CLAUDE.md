@@ -11,11 +11,11 @@ The site runs on a credit-based Netlify plan. Running out of credits takes the w
    in the database over work repeated on every visit.
 3. **Never add background work**: no scheduled functions, no polling loops, no timers that call
    the server repeatedly. Work happens only when the learner uses the page, and only once per item.
-4. **Batch deploys — 10 changes per deploy**: the owner sends notes during the day. Do NOT deploy
+4. **Batch deploys — 20 changes per deploy**: the owner sends notes during the day. Do NOT deploy
    them one by one: add each to `PENDING.md`, build it, and deploy only when the list reaches
-   10 changes (or the owner explicitly says «ارفع»). After a deploy, empty the list.
+   20 changes (or the owner explicitly says «ارفع»). After a deploy, empty the list.
 5. **Before each change, report**: its estimated cost (credits, deploys, any running cost) and how
    many deploys are left (remaining credits ÷ 15, from the 🔔 credits bell or the owner's number),
-   plus the change's number in the batch (e.g. «٣ من ١٠»).
+   plus the change's number in the batch (e.g. «٣ من ٢٠»).
 6. AI results (word levels, word forms, translations) are computed once, saved, and reused for
    everyone — never recomputed.
