@@ -3,6 +3,7 @@
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
 | 1 | 🟩 Reader follow: the highlighted (current) sentence stays fixed at the 2nd–3rd line from the top of the text (not at the bottom); the lines above it are faded to 80% transparency (20% visible) | to build | in the batch | 0 (browser only) |
+| 2 | 🎬 Reader: (a) default video position = top (float/bottom only if the learner picks it); (b) the top bar fits on ONE row (title, settings, play, repeat, zoom, counter) to save space; (c) «🔁 أعد الجملة» becomes an on/off switch: when on, every sentence of the whole video plays twice automatically | to build | in the batch | 0 (browser only) |
 
 (Batch of 10 deployed on 2026-11-06: credits bell, channels by field, auto-retry for links,
 large floating video, strict easier synonyms, reader top bar, family-friendly stories + cards
