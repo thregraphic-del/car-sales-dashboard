@@ -18,4 +18,4 @@ export default async () => {
   }
 };
 
-export const config = { schedule: '* * * * *' };
+export const config = { schedule: '*/30 * * * *' }; // every 30 minutes: light on the hosting credits
