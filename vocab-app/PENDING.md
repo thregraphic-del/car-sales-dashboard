@@ -9,6 +9,7 @@
 | 5 | ⏱ Option to hide the line times (00:04…) in the transcript to widen the text — a toggle in ⚙ (remembered); hidden by default on phones | to build | in the batch | 0 |
 | 6 | ☀️ «راجع كلمات أمس» clearly visible on phones: a big button at the top of «اليوم» (with the count), also in «تدرّب» (من ▾ أمس). PLUS a full phone audit: list every feature of the site and make sure each one is reachable on a phone (menu/icons), fix any that isn't | to build | in the batch | 0 |
 | 7 | ⏯ Resume exactly where you stopped: the place is saved when you pause, leave the page, close the tab or lock the phone (one tiny save each time, sendBeacon), and opening the video continues from there automatically (with #1 autoplay); also «أكمل المشاهدة» on the home page opens at that point | to build | in the batch | tiny: one save on pause/leave |
+| 8 | 🧹 Word details (كلماتي) cleaner, no feature removed: drop the 🐢 slow buttons (tap 🔊 twice = slow instead), drop sub-headings («صيغ الكلمة», «أبسط صيغة», the forms summary line) and the 3-colour legend; keep word, sound, level, meaning, forms with save, examples, contexts, groups, practice | to build | in the batch | 0 |
 
 (Batch 3 deployed on 2026-11-06 at the owner's «نفذها الآن»: phone layout audit + 📝 words icon in the
 reader bar, font size pill with live preview, 🗣 «ردّد معي» icon, ❗ guided tours (home + video page),
