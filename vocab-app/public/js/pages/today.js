@@ -35,7 +35,7 @@ export async function render(view) {
           <p class="ink-2">${parts} · حوالي ${minutes} دقائق</p>
           <div class="word-peek en">${left.slice(0, 6).map((w) => `<span>${esc(w.term)}</span>`).join('')}${left.length > 6 ? '<span class="muted">…</span>' : ''}</div>
         </div>
-        <a class="btn primary lg" href="#/practice?session=today">ابدأ ←</a>
+        <a class="btn primary lg today-go" href="#/practice?session=today">▶ ابدأ تدريب اليوم</a>
       </div>`;
   } else {
     main = `
@@ -55,6 +55,7 @@ export async function render(view) {
       <div><h1>${greet}${state.user?.name && state.user.name !== 'Learner' ? `، ${esc(state.user.name)}` : ''}</h1></div>
       ${stats.streak.current ? `<span class="streak-chip">🔥 ${stats.streak.current} ${stats.streak.current === 1 ? 'يوم' : 'أيام'}</span>` : ''}
     </div>
+    ${main}
     ${(() => {
       // Start of the day: yesterday's words as quick cards; the watching goal; the video to continue.
       const last = sources.find((x) => x.kind === 'youtube' && Number(x.progress_seconds) > 5) || sources.find((x) => x.kind === 'youtube');
@@ -73,8 +74,8 @@ export async function render(view) {
         ? `<p class="small ink-2 week-line">📅 هذا الأسبوع: <b class="en-inline">${wk.seen}</b> كلمة مررت عليها · <b class="en-inline">${wk.saved}</b> حفظتها · <b class="en-inline">${wk.reviews}</b> إجابة تدريب${wk.reviews ? ` (${Math.round((100 * wk.correct) / wk.reviews)}% صحيحة)` : ''}</p>` : '';
       return (tiles.length ? `<div class="day-tiles">${tiles.join('')}</div>` : '') + weekLine;
     })()}
-    ${main}
 
+    <details class="more-box"><summary>المزيد ▾</summary>
     ${stats.attention.length ? `
       <div class="section-title"><h2>تحتاج انتباهك</h2><a href="#/practice?focus=difficult">تدرّب عليها ←</a></div>
       <div class="attention">${stats.attention.map((w) => `
@@ -87,7 +88,9 @@ export async function render(view) {
         <a class="video-mini" href="#/source/${s.id}">${thumbHtml(s, { duration: s.duration_seconds })}
           <div style="min-width:0"><div class="en small clamp2" style="font-weight:600">${esc(s.title)}</div>
           <div class="tiny muted">${s.saved_count} محفوظة · ${esc(relDate(s.analyzed_at))}</div></div></a>`).join('')}
-      </div>` : ''}`;
+      </div>` : ''}
+    <a class="card day-tile" href="#/friends" style="margin-top:12px"><div class="day-ico">👥</div><div><b>أصدقائي</b><div class="small ink-2">تحدَّ صديق وشارك تقدمك</div></div></a>
+    </details>`;
 
   view.querySelector('#more')?.addEventListener('click', async () => {
     await api.extendToday(5);

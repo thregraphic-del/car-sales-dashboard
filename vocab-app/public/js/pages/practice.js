@@ -14,10 +14,9 @@ import { renderBuilder } from '../practice-builder.js';
 const MODES = [
   ['quiz', 'اختبار', 'check'],
   ['games', 'ألعاب', 'game'],
-  ['cards', 'بطاقات', 'cards'],
   ['listen', 'استماع', 'headphones'],
-  ['story', 'قصة', 'book'],
 ];
+// البطاقات والقصة صارت ضمن الألعاب (وفي اختيار التدريب)، وروابطها القديمة تعمل.
 const FOCUS = [
   ['smart', 'اختيار ذكي'],
   ['difficult', 'تحتاج تدريب'],
@@ -47,7 +46,7 @@ export async function render(view, { params }) {
   let words;
   let distractors;
   let label = null;
-  if (mode === 'story') {
+  if (mode === 'story' && !params.ids) {
     words = [];
     distractors = [];
   } else if (params.session === 'today') {
@@ -56,7 +55,7 @@ export async function render(view, { params }) {
     distractors = (await api.practice({ size: 1 })).distractors;
     label = 'جلسة اليوم';
   } else {
-    const r = await api.practice({ ids: params.ids, exact: params.exact, group_id: group, source_id: params.source, vids: params.vids, seen: params.source && !params.vids ? [...seenOf(params.source)].slice(-600).join(',') || undefined : undefined, focus, size: params.source ? 15 : 10 });
+    const r = await api.practice({ ids: params.ids, exact: params.exact, group_id: group, source_id: params.source, vids: params.vids, seen: params.source && !params.vids ? [...seenOf(params.source)].slice(-600).join(',') || undefined : undefined, focus, size: params.size ? Math.max(3, Math.min(30, Number(params.size) || 10)) : params.source ? 15 : 10 });
     words = r.words;
     if (params.source && !params.vids) {
       // remember what was practised so "15 more" brings new words
@@ -75,7 +74,7 @@ export async function render(view, { params }) {
 
   view.innerHTML = `
     <div class="page-head compact"><div><h1>تدرّب</h1></div>
-      <div class="segmented mode-tabs">${MODES.map(([k, l, ic]) => `<a class="${k === mode ? 'active' : ''}" href="${href({ ...base, mode: k })}">${icon[ic]} ${l}</a>`).join('')}</div>
+      <div class="segmented mode-tabs">${MODES.map(([k, l, ic]) => `<a class="${k === mode || (k === 'games' && (mode === 'cards' || mode === 'story')) ? 'active' : ''}" href="${href({ ...base, mode: k })}">${icon[ic]} ${l}</a>`).join('')}</div>
     </div>
     ${label ? `<div class="chip-row"><span class="gchip on">${esc(label)}</span>${params.source ? `<a class="link-btn" href="#/source/${esc(params.source)}">↩ رجوع للمقطع</a>` : `<a class="link-btn" href="${href({ mode })}">↩ غيّر الاختيار</a>`}</div>`
       : `<div class="chip-row">${mode === 'story' ? `<a class="tab active" href="${href({ mode })}">كلماتي الأخيرة</a>` : params.focus ? FOCUS.map(([k, l]) => `<a class="tab ${k === focus ? 'active' : ''}" href="${href({ ...base, focus: k })}">${l}</a>`).join('') : ''}
@@ -88,7 +87,7 @@ export async function render(view, { params }) {
   });
 
   if (mode === 'story') {
-    const stopStory = runStory(stage, { groupId: group, label: groupObj ? `مجموعة «${groupObj.name}»` : 'كلماتك الأخيرة' });
+    const stopStory = runStory(stage, { groupId: group, ids: params.ids || null, label: params.ids ? `${params.ids.split(',').length} كلمة اخترتها` : groupObj ? `مجموعة «${groupObj.name}»` : 'كلماتك الأخيرة' });
     return () => stopStory();
   }
 
@@ -116,7 +115,14 @@ export async function render(view, { params }) {
   if (mode === 'games' && type === 'mixed') {
     stage.innerHTML = `
       <p class="small ink-2" style="margin-bottom:12px">كل لعبة تستخدم ${words.length} ${words.length === 1 ? 'كلمة' : 'كلمات'} من كلماتك — الأخطاء الحديثة والصعبة أولًا، وكل إجابة تحدّث جدول المراجعة.</p>
-      <div class="game-grid">${GAME_ORDER.map((k) => {
+      <div class="game-grid">
+        <a class="card game-card" href="${href({ ...base, mode: 'cards', type: undefined, n: Date.now() })}" style="text-decoration:none">
+          <div class="row between"><div class="game-icon">${icon.cards}</div><span class="tiny muted en-inline">Flashcards</span></div>
+          <h3 style="font-size:16.5px">البطاقات</h3><p class="small muted">اقلب البطاقة: تذكّر المعنى ثم قيّم نفسك.</p></a>
+        <a class="card game-card" href="${href({ ...base, mode: 'story', type: undefined, ids: words.map((w) => w.uv_id).join(',') })}" style="text-decoration:none">
+          <div class="row between"><div class="game-icon">${icon.book}</div><span class="tiny muted en-inline">Story</span></div>
+          <h3 style="font-size:16.5px">قصة بكلماتك</h3><p class="small muted">قصة قصيرة مناسبة لكل الأعمار فيها نفس الكلمات.</p></a>
+        ${GAME_ORDER.map((k) => {
         const playable = words.filter((w) => canPlay(k, w)).length;
         return `<a class="card game-card ${playable ? '' : 'off'}" href="${playable ? href({ ...base, mode: 'games', type: k }) : '#'}" style="text-decoration:none">
           <div class="row between"><div class="game-icon">${icon[TYPES[k].icon]}</div><span class="tiny muted en-inline">${TYPES[k].en}</span></div>

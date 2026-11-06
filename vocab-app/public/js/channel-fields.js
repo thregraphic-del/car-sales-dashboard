@@ -1,0 +1,81 @@
+// 📚 Channels for learning English, by field. A fixed list shipped with the site: no server, no AI.
+// l = level: 1 مبتدئ · 2 متوسط · 3 متقدم. h = YouTube handle (logo + direct link).
+// A 4th value 0 = handle not verified: the link opens a YouTube channel search for the name instead.
+export const FIELDS = [
+  { k: 'stories', n: '📖 قصص', c: [
+    ['English Fairy Tales', 'EnglishFairyTales', 1, 0], ['Bedtime Stories', 'BedtimeStories', 1, 0], ['Kids Stories', 'KidsStories', 1, 0],
+    ['English Singsing', 'EnglishSingsing', 1, 0], ['Learn English Through Story', 'LearnEnglishThroughStory', 2, 0], ['English Story', 'EnglishStory', 2, 0],
+    ['Storyline Online', 'StorylineOnline', 1], ['Fables (Peppa Pig Official)', 'PeppaPigOfficial', 1], ['TED-Ed', 'TEDEd', 2],
+    ['Story Time with Ms. Booksy', 'MsBooksy', 1, 0], ['English Audiobooks', 'EnglishAudiobooks', 2, 0], ['Pixar', 'Pixar', 2],
+    ['Short Stories in English', 'ShortStoriesInEnglish', 2, 0], ['The Moth', 'TheMoth', 3], ['Dream English Kids', 'DreamEnglishKids', 1],
+    ['English Short Stories', 'EnglishShortStories', 1, 0], ['Lingua Marina', 'LinguaMarina', 2], ['Easy English', 'EasyEnglish', 1, 0],
+    ['Audiobooks Unleashed', 'AudiobooksUnleashed', 3, 0], ['StoryBots', 'StoryBots', 1],
+  ] },
+  { k: 'books', n: '📚 تلخيص كتب', c: [
+    ['Productivity Game', 'ProductivityGame', 2, 0], ['Better Than Yesterday', 'BetterThanYesterday', 2, 0], ['The Swedish Investor', 'TheSwedishInvestor', 2],
+    ['FightMediocrity', 'FightMediocrity', 2], ['Ali Abdaal', 'aliabdaal', 2], ['Einzelgänger', 'Einzelganger', 3], ['Pursuit of Wonder', 'PursuitofWonder', 3],
+    ['Practical Psychology', 'PracticalPsychology', 2], ['Clark Kegley', 'ClarkKegley', 2, 0], ['Matt D\'Avella', 'mattdavella', 2], ['Escaping Ordinary', 'EscapingOrdinary', 2, 0],
+    ['Thomas Frank', 'Thomasfrank', 2], ['The Art of Improvement', 'TheArtofImprovement', 2, 0], ['Sprouts', 'SproutsSchools', 2, 0],
+    ['Freedom in Thought', 'FreedominThought', 3, 0], ['Academy of Ideas', 'academyofideas', 3], ['Philosophies for Life', 'PhilosophiesforLife', 3, 0],
+    ['Lessons from the Book', 'LessonsfromtheBook', 2, 0], ['One Percent Better', 'OnePercentBetter', 2, 0], ['Mark Manson', 'IAmMarkManson', 3],
+  ] },
+  { k: 'talk', n: '🗣 محادثات', c: [
+    ['English Speaking Course', 'EnglishSpeakingCourse', 1, 0], ['Learn English with EnglishClass101', 'EnglishClass101', 1], ['Speak English With Vanessa', 'SpeakEnglishWithVanessa', 2],
+    ['English with Lucy', 'EnglishwithLucy', 2], ['mmmEnglish', 'mmmEnglish', 2], ['Rachel\'s English', 'rachelsenglish', 2], ['Learn English with Bob the Canadian', 'LearnEnglishwithBobtheCanadian', 1],
+    ['English Addict with Mr Duncan', 'duncaninchina', 2], ['Real English', 'RealEnglishVideos', 1, 0], ['EnglishAnyone', 'EnglishAnyone', 2],
+    ['Speak English With Mr Duncan', 'SpeakEnglishWithMrDuncan', 2, 0], ['Easy English (Easy Languages)', 'EasyEnglishVideos', 2, 0], ['Learn English with Emma', 'EnglishwithEmma', 1, 0],
+    ['Interactive English', 'InteractiveEnglish', 1, 0], ['Go Natural English', 'GoNaturalEnglish', 2], ['Linguamarina', 'linguamarina', 2],
+    ['Learn English with Gill', 'EngVidGill', 2, 0], ['English Fluency Journey', 'EnglishFluencyJourney', 2, 0], ['Oxford Online English', 'OxfordOnlineEnglish', 2], ['Eat Sleep Dream English', 'EatSleepDreamEnglish', 2],
+  ] },
+  { k: 'beginner', n: '🌱 تأسيس', c: [
+    ['BBC Learning English', 'bbclearningenglish', 1], ['VOA Learning English', 'VOALearningEnglish', 1], ['EnglishClass101', 'EnglishClass101', 1],
+    ['Learn English with Bob the Canadian', 'LearnEnglishwithBobtheCanadian', 1], ['Easy English Lessons', 'EasyEnglishLessons', 1, 0], ['engVid', 'engvidenglish', 1],
+    ['Adam\'s English Lessons', 'EnglishLessons4U', 1], ['Learn English with Rebecca', 'EnglishLessonswithRebecca', 1, 0], ['Ronnie! (engVid)', 'EnglishWithRonnie', 1, 0],
+    ['Jennifer ESL', 'JenniferESL', 1, 0], ['ELLLO English', 'ELLLOEnglish', 1, 0], ['British Council LearnEnglish', 'BritishCouncilLearnEnglish', 1, 0],
+    ['Super Simple English', 'SuperSimpleEnglish', 1, 0], ['Learn English with TV Series', 'LearnEnglishWithTVSeries', 2, 0], ['Kendra\'s Language School', 'KendrasLanguageSchool', 1, 0],
+    ['Woodward English', 'WoodwardEnglish', 1], ['Shaw English Online', 'ShawEnglishOnline', 1, 0], ['Learn English with Harry', 'LearnEnglishwithHarry', 2, 0],
+    ['Twominute English', 'TwominuteEnglish', 1, 0], ['Smart English', 'SmartEnglish', 1, 0],
+  ] },
+  { k: 'science', n: '🔬 علوم', c: [
+    ['Kurzgesagt', 'kurzgesagt', 3], ['Veritasium', 'veritasium', 3], ['SciShow', 'SciShow', 2], ['Vsauce', 'Vsauce', 3], ['TED-Ed', 'TEDEd', 2],
+    ['Crash Course', 'crashcourse', 3], ['National Geographic', 'NatGeo', 2], ['Mark Rober', 'MarkRober', 2], ['MinutePhysics', 'minutephysics', 3],
+    ['SciShow Kids', 'SciShowKids', 1], ['Physics Girl', 'physicsgirl', 2, 0], ['Smarter Every Day', 'smartereveryday', 3], ['It\'s Okay To Be Smart', 'itsokaytobesmart', 2, 0],
+    ['Real Engineering', 'RealEngineering', 3], ['BBC Earth', 'bbcearth', 2], ['Be Smart', 'besmart', 2, 0], ['Steve Mould', 'SteveMould', 3],
+    ['Peekaboo Kidz', 'PeekabooKidz', 1], ['Nat Geo Kids', 'NatGeoKids', 1], ['Tom Scott', 'TomScottGo', 3],
+  ] },
+  { k: 'self', n: '🌟 تطوير الذات', c: [
+    ['TED', 'TED', 2], ['Mel Robbins', 'melrobbins', 2], ['Ali Abdaal', 'aliabdaal', 2], ['Jay Shetty', 'JayShettyPodcast', 2], ['Psych2Go', 'Psych2go', 2],
+    ['Simon Sinek', 'simonsinek', 2], ['Matt D\'Avella', 'mattdavella', 2], ['Thomas Frank', 'Thomasfrank', 2], ['The School of Life', 'theschooloflifetv', 3],
+    ['Brendon Burchard', 'BrendonBurchard', 2, 0], ['Lavendaire', 'Lavendaire', 2], ['Improvement Pill', 'ImprovementPill', 2, 0], ['Charisma on Command', 'Charismaoncommand', 2],
+    ['Marie Forleo', 'marieforleo', 2], ['Tony Robbins', 'TonyRobbinsLive', 3], ['Brené Brown', 'BreneBrown', 3], ['Huberman Lab', 'hubermanlab', 3],
+    ['Andrew Kirby', 'AndrewKirby', 2, 0], ['Rich Roll', 'richroll', 3], ['Goalcast', 'Goalcast', 2, 0],
+  ] },
+  { k: 'news', n: '📰 أخبار', c: [
+    ['VOA Learning English', 'VOALearningEnglish', 1], ['BBC Learning English', 'bbclearningenglish', 1], ['News in Levels', 'NewsinLevels', 1, 0],
+    ['CNN 10', 'CNN10', 2], ['BBC News', 'BBCNews', 3], ['Vox', 'Vox', 3], ['The Economist', 'TheEconomist', 3], ['Al Jazeera English', 'aljazeeraenglish', 3],
+    ['Johnny Harris', 'johnnyharris', 3], ['Wendover Productions', 'Wendoverproductions', 3], ['PBS NewsHour', 'PBSNewsHour', 3], ['Sky News', 'SkyNews', 3],
+    ['Reuters', 'Reuters', 3], ['NBC News', 'NBCNews', 3], ['Bloomberg', 'markets', 3], ['TLDR News', 'TLDRnews', 3], ['DW News', 'dwnews', 3],
+    ['WION', 'WION', 3], ['Newsround', 'BBCNewsround', 1], ['ABC News', 'ABCNews', 3],
+  ] },
+  { k: 'business', n: '💼 أعمال', c: [
+    ['Harvard Business Review', 'harvardbusinessreview', 3], ['Business English Pod', 'BusinessEnglishPod', 2, 0], ['Y Combinator', 'ycombinator', 3],
+    ['Ali Abdaal', 'aliabdaal', 2], ['Graham Stephan', 'GrahamStephan', 2], ['Two Cents', 'TwoCentsPBS', 2], ['The Futur', 'thefutur', 2],
+    ['Stanford GSB', 'stanfordgsb', 3], ['Simon Sinek', 'simonsinek', 2], ['Marques Brownlee', 'mkbhd', 2], ['Patrick Boyle', 'PBoyle', 3],
+    ['Investopedia', 'Investopedia', 2], ['CNBC Make It', 'CNBCMakeIt', 2], ['Modern MBA', 'ModernMBA', 3, 0], ['Business Casual', 'BusinessCasual', 2, 0],
+    ['Company Man', 'companyman', 2], ['Wall Street Journal', 'wsj', 3], ['Forbes', 'Forbes', 3], ['Dan Lok', 'DanLok', 2, 0], ['GaryVee', 'garyvee', 2],
+  ] },
+  { k: 'kids', n: '🧒 أطفال', c: [
+    ['Super Simple Songs', 'SuperSimpleSongs', 1], ['Cocomelon', 'CoComelon', 1], ['Peppa Pig', 'PeppaPigOfficial', 1], ['Bluey', 'BlueyOfficialChannel', 1],
+    ['Sesame Street', 'SesameStreet', 1], ['Dream English Kids', 'DreamEnglishKids', 1], ['Maple Leaf Learning', 'MapleLeafLearning', 1], ['Jack Hartmann', 'JackHartmann', 1],
+    ['Pinkfong', 'Pinkfong', 1], ['Storyline Online', 'StorylineOnline', 1], ['SciShow Kids', 'SciShowKids', 1], ['Nat Geo Kids', 'NatGeoKids', 1],
+    ['Numberblocks', 'Numberblocks', 1, 0], ['Alphablocks', 'Alphablocks', 1, 0], ['Little Baby Bum', 'LittleBabyBum', 1], ['Mother Goose Club', 'MotherGooseClub', 1],
+    ['Blippi', 'Blippi', 1], ['Ms Rachel', 'msrachel', 1], ['English Singsing', 'EnglishSingsing', 1, 0], ['Peekaboo Kidz', 'PeekabooKidz', 1],
+  ] },
+  { k: 'travel', n: '✈️ سفر وثقافة', c: [
+    ['Rick Steves', 'RickSteves', 2], ['Drew Binsky', 'drewbinsky', 2], ['Kara and Nate', 'KaraandNate', 2, 0], ['Mark Wiens', 'MarkWiens', 2],
+    ['Lost LeBlanc', 'LostLeBlanc', 2, 0], ['Yes Theory', 'YesTheory', 2], ['Nas Daily', 'NasDaily', 1], ['Bald and Bankrupt', 'baldandbankrupt', 2],
+    ['Eva zu Beck', 'EvazuBeck', 2, 0], ['Indigo Traveller', 'IndigoTraveller', 2, 0], ['Geography Now', 'GeographyNow', 2], ['Wendover Productions', 'Wendoverproductions', 3],
+    ['Best Ever Food Review Show', 'BestEverFoodReviewShow', 2], ['Gordon Ramsay', 'gordonramsay', 2], ['Joshua Weissman', 'JoshuaWeissman', 2], ['Tasty', 'buzzfeedtasty', 1],
+    ['Simon Wilson', 'SimonWilsonFP', 2, 0], ['Hey Nadine', 'HeyNadine', 2, 0], ['Travel Beans', 'TravelBeans', 2, 0], ['Sorelle Amore', 'SorelleAmore', 2],
+  ] },
+];

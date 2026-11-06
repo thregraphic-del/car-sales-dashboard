@@ -102,3 +102,6 @@ export function reveal(stage, w, ok, extra = '', sentence = null) {
   fb.innerHTML = `<b>${ok ? 'صحيح ✓' : 'ليست صحيحة'}</b> — <span class="en-inline"><b>${esc(w.term)}</b></span> <button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="1" aria-label="استمع">🔊</button><button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="0.65" aria-label="ببطء">🐢</button>: ${esc(w.arabic || '')}${extra}${exampleHtml(w, sentence)}`;
   speak(w.term).catch(() => {}); // every game: hear the word after answering
 }
+
+/** 🔊 + 🐢 buttons for a word or sentence (works again and again, via the global data-say handler). */
+export const sayBtns = (text) => `<span class="q-say"><button class="btn icon sm ghost" data-say="${esc(text)}" data-rate="1" aria-label="استمع">🔊</button><button class="btn icon sm ghost" data-say="${esc(text)}" data-rate="0.65" aria-label="ببطء">🐢</button></span>`;

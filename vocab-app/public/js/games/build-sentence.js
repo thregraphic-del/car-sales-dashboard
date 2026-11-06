@@ -2,6 +2,7 @@
 import { speak } from '../audio.js';
 import { esc, shuffle, highlight } from '../ui.js';
 import { buildable, arabicFor } from './shared.js';
+import { sayBtns } from './shared.js';
 
 export default {
   key: 'build',
@@ -21,7 +22,7 @@ export default {
     let checked = false;
     const draw = () => {
       stage.innerHTML = `
-        <div class="card question"><div class="prompt">رتّب الكلمات لتكوين جملة فيها</div><div class="q-big" style="font-size:26px">${esc(w.term)}</div>${w.arabic ? `<div class="small muted">${esc(w.arabic)}</div>` : ''}</div>
+        <div class="card question"><div class="prompt">رتّب الكلمات لتكوين جملة فيها</div><div class="q-big" style="font-size:26px">${esc(w.term)}</div>${sayBtns(w.term)}${w.arabic ? `<div class="small muted">${esc(w.arabic)}</div>` : ''}</div>
         <div class="token-area" id="answer" style="margin-top:14px">${placed.map((p, k) => `<button class="token placed" data-from="a" data-k="${k}">${esc(p.t)}</button>`).join('') || '<span class="muted small" dir="rtl">اضغط الكلمات بالترتيب…</span>'}</div>
         <div class="token-area pool" style="margin-top:10px">${pool.map((p, k) => `<button class="token" data-from="p" data-k="${k}">${esc(p.t)}</button>`).join('')}</div>
         <div class="feedback" id="fb"></div>

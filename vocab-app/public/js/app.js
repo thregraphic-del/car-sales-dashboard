@@ -19,6 +19,7 @@ const ROUTES = {
   '/words': 'words',
   '/practice': 'practice',
   '/settings': 'settings',
+  '/friends': 'friends',
 };
 // Links from the previous version keep working.
 const LEGACY = {
@@ -33,6 +34,7 @@ const pages = {
   words: () => import('./pages/words.js'),
   practice: () => import('./pages/practice.js'),
   settings: () => import('./pages/settings.js'),
+  friends: () => import('./pages/friends.js'),
 };
 
 function parseHash() {
@@ -46,7 +48,7 @@ function renderNav(active) {
   const s = state.stats;
   const left = s ? Math.max(0, s.plan.total - s.plan.completed) : 0;
   const links = NAV.map((n) => `<a class="nav-link ${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? `<span class="badge">${left}</span>` : ''}</a>`).join('');
-  $('#nav').innerHTML = `${links}<div class="nav-sep"></div><a class="nav-link ${active === '/settings' ? 'active' : ''}" href="#/settings">${icon.settings}<span>الإعدادات</span></a>`;
+  $('#nav').innerHTML = `${links}<div class="nav-sep"></div><a class="nav-link ${active === '/friends' ? 'active' : ''}" href="#/friends">${icon.users}<span>أصدقائي</span></a><a class="nav-link ${active === '/settings' ? 'active' : ''}" href="#/settings">${icon.settings}<span>الإعدادات</span></a>`;
   $('#tabbar').innerHTML = NAV.map((n) => `<a class="${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? '<i class="dot"></i>' : ''}</a>`).join('');
   $('#sidebarFoot').innerHTML = s
     ? `<div class="row between"><span>🔥 أيام متتالية</span><b class="en-inline">${s.streak.current}</b></div>
@@ -101,7 +103,12 @@ function openCredits() {
   });
 }
 
-export async function refreshStats() {
+// The counters in the menu: read after practice, and at most once a minute while moving between pages
+// (fewer server calls = faster pages and fewer Netlify credits).
+let statsAt = 0;
+export async function refreshStats({ lazy = false } = {}) {
+  if (lazy && Date.now() - statsAt < 60000 && state.stats) return;
+  statsAt = Date.now();
   try {
     state.stats = await api.stats();
     renderNav(activeNav(parseHash().base));
@@ -120,6 +127,10 @@ async function route() {
   if (LEGACY[base]) {
     location.replace(`#${LEGACY[base]}`);
     return;
+  }
+  if (base === '/p' && segments[1]) {
+    const { renderPublic } = await import('./pages/friends.js');
+    return renderPublic($('#view'), segments[1].replace(/[^a-f0-9]/g, ''));
   }
   const page = ROUTES[base] || 'today';
   const my = ++token;
@@ -151,7 +162,7 @@ async function route() {
     console.error(err);
     view.innerHTML = `<div class="card empty"><div class="icon">⚠️</div><h3>تعذّر تحميل الصفحة</h3><p>${esc(err.message)}</p></div>`;
   }
-  refreshStats();
+  refreshStats({ lazy: true });
 }
 
 let started = false;
@@ -216,6 +227,14 @@ async function init() {
   if (/^\/logout\/?$/.test(location.pathname)) {
     await api.logout().catch(() => {});
     location.replace('/login');
+    return;
+  }
+  // a shared progress link opens without login
+  const pub = location.hash.match(/^#\/p\/([a-f0-9]+)/);
+  if (pub) {
+    const { renderPublic } = await import('./pages/friends.js');
+    document.body.classList.add('auth-mode');
+    await renderPublic($('#view'), pub[1]);
     return;
   }
   let auth;

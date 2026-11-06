@@ -3,6 +3,7 @@ import { api } from './api.js';
 import { state, loadGroups } from './state.js';
 import { esc, toast, openModal, closeModal, $ } from './ui.js';
 import { PACKS, packSummary } from './packs-data.js';
+import { FIELDS as CH_FIELDS } from './channel-fields.js';
 
 /* ------------------------------------------------- attach a file or photo */
 
@@ -455,4 +456,37 @@ export function bindChannels(view, { onPick }) {
     }
   });
   load();
+}
+
+/* ------------------------------------------- 📚 channels by field (fixed list, no server) */
+
+const LV = [['', 'كل المستويات'], ['1', '🌱 مبتدئ'], ['2', '🌿 متوسط'], ['3', '🌳 متقدم']];
+const chUrl = ([name, h, , sure]) => (sure === 0 ? `https://www.youtube.com/results?search_query=${encodeURIComponent(name)}&sp=EgIQAg%253D%253D` : `https://www.youtube.com/@${encodeURIComponent(h)}`);
+
+export const fieldsHtml = () => `
+  <div class="section-title"><h2>🎯 قنوات لتعلّم الإنجليزي حسب المجال</h2></div>
+  <div class="chip-row" id="fdChips">${CH_FIELDS.map((f) => `<button type="button" class="gchip" data-fd="${f.k}">${f.n}</button>`).join('')}</div>
+  <div id="fdBox"></div>`;
+
+export function bindFields(view) {
+  const box = $('#fdBox', view);
+  if (!box) return;
+  let field = null;
+  let lv = '';
+  try { lv = localStorage.getItem('fields.level') || ''; } catch { /* ignore */ }
+  const draw = () => {
+    view.querySelectorAll('[data-fd]').forEach((b) => b.classList.toggle('on', b.dataset.fd === field?.k));
+    if (!field) { box.innerHTML = '<p class="tiny muted">اختر مجالًا لتظهر أشهر قنواته.</p>'; return; }
+    const list = field.c.filter((c) => !lv || String(c[2]) === lv);
+    box.innerHTML = `<div class="sopts" style="margin:8px 0">${LV.map(([k, l]) => `<button type="button" class="sopt${k === lv ? ' active' : ''}" data-lv="${k}">${l}</button>`).join('')}</div>
+      <div class="fd-grid">${list.map((c) => `<a class="fd-card" href="${esc(chUrl(c))}" target="_blank" rel="noopener" title="${esc(c[0])}">${avatar({ name: c[0], handle: c[3] === 0 ? '' : c[1] })}<b class="en">${esc(c[0])}</b><span class="tiny muted">${LV[c[2]][1]}</span></a>`).join('') || '<p class="tiny muted">لا توجد قنوات بهذا المستوى هنا.</p>'}</div>
+      <p class="tiny muted">اضغط شعار القناة لتفتحها في يوتيوب، وانسخ رابط أي فيديو والصقه فوق.</p>`;
+  };
+  view.addEventListener('click', (e) => {
+    const f = e.target.closest('[data-fd]');
+    if (f) { field = field?.k === f.dataset.fd ? null : CH_FIELDS.find((x) => x.k === f.dataset.fd); draw(); return; }
+    const l = e.target.closest('[data-lv]');
+    if (l && box.contains(l)) { lv = l.dataset.lv; try { localStorage.setItem('fields.level', lv); } catch { /* ignore */ } draw(); }
+  });
+  draw();
 }

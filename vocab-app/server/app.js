@@ -1,5 +1,6 @@
 // The API as an Express app. Used by both the local server (server/index.js)
 // and the Netlify Function (netlify/functions/api.mjs).
+import socialRoutes from './routes/social.js';
 import { recordDeploy, creditStatus, saveCreditSettings } from './data/credits.js';
 import express from 'express';
 import { config } from './config.js';
@@ -61,7 +62,7 @@ async function authenticate(req, res, next) {
     }
     req.user = await userFromToken(readCookie(req, config.auth.cookieName));
     if (req.user) req.userId = req.user.id;
-    if (req.user || PUBLIC_PATHS.has(req.originalUrl.split('?')[0])) return aiContext.run({ userId: req.userId }, next);
+    if (req.user || PUBLIC_PATHS.has(req.originalUrl.split('?')[0]) || (req.method === 'GET' && /^\/api\/social\/share\/[a-f0-9]+$/.test(req.originalUrl.split('?')[0]))) return aiContext.run({ userId: req.userId }, next);
     return res.status(401).json({ error: 'سجّل الدخول أولًا.', code: 'auth' });
   } catch (err) {
     return next(err);
@@ -147,6 +148,7 @@ export function createApp() {
   app.use('/api/ai', aiRoutes);
   app.use('/api/feedback', feedbackRoutes);
   app.use('/api/channels', channelRoutes);
+  app.use('/api/social', socialRoutes);
   app.use('/api', (_req, res) => res.status(404).json({ error: 'غير موجود' }));
 
   // Human-readable errors only — details stay in the server log, never in responses.

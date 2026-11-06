@@ -3,7 +3,7 @@ import { api } from '../api.js';
 import { state, loadGroups } from '../state.js';
 import { esc, icon, levelChip, thumbHtml, relDate, toast, fmtTime, $ } from '../ui.js';
 import { groupPickerHtml, bindGroupPicker } from '../components.js';
-import { attachButtonHtml, bindAttach, packsHtml, bindPacks, suggestionsHtml, bindSuggestions, suggestWordsHtml, bindSuggestWords, channelsHtml, bindChannels } from '../add-extras.js';
+import { attachButtonHtml, bindAttach, packsHtml, bindPacks, suggestionsHtml, bindSuggestions, suggestWordsHtml, bindSuggestWords, channelsHtml, bindChannels, fieldsHtml, bindFields } from '../add-extras.js';
 
 const isYoutube = (s) => /^\s*(https?:\/\/)?((www|m|music)\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)\/\S+\s*$/i.test(s);
 // Pasting the transcript is offered for every reason except a bad link.
@@ -43,6 +43,7 @@ export async function render(view, { params }) {
     <div id="sources">${sourcesHtml(cached)}</div>
     ${packsHtml()}
     ${suggestWordsHtml()}
+    ${fieldsHtml()}
     ${channelsHtml()}
     ${suggestionsHtml()}`;
   api.sources().then((list) => {
@@ -80,6 +81,7 @@ export async function render(view, { params }) {
   };
   bindSuggestions(view, { onPick: pickVideo });
   bindChannels(view, { onPick: pickVideo });
+  bindFields(view);
 
   const steps = (labels) => {
     status.innerHTML = `<div class="loading-steps">${labels.map((s, i) => `<div class="loading-step ${i === 0 ? 'active' : ''}" data-step="${i}"><span class="dot"></span>${s}</div>`).join('')}</div>`;
@@ -97,12 +99,21 @@ export async function render(view, { params }) {
     const stop = steps(['جلب الفيديو', 'قراءة النص كاملًا', 'اختيار الكلمات المفيدة', 'تجهيز الترجمة']);
     try {
       const body = { url: input.value.trim(), transcript: manual.classList.contains('hidden') ? '' : $('#transcript', view).value };
-      let r = await api.analyzeYoutube(body);
+      // A dropped connection or a server that was still waking up: try again quietly (twice) before showing an error.
+      const ask = async () => {
+        for (let t = 0; ; t++) {
+          try { return await api.analyzeYoutube(body); } catch (err) {
+            if (t >= 2 || !(err.status === 0 || err.status >= 500)) throw err;
+            await new Promise((res) => setTimeout(res, 1500 * (t + 1)));
+          }
+        }
+      };
+      let r = await ask();
       // A long video: its transcript is prepared in the background — ask again every few seconds (up to ~3 min).
       for (let i = 0; r?.pending && i < 45 && view.isConnected; i++) {
         status.innerHTML = `<p class="small muted" style="margin-top:12px"><span class="spinner"></span> ${esc(r.message || 'نجهّز نص الفيديو…')} (${(i + 1) * 4} ث)</p>`;
         await new Promise((res) => setTimeout(res, 4000));
-        r = await api.analyzeYoutube(body);
+        r = await ask();
       }
       if (r?.pending) throw Object.assign(new Error('الفيديو طويل جدًا وما زال نصّه يُجهَّز — جرّب بعد دقيقة.'), { data: {} });
       status.innerHTML = '';

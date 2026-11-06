@@ -1,5 +1,5 @@
 // Thin JSON client for the LexiTube API.
-async function request(method, url, body) {
+async function request(method, url, body, retried = false) {
   let res;
   try {
     res = await fetch(url, {
@@ -8,6 +8,11 @@ async function request(method, url, body) {
       body: body ? JSON.stringify(body) : undefined,
     });
   } catch {
+    // a read that lost its connection is tried once more, quietly
+    if (method === 'GET' && !retried) {
+      await new Promise((r) => setTimeout(r, 1200));
+      return request(method, url, body, true);
+    }
     throw Object.assign(new Error('تعذّر الاتصال بالخادم. تأكد أن التطبيق يعمل ثم حاول مرة أخرى.'), { status: 0 });
   }
   let data = null;
@@ -94,6 +99,15 @@ export const api = {
   setup: (setup_code, username, password) => request('POST', '/api/auth/setup', { setup_code, username, password }),
   register: (body) => request('POST', '/api/auth/register', body),
   logout: () => request('POST', '/api/auth/logout'),
+  friends: () => request('GET', '/api/social/friends'),
+  addFriend: (username) => request('POST', '/api/social/friends', { username }),
+  removeFriend: (id) => request('DELETE', `/api/social/friends/${id}`),
+  challenges: () => request('GET', '/api/social/challenges'),
+  challenge: (id) => request('GET', `/api/social/challenges/${id}`),
+  newChallenge: (to) => request('POST', '/api/social/challenges', { to }),
+  challengeScore: (id, score) => request('POST', `/api/social/challenges/${id}/score`, { score }),
+  shareLink: () => request('POST', '/api/social/share'),
+  shared: (token) => request('GET', `/api/social/share/${token}`),
   credits: () => request('GET', '/api/credits'),
   saveCredits: (body) => request('POST', '/api/credits', body),
   changePassword: (current, password) => request('POST', '/api/auth/password', { current, password }),
@@ -117,7 +131,7 @@ export const api = {
   suggestWords: (body) => request('POST', '/api/ai/suggest-words', body),
   story: (opts = {}) => request('POST', '/api/ai/story', opts),
   suggestVideos: (duration, fresh) => request('GET', `/api/ai/suggest-videos${qs({ duration, fresh: fresh ? 1 : undefined })}`),
-  synonyms: (word) => request('GET', `/api/ai/synonyms${qs({ word })}`),
+  synonyms: (word, meaning) => request('GET', `/api/ai/synonyms${qs({ word, meaning })}`),
   wordForms: (word) => request('GET', `/api/ai/forms${qs({ word })}`),
   explain: (text, line_id) => request('POST', '/api/ai/explain', { text, line_id }),
   resetDemo: () => request('POST', '/api/data/reset-demo'),

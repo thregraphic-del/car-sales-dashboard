@@ -193,7 +193,7 @@ export function renderBuilder(stage, { words: all, groups = [], mode = 'cards', 
         })() : `<details class="pb-list"><summary class="small">عرض الكلمات واختيار ما تريد (${chosen.length}/${list.length})</summary>
           <div class="pb-actions"><button type="button" class="link-btn" data-all>تحديد الكل</button> · <button type="button" class="link-btn" data-none>إلغاء الكل</button></div>
           <div class="pf-list">${list.map((w) => `<label class="pf-item"><input type="checkbox" class="check" data-pv="${w.uv_id}" ${off.has(w.uv_id) ? '' : 'checked'}> ${usageDot(w.usage)}<b class="en">${esc(w.term)}</b> ${levelChip(w.level)} <span class="tiny ink-2">${esc(w.arabic || '')}</span>${sig.get(w.uv_id).wrong ? ' <span class="tiny">🔥</span>' : ''}</label>`).join('')}</div></details>`}
-        <div class="pb-go"><div class="sopts">${[['cards', '🃏 بطاقات'], ['quiz', '✅ اختبار'], ['games', '🎮 ألعاب'], ['listen', '🎧 استماع']].map(([k, l]) => `<button type="button" class="sopt${mode === k ? ' active' : ''}" data-mode="${k}">${l}</button>`).join('')}</div>
+        <div class="pb-go"><div class="sopts">${[['cards', '🃏 بطاقات'], ['quiz', '✅ اختبار'], ['games', '🎮 ألعاب'], ['story', '📖 قصة'], ['listen', '🎧 استماع']].map(([k, l]) => `<button type="button" class="sopt${mode === k ? ' active' : ''}" data-mode="${k}">${l}</button>`).join('')}</div>
           <button type="button" class="btn primary lg" id="pbGo" ${chosen.length ? '' : 'disabled'}>ابدأ (${chosen.length}) ←</button></div>
       </div></div>`;
     save();

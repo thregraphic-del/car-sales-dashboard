@@ -2,14 +2,8 @@
 
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
-| 1 | 🔔 Netlify credits bell (owner only; deploys counted once; warning at 70% / 90%) | built & tested | in the batch | ~0 (one read per visit) |
-| 2 | 📺 Channel suggestions in 10 fields (stories, book summaries, conversations…), ~20 channels each with logos, filter by level; tapping a channel logo opens the channel on YouTube directly | to build | in the batch | 0 (fixed list in the site, logos from unavatar) |
-| 3 | 🔗 Pasting a YouTube link sometimes shows «تعذّر الاتصال بالخادم» and needs a second press — retry automatically (quietly) so the video opens directly | to build | in the batch | 0 (only one extra try when the first fails) |
-| 4 | 🎬 Reader: by default the video opens large, floating over the bottom half of the screen; a 👆 finger hint (shown the first times) teaches pinch to resize and drag to move; the video can be resized and moved freely | to build | in the batch | 0 (browser only) |
-| 5 | 🔤 Easier synonyms (word tap): only true synonyms with the SAME meaning in that sentence, simpler and more common; if none exist, show nothing (no other meanings) | to build | in the batch | small: AI once per word on first tap with the new rule, then saved |
-| 6 | 🎛 Reader top bar redesign: one clean, short row with clear labelled controls (play/stop, repeat, video position, settings), a plain goal counter (e.g. «108 كلمة · هدفك 10 ✓» instead of «1080% 108/10»), tabs clearly separated below; settings sheet grouped and short | to build | in the batch | 0 (browser only) |
-| 7 | 📖 Stories: creative, modern, family-friendly for all ages (no romance/inappropriate themes); stories become a game inside «تدرّب» that uses the general practice filters to pick the words | to build | in the batch | small: AI writes each story once (new rule), then saved |
-| 8 | 🃏 Flashcards become a game inside «تدرّب» like the others, using the same practice filters | to build | in the batch | 0 (browser only) |
-| 9 | 🔊 Audio everywhere: every word and every sentence on every page and in every game has a 🔊 button; it can be played again as many times as wanted (review all pages and games, fix any that play only once or have no button) | to build | in the batch | 0 (the browser's own voice) |
 
-Bug noticed (fixed with the batch, not counted): «تعذّرت الترجمة الآن» shows on some videos — check why and repair once.
+(Batch of 10 deployed on 2026-11-06: credits bell, channels by field, auto-retry for links,
+large floating video, strict easier synonyms, reader top bar, family-friendly stories + cards
+as games, audio everywhere, friends/challenges/share/leaderboard + 3 new games + quiz after
+video + repeat sentence + simpler Today + fewer stats calls; translation step retries.)

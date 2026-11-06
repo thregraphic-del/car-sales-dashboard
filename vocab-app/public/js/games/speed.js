@@ -1,6 +1,6 @@
 // Game: تحدّي الدقيقة (60-second challenge) — a timed round, not per word.
 import { esc, shuffle } from '../ui.js';
-import { distractors } from './shared.js';
+import { distractors , sayBtns } from './shared.js';
 
 /** 60-second challenge: as many meanings as possible; each word scored once. */
 function round(stage, words, pool, record, onProgress) {
@@ -28,7 +28,7 @@ function round(stage, words, pool, record, onProgress) {
       i += 1;
       const opts = shuffle([w, ...distractors(w, pool, 3, (x) => x.arabic)]);
       const q = stage.querySelector('#sq');
-      q.innerHTML = `<div class="card question" style="padding:20px"><div class="q-big">${esc(w.term)}</div></div>
+      q.innerHTML = `<div class="card question" style="padding:20px"><div class="q-big">${esc(w.term)}</div>${sayBtns(w.term)}</div>
         <div class="options">${opts.map((o, k) => `<button class="option" data-k="${k}">${esc(o.arabic)}</button>`).join('')}</div>`;
       q.querySelectorAll('.option').forEach((b) => b.addEventListener('click', () => {
         const ok = opts[Number(b.dataset.k)].uv_id === w.uv_id;

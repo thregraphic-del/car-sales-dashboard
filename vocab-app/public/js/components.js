@@ -272,16 +272,16 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
       </div>`;
   };
   // Easier, more common words with the same meaning: just the word and a short Arabic, tap for details.
-  let syns = (info.similar || []).map((x) => ({ word: x.word || x.term, arabic: x.arabic })).filter((x) => x.word).slice(0, 5);
+  // Same meaning only (strict AI list, saved once per word); without AI, nothing — never other meanings.
+  let syns = [];
   function synHtml() {
     if (!syns.length) return '';
     return `<div class="syn-row"><span class="tiny muted">أسهل وأشهر:</span>${syns.map((x) => `<button type="button" class="syn-chip" data-syn="${esc(x.word)}"><b class="en">${esc(x.word)}</b>${x.arabic ? `<span>${esc(x.arabic)}</span>` : ''}</button>`).join('')}</div>`;
   }
-  if (info.found && info.tier !== 'function' && state.config?.ai?.configured && syns.length < 3) {
-    api.synonyms(info.term).then((r) => {
+  if (info.found && info.tier !== 'function' && state.config?.ai?.configured) {
+    api.synonyms(info.term, (info.user_arabic || info.arabic || '').split(/[،,؛]/)[0].trim()).then((r) => {
       if (panelEl !== el || !r.items?.length) return;
-      const have = new Set(syns.map((x) => x.word.toLowerCase()));
-      syns = [...syns, ...r.items.filter((x) => !have.has(x.word.toLowerCase()))].slice(0, 5);
+      syns = r.items.slice(0, 5);
       render();
     }).catch(() => {});
   }

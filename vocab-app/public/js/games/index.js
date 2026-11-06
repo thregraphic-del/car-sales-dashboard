@@ -14,9 +14,12 @@ import fillBlank from './fill-blank.js';
 import context from './context.js';
 import buildSentence from './build-sentence.js';
 import translate from './translate.js';
+import memory from './memory.js';
+import missing from './missing.js';
+import guess from './hangman.js';
 
 /** In display order. */
-export const GAMES = [connections, similar, trueFalse, speed, meaning, listen, spelling, unscramble, fillBlank, context, buildSentence, translate];
+export const GAMES = [connections, similar, trueFalse, speed, meaning, listen, spelling, unscramble, fillBlank, context, buildSentence, translate, memory, missing, guess];
 export const GAME_BY_KEY = Object.fromEntries(GAMES.map((g) => [g.key, g]));
 
 /** Question formats for mixed rounds: recognition while a word is weak, recall once it is stronger. */

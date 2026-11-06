@@ -43,7 +43,7 @@ router.post('/explain', wrap(async (req, res) => {
 router.get('/synonyms', wrap(async (req, res) => {
   const word = String(req.query.word || '').toLowerCase().replace(/[^a-z' -]/g, '').replace(/\s+/g, ' ').trim();
   if (!word || word.length > 40) throw httpError(400, 'كلمة غير صالحة.');
-  return withAi(res, async () => ({ ok: true, word, items: await synonymsWithAi(word) }));
+  return withAi(res, async () => ({ ok: true, word, items: await synonymsWithAi(word, String(req.query.meaning || '').slice(0, 60)) }));
 }));
 router.get('/forms', wrap(async (req, res) => {
   const word = String(req.query.word || '').toLowerCase().replace(/[^a-z' -]/g, '').replace(/\s+/g, ' ').trim();
@@ -87,9 +87,11 @@ router.post('/story', wrap(async (req, res) => {
   const groupId = num(req.body?.group_id);
   const range = req.body?.range === 'week' ? 'week' : 'recent';
   const count = [10, 20, 30].includes(Number(req.body?.count)) ? Number(req.body.count) : 10;
+  const ids = String(req.body?.ids || '').split(',').map(Number).filter((x) => x > 0);
   let words = await listWords(req.userId, groupId ? { group_id: groupId } : range === 'week' ? { section: 'week' } : {});
+  if (ids.length) { const want = new Set(ids); words = words.filter((w) => want.has(w.uv_id)); }
   if (groupId || range === 'week') words = words.sort(() => Math.random() - 0.5);
-  words = words.slice(0, count);
+  words = words.slice(0, ids.length ? 30 : count);
   if (words.length < 3) {
     throw httpError(400, groupId ? 'هذه المجموعة فيها أقل من 3 كلمات.' : range === 'week' ? 'حفظت أقل من 3 كلمات هذا الأسبوع.' : 'احفظ 3 كلمات على الأقل لنكتب قصة منها.');
   }

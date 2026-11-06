@@ -75,7 +75,7 @@ async function youtubePlayer(el, videoId, start, onState = () => {}) {
           destroy: () => p.destroy?.(),
         }),
         // 1 playing, 3 buffering (still moving), 2 paused, 0 ended
-        onStateChange: (e) => onState(e.data === 1 || e.data === 3),
+        onStateChange: (e) => { onState(e.data === 1 || e.data === 3); if (e.data === 0) window.dispatchEvent(new CustomEvent('lexitube:ended')); },
       },
     });
   });
@@ -263,10 +263,13 @@ export async function render(view, { segments, params }) {
     <div class="reader-head slim">
       <a class="btn icon sm ghost" href="#/add" aria-label="رجوع">${icon.prev}</a>
       <div class="reader-title-sm en" dir="auto" title="${esc(source.title)}">${esc(source.title)}</div>
-      <span class="goal-chip" id="goalChip" title="كلمات مرّت عليك اليوم (بدون تكرار) من هدفك"></span>
-      ${isVideo ? '<button type="button" class="btn icon sm play-btn" id="playBtn" title="تشغيل / إيقاف (مسافة)" aria-label="تشغيل أو إيقاف">▶</button>' : ''}
-      <button type="button" class="btn icon sm ghost" id="focusBtn" aria-pressed="false" title="توسيع الشاشة"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
       <button type="button" class="btn icon sm ghost set-btn" id="setBtn" aria-expanded="false" title="إعدادات المقطع">⚙️</button>
+    </div>
+    <div class="reader-bar">
+      ${isVideo ? '<button type="button" class="rb-btn play-btn" id="playBtn" title="تشغيل / إيقاف (مسافة)">▶ تشغيل</button>' : ''}
+      ${isVideo && hasTimes ? '<button type="button" class="rb-btn" id="againBtn" title="أعد الجملة الحالية (R)">🔁 أعد الجملة</button>' : ''}
+      <button type="button" class="rb-btn" id="focusBtn" aria-pressed="false" title="توسيع الشاشة">⛶ تكبير</button>
+      <span class="goal-chip" id="goalChip" title="كلمات مرّت عليك اليوم (بدون تكرار) من هدفك"></span>
     </div>
     <div class="listen-bar hidden" id="listenBar"><span id="listenNote">🎧 يقرأ…</span>
       <div class="segmented" id="listenOrder"><button data-order="ar-en">عربي ← إنجليزي</button><button data-order="en-ar">إنجليزي ← عربي</button></div>
@@ -276,19 +279,22 @@ export async function render(view, { segments, params }) {
       <div class="reader-main">
         <div class="rset hidden" id="rset">
           <div class="rset-title">⚙️ إعدادات المقطع</div>
-          ${isVideo && hasTimes ? `<div id="mode" class="rgrp">
+          ${isVideo && hasTimes ? `<div class="sgroup">🎬 التشغيل</div><div id="mode" class="rgrp">
             <div class="srow"><span class="slabel">السرعة</span><div class="sopts" id="speed">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" class="sopt en-inline" data-rate="${r}">${r}×</button>`).join('')}</div></div>
             <div class="srow"><span class="slabel">التوقف</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="gapOn"> بعد كل سطر</label><span class="sopts" id="gapChips">${[500, 1000, 2000, 3000].map((ms) => `<button type="button" class="sopt en-inline" data-gap="${ms}">${ms / 1000}ث</button>`).join('')}</span></div></div>
             <div class="srow"><span class="slabel">التدريب</span><div class="sopts"><button type="button" class="sopt" data-mode="shadow">🗣 ردّد ورائي</button><button type="button" class="sopt" id="loopBtn" aria-pressed="false">🔁 الفقرة مرتين</button><button type="button" class="sopt hidden" id="modeOff">✕ عادي</button></div></div>
           </div>
+          <div class="sgroup">📝 المساعدة</div>
           <div class="srow"><span class="slabel">قائمة الكلمات</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="wbOn"> كل</label><input class="input sopt-num" id="wbN" type="number" min="3" max="300" inputmode="numeric"> <span class="tiny">كلمة</span><span class="sopts" id="wbWhen"><button type="button" class="sopt" data-when="before">قبلها</button><button type="button" class="sopt" data-when="after">بعدها</button></span></div></div>
           <div class="srow"><span class="slabel">الملخص</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="recapOn"> بالعامية كل ٥ دقائق</label></div></div>` : ''}
+          <div class="sgroup">👁 العرض</div>
           <div id="viewPick" class="rgrp"><button type="button" class="hidden" id="viewBtn"></button><div id="viewMenu" class="rgrp">
             <div class="srow"><span class="slabel">الترجمة</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="arToggle" ${showAr ? 'checked' : ''}> عربي</label><span class="sopts${showAr ? '' : ' hidden'}" id="arLayout"><button type="button" class="sopt" data-layout="side">بجانبه</button><button type="button" class="sopt" data-layout="below">تحته</button></span><button type="button" class="sopt" id="hideArBtn" aria-pressed="false">🙈 أخفه</button></div></div>
             <div class="srow"><span class="slabel">النص</span><div class="sopts">${hasTimes ? `<label class="sopt-check"><input type="checkbox" class="check" id="followToggle" ${follow ? 'checked' : ''}> متابعة تلقائية</label>` : ''}<span class="sopts fontsize"><button type="button" class="sopt" data-font="-1">A−</button><button type="button" class="sopt" data-font="1">A+</button></span></div></div>
           </div></div>
           ${isVideo ? `<div class="srow"><span class="slabel">الفيديو</span><div class="sopts" id="vidPos"><button type="button" class="sopt" data-vpos="top">فوق</button><button type="button" class="sopt" data-vpos="bottom">تحت</button><button type="button" class="sopt" data-vpos="float">عائم</button></div></div>` : ''}
           <div class="srow"><span class="slabel">بحث</span><div class="sopts tr-search"><input class="input sm" id="trQ" type="search" placeholder="ابحث في النص" aria-label="ابحث في النص"><span class="tiny muted" id="trQn"></span></div></div>
+          <div class="sgroup">🛠 أدوات</div>
           <div class="srow"><span class="slabel">أدوات</span><div class="sopts">
             <button class="sopt" id="summaryBtn">📝 الملخص</button><button class="sopt" id="listenBtn">🎧 استماع</button>
             ${source.youtube_id && !source.is_demo ? `<a class="sopt" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">يوتيوب ↗</a>` : ''}
@@ -313,27 +319,45 @@ export async function render(view, { segments, params }) {
   document.addEventListener('click', closeSet);
   $('#setOk', view).addEventListener('click', () => toggleSet(false));
   // Video above the text, below it, or floating in a corner (drag it anywhere, it snaps to a corner).
-  let vidPos = ['top', 'bottom', 'float'].includes(pref('reader.vidPos', 'top')) ? pref('reader.vidPos', 'top') : 'top';
-  let floatW = Math.max(200, Math.min(640, Number(pref('reader.floatW', '320')) || 320));
-  let corner = ['tl', 'tr', 'bl', 'br'].includes(pref('reader.floatCorner', 'br')) ? pref('reader.floatCorner', 'br') : 'br';
+  // 🎬 By default the video floats, large, over the lower half of the screen; it can be moved
+  // anywhere (drag its top bar) and resized (drag its corner ↘ or pinch the bar with two fingers).
+  let vidPos = ['top', 'bottom', 'float'].includes(pref('reader.vp', 'float')) ? pref('reader.vp', 'float') : 'float';
+  const vw = () => window.innerWidth;
+  const vh = () => window.innerHeight;
+  let floatW = Number(pref('reader.fw', '0')) || 0; // 0 = automatic (large)
+  let fpos = (() => { try { return JSON.parse(pref('reader.fpos', 'null')); } catch { return null; } })(); // {x,y} fractions
   const pbox = () => $('.player-box', view);
-  // the bar to drag / resize the floating video (added again if the player rebuilt its box)
   function ensureFloatBar() {
     const b = pbox();
     if (!b || b.querySelector('.float-bar')) return;
-    b.insertAdjacentHTML('afterbegin', '<div class="float-bar"><span class="fh" title="اسحب لأي زاوية">⠿</span><button type="button" data-fs="-" title="أصغر">−</button><button type="button" data-fs="+" title="أكبر">＋</button><button type="button" data-fs="dock" title="أرجعه فوق النص">✕</button></div>');
-    bindFloatBar(b.querySelector('.float-bar'));
+    b.insertAdjacentHTML('afterbegin', '<div class="float-bar"><span class="fh" title="اسحب للتحريك">⠿ اسحب</span><button type="button" data-fs="-" title="أصغر">−</button><button type="button" data-fs="+" title="أكبر">＋</button><button type="button" data-fs="dock" title="أرجعه فوق النص">✕</button></div><span class="float-rs" title="اسحب للتكبير أو التصغير">↘</span>');
+    bindFloatBar(b);
+    floatHint();
   }
-  const clearFloat = () => { const b = pbox(); if (b) ['width', 'left', 'right', 'top', 'bottom'].forEach((k) => b.style.removeProperty(k)); };
+  const clearFloat = () => {
+    const b = pbox();
+    if (b) ['width', 'left', 'right', 'top', 'bottom'].forEach((k) => b.style.removeProperty(k));
+    $('.reader-main', view)?.style.removeProperty('--float-h');
+  };
+  const widthNow = () => Math.round(Math.max(180, Math.min(vw() - 8, floatW || (vw() < 700 ? vw() - 16 : Math.min(720, vw() * 0.55)))));
   const placeFloat = () => {
     const b = pbox();
     if (!b || vidPos !== 'float') return;
     clearFloat();
-    const w = Math.min(floatW, Math.round(window.innerWidth * (window.innerWidth < 600 ? 0.6 : 0.9)));
+    const w = widthNow();
+    const h = Math.round((w * 9) / 16) + 30;
     b.style.width = `${w}px`;
-    const mobile = window.innerWidth < 900;
-    if (corner[0] === 't') { b.style.top = `${mobile ? 104 : 64}px`; b.style.bottom = 'auto'; } else { b.style.bottom = `${mobile ? 80 : 16}px`; b.style.top = 'auto'; }
-    if (corner[1] === 'l') { b.style.left = '12px'; b.style.right = 'auto'; } else { b.style.right = '12px'; b.style.left = 'auto'; }
+    const bottomGap = vw() < 900 ? 78 : 16;
+    let x = fpos ? fpos.x * vw() : (vw() - w) / 2;
+    let y = fpos ? fpos.y * vh() : vh() - h - bottomGap; // lower half by default
+    x = Math.max(0, Math.min(vw() - w, x));
+    y = Math.max(0, Math.min(vh() - h, y));
+    b.style.left = `${Math.round(x)}px`;
+    b.style.top = `${Math.round(y)}px`;
+    b.style.right = 'auto';
+    b.style.bottom = 'auto';
+    // the text can scroll above the video: leave room under it
+    $('.reader-main', view)?.style.setProperty('--float-h', `${h + 12}px`);
   };
   const showVidPos = () => {
     const m = $('.reader-main', view);
@@ -342,41 +366,84 @@ export async function render(view, { segments, params }) {
     view.querySelectorAll('#vidPos [data-vpos]').forEach((b) => b.classList.toggle('active', b.dataset.vpos === vidPos));
     if (vidPos === 'float') { ensureFloatBar(); placeFloat(); } else clearFloat();
   };
-  const setVidPos = (v) => { vidPos = v; setPref('reader.vidPos', vidPos); showVidPos(); };
+  const setVidPos = (v) => { vidPos = v; setPref('reader.vp', vidPos); showVidPos(); };
   view.querySelectorAll('#vidPos [data-vpos]').forEach((b) => b.addEventListener('click', () => setVidPos(b.dataset.vpos)));
-  function bindFloatBar(bar) {
-  bar.addEventListener('click', (e) => {
-    const f = e.target.closest('[data-fs]')?.dataset.fs;
-    if (!f) return;
-    if (f === 'dock') return setVidPos('top');
-    floatW = Math.max(200, Math.min(640, floatW + (f === '+' ? 80 : -80)));
-    setPref('reader.floatW', String(floatW));
-    placeFloat();
-  });
-  bar.querySelector('.fh').addEventListener('pointerdown', (e) => {
+  const savePos = () => {
+    const r = pbox().getBoundingClientRect();
+    fpos = { x: r.left / vw(), y: r.top / vh() };
+    setPref('reader.fpos', JSON.stringify(fpos));
+    setPref('reader.fw', String(floatW));
+  };
+  // 👆 a short hint the first three times
+  function floatHint() {
+    const n = Number(pref('reader.fhint', '0')) || 0;
+    if (n >= 3) return;
+    setPref('reader.fhint', String(n + 1));
     const b = pbox();
-    const r = b.getBoundingClientRect();
-    const dx = e.clientX - r.left;
-    const dy = e.clientY - r.top;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    b.style.pointerEvents = 'none';
-    const move = (ev) => {
-      ['right', 'bottom'].forEach((k) => b.style.removeProperty(k));
-      b.style.left = `${Math.max(0, Math.min(window.innerWidth - r.width, ev.clientX - dx))}px`;
-      b.style.top = `${Math.max(0, Math.min(window.innerHeight - r.height, ev.clientY - dy))}px`;
-    };
-    const up = () => {
-      b.style.pointerEvents = '';
-      const q = b.getBoundingClientRect();
-      corner = `${q.top + q.height / 2 < window.innerHeight / 2 ? 't' : 'b'}${q.left + q.width / 2 < window.innerWidth / 2 ? 'l' : 'r'}`;
-      setPref('reader.floatCorner', corner);
+    b.insertAdjacentHTML('beforeend', '<div class="float-hint"><b>👆</b><span>اسحب الشريط لتحريك الفيديو</span><span>اسحب الزاوية ↘ أو قرّص بإصبعين للتكبير والتصغير</span></div>');
+    const h = b.querySelector('.float-hint');
+    const close = () => h?.remove();
+    h.addEventListener('click', close);
+    setTimeout(close, 6000);
+  }
+  function bindFloatBar(b) {
+    const bar = b.querySelector('.float-bar');
+    bar.addEventListener('click', (e) => {
+      const f = e.target.closest('[data-fs]')?.dataset.fs;
+      if (!f) return;
+      if (f === 'dock') return setVidPos('top');
+      floatW = Math.max(180, Math.min(vw() - 8, widthNow() + (f === '+' ? 80 : -80)));
       placeFloat();
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
+      savePos();
+    });
+    // drag (one finger) or pinch (two fingers) on the bar
+    const pts = new Map();
+    let start = null;
+    bar.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('[data-fs]')) return;
+      bar.setPointerCapture(e.pointerId);
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const r = b.getBoundingClientRect();
+      const [p1, p2] = [...pts.values()];
+      start = { r, p1: { ...p1 }, dist: p2 ? Math.hypot(p1.x - p2.x, p1.y - p2.y) : 0, w: r.width };
+      b.classList.add('moving');
+    });
+    bar.addEventListener('pointermove', (e) => {
+      if (!pts.has(e.pointerId) || !start) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const [p1, p2] = [...pts.values()];
+      if (p2 && start.dist) {
+        floatW = Math.max(180, Math.min(vw() - 8, start.w * (Math.hypot(p1.x - p2.x, p1.y - p2.y) / start.dist)));
+        b.style.width = `${Math.round(floatW)}px`;
+      } else {
+        b.style.left = `${Math.max(0, Math.min(vw() - start.r.width, start.r.left + p1.x - start.p1.x))}px`;
+        b.style.top = `${Math.max(0, Math.min(vh() - start.r.height, start.r.top + p1.y - start.p1.y))}px`;
+      }
+    });
+    const up = (e) => {
+      pts.delete(e.pointerId);
+      if (pts.size) return;
+      b.classList.remove('moving');
+      start = null;
+      savePos();
+      placeFloat();
     };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-  });
+    bar.addEventListener('pointerup', up);
+    bar.addEventListener('pointercancel', up);
+    // the corner handle: drag to resize
+    const rs = b.querySelector('.float-rs');
+    rs.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      rs.setPointerCapture(e.pointerId);
+      const r = b.getBoundingClientRect();
+      const x0 = e.clientX;
+      b.classList.add('moving');
+      const mv = (ev) => { floatW = Math.max(180, Math.min(vw() - r.left, r.width + (ev.clientX - x0))); b.style.width = `${Math.round(floatW)}px`; };
+      const done = () => { b.classList.remove('moving'); rs.removeEventListener('pointermove', mv); savePos(); placeFloat(); };
+      rs.addEventListener('pointermove', mv);
+      rs.addEventListener('pointerup', done, { once: true });
+      rs.addEventListener('pointercancel', done, { once: true });
+    });
   }
   window.addEventListener('resize', placeFloat);
   showVidPos();
@@ -394,6 +461,12 @@ export async function render(view, { segments, params }) {
     return n;
   }
 
+  // 🏁 The video ended: a quick 5-question quiz on its words.
+  const onEnded = () => {
+    if (!data.items.length) return;
+    popNote(`<b>🏁 خلص المقطع!</b><p class="small">اختبر نفسك بـ ٥ أسئلة من كلماته.</p><a class="btn primary sm" href="#/practice?mode=quiz&source=${id}&size=5&n=${Date.now()}">ابدأ الاختبار ←</a>`);
+  };
+  window.addEventListener('lexitube:ended', onEnded);
   // 🔔 Every N new words of the video: a list with meanings — before they come, or after they went by.
   // A word shown once in this video is never listed again (so new words always take the place).
   let wbN = Math.max(3, Math.min(300, Number(pref('reader.wbN', pref('reader.wordBatch', '20'))) || 20));
@@ -481,7 +554,8 @@ export async function render(view, { segments, params }) {
     if (!chip) return;
     const n = passedToday.size;
     const pct = Math.round((100 * n) / Math.max(1, goalTarget));
-    chip.innerHTML = `🎯 <b class="en-inline">${n}/${goalTarget}</b>${n ? ` <span class="tiny en-inline">${pct}%</span>` : ''}`;
+    chip.innerHTML = `🎯 <b class="en-inline">${n}</b> كلمة اليوم · هدفك <b class="en-inline">${goalTarget}</b>${n >= goalTarget ? ' ✓' : ''}`;
+    void pct;
     chip.classList.toggle('done', n >= goalTarget);
     const inVideo = data.items.filter((it) => passedToday.has(it.vocabulary_id)).length;
     chip.title = `كلمات مرّت عليك اليوم بدون تكرار: ${n} من هدفك ${goalTarget} — في هذا المقطع ${inVideo} من ${data.items.length}`;
@@ -670,9 +744,7 @@ export async function render(view, { segments, params }) {
     b?.classList.toggle('primary', on);
     if (b) {
       b.title = on ? 'تصغير: رجوع للشاشة العادية' : 'توسيع الشاشة';
-      b.innerHTML = on
-        ? '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>'
-        : '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+      b.textContent = on ? '⛶ تصغير' : '⛶ تكبير';
     }
     setTimeout(placeFloat, 50);
     if (on && document.documentElement.requestFullscreen && !document.fullscreenElement) {
@@ -927,7 +999,14 @@ export async function render(view, { segments, params }) {
       for (let step = 0; alive && showAr && step < APP_CONFIG.maxAiSteps; step += 1) {
         const have = data.lines.filter((l) => l.text_ar).length;
         setTrNote(`<span class="spinner"></span> نجهّز الترجمة العربية… ${have}/${data.lines.length}`);
-        const r = await api.translateStep(id);
+        // a step that timed out or lost its connection is tried again quietly (3 times)
+        let r;
+        for (let t = 0; ; t++) {
+          try { r = await api.translateStep(id); break; } catch (err) {
+            if (t >= 3 || !alive || (err.status && err.status < 500)) throw err;
+            await sleep(1500 * (t + 1));
+          }
+        }
         for (const { id: lineId, ar } of r.lines || []) {
           const line = data.lines.find((l) => l.id === lineId);
           if (line && !line.text_ar) {
@@ -1299,7 +1378,7 @@ export async function render(view, { segments, params }) {
     const b = $('#playBtn', view);
     if (!b) return;
     const on = (playing || Boolean(gapTimer)) && !held;
-    b.textContent = on ? '⏸' : '▶';
+    b.textContent = on ? '⏸ إيقاف' : '▶ تشغيل';
     b.classList.toggle('primary', on);
   }
   function togglePlay() {
@@ -1316,6 +1395,18 @@ export async function render(view, { segments, params }) {
     showPlayBtn();
   }
   $('#playBtn', view)?.addEventListener('click', togglePlay);
+  // 🔁 one press: the current sentence again (and the video plays even if it was stopped)
+  function againLine() {
+    const cur = timeline.find((x) => x.id === currentId) || timeline[0];
+    if (!cur || !player) return;
+    player.seek(Math.max(0, cur.start - 0.05));
+    lastT = null;
+    held = false;
+    cancelGap();
+    player.play();
+    showPlayBtn();
+  }
+  $('#againBtn', view)?.addEventListener('click', againLine);
   const onKey = (e) => {
     if (e.target.closest?.('input, textarea, select, [contenteditable]') || e.metaKey || e.ctrlKey || e.altKey || isPanelOpen()) return;
     const k = e.key.toLowerCase();
@@ -1324,10 +1415,7 @@ export async function render(view, { segments, params }) {
       togglePlay();
     } else if (e.key === 'ArrowRight') { e.preventDefault(); stepLine(-1); } // RTL page: → goes back
     else if (e.key === 'ArrowLeft') { e.preventDefault(); stepLine(1); }
-    else if (k === 'r') {
-      const cur = timeline.find((x) => x.id === currentId);
-      if (cur && player) { player.seek(Math.max(0, cur.start - 0.05)); lastT = null; }
-    } else if (k === 'l') toggleLoop();
+    else if (k === 'r') againLine(); else if (k === 'l') toggleLoop();
     else if (k === 'a') toggleHideAr();
   };
   document.addEventListener('keydown', onKey);
@@ -1755,6 +1843,7 @@ export async function render(view, { segments, params }) {
   });
 
   return () => {
+    window.removeEventListener('lexitube:ended', onEnded);
     alive = false;
     clearInterval(progressTimer);
     saveProgress(true);

@@ -1,6 +1,7 @@
 // Game: صح أو خطأ (True or false)
 import { esc } from '../ui.js';
 import { distractors, reveal } from './shared.js';
+import { sayBtns } from './shared.js';
 
 export default {
   key: 'truefalse',
@@ -16,7 +17,7 @@ export default {
     const showTrue = !other || Math.random() < 0.5;
     const shown = showTrue ? w.arabic : other.arabic;
     stage.innerHTML = `<div class="card question"><div class="prompt">هل هذا هو المعنى الصحيح؟</div>
-        <div class="q-big">${esc(w.term)}</div><div class="tf-meaning">${esc(shown)}</div></div>
+        <div class="q-big">${esc(w.term)}</div>${sayBtns(w.term)}<div class="tf-meaning">${esc(shown)}</div></div>
       <div class="options tf-options"><button class="option tf-yes" data-v="1">✓ صح</button><button class="option tf-no" data-v="0">✗ خطأ</button></div>
       <div class="feedback" id="fb"></div><div class="next-wrap"><button class="btn primary hidden" id="nextBtn">التالي ←</button></div>`;
     let done = false;

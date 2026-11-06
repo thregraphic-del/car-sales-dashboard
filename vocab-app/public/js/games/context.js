@@ -1,6 +1,7 @@
 // Game: تحدّي السياق (Context challenge)
 import { esc, highlight } from '../ui.js';
 import { distractors, choice } from './shared.js';
+import { sayBtns } from './shared.js';
 
 export default {
   key: 'context',
@@ -13,7 +14,7 @@ export default {
   /** Ask one word; resolves true (correct) or false. */
   play: (stage, w, pool) => choice(stage, w, {
     prompt: `<div class="prompt">${w.source?.title ? `من <span class="en-inline">“${esc(w.source.title.slice(0, 48))}”</span>` : 'جملة حقيقية'}</div>
-      <div class="q-sentence">“${highlight(w.context_sentence, w.term)}”</div>
+      <div class="q-sentence">“${highlight(w.context_sentence, w.term)}” ${sayBtns(w.context_sentence)}</div>
       <div class="prompt" style="margin-top:12px">ماذا تعني <b class="en-inline">${esc(w.term)}</b> هنا؟</div>`,
     options: distractors(w, pool, 3, (x) => x.arabic),
     text: (o) => esc(o.arabic),

@@ -552,7 +552,7 @@ export async function storyWithAi({ words, level = 'B1' }) {
   const [lo, hi] = n <= 12 ? [10, 16] : [Math.round(n * 0.8), Math.min(36, n + 6)];
   const r = await jsonCall({
     task: 'story',
-    system: `You write short stories for an Arabic-speaking learner of English at about ${level} level. Write one coherent, interesting story of ${lo}–${hi} sentences that uses EVERY given word or expression naturally (in the sense of its Arabic meaning), each at least once, in any grammatical form. Keep sentences clear (8–20 words), everyday vocabulary around the target words, no lists. "title" = short English title; "title_ar" = its Arabic; "sentences" = the story in order, each with a natural Arabic translation "ar".`,
+    system: `You write short stories for an Arabic-speaking learner of English at about ${level} level. Write one coherent, creative, modern story of ${lo}–${hi} sentences, family-friendly and suitable for all ages (children to adults): everyday life, school, work, sport, travel, friendship, family, science, adventure or kindness. Never romance, dating, violence, crime, horror, alcohol, gambling or anything inappropriate; if a given word belongs to such a topic, use it in a harmless, neutral sense. that uses EVERY given word or expression naturally (in the sense of its Arabic meaning), each at least once, in any grammatical form. Keep sentences clear (8–20 words), everyday vocabulary around the target words, no lists. "title" = short English title; "title_ar" = its Arabic; "sentences" = the story in order, each with a natural Arabic translation "ar".`,
     user: `Words:\n${list}`,
     schema: STORY_SCHEMA,
     zod: StoryZ,
@@ -743,11 +743,11 @@ const SYN_SCHEMA = obj({ items: { type: 'array', items: obj({ word: str, arabic:
 const SynZ = z.object({ items: z.array(z.object({ word: z.string(), arabic: z.string(), level: z.enum(LEVELS) })) });
 
 /** 1–5 easier, more common English words with the same meaning (shortest basic forms), each with a short Arabic meaning. */
-export async function synonymsWithAi(word) {
+export async function synonymsWithAi(word, meaning = '') {
   const r = await jsonCall({
-    task: 'easy_synonyms',
-    system: 'You help an Arabic-speaking learner of English. For the given English word, give 1–5 EASIER and MORE COMMON English words or very short phrases with the same core meaning, easiest and most common first. Use the shortest basic dictionary form (e.g. "decide", "help", "big"). Never repeat the given word. "arabic" = a very short Arabic meaning (one or two words). "level" = the CEFR level as the Oxford 3000/5000 lists and the English Vocabulary Profile give it for that meaning; words outside the Oxford 5000 are C1/C2.',
-    user: `Word: ${word}`,
+    task: 'easy_synonyms_v2',
+    system: 'You help an Arabic-speaking learner of English. For the given English word (in the given Arabic meaning, if one is given), give 0–5 TRUE SYNONYMS: words that mean EXACTLY the same thing in that meaning and could replace it in a sentence, but are EASIER and MORE COMMON. Easiest first. Never give a related word, an example, a broader/narrower word, or a word for another meaning of it. If the word is already simple or no easier true synonym exists, return an empty list. Use the shortest basic dictionary form (e.g. "decide", "help", "big"). Never repeat the given word. "arabic" = a very short Arabic meaning (one or two words). "level" = the CEFR level as the Oxford 3000/5000 lists and the English Vocabulary Profile give it for that meaning; words outside the Oxford 5000 are C1/C2.',
+    user: `Word: ${word}${meaning ? `\nMeaning: ${meaning}` : ''}`,
     schema: SYN_SCHEMA,
     zod: SynZ,
     maxTokens: 300,

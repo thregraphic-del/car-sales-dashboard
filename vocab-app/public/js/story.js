@@ -44,7 +44,7 @@ function markWords(text, words) {
   return out + esc(text.slice(pos));
 }
 
-export function runStory(stage, { groupId = null, label = 'كلماتك الأخيرة' } = {}) {
+export function runStory(stage, { groupId = null, ids = null, label = 'كلماتك الأخيرة' } = {}) {
   let story = null;
   let runId = 0;
   let idx = 0;
@@ -59,9 +59,9 @@ export function runStory(stage, { groupId = null, label = 'كلماتك الأخ
     stage.innerHTML = `
       <div class="card story-intro">
         <div class="row" style="gap:12px;align-items:flex-start"><div class="pack-icon">📖</div>
-          <div><b>قصة من ${groupId ? esc(label) : 'كلماتك'}</b>
+          <div><b>قصة من ${groupId || ids ? esc(label) : 'كلماتك'}</b>
           <p class="small ink-2" style="margin:4px 0 0">نكتب لك قصة قصيرة تستخدم كلماتك، مع ترجمة كل جملة تحتها، ونقرؤها لك جملةً جملة.</p></div></div>
-        ${groupId ? '' : `<div class="row wrap" style="gap:12px;margin-top:12px">
+        ${groupId || ids ? '' : `<div class="row wrap" style="gap:12px;margin-top:12px">
           <div class="segmented" id="storyRange"><button data-range="recent" class="${range === 'recent' ? 'active' : ''}">آخر كلماتي</button><button data-range="week" class="${range === 'week' ? 'active' : ''}">كلمات هذا الأسبوع</button></div>
           <div class="segmented" id="storyCount">${[10, 20, 30].map((n) => `<button data-count="${n}" class="${n === count ? 'active' : ''}">${n} كلمة</button>`).join('')}</div></div>`}
         <div class="btn-row" style="margin-top:14px"><button class="btn primary" id="makeStory">✨ اكتب القصة</button></div>
@@ -86,7 +86,7 @@ export function runStory(stage, { groupId = null, label = 'كلماتك الأخ
     if (btn) btn.disabled = true;
     if (st) st.innerHTML = '<span class="spinner"></span> نكتب القصة بكلماتك…';
     try {
-      story = await api.story(groupId ? { group_id: groupId } : { range, count });
+      story = await api.story(ids ? { ids } : groupId ? { group_id: groupId } : { range, count });
       idx = 0;
       draw();
     } catch (err) {
@@ -110,7 +110,7 @@ export function runStory(stage, { groupId = null, label = 'كلماتك الأخ
           <label class="row small" style="gap:6px"><input type="checkbox" class="check" id="showAr" ${showAr ? 'checked' : ''}> أظهر الترجمة</label>
         </div>
         <div class="story-lines ${showAr ? '' : 'hide-ar'}" id="storyLines">${story.sentences.map((s, k) => `
-          <div class="story-line" data-k="${k}"><p class="en" dir="ltr">${markWords(s.en, story.words)}</p><p class="story-ar" dir="rtl">${esc(s.ar)}</p></div>`).join('')}</div>
+          <div class="story-line" data-k="${k}"><p class="en" dir="ltr">${markWords(s.en, story.words)} <button class="btn icon sm ghost" data-say="${esc(s.en)}" aria-label="استمع">🔊</button></p><p class="story-ar" dir="rtl">${esc(s.ar)}</p></div>`).join('')}</div>
         <p class="tiny muted" style="margin-top:8px">اضغط أي جملة لتبدأ القراءة منها.</p>
       </div>`;
     const lines = stage.querySelector('#storyLines');
@@ -134,6 +134,7 @@ export function runStory(stage, { groupId = null, label = 'كلماتك الأخ
       lines.classList.toggle('hide-ar', !showAr);
     });
     lines.addEventListener('click', (e) => {
+      if (e.target.closest('[data-say]')) { setPlaying(false); return; }
       const line = e.target.closest('.story-line');
       if (line) play(Number(line.dataset.k));
     });
