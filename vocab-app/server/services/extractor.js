@@ -574,12 +574,12 @@ const SuggestZ = z.object({
 });
 
 /** Ideas for the next videos: similar topics and length, for an intermediate learner. */
-export async function suggestVideosWithAi({ titles, duration, day, fresh = false, channel = '' }) {
+export async function suggestVideosWithAi({ titles, duration, day, fresh = false, channel = '', channels = [], level = '' }) {
   const span = { short: 'under 5 minutes', medium: '5 to 20 minutes', long: 'over 20 minutes' }[duration] || '5 to 20 minutes';
   return jsonCall({
     task: 'suggest_videos',
     system: 'You recommend YouTube videos for an intermediate Arabic-speaking learner of English. Recommend real, popular, well-known videos with clear English and English captions (TED, TED-Ed, Kurzgesagt, BBC Learning English, Vox, popular educational channels, etc.) on topics similar to the videos the learner watched, matching the requested length. "youtube_id" = the 11-character video id only if you are confident it is correct, else an empty string. "minutes" = approximate length. "why_ar" = one short Arabic sentence on why it suits the learner. Also give 6 short YouTube search queries ("query", English) on related topics with an Arabic label ("label_ar"). Up to 10 videos.',
-    user: `Requested length: ${span}\nDate: ${day}${fresh ? `\nVariant: ${Date.now()}` : ''}${channel ? `\nOnly videos from the YouTube channel: ${channel} (any length)` : ''}\nVideos the learner watched recently:\n${titles.length ? titles.map((t) => `- ${t}`).join('\n') : '- (none yet: suggest varied general-interest topics)'}`,
+    user: `Requested length: ${span}\nDate: ${day}${fresh ? `\nVariant: ${Date.now()}` : ''}${channel ? `\nOnly videos from the YouTube channel: ${channel} (any length)` : ''}${channels.length ? `\nChannels the learner likes (prefer these and similar ones): ${channels.join(', ')}` : ''}${level ? `\nThe learner's vocabulary is mostly around ${level}: pick videos at that level or one step above.` : ''}\nVideos the learner watched recently:\n${titles.length ? titles.map((t) => `- ${t}`).join('\n') : '- (none yet: suggest varied general-interest topics)'}`,
     schema: SUGGEST_SCHEMA,
     zod: SuggestZ,
     maxTokens: 1800,

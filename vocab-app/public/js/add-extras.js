@@ -127,15 +127,8 @@ export function bindAttach(view, { input, go, status }) {
 /* ------------------------------------------------------- ready-made packs */
 
 export const packsHtml = () => `
-  <div class="section-title"><h2>حزم كلمات جاهزة</h2></div>
-  <div class="grid cols-2 packs">${PACKS.map((p) => {
-    const s = packSummary(p);
-    return `<button class="card pack-card" data-pack="${p.key}">
-      <div class="pack-icon">${p.icon}</div>
-      <div style="min-width:0;text-align:start"><b>${esc(p.name)}</b>
-        <div class="tiny muted">${s.total} كلمة · ${s.categories.length} مجموعة مصنفة</div>
-        <div class="small ink-2 clamp2" style="margin-top:4px">${esc(p.description)}</div></div></button>`;
-  }).join('')}</div>`;
+  <div class="tile-row">${PACKS.map((p) => `<button class="tile" data-pack="${p.key}" title="${esc(p.description)}"><span class="tile-ic">${p.icon}</span><span>${esc(p.name.replace(/\s*\(.*\)/, ''))}</span></button>`).join('')}
+    <button class="tile" id="swTile"><span class="tile-ic">✨</span><span>اقترح لي كلمات</span></button></div>`;
 
 async function savePack(pack, mode, onProgress) {
   const { categories, total } = packSummary(pack);
@@ -228,11 +221,12 @@ export function bindPacks(view) {
 
 /* --------------------------------------------------------- video ideas */
 
-export const suggestionsHtml = () => `
-  <div class="section-title row between wrap" style="gap:8px"><h2>فيديوهات مقترحة لك</h2>
-    <div class="row" style="gap:6px"><div class="segmented" id="sugLen"><button data-len="short">قصير</button><button data-len="medium">متوسط</button><button data-len="long">طويل</button></div>
-    <button class="btn sm ghost" id="sugMore" title="اقتراحات أخرى">↻</button></div></div>
-  <div id="sugBox"><p class="tiny muted">اقتراحات بنفس مواضيع فيديوهاتك وبالطول الذي تفضّله.</p></div>`;
+export const suggestionsHtml = () => '';
+const suggestionsInner = () => `
+  <div id="sugWrap" class="hidden" style="margin-top:10px">
+    <div class="row between wrap" style="gap:6px"><b class="small">🎬 فيديوهات لك اليوم</b>
+      <div class="row" style="gap:6px"><div class="segmented" id="sugLen"><button data-len="short">قصير</button><button data-len="medium">متوسط</button><button data-len="long">طويل</button></div></div></div>
+    <div id="sugBox"></div></div>`;
 
 export function bindSuggestions(view, { onPick }) {
   const box = $('#sugBox', view);
@@ -242,15 +236,18 @@ export function bindSuggestions(view, { onPick }) {
     return;
   }
   let duration = null;
+  let shown = 3;
+  let last = null;
   const show = (len) => view.querySelectorAll('#sugLen [data-len]').forEach((b) => b.classList.toggle('active', b.dataset.len === len));
   const load = async (fresh = false) => {
     box.innerHTML = '<p class="tiny muted"><span class="spinner"></span> نبحث عن فيديوهات تناسبك…</p>';
     try {
-      const r = await api.suggestVideos(duration, fresh);
+      const r = last && !fresh && last.duration === duration ? last : await api.suggestVideos(duration, fresh);
+      last = r;
       duration = r.duration;
       show(duration);
       box.innerHTML = `
-        ${r.videos.length ? `<div class="grid cols-3">${r.videos.map((v) => `
+        ${r.videos.length ? `<div class="grid cols-3">${r.videos.slice(0, shown).map((v) => `
           <div class="video-mini sug-card">
             <img class="sug-thumb" src="${esc(v.thumbnail)}" alt="" loading="lazy">
             <div style="min-width:0"><div class="en small clamp2" style="font-weight:600">${esc(v.title)}</div>
@@ -258,19 +255,27 @@ export function bindSuggestions(view, { onPick }) {
               ${v.why_ar ? `<div class="tiny ink-2 clamp2">${esc(v.why_ar)}</div>` : ''}
               <button class="btn sm primary" data-url="${esc(v.url)}" style="margin-top:6px">أضف وتعلّم</button></div></div>`).join('')}</div>`
           : '<p class="tiny muted">لم نجد فيديوهات مؤكدة هذه المرة — جرّب البحث بالمواضيع أدناه.</p>'}
+        ${r.videos.length > shown ? '<button class="link-btn" id="sugMoreV">المزيد ▾</button>' : ''}
         ${r.topics.length ? `<div class="tiny muted" style="margin:12px 0 6px">ابحث في يوتيوب عن مواضيع مشابهة (بنفس الطول):</div>
           <div class="row wrap" style="gap:6px">${r.topics.map((t) => `<a class="chip topic-chip" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.label_ar)} · <span class="en-inline">${esc(t.query)}</span></a>`).join('')}</div>` : ''}`;
       box.querySelectorAll('[data-url]').forEach((b) => b.addEventListener('click', () => onPick(b.dataset.url)));
+      $('#sugMoreV', box)?.addEventListener('click', () => { shown += 3; load(); });
     } catch (err) {
       box.innerHTML = `<p class="tiny muted">${esc(err.message)}</p>`;
     }
   };
   view.querySelectorAll('#sugLen [data-len]').forEach((b) => b.addEventListener('click', () => {
     duration = b.dataset.len;
+    shown = 3;
     load();
   }));
-  $('#sugMore', view)?.addEventListener('click', () => load(true));
-  load();
+  // closed until asked: one AI call a day at most (the server keeps today's list)
+  $('#sugOpen', view)?.addEventListener('click', () => {
+    const w = $('#sugWrap', view);
+    w.classList.toggle('hidden');
+    $('#sugOpen', view).classList.toggle('on', !w.classList.contains('hidden'));
+    if (!w.classList.contains('hidden') && !last) load();
+  });
 }
 
 /* ------------------------------------------------ suggest new words */
@@ -279,7 +284,7 @@ const FIELDS = ['عام', 'عمل وإدارة', 'سفر', 'تقنية', 'طب �
 const FIELD_EN = { 'عام': 'general everyday English', 'عمل وإدارة': 'business and management', 'سفر': 'travel', 'تقنية': 'technology', 'طب وصحة': 'medicine and health', 'دراسة': 'school and study', 'مشاعر وعلاقات': 'feelings and relationships', 'أكاديمي': 'academic English', 'مال واقتصاد': 'money and economy', 'رياضة': 'sports' };
 
 export const suggestWordsHtml = () => `
-  <div class="card suggest-words">
+  <div class="card suggest-words hidden" id="swCard">
     <div class="row between wrap" style="gap:8px"><b>✨ اقترح لي كلمات جديدة</b><span class="tiny muted">كلمات ليست عندك في «كلماتي»</span></div>
     <div class="row wrap" style="gap:10px;margin-top:10px">
       <label class="small">العدد <select class="input sm" id="swCount"><option>10</option><option selected>20</option><option>30</option><option>50</option></select></label>
@@ -294,6 +299,7 @@ export const suggestWordsHtml = () => `
 export function bindSuggestWords(view) {
   const box = $('#swBox', view);
   if (!box) return;
+  $('#swTile', view)?.addEventListener('click', () => { const c = $('#swCard', view); c.classList.toggle('hidden'); $('#swTile', view).classList.toggle('on', !c.classList.contains('hidden')); });
   const topicEl = $('#swTopic', view);
   view.querySelectorAll('[data-field]').forEach((b) => b.addEventListener('click', () => {
     view.querySelectorAll('[data-field]').forEach((x) => x.classList.toggle('on', x === b && !b.classList.contains('on')));
@@ -361,7 +367,8 @@ export function bindSuggestWords(view) {
 
 export const channelsHtml = () => `
   <div id="favBox" class="fav-box hidden">
-    <div class="row wrap" style="gap:6px;margin-bottom:8px"><button class="btn primary" id="chSimilar">✨ ابحث عن قنوات مشابهة لذوقي</button><button class="btn sm ghost" id="chAdd">＋ قناة</button><button class="btn sm ghost" id="chEdit">✎ تعديل</button></div>
+    <div class="row wrap" style="gap:6px;margin-bottom:8px"><button class="btn primary" id="chSimilar">✨ قنوات مشابهة</button><button class="btn primary" id="sugOpen">🎬 فيديوهات مشابهة</button><button class="btn sm ghost" id="chAdd">＋ قناة</button><button class="btn sm ghost" id="chEdit">✎ تعديل</button></div>
+    ${suggestionsInner()}
     <div id="chBox"><p class="tiny muted"><span class="spinner"></span></p></div>
     <div id="chExtra"></div>
   </div>`;

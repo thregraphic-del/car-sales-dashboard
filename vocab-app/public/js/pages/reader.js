@@ -9,6 +9,7 @@
 // moves the highlight. Clicking a sentence (outside its words) or its time
 // seeks the video there.
 import { api } from '../api.js';
+import { startTour, maybeTour } from '../tour.js';
 import { state } from '../state.js';
 import { esc, icon, levelChip, usageDot, usageLegend, fmtTime, fmtDuration, toast, $, emptyState, openModal } from '../ui.js';
 import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech, celebrateGoal } from '../components.js';
@@ -264,7 +265,8 @@ export async function render(view, { segments, params }) {
       <a class="btn icon sm ghost" href="#/add" aria-label="رجوع">${icon.prev}</a>
       <div class="reader-title-sm en" dir="auto" title="${esc(source.title)}">${esc(source.title)}</div>
       ${isVideo ? '<button type="button" class="rb-btn play-btn" id="playBtn" title="تشغيل / إيقاف (مسافة)">▶</button>' : ''}
-      ${isVideo && hasTimes ? '<button type="button" class="rb-btn" id="againBtn" aria-pressed="false" title="كل جملة تُعاد مرتين تلقائيًا (L)">🔁 ×2</button>' : ''}
+      ${isVideo && hasTimes ? '<button type="button" class="rb-btn" id="againBtn" aria-pressed="false" title="كل جملة تُعاد مرتين تلقائيًا (L)">🔁 ×2</button><button type="button" class="rb-btn" id="shadowBtn" aria-pressed="false" title="ردّد معي: يقف بعد كل جملة لتعيدها">🗣</button>' : ''}
+      <button type="button" class="rb-btn" id="wordsBtn" aria-pressed="false" title="الكلمات الجديدة في المقطع">📝 <span id="wcount2">${data.items.length}</span></button>
       <button type="button" class="rb-btn" id="focusBtn" aria-pressed="false" title="توسيع الشاشة">⛶</button>
       <span class="goal-chip" id="goalChip" title="كلمات مرّت عليك اليوم (بدون تكرار) من هدفك"></span>
       <button type="button" class="btn icon sm ghost set-btn" id="setBtn" aria-expanded="false" title="إعدادات المقطع">⚙️</button>
@@ -293,6 +295,7 @@ export async function render(view, { segments, params }) {
           ${isVideo ? `<div class="srow"><span class="slabel">الفيديو</span><div class="sopts" id="vidPos"><button type="button" class="sopt" data-vpos="top">فوق</button><button type="button" class="sopt" data-vpos="bottom">تحت</button><button type="button" class="sopt" data-vpos="float">عائم</button></div></div>` : ''}
           <div class="srow"><span class="slabel">بحث</span><div class="sopts tr-search"><input class="input sm" id="trQ" type="search" placeholder="ابحث في النص" aria-label="ابحث في النص"><span class="tiny muted" id="trQn"></span></div></div>
           <div class="sgroup">🛠 أدوات</div>
+          <div class="srow"><span class="slabel">شرح</span><div class="sopts"><button class="sopt" id="tourR">❗ شرح الأزرار</button></div></div>
           <div class="srow"><span class="slabel">أدوات</span><div class="sopts">
             <button class="sopt" id="summaryBtn">📝 الملخص</button><button class="sopt" id="listenBtn">🎧 استماع</button>
             ${source.youtube_id && !source.is_demo ? `<a class="sopt" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">يوتيوب ↗</a>` : ''}
@@ -686,11 +689,32 @@ export async function render(view, { segments, params }) {
   let fontPx = Number(pref('reader.font', '16')) || 16;
   const applyFont = () => linesEl.style.setProperty('--reader-font', `${fontPx}px`);
   applyFont();
-  view.querySelectorAll('[data-font]').forEach((b) => b.addEventListener('click', () => {
-    fontPx = Math.max(12, Math.min(26, fontPx + Number(b.dataset.font)));
+  const stepFont = (d) => {
+    fontPx = Math.max(12, Math.min(30, fontPx + d));
     setPref('reader.font', String(fontPx));
     applyFont();
     recenter();
+    const n = document.querySelector('#fontPill b');
+    if (n) n.textContent = String(fontPx);
+  };
+  // 🔠 A−/A+ close the settings sheet and show a small pill, so the text is seen while resizing
+  const fontPill = () => {
+    document.querySelector('#fontPill')?.remove();
+    const p = document.createElement('div');
+    p.id = 'fontPill';
+    p.className = 'font-pill';
+    p.innerHTML = `<button type="button" data-f="-1">A−</button><b class="en-inline">${fontPx}</b><button type="button" data-f="1">A+</button><button type="button" data-f="ok">✓</button>`;
+    document.body.appendChild(p);
+    p.addEventListener('click', (e) => {
+      const f = e.target.closest('[data-f]')?.dataset.f;
+      if (f === 'ok') p.remove(); else if (f) stepFont(Number(f));
+    });
+  };
+  view.querySelectorAll('[data-font]').forEach((b) => b.addEventListener('click', () => {
+    stepFont(Number(b.dataset.font));
+    $('#rset', view)?.classList.add('hidden');
+    $('#setBtn', view)?.classList.remove('primary');
+    fontPill();
   }));
   // "العرض" menu: Arabic, layout, hide Arabic, follow, font size — all in one place.
   const viewMenu = $('#viewMenu', view);
@@ -862,6 +886,7 @@ export async function render(view, { segments, params }) {
     const fresh = data.items.filter(isNew);
     const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].filter((l) => fresh.some((i) => i.level === l));
     $('#wcount', view).textContent = fresh.length;
+    if ($('#wcount2', view)) $('#wcount2', view).textContent = fresh.length;
     side.innerHTML = `
       <div class="side-head">
         <div class="row between"><b>كلمات جديدة <span class="tiny muted en-inline">(${shown.length}${shown.length !== fresh.length ? `/${fresh.length}` : ''})</span></b>
@@ -1285,6 +1310,8 @@ export async function render(view, { segments, params }) {
     view.querySelectorAll('#mode [data-mode]').forEach((b) => b.classList.toggle('active', b.dataset.mode === playMode));
     $('#modeBtn', view)?.classList.toggle('primary', playMode !== 'normal');
     $('#modeOff', view)?.classList.toggle('hidden', playMode === 'normal');
+    $('#shadowBtn', view)?.classList.toggle('primary', playMode === 'shadow');
+    $('#shadowBtn', view)?.setAttribute('aria-pressed', String(playMode === 'shadow'));
   };
   const setMode = (m) => {
     playMode = m;
@@ -1293,6 +1320,10 @@ export async function render(view, { segments, params }) {
     if (cancelGap() && alive && !held) player?.play?.();
     showMode();
   };
+  $('#shadowBtn', view)?.addEventListener('click', () => {
+    setMode(playMode === 'shadow' ? 'normal' : 'shadow');
+    toast(playMode === 'shadow' ? '🗣 ردّد معي: يقف بعد كل جملة لتعيدها' : 'رجع التشغيل عادي');
+  });
   const modeMenu = $('#mode .speed-menu', view);
   const toggleMode = (open) => {
     modeMenu?.classList.toggle('hidden', !open);
@@ -1338,6 +1369,8 @@ export async function render(view, { segments, params }) {
   showLoop();
   $('#loopBtn', view)?.addEventListener('click', toggleLoop);
   $('#againBtn', view)?.addEventListener('click', toggleLoop);
+  $('#tourR', view)?.addEventListener('click', () => { toggleSet(false); startTour('reader'); });
+  maybeTour('reader');
 
   // 🙈 Hide the Arabic until it is touched (try to understand first)
   let hideAr = pref('reader.hideAr', '0') === '1';
@@ -1723,7 +1756,9 @@ export async function render(view, { segments, params }) {
     tab = t;
     $('.reader-grid', view).dataset.tab = t;
     view.querySelectorAll('.reader-tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === t));
+    $('#wordsBtn', view)?.classList.toggle('primary', t === 'words');
   };
+  $('#wordsBtn', view)?.addEventListener('click', () => { switchTab(tab === 'words' ? 'text' : 'words'); window.scrollTo({ top: 0 }); });
   view.querySelector('.reader-tabs').addEventListener('click', (e) => {
     const b = e.target.closest('[data-tab]');
     if (b) switchTab(b.dataset.tab);
@@ -1846,6 +1881,7 @@ export async function render(view, { segments, params }) {
 
   return () => {
     window.removeEventListener('lexitube:ended', onEnded);
+    document.querySelector('#fontPill')?.remove();
     alive = false;
     clearInterval(progressTimer);
     saveProgress(true);

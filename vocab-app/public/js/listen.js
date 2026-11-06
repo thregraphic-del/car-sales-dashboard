@@ -15,30 +15,31 @@ export function runListening(body, words) {
   const view = body;
   prefetchPronunciation(words.map((w) => w.term));
   body.innerHTML = `
-    <div class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr);align-items:start" id="lg">
-      <div class="stack">
-        <div class="card player" id="player"></div>
-        <div class="card">
-          <div class="controls">
+    <div class="grid lg-wrap" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr);align-items:start" id="lg">
+      <div class="stack" style="gap:8px">
+        <div class="card player lt-compact" id="player"></div>
+        <div class="card lt-ctrl">
+          <div class="controls lt-row">
             <button class="btn icon" id="prev" aria-label="السابق">${icon.prev}</button>
-            <button class="btn icon" id="repeat" aria-label="إعادة" title="إعادة">${icon.repeat}</button>
-            <button class="big-play" id="play" aria-label="تشغيل" style="width:68px;height:68px">${icon.play}</button>
-            <div class="segmented" id="rate"><button data-r="1" class="active">عادي</button><button data-r="0.7">بطيء</button></div>
+            <button class="big-play" id="play" aria-label="تشغيل">${icon.play}</button>
             <button class="btn icon" id="next" aria-label="التالي">${icon.next}</button>
+            <button class="btn icon" id="repeat" aria-label="إعادة" title="إعادة">${icon.repeat}</button>
+            <div class="segmented" id="rate"><button data-r="1" class="active">1×</button><button data-r="0.7" title="بطيء">🐢</button></div>
           </div>
-          <div class="row wrap" style="justify-content:center;gap:18px;margin-top:14px">
-            <label class="row small" style="gap:6px"><input type="checkbox" class="check" id="auto" checked> انتقال تلقائي للكلمة التالية</label>
-            <label class="row small" style="gap:6px"><input type="checkbox" class="check" id="ar" ${speakArabic ? 'checked' : ''}> نطق المعنى العربي</label>
-            <label class="row small" style="gap:6px"><input type="checkbox" class="check" id="exar" ${speakExample ? 'checked' : ''}> نطق ترجمة المثال</label>
+          <div class="lt-toggles">
+            <label class="tg" title="انتقال تلقائي للكلمة التالية"><input type="checkbox" id="auto" checked><span>⏭ تلقائي</span></label>
+            <label class="tg" title="نطق المعنى العربي"><input type="checkbox" id="ar" ${speakArabic ? 'checked' : ''}><span>🔊 المعنى</span></label>
+            <label class="tg" title="نطق ترجمة المثال"><input type="checkbox" id="exar" ${speakExample ? 'checked' : ''}><span>🔊 المثال</span></label>
           </div>
         </div>
       </div>
-      <div class="card" style="padding:14px"><div class="card-title" style="padding:0 8px">القائمة · ${words.length}</div><div class="queue" id="queue"></div></div>
+      <details class="card lt-queue" open><summary class="card-title">القائمة · ${words.length}</summary><div class="queue" id="queue"></div></details>
     </div>`;
   const mq = window.matchMedia('(max-width: 900px)');
   const lg = body.querySelector('#lg');
   const applyLayout = () => (lg.style.gridTemplateColumns = mq.matches ? '1fr' : 'minmax(0,2fr) minmax(0,1fr)');
   applyLayout();
+  if (mq.matches) body.querySelector('.lt-queue').open = false; // phones: the list folds under the controls
   mq.addEventListener('change', applyLayout);
 
   const player = body.querySelector('#player');
@@ -46,14 +47,16 @@ export function runListening(body, words) {
 
   function drawWord(step = 4) {
     const w = words[idx];
-    const ex = w.examples?.find((e) => e.kind === 'easy') || w.examples?.[0];
-    const exText = ex?.sentence || w.context_sentence;
+    // a real sentence (5+ words) with its own Arabic — never a one-word fragment
+    const full = (x) => String(x || '').trim().split(/\s+/).length >= 5;
+    const ex = (w.examples || []).find((e) => full(e.sentence) && e.arabic) || (w.examples || []).find((e) => full(e.sentence));
+    const exText = ex?.sentence || (full(w.context_sentence) ? w.context_sentence : '');
     const exAr = ex?.sentence ? ex.arabic : w.context_arabic;
     player.innerHTML = `
       <div class="row" style="gap:6px">${levelChip(w.level)}<span class="chip ar-chip">${esc(typeLabel(w))}</span><span class="tiny muted en-inline">${idx + 1} / ${words.length}</span></div>
       <div class="lt-step lt-term ${step >= 0 ? 'on' : ''}">${esc(w.term)}</div>
-      <div class="lt-step en muted ${step >= 1 ? 'on' : ''}" style="font-size:17px">${esc(w.pronunciation || '')}</div>
-      <div class="lt-step ${step >= 2 ? 'on' : ''}"><div style="font-size:23px;font-weight:700">${esc(w.arabic || '')}</div><div class="en ink-2" style="text-align:center">${esc(w.simple_english || '')}</div></div>
+      <div class="lt-step en muted ${step >= 1 ? 'on' : ''}" style="font-size:15px">${esc(w.pronunciation || '')}</div>
+      <div class="lt-step ${step >= 2 ? 'on' : ''}"><div style="font-size:20px;font-weight:700">${esc(w.arabic || '')}</div><div class="en ink-2" style="text-align:center">${esc(w.simple_english || '')}</div></div>
       ${exText ? `<div class="lt-step quote ${step >= 3 ? 'on' : ''}" style="max-width:520px;text-align:left"><p class="en">${highlight(exText, w.term)}</p>${exAr ? `<p class="ink-2" dir="rtl" style="text-align:right;margin-top:6px">${esc(exAr)}</p>` : ''}</div>` : ''}`;
     queue.innerHTML = words.map((x, k) => `<button class="${k === idx ? 'on' : ''}" data-k="${k}"><span class="en-inline">${esc(x.term)}</span><span class="tiny muted">${esc(x.level)}</span></button>`).join('');
     queue.querySelector('.on')?.scrollIntoView({ block: 'nearest' });

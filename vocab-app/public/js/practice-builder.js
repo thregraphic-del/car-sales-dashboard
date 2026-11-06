@@ -138,13 +138,13 @@ function summary(F, key, ctx) {
  */
 export function renderBuilder(stage, { words: all, groups = [], games = [], onGo }) {
   let F = { ...DEFAULTS };
-  try { F = { ...DEFAULTS, ...JSON.parse(localStorage.getItem('practice.builder') || '{}') }; } catch { /* first time */ }
+  try { F = { ...DEFAULTS, ...JSON.parse(localStorage.getItem('practice.builder2') || '{}') }; } catch { /* first time */ }
   F.seed = Math.floor(Math.random() * 100000) + 1;
   let open = '';
   let preset = '';
   const off = new Set();
   const vids = videoList(all);
-  const save = () => { try { localStorage.setItem('practice.builder', JSON.stringify({ ...F, seed: undefined })); } catch { /* storage unavailable */ } };
+  const save = () => { try { localStorage.setItem('practice.builder2', JSON.stringify({ ...F, seed: undefined })); } catch { /* storage unavailable */ } };
 
   const chip = (name, v, label, active, multi = false) => `<button type="button" class="sopt${active ? ' active' : ''}" data-f="${name}" data-v="${esc(String(v))}" data-multi="${multi ? 1 : 0}">${label}</button>`;
   // three icon buttons, each opens one drop-down panel (similar filters merged)
@@ -172,31 +172,22 @@ export function renderBuilder(stage, { words: all, groups = [], games = [], onGo
       due: chosen.filter((w) => sig.get(w.uv_id).due).length,
     };
     const lv = LEVELS.map((l) => [l, chosen.filter((w) => w.level === l).length]).filter(([, n]) => n);
-    stage.innerHTML = `<div class="card pb">
-      <div class="pb-presets">${PRESETS.map(([k, l, tip]) => `<button type="button" class="pb-preset${preset === k ? ' active' : ''}" data-preset="${k}" title="${esc(tip)}">${l}</button>`).join('')}</div>
-      ${section('from', '📚', 'من أين؟', `<div class="sopts">${chip('from', 'all', 'كل كلماتي', F.from === 'all')}${vids.length ? chip('from', 'lastVideo', '🎬 آخر مقطع', F.from === 'lastVideo') + chip('from', 'last3', 'آخر ٣ مقاطع', F.from === 'last3') + chip('from', 'videos', 'مقاطع أختارها', F.from === 'videos') : ''}${groups.length ? chip('from', 'groups', 'مجموعات', F.from === 'groups') : ''}</div>
-        ${F.from === 'videos' ? `<div class="pb-pick">${vids.map((v) => chip('sources', v.id, `${esc(v.title.slice(0, 40))} <span class="tiny muted">${v.n}</span>`, F.sources.map(Number).includes(v.id), true)).join('')}</div>` : ''}
-        ${F.from === 'groups' ? `<div class="pb-pick">${groups.map((g) => chip('groups', g.id, esc(g.name), F.groups.map(Number).includes(g.id), true)).join('')}</div>` : ''}`)}
-      ${section('when', '🕒', 'متى حفظتها؟', `<div class="sopts">${chip('when', 'all', 'أي وقت', F.when === 'all')}${chip('when', 'lastN', 'آخر', F.when === 'lastN')}<input class="input sopt-num" id="pbLastN" type="number" min="1" value="${F.lastN}"> <span class="tiny">كلمة</span>
-        ${chip('when', 'today', 'اليوم', F.when === 'today')}${chip('when', 'week', 'آخر ٧ أيام', F.when === 'week')}${chip('when', 'month', 'آخر ٣٠ يومًا', F.when === 'month')}${chip('when', 'older', 'أقدم من شهر', F.when === 'older')}</div>`)}
-      ${section('perf', '📈', 'أدائي فيها', `<div class="sopts">${PERF.map(([k, l]) => chip('perf', k, l, F.perf.includes(k), true)).join('')}</div><p class="tiny muted" style="margin:6px 0 0">تختار أكثر من حالة: تظهر الكلمة إذا انطبقت عليها أيٌّ منها.</p>`)}
-      ${section('level', '🎚', 'الصعوبة', `<div class="sopts">${LEVELS.map((l) => chip('levels', l, l, F.levels.includes(l), true)).join('')}</div>
-        <div class="sopts" style="margin-top:6px">${chip('usage', 'common', '🟢 شائعة', F.usage.includes('common'), true)}${chip('usage', 'medium', '🟡 متوسطة', F.usage.includes('medium'), true)}${chip('usage', 'rare', '🔴 نادرة', F.usage.includes('rare'), true)}</div>
-        <div class="sopts" style="margin-top:6px">${chip('kind', 'all', 'الكل', F.kind === 'all')}${chip('kind', 'words', 'كلمات مفردة', F.kind === 'words')}${chip('kind', 'expressions', 'عبارات وأفعال مركّبة', F.kind === 'expressions')}</div>`)}
-      ${section('count', '🎯', 'كم وبأي ترتيب', `<div class="sopts">${[10, 20, 30, 50].map((n) => chip('count', n, String(n), Number(F.count) === n)).join('')}${chip('count', 0, 'كل النتائج', !Number(F.count))}<input class="input sopt-num" id="pbCount" type="number" min="1" value="${Number(F.count) || ''}" placeholder="عدد"></div>
-        <div class="sopts" style="margin-top:6px">${[['smart', '🧠 ذكي'], ['random', '🎲 عشوائي'], ['new', 'الأحدث'], ['old', 'الأقدم'], ['hard', 'الأصعب']].map(([k, l]) => chip('order', k, l, F.order === k)).join('')}</div>
-        <label class="sopt-check" style="margin-top:6px"><input type="checkbox" class="check" id="pbNotToday" ${F.notToday ? 'checked' : ''}> بلا تكرار: تخطَّ ما تدرّبت عليه اليوم</label>`)}
-      ${groupsHtml()}
+    // 4 simple drop-downs — one tap opens a short list, one tap picks
+    const DD = {
+      from: ['📚 من', [['all', 'كل كلماتي'], ...(vids.length ? [['lastVideo', 'آخر مقطع'], ['last3', 'آخر ٣ مقاطع']] : []), ...groups.map((g) => [`g:${g.id}`, `📁 ${g.name}`])],
+        F.from === 'groups' && F.groups.length === 1 ? `g:${F.groups[0]}` : F.from],
+      when: ['🕒 متى', [['all', 'أي وقت'], ['today', 'اليوم'], ['week', 'آخر أسبوع'], ['month', 'آخر شهر']], F.when],
+      perf: ['📈 الحالة', [['', 'الكل'], ['wrong', 'أخطائي'], ['never', 'جديدة'], ['due', 'للمراجعة'], ['weak', 'صعبة'], ['mastered', 'متقنة']], F.perf.length === 1 ? F.perf[0] : ''],
+      count: ['🎯 العدد', [['10', '10'], ['20', '20'], ['30', '30'], ['50', '50'], ['0', 'الكل']], String(Number(F.count) || 0)],
+    };
+    const label = (k) => (DD[k][1].find(([v]) => v === DD[k][2]) || DD[k][1][0])[1];
+    stage.innerHTML = `<div class="card pb pb4">
+      <div class="dd-row">${Object.keys(DD).map((k) => `<div class="dd${open === k ? ' open' : ''}"><button type="button" class="dd-btn" data-dd="${k}"><span class="dd-t">${DD[k][0]}</span><span class="dd-v">${esc(label(k))} ▾</span></button>
+        ${open === k ? `<div class="dd-menu">${DD[k][1].map(([v, l]) => `<button type="button" class="dd-opt${v === DD[k][2] ? ' on' : ''}" data-ddv="${k}|${esc(v)}">${esc(l)}</button>`).join('')}</div>` : ''}</div>`).join('')}</div>
       <div class="pb-result">
-        <div class="pb-count"><b>${chosen.length}</b> كلمة جاهزة
-          ${chosen.length ? `<span class="tiny muted">${[counts.wrong && `🔥 ${counts.wrong} أخطاء حديثة`, counts.due && `⏰ ${counts.due} مستحقة`, counts.never && `🌱 ${counts.never} جديدة`].filter(Boolean).join(' · ')}</span>` : ''}</div>
-        ${lv.length ? `<div class="pb-levels">${lv.map(([l, n]) => `<span>${levelChip(l)} <span class="tiny">${n}</span></span>`).join('')}</div>` : ''}
-        ${!list.length ? (() => {
-          const ways = loosen();
-          return `<p class="small">لا توجد كلمات بهذه الاختيارات.${ways.length ? ' جرّب:' : ''}</p><div class="sopts">${ways.map(([k, l, , n]) => `<button type="button" class="sopt" data-loosen="${k}">✕ ${l} ← ${n} كلمة</button>`).join('')}<button type="button" class="sopt" data-reset>↺ ابدأ من جديد</button></div>`;
-        })() : `<details class="pb-list"><summary class="small">عرض الكلمات واختيار ما تريد (${chosen.length}/${list.length})</summary>
-          <div class="pb-actions"><button type="button" class="link-btn" data-all>تحديد الكل</button> · <button type="button" class="link-btn" data-none>إلغاء الكل</button></div>
-          <div class="pf-list">${list.map((w) => `<label class="pf-item"><input type="checkbox" class="check" data-pv="${w.uv_id}" ${off.has(w.uv_id) ? '' : 'checked'}> ${usageDot(w.usage)}<b class="en">${esc(w.term)}</b> ${levelChip(w.level)} <span class="tiny ink-2">${esc(w.arabic || '')}</span>${sig.get(w.uv_id).wrong ? ' <span class="tiny">🔥</span>' : ''}</label>`).join('')}</div></details>`}
+        <div class="pb-count"><b>${chosen.length}</b> كلمة جاهزة ${list.length ? `<button type="button" class="link-btn tiny" data-showlist>عرض ▾</button>` : ''}</div>
+        ${!list.length ? '<div class="sopts"><button type="button" class="sopt" data-reset>↺ كل كلماتي</button></div>' : `<details class="pb-list"${stage._listOpen ? ' open' : ''}><summary class="hidden"></summary>
+          <div class="pf-list">${list.map((w) => `<label class="pf-item"><input type="checkbox" class="check" data-pv="${w.uv_id}" ${off.has(w.uv_id) ? '' : 'checked'}> <b class="en">${esc(w.term)}</b> <span class="tiny ink-2">${esc(w.arabic || '')}</span></label>`).join('')}</div></details>`}
         <div class="pb-games-title">${chosen.length ? `اختر لعبة — تبدأ بهذه الـ ${chosen.length} كلمة:` : 'اختر كلمات أولًا.'}</div>
         <div class="pb-games">${games.map((g) => `<button type="button" class="pb-game" data-game="${g.mode}:${g.type || ''}" ${chosen.length ? '' : 'disabled'}><span class="pb-gi">${g.icon}</span><b>${g.name}</b><span class="tiny muted">${g.desc || ''}</span></button>`).join('')}</div>
       </div></div>`;
@@ -206,6 +197,20 @@ export function renderBuilder(stage, { words: all, groups = [], games = [], onGo
 
   stage.onclick = (e) => {
     const t = e.target;
+    const ddb = t.closest('[data-dd]');
+    if (ddb) { open = open === ddb.dataset.dd ? '' : ddb.dataset.dd; return draw(); }
+    const ddv = t.closest('[data-ddv]');
+    if (ddv) {
+      const [k, v] = ddv.dataset.ddv.split('|');
+      if (k === 'from') { if (v.startsWith('g:')) { F.from = 'groups'; F.groups = [v.slice(2)]; } else { F.from = v; F.groups = []; } }
+      if (k === 'when') F.when = v;
+      if (k === 'perf') F.perf = v ? [v] : [];
+      if (k === 'count') F.count = Number(v);
+      open = '';
+      off.clear();
+      return draw();
+    }
+    if (t.closest('[data-showlist]')) { stage._listOpen = !stage._listOpen; return draw(); }
     const pr = t.closest('[data-preset]');
     if (pr) {
       const p = PRESETS.find(([k]) => k === pr.dataset.preset);

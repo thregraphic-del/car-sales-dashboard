@@ -10,6 +10,7 @@ import { aiStatus, checkModel, usageToday, usageReport, AiError } from '../servi
 import { explainWithAi, formsWithAi, extractFromFileWithAi, storyWithAi, suggestVideosWithAi, suggestWordsWithAi, ladderWithAi, synonymsWithAi } from '../services/extractor.js';
 import { matchKey } from '../../public/js/shared/text.js';
 import { listWords } from '../data/words.js';
+import { get } from '../db/index.js';
 import { listSources } from '../data/sources.js';
 import { oembed } from '../lib/youtube.js';
 import { getLine, getSource } from '../data/sources.js';
@@ -149,8 +150,17 @@ router.get('/suggest-videos', wrap(async (req, res) => {
     duration = avg < 300 ? 'short' : avg > 1200 ? 'long' : 'medium';
   }
   const day = new Date().toISOString().slice(0, 10);
+  // 🎯 the learner's taste: the channels they watch and pinned, and the level of their words
+  const prefs = await get('SELECT value FROM app_settings WHERE key = ?', `channels:${req.userId}`);
+  let fav = [];
+  try { const p = JSON.parse(prefs?.value || '{}'); fav = [...(p.custom || []).map((c) => c.name), ...(p.pinned || [])]; } catch { /* none */ }
+  const channels = [...new Set([...watched.map((s) => s.channel).filter(Boolean), ...fav.map((x) => String(x).replace(/^[@n]:?/, ''))])].slice(0, 10);
+  const words = await listWords(req.userId);
+  const lv = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+  const counts = lv.map((l) => words.filter((w) => w.level === l).length);
+  const level = words.length ? lv[counts.indexOf(Math.max(...counts))] : 'B1';
   return withAi(res, async () => {
-    const r = await suggestVideosWithAi({ titles: watched.map((s) => s.title), duration, day, fresh: req.query.fresh === '1' });
+    const r = await suggestVideosWithAi({ titles: watched.map((s) => s.title), duration, day, fresh: req.query.fresh === '1', channels, level });
     const have = new Set(videos.map((s) => s.youtube_id));
     const ids = [...new Set(r.videos.map((v) => v.youtube_id).filter((x) => /^[A-Za-z0-9_-]{11}$/.test(x) && !have.has(x)))].slice(0, 10);
     // Only videos that really exist on YouTube are shown.

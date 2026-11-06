@@ -1,5 +1,6 @@
 // اليوم — "What should I learn today?" One clear next action, nothing to configure.
 import { api } from '../api.js';
+import { startTour, maybeTour } from '../tour.js';
 import { state } from '../state.js';
 import { esc, icon, thumbHtml, relDate, levelChip } from '../ui.js';
 
@@ -53,7 +54,8 @@ export async function render(view) {
   view.innerHTML = `
     <div class="page-head compact">
       <div><h1>${greet}${state.user?.name && state.user.name !== 'Learner' ? `، ${esc(state.user.name)}` : ''}</h1></div>
-      ${stats.streak.current ? `<span class="streak-chip">🔥 ${stats.streak.current} ${stats.streak.current === 1 ? 'يوم' : 'أيام'}</span>` : ''}
+      <span class="row" style="gap:8px"><button type="button" class="tour-btn" id="tourBtn" title="شرح الموقع">!</button>
+      ${stats.streak.current ? `<span class="streak-chip">🔥 ${stats.streak.current} ${stats.streak.current === 1 ? 'يوم' : 'أيام'}</span>` : ''}</span>
     </div>
     ${main}
     ${(() => {
@@ -92,6 +94,8 @@ export async function render(view) {
     <a class="card day-tile" href="#/friends" style="margin-top:12px"><div class="day-ico">👥</div><div><b>أصدقائي</b><div class="small ink-2">تحدَّ صديق وشارك تقدمك</div></div></a>
     </details>`;
 
+  view.querySelector('#tourBtn')?.addEventListener('click', () => startTour('home'));
+  maybeTour('home');
   view.querySelector('#more')?.addEventListener('click', async () => {
     await api.extendToday(5);
     render(view);
