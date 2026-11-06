@@ -14,8 +14,8 @@ The site runs on a credit-based Netlify plan. Running out of credits takes the w
 4. **Batch deploys — 10 changes per deploy**: the owner sends notes during the day. Do NOT deploy
    them one by one: add each to `PENDING.md`, build it, and deploy only when the list reaches
    10 changes (or the owner explicitly says «ارفع»). After a deploy, empty the list.
-6. **Before each change, report**: its estimated cost (credits, deploys, any running cost) and how
+5. **Before each change, report**: its estimated cost (credits, deploys, any running cost) and how
    many deploys are left (remaining credits ÷ 15, from the 🔔 credits bell or the owner's number),
    plus the change's number in the batch (e.g. «٣ من ١٠»).
-5. AI results (word levels, word forms, translations) are computed once, saved, and reused for
+6. AI results (word levels, word forms, translations) are computed once, saved, and reused for
    everyone — never recomputed.
