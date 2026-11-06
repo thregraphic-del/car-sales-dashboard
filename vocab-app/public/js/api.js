@@ -59,6 +59,7 @@ export const api = {
   lookup: (params) => request('GET', `/api/lookup${qs(params)}`),
   saveWord: (vocabulary_id, occurrence_id, group_ids, bulk = false) => request('POST', '/api/words', { vocabulary_id, occurrence_id, group_ids, bulk }),
   saveWordsBulk: (items) => request('POST', '/api/words/bulk', { items }),
+  ensureLevels: (sourceId) => request('POST', '/api/levels', sourceId ? { source_id: sourceId } : {}),
   simplifyWords: () => request('POST', '/api/words/simplify', {}),
   wordClusters: () => request('GET', '/api/words/clusters'),
   ladder: (term, arabic) => request('POST', '/api/ai/ladder', { term, arabic }),

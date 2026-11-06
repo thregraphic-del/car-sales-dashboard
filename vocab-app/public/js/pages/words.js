@@ -384,10 +384,17 @@ export async function render(view, { params }) {
         if (r.done) break;
       }
     } catch { /* try again next time */ }
-    if (changed && view.isConnected) {
-      toast(`بسّطنا ${changed} كلمة إلى أبسط صيغة ✓`);
-      await reload();
-    }
+    // levels never checked: once, then saved for good
+    let levelled = 0;
+    try {
+      for (let i = 0; i < 15 && view.isConnected && state.config?.ai?.available; i++) {
+        const r = await api.ensureLevels();
+        levelled += r.levelled || 0;
+        if (!r.more) break;
+      }
+    } catch { /* next time */ }
+    if (changed && view.isConnected) toast(`بسّطنا ${changed} كلمة إلى أبسط صيغة ✓`);
+    if ((changed || levelled) && view.isConnected) await reload();
   })();
 }
 

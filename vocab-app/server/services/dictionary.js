@@ -127,57 +127,38 @@ export async function buildFormsStep({ offset = 0, count = 8, span = 300 } = {})
   return { done, asked: todo.length, next: i, total: terms.length, finished: false };
 }
 
-/**
- * One run of the scheduled job (every minute): three batches of 10 words side by side,
- * continuing where the last run stopped. Two sweeps over the list (the second picks up
- * words that failed), then it rests.
- */
-export async function scheduledFormsRun() {
-  const KEY = 'forms-build';
-  const st = JSON.parse((await get('SELECT value FROM app_settings WHERE key = ?', KEY))?.value || '{"cursor":0,"sweep":0}');
-  const terms = await dictionaryTerms();
-  if (st.sweep >= 2) return { resting: true, ...st };
-  const slices = [0, 10, 20].map((d) => st.cursor + d).filter((o) => o < terms.length);
-  const results = await Promise.allSettled(slices.map((o) => buildFormsStep({ offset: o, count: 10, span: 10 })));
-  st.cursor += 30;
-  if (st.cursor >= terms.length) { st.cursor = 0; st.sweep += 1; }
-  st.done = (st.done || 0) + results.reduce((n, r) => n + (r.status === 'fulfilled' ? r.value.done || 0 : 0), 0);
-  st.at = new Date().toISOString();
-  await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', KEY, JSON.stringify(st));
-  return { ...st, errors: results.filter((r) => r.status === 'rejected').map((r) => String(r.reason?.message || r.reason).slice(0, 120)) };
-}
 
 /**
- * One step of re-levelling every word in the shared vocabulary by the learner dictionaries
- * (Oxford 3000/5000, English Vocabulary Profile). Continues after the last word done, so new
- * words from new videos are levelled too.
+ * Give the words that still have an old, unchecked level their level from the learner
+ * dictionaries (Oxford 3000/5000, English Vocabulary Profile) — ONCE: the level is saved
+ * with level_checked = 1 and never asked again. Called when the learner opens a video or
+ * «كلماتي», for those words only (at most `limit` per call), so nothing runs in the background.
  */
-export async function relevelStep({ batches = 2, size = 80 } = {}) {
+export async function ensureLevels(ids, { limit = 80 } = {}) {
   const { levelsWithAi } = await import('./extractor.js');
-  const KEY = 'relevel';
-  const st = JSON.parse((await get('SELECT value FROM app_settings WHERE key = ?', KEY))?.value || '{"cursor":0,"done":0}');
-  const rows = await all('SELECT id, term FROM vocabulary WHERE id > ? ORDER BY id LIMIT ?', st.cursor, batches * size);
-  if (!rows.length) return { idle: true, ...st };
-  const parts = [];
-  for (let i = 0; i < rows.length; i += size) parts.push(rows.slice(i, i + size));
-  const results = await Promise.allSettled(parts.map((p) => levelsWithAi(p.map((r) => r.term))));
-  let changed = 0;
-  for (const [k, res] of results.entries()) {
-    if (res.status !== 'fulfilled') continue;
-    const byTerm = new Map(res.value.map((it) => [it.term.trim().toLowerCase(), it.level]));
-    for (const r of parts[k]) {
-      const lvl = byTerm.get(r.term.trim().toLowerCase());
-      if (!LEVEL.includes(lvl)) continue;
-      await run('UPDATE vocabulary SET level = ? WHERE id = ? AND (level IS NULL OR level <> ?)', lvl, r.id, lvl);
-      changed += 1;
-    }
+  // words already levelled by the earlier background pass count as checked
+  const old = await get('SELECT value FROM app_settings WHERE key = ?', 'relevel');
+  if (old) {
+    const cursor = Number(JSON.parse(old.value || '{}').cursor) || 0;
+    if (cursor) await run('UPDATE vocabulary SET level_checked = 1 WHERE id <= ? AND level_checked = 0', cursor);
+    await run('DELETE FROM app_settings WHERE key = ?', 'relevel');
   }
-  // move on only past the batches that succeeded (a failed one is tried again next time)
-  const okUpTo = results.findIndex((r) => r.status !== 'fulfilled');
-  const lastOk = okUpTo === -1 ? rows.at(-1) : (okUpTo === 0 ? null : parts[okUpTo - 1].at(-1));
-  if (lastOk) st.cursor = lastOk.id;
-  st.done = (st.done || 0) + changed;
-  st.at = new Date().toISOString();
-  await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', KEY, JSON.stringify(st));
-  return { changed, ...st, errors: results.filter((r) => r.status === 'rejected').map((r) => String(r.reason?.message || r.reason).slice(0, 100)) };
+  const want = [...new Set(ids.map(Number).filter(Boolean))];
+  if (!want.length) return { levelled: 0, more: false };
+  const rows = [];
+  for (let i = 0; i < want.length && rows.length < limit; i += 400) {
+    const part = want.slice(i, i + 400);
+    rows.push(...await all(`SELECT id, term FROM vocabulary WHERE level_checked = 0 AND id IN (${part.map(() => '?').join(',')}) LIMIT ?`, ...part, limit - rows.length));
+  }
+  if (!rows.length) return { levelled: 0, more: false };
+  const items = await levelsWithAi(rows.map((r) => r.term));
+  const byTerm = new Map(items.map((it) => [it.term.trim().toLowerCase(), it.level]));
+  let levelled = 0;
+  await tx(async () => {
+    for (const r of rows) {
+      const lvl = byTerm.get(r.term.trim().toLowerCase());
+      if (LEVEL.includes(lvl)) { await run('UPDATE vocabulary SET level = ?, level_checked = 1 WHERE id = ?', lvl, r.id); levelled += 1; }
+    }
+  });
+  return { levelled, more: rows.length >= limit };
 }

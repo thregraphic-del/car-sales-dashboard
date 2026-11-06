@@ -68,6 +68,7 @@ CREATE TABLE IF NOT EXISTS vocabulary (
   item_type       TEXT    NOT NULL DEFAULT 'word',   -- word | phrasal verb | idiom | collocation | expression
   part_of_speech  TEXT,
   level           TEXT CHECK (level IS NULL OR level IN ('A1','A2','B1','B2','C1','C2')),
+  level_checked   INTEGER NOT NULL DEFAULT 0,  -- 1 = level set by the learner dictionaries, never redone
   band            TEXT,                              -- basic | useful | advanced | specialized
   usefulness      INTEGER,
   pronunciation   TEXT,

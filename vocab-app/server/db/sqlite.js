@@ -9,7 +9,7 @@ import { learningSignals } from '../lib/srs.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(here, '..', '..');
-export const SCHEMA_VERSION = 11;
+export const SCHEMA_VERSION = 12;
 export const DEFAULT_SQLITE_PATH = path.join(ROOT, 'data', 'lexitube.db');
 
 export function resolvePath(p) {
@@ -158,6 +158,10 @@ export function migrate(d) {
     if (!columnsOf(d, 'sources').includes('dict_words_at')) d.exec('ALTER TABLE sources ADD COLUMN dict_words_at TEXT');
     d.exec(`CREATE TABLE IF NOT EXISTS word_views (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, day TEXT NOT NULL,
       vocabulary_id INTEGER NOT NULL REFERENCES vocabulary(id) ON DELETE CASCADE, PRIMARY KEY (user_id, day, vocabulary_id))`);
+  }
+  if (version < 12) {
+    // v12: a word's level is set once by the learner dictionaries, then kept.
+    if (!columnsOf(d, 'vocabulary').includes('level_checked')) d.exec('ALTER TABLE vocabulary ADD COLUMN level_checked INTEGER NOT NULL DEFAULT 0');
   }
   d.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }

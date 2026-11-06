@@ -619,21 +619,27 @@ test('word panel synonyms and the Saudi recap of a part of the video', async () 
   assert.match(sent[0].content, /Saudi/);
 });
 
-test('levels: every word is re-levelled by the learner dictionaries, a batch at a time', async () => {
-  const { run, get, all } = await import('../server/db/index.js');
+test('levels: a word gets its dictionary level once, when its video or «كلماتي» is opened — never again', async () => {
+  const { run, get } = await import('../server/db/index.js');
   await run("INSERT INTO vocabulary (term, match_key, level, origin) VALUES ('integrityzz', 'integrityzz', 'A1', 'ai') ON CONFLICT (match_key) DO NOTHING");
-  await run('DELETE FROM app_settings WHERE key = ?', 'relevel');
+  const v = (await get("SELECT id FROM vocabulary WHERE match_key = 'integrityzz'")).id;
+  await run('UPDATE vocabulary SET level_checked = 0 WHERE id = ?', v);
+  const user = (await get('SELECT id FROM users ORDER BY id LIMIT 1')).id;
+  await run("INSERT INTO user_vocabulary (user_id, vocabulary_id, state) VALUES (?, ?, 'saved') ON CONFLICT DO NOTHING", user, v);
   reply = () => {
     const sent = calls.at(-1).body.messages.at(-1).content.split('\n');
     const items = sent.map((t) => ({ term: t, level: t === 'integrityzz' ? 'C1' : 'B1' }));
     return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ items }) }, finish_reason: 'stop' }] }), { status: 200 });
   };
-  const { relevelStep } = await import('../server/services/dictionary.js');
   let r;
-  for (let i = 0; i < 200; i++) { r = await relevelStep({ batches: 2, size: 80 }); if (r.idle) break; }
-  assert.equal(r.idle, true);
-  assert.equal((await get("SELECT level FROM vocabulary WHERE match_key = 'integrityzz'")).level, 'C1');
-  const sent = calls.filter((c) => c.u.endsWith('/chat/completions')).at(-1).body.messages[0].content;
-  assert.match(sent, /Oxford 3000/);
-  assert.ok((await all("SELECT id FROM vocabulary WHERE level IS NULL AND origin = 'dictionary'")).length === 0);
+  for (let i = 0; i < 100; i++) { r = (await postJson('/api/levels', {})).body; if (!r.more) break; }
+  const row = await get('SELECT level, level_checked FROM vocabulary WHERE id = ?', v);
+  assert.equal(row.level, 'C1');
+  assert.equal(Number(row.level_checked), 1);
+  assert.match(calls.filter((c) => c.u.endsWith('/chat/completions')).at(-1).body.messages[0].content, /Oxford 3000/);
+  // opened again: nothing left to ask — no AI call at all
+  calls = [];
+  const again = (await postJson('/api/levels', {})).body;
+  assert.deepEqual(again, { levelled: 0, more: false });
+  assert.equal(calls.filter((c) => c.u.endsWith('/chat/completions')).length, 0);
 });

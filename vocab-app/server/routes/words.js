@@ -75,6 +75,23 @@ router.get('/words', wrap(async (req) => {
     ids: q.ids ? idList(q.ids) : undefined,
   });
 }));
+// Words whose level was never checked get it once (the video being opened, or «كلماتي»).
+router.post('/levels', wrap(async (req) => {
+  const { aiAvailable } = await import('../services/ai.js');
+  if (!aiAvailable()) return { levelled: 0, more: false };
+  const { all } = await import('../db/index.js');
+  const { ensureLevels } = await import('../services/dictionary.js');
+  const sourceId = num(req.body?.source_id);
+  const ids = sourceId
+    ? (await all('SELECT DISTINCT o.vocabulary_id AS id FROM occurrences o JOIN sources s ON s.id = o.source_id WHERE o.source_id = ? AND s.user_id = ? AND o.suggested = 1', sourceId, req.userId)).map((r) => r.id)
+    : (await all("SELECT vocabulary_id AS id FROM user_vocabulary WHERE user_id = ? AND state = 'saved'", req.userId)).map((r) => r.id);
+  try {
+    return await ensureLevels(ids);
+  } catch (err) {
+    if (err?.name === 'AiError' || err?.constructor?.name === 'AiError') return { levelled: 0, more: false };
+    throw err;
+  }
+}));
 router.get('/words/clusters', wrap(async (req) => ({ clusters: await wordClusters(req.userId) })));
 router.post('/words/simplify', wrap(async (req) => simplifyUserWords(req.userId)));
 router.get('/words/:id', wrap(async (req) => words.getWord(req.userId, idParam(req))));

@@ -1028,6 +1028,19 @@ export async function render(view, { segments, params }) {
     return simplifying;
   };
   if ((!source.dict_words_at || !source.simplified) && !source.is_demo) simplifyWords();
+  // words of this video that never had their level checked get it now — once, then saved for good
+  (async () => {
+    if (source.is_demo || !ai()) return;
+    let changed = 0;
+    try {
+      for (let i = 0; alive && i < 12; i++) {
+        const r = await api.ensureLevels(id);
+        changed += r.levelled || 0;
+        if (!r.more) break;
+      }
+    } catch { /* next time */ }
+    if (alive && changed) await refresh();
+  })();
 
   // Player + sync.
   const startAt = params.t ? Number(params.t) : null;
@@ -1423,7 +1436,7 @@ export async function render(view, { segments, params }) {
     savedAt = t;
     api.saveProgress(id, t, keepalive);
   };
-  const progressTimer = isVideo ? setInterval(() => { if (playing) saveProgress(); }, 10000) : 0;
+  const progressTimer = isVideo ? setInterval(() => { if (playing) saveProgress(); }, 60000) : 0;
   if (params.line) {
     setTimeout(() => {
       const el = linesEl.querySelector(`.line[data-id="${params.line}"]`);
