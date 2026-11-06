@@ -3,5 +3,5 @@
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
 | 1 | 🔔 Netlify credits bell (owner only; deploys counted once; warning at 70% / 90%) | built & tested | in the batch | ~0 (one read per visit) |
-| 2 | 📺 Channel suggestions in 10 fields (stories, book summaries, conversations…), ~20 channels each with logos, filter by level | to build | in the batch | 0 (fixed list in the site, logos from unavatar) |
+| 2 | 📺 Channel suggestions in 10 fields (stories, book summaries, conversations…), ~20 channels each with logos, filter by level; tapping a channel logo opens the channel on YouTube directly | to build | in the batch | 0 (fixed list in the site, logos from unavatar) |
 | 3 | 🔗 Pasting a YouTube link sometimes shows «تعذّر الاتصال بالخادم» and needs a second press — retry automatically (quietly) so the video opens directly | to build | in the batch | 0 (only one extra try when the first fails) |
