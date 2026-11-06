@@ -643,3 +643,20 @@ test('levels: a word gets its dictionary level once, when its video or «كلم�
   assert.deepEqual(again, { levelled: 0, more: false });
   assert.equal(calls.filter((c) => c.u.endsWith('/chat/completions')).length, 0);
 });
+
+test('credits: each deploy is recorded once and counted; the owner can set the plan and what Netlify shows left', async () => {
+  const c = await import('../server/data/credits.js');
+  const { run } = await import('../server/db/index.js');
+  await run("DELETE FROM app_settings WHERE key LIKE 'deploy:%' OR key = 'credits:settings'");
+  process.env.LEXI_DEPLOY_ID = 'dep-1';
+  await c.recordDeploy();
+  await c.recordDeploy(); // same process: once
+  let s = (await (await realFetch(`${app.base}/api/credits`)).json());
+  assert.equal(s.deploys, 1);
+  assert.equal(s.used, 15);
+  const saved = await postJson('/api/credits', { plan: 1000, left: 400, cycle_day: 5 });
+  assert.equal(saved.body.plan, 1000);
+  assert.equal(saved.body.left, 400, 'what Netlify shows is the starting point');
+  assert.equal(saved.body.pct, 60);
+  delete process.env.LEXI_DEPLOY_ID;
+});

@@ -94,6 +94,8 @@ export const api = {
   setup: (setup_code, username, password) => request('POST', '/api/auth/setup', { setup_code, username, password }),
   register: (body) => request('POST', '/api/auth/register', body),
   logout: () => request('POST', '/api/auth/logout'),
+  credits: () => request('GET', '/api/credits'),
+  saveCredits: (body) => request('POST', '/api/credits', body),
   changePassword: (current, password) => request('POST', '/api/auth/password', { current, password }),
 
   dataSummary: () => request('GET', '/api/data/summary'),

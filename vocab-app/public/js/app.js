@@ -3,7 +3,7 @@ import { api } from './api.js';
 import { state, loadGroups } from './state.js';
 import { stop as stopAudio, speak } from './audio.js';
 import { closeWordPanel } from './components.js';
-import { icon, $, closeModal, esc } from './ui.js';
+import { icon, $, closeModal, esc, openModal, toast } from './ui.js';
 import { openFeedback } from './feedback.js';
 
 const NAV = [
@@ -51,9 +51,54 @@ function renderNav(active) {
   $('#sidebarFoot').innerHTML = s
     ? `<div class="row between"><span>🔥 أيام متتالية</span><b class="en-inline">${s.streak.current}</b></div>
        <div class="tiny muted" style="margin-top:6px">${state.config?.ai?.configured ? '✨ الذكاء الاصطناعي مفعّل' : '📘 القاموس المحلي'}</div>
+       ${creditsBell()}
        <button type="button" class="link-btn small" id="feedbackLink" style="display:block;margin-top:8px">💡 اقتراحاتكم — ساعدنا نطوّر الموقع</button>
        <div class="tiny muted en-inline" style="margin-top:4px">LexiTube v${esc(state.config?.app?.version || '?')}</div>`
     : '';
+}
+
+/* 🔔 Netlify credits (owner only): an estimate from the deploys, read once when the site opens. */
+const creditLevel = (c) => (c.pct >= 90 ? 'bad' : c.pct >= 70 ? 'warn' : 'ok');
+function creditsBell() {
+  const c = state.credits;
+  if (!c) return '';
+  return `<button type="button" class="credit-bell ${creditLevel(c)}" id="creditBell" title="رصيد Netlify (تقديري)">🔔 رصيد Netlify <b class="en-inline">${c.left}</b> <span class="tiny">باقي · ${c.pct}%</span></button>`;
+}
+async function loadCredits() {
+  if (state.config?.auth?.required && state.user?.role !== 'admin') return; // the site owner only
+  try {
+    state.credits = await api.credits();
+  } catch { return; }
+  renderNav(activeNav(parseHash().base));
+  // a reminder at most once a day when 70% is used
+  const c = state.credits;
+  const key = `credits.warned.${new Date().toISOString().slice(0, 10)}`;
+  if (c.pct >= 70 && !localStorage.getItem(key)) {
+    try { localStorage.setItem(key, '1'); } catch { /* ignore */ }
+    toast(c.pct >= 90 ? `⚠️ رصيد Netlify قارب يخلص: باقي ${c.left} (تقريبًا ${Math.floor(c.left / c.deploy_cost)} رفعات)` : `🔔 استخدمت ${c.pct}% من رصيد Netlify — باقي ${c.left}`);
+  }
+}
+function openCredits() {
+  const c = state.credits;
+  if (!c) return;
+  const box = openModal(`<div class="credits">
+    <div class="rset-title">🔔 رصيد Netlify</div>
+    <div class="credit-meter ${creditLevel(c)}"><span style="width:${c.pct}%"></span></div>
+    <p><b class="en-inline" style="font-size:22px">${c.left}</b> باقي من <b class="en-inline">${c.plan}</b> · استخدمت <b class="en-inline">${c.pct}%</b></p>
+    <p class="small ink-2">منذ ${esc(c.since.slice(0, 10))}: ${c.deploys} رفعة × ${c.deploy_cost} = ${c.deploys * c.deploy_cost} رصيد. باقي يكفي تقريبًا <b>${Math.floor(c.left / c.deploy_cost)}</b> رفعة.</p>
+    <p class="tiny muted">رقم تقديري من الرفعات (أكبر استهلاك). للرقم الدقيق: <a href="https://app.netlify.com/teams/thregraphic/usage" target="_blank" rel="noopener">صفحة الاستهلاك في Netlify ↗</a> — واكتب الباقي هنا مرة، ونحسب منه.</p>
+    <div class="srow"><span class="slabel">رصيد الخطة</span><div class="sopts"><input class="input sopt-num" id="crPlan" type="number" min="1" value="${c.plan}"> <span class="tiny">بالشهر</span></div></div>
+    <div class="srow"><span class="slabel">الباقي الآن</span><div class="sopts"><input class="input sopt-num" id="crLeft" type="number" min="0" placeholder="من Netlify"> <span class="tiny">اختياري</span></div></div>
+    <div class="srow"><span class="slabel">يتجدد يوم</span><div class="sopts"><input class="input sopt-num" id="crDay" type="number" min="1" max="28" value="${c.cycle_day}"> <span class="tiny">من الشهر</span></div></div>
+    <div class="btn-row" style="margin-top:10px"><button class="btn primary" id="crSave">حفظ</button><button class="btn ghost" data-close>إغلاق</button></div></div>`);
+  box.querySelector('#crSave').addEventListener('click', async () => {
+    try {
+      state.credits = await api.saveCredits({ plan: box.querySelector('#crPlan').value, left: box.querySelector('#crLeft').value, cycle_day: box.querySelector('#crDay').value });
+      closeModal();
+      renderNav(activeNav(parseHash().base));
+      toast('تم الحفظ ✓');
+    } catch (err) { toast(err.message); }
+  });
 }
 
 export async function refreshStats() {
@@ -137,6 +182,7 @@ async function start() {
   if (!started) {
     started = true;
     window.addEventListener('hashchange', route);
+    loadCredits(); // once per visit (owner only)
   }
   return route();
 }
@@ -159,6 +205,7 @@ async function init() {
   $('#menuBtn').addEventListener('click', () => document.body.classList.add('nav-open'));
   $('#scrim').addEventListener('click', () => document.body.classList.remove('nav-open'));
   $('#sidebarFoot').addEventListener('click', (e) => {
+    if (e.target.closest('#creditBell')) { document.body.classList.remove('nav-open'); openCredits(); return; }
     if (!e.target.closest('#feedbackLink')) return;
     document.body.classList.remove('nav-open');
     openFeedback();

@@ -25,6 +25,8 @@ function start() {
 }
 
 export default async (req, context) => {
+  // which deploy is serving (for the credits estimate: each deploy is recorded once)
+  if (context?.deploy?.id && !process.env.LEXI_DEPLOY_ID) process.env.LEXI_DEPLOY_ID = context.deploy.id;
   ready ??= start().catch((err) => {
     ready = null;
     throw err;

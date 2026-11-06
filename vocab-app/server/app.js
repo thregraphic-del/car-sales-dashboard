@@ -1,5 +1,6 @@
 // The API as an Express app. Used by both the local server (server/index.js)
 // and the Netlify Function (netlify/functions/api.mjs).
+import { recordDeploy, creditStatus, saveCreditSettings } from './data/credits.js';
 import express from 'express';
 import { config } from './config.js';
 import { DEFAULT_USER_ID, ensureUser } from './data/users.js';
@@ -118,6 +119,21 @@ export function createApp() {
     }
   });
   app.use('/api', authenticate);
+  // a new deploy records itself once (the credits estimate) — no background work
+  app.use('/api', (req, res, next) => { recordDeploy().catch(() => {}); next(); });
+  app.get('/api/credits', async (req, res, next) => {
+    try {
+      if (req.user?.role && req.user.role !== 'admin') return res.status(403).json({ error: 'للمالك فقط' });
+      return res.json(await creditStatus());
+    } catch (err) { return next(err); }
+  });
+  app.post('/api/credits', async (req, res, next) => {
+    try {
+      if (req.user?.role && req.user.role !== 'admin') return res.status(403).json({ error: 'للمالك فقط' });
+      const b = req.body || {};
+      return res.json(await saveCreditSettings({ plan: Number(b.plan), left: b.left === '' || b.left == null ? NaN : Number(b.left), cycleDay: Number(b.cycle_day) }));
+    } catch (err) { return next(err); }
+  });
 
   app.use('/api/auth', authRoutes);
   app.use('/api', settingsRoutes);

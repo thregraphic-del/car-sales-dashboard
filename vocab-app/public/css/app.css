@@ -1110,3 +1110,10 @@ body.reader-focus .reader-head.slim { display: flex !important; }
 .pb-actions { margin: 6px 0; font-size: 13px; }
 .pb-go { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; position: sticky; bottom: 0; background: var(--surface); padding: 8px 0 2px; border-top: 1px dashed var(--line); }
 @media (max-width: 899px) { .pb-go { bottom: 64px; } .pb-go .btn { width: 100%; } }
+/* 🔔 Netlify credits */
+.credit-bell { display: block; width: 100%; text-align: start; margin-top: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 6px 8px; background: none; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+.credit-bell.ok b { color: #22a35a; } .credit-bell.warn { border-color: #e0a100; } .credit-bell.warn b { color: #e0a100; }
+.credit-bell.bad { border-color: #e5484d; background: color-mix(in srgb, #e5484d 10%, transparent); } .credit-bell.bad b { color: #e5484d; }
+.credit-meter { height: 10px; border-radius: 99px; background: var(--line); overflow: hidden; margin: 8px 0; }
+.credit-meter span { display: block; height: 100%; background: #22a35a; }
+.credit-meter.warn span { background: #e0a100; } .credit-meter.bad span { background: #e5484d; }
