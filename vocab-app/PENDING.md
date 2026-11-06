@@ -8,5 +8,7 @@
 | 4 | 🎬 Reader: by default the video opens large, floating over the bottom half of the screen; a 👆 finger hint (shown the first times) teaches pinch to resize and drag to move; the video can be resized and moved freely | to build | in the batch | 0 (browser only) |
 | 5 | 🔤 Easier synonyms (word tap): only true synonyms with the SAME meaning in that sentence, simpler and more common; if none exist, show nothing (no other meanings) | to build | in the batch | small: AI once per word on first tap with the new rule, then saved |
 | 6 | 🎛 Reader top bar redesign: one clean, short row with clear labelled controls (play/stop, repeat, video position, settings), a plain goal counter (e.g. «108 كلمة · هدفك 10 ✓» instead of «1080% 108/10»), tabs clearly separated below; settings sheet grouped and short | to build | in the batch | 0 (browser only) |
+| 7 | 📖 Stories: creative, modern, family-friendly for all ages (no romance/inappropriate themes); stories become a game inside «تدرّب» that uses the general practice filters to pick the words | to build | in the batch | small: AI writes each story once (new rule), then saved |
+| 8 | 🃏 Flashcards become a game inside «تدرّب» like the others, using the same practice filters | to build | in the batch | 0 (browser only) |
 
 Bug noticed (fixed with the batch, not counted): «تعذّرت الترجمة الآن» shows on some videos — check why and repair once.
