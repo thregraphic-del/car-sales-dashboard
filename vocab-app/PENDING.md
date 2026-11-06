@@ -12,6 +12,7 @@
 | 8 | 🧹 Word details (كلماتي) cleaner, no feature removed: drop the 🐢 slow buttons (tap 🔊 twice = slow instead), drop sub-headings («صيغ الكلمة», «أبسط صيغة», the forms summary line) and the 3-colour legend; keep word, sound, level, meaning, forms with save, examples, contexts, groups, practice | to build | in the batch | 0 |
 | 9 | 🏠 Tapping the LexiTube logo (top bar on phones and the sidebar) goes to the home page «اليوم» | to build | in the batch | 0 |
 | 10 | ⏯ Resume silently: no message/card that covers the screen — the video just continues from where you stopped | to build | in the batch | 0 |
+| 11 | ❗ Floating «!» help button on EVERY page and every game/screen (draggable, remembers its spot); tap = a tour of that screen explaining each button/option/part; a small ✕ shrinks it to a tiny dot at the top (tap the dot to bring it back) so it never blocks the view; tours written for: اليوم، أضف، المقطع، كلماتي، تفاصيل الكلمة، تدرّب (الفلاتر)، كل لعبة، البطاقات، الاستماع، القصة، أصدقائي، الإعدادات | to build | in the batch | 0 (browser only) |
 
 (Batch 3 deployed on 2026-11-06 at the owner's «نفذها الآن»: phone layout audit + 📝 words icon in the
 reader bar, font size pill with live preview, 🗣 «ردّد معي» icon, ❗ guided tours (home + video page),
