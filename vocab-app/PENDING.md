@@ -20,6 +20,7 @@
 | 16 | 🔊 Pasted words (Add page results): a 🔊 button on every extracted word (tap again = slow), and the words are read aloud once when the list appears; ALSO fix parsing «Boundaries / Limits» → two separate words (boundaries, limits) instead of one term | to build | in the batch | 0 (phone's own voice) |
 | 17 | 🔤 Arabic-letter pronunciation (e.g. Boundaries → باوندَريز) as a small grey note next to every 🔊 on every page (word panel, my words, word details, games, cards, listening, pasted words); made by AI once per word in batches, saved in the dictionary for everyone, never recomputed | to build | in the batch | small: AI once per word (batched), shared |
 | 18 | 📝 The words button in the video bar reads «📝 الكلمات 96» in clear text, bright glowing yellow so it stands out from the other buttons | to build | in the batch | 0 |
+| 19 | 🎨 Rebrand to «3Goal»: new logo (public/img/3goal-logo.png — also favicon/app icon, small version without text in the top bar), name everywhere (title, login, share page, emails), palette: primary Deep Navy #1B263A · secondary Dark Teal #105C6D · accent Muted Gold #CBA55E · background Warm Ivory Gray #F5F3EF; light, eye-friendly theme by default (dark mode stays optional, in matching navy tones); usage colours (green/orange/red) and the yellow words button kept readable | to build | in the batch | 0 |
 
 (Batch 3 deployed on 2026-11-06 at the owner's «نفذها الآن»: phone layout audit + 📝 words icon in the
 reader bar, font size pill with live preview, 🗣 «ردّد معي» icon, ❗ guided tours (home + video page),
