@@ -5,6 +5,8 @@
 | 1 | 🎨 One unified palette: a single yellow (the brand gold) everywhere yellow is used (words button, current line, gold chips…) and the brand teal («تيفاني») for every «on/active» state instead of green (toggles, chips, filters, settings options); usage colours of words stay as they are | to build | in the batch | 0 |
 | 2 | ▶ Video starts by itself as soon as the page loads, with NO «شغّل الصوت» button: if the phone forces a muted start, the sound turns on automatically at the first touch anywhere on the page | to build | in the batch | 0 |
 | 3 | ✕ The words list (opened from «الكلمات» in the video bar) gets a clear ✕ close button at its top — two ways to close: the «الكلمات» button again, or the ✕ | to build | in the batch | 0 |
+| 4 | ⏸ A pause is a pause: when I stop the video (from the YouTube player itself, not only the top button), it stays stopped — «ردّد معي»/repeat/auto-continue never restart it until I press play | to build | in the batch | 0 |
+| 5 | 🎨 Words in the transcript: NEW extracted words (not in my words) = teal fill highlight; words already in «كلماتي» = purple outline | to build | in the batch | 0 |
 
 (Batch 4 of 20 deployed on 2026-11-07: autoplay (+ unmute), no goal chip on the video page, on=green/off=grey
 with ✕, simpler words panel (glowing icon row), hide line times, «راجع كلمات أمس» on top + «أمس» filter,
