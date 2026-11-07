@@ -2,6 +2,7 @@
 
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
+| 1 | 🎨 One unified palette: a single yellow (the brand gold) everywhere yellow is used (words button, current line, gold chips…) and the brand teal («تيفاني») for every «on/active» state instead of green (toggles, chips, filters, settings options); usage colours of words stay as they are | to build | in the batch | 0 |
 
 (Batch 4 of 20 deployed on 2026-11-07: autoplay (+ unmute), no goal chip on the video page, on=green/off=grey
 with ✕, simpler words panel (glowing icon row), hide line times, «راجع كلمات أمس» on top + «أمس» filter,
