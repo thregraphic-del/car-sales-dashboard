@@ -213,3 +213,41 @@ export function thumbHtml(source, { duration } = {}) {
   const img = source?.thumbnail_url && !source.is_demo ? `<img src="${esc(source.thumbnail_url)}" alt="" loading="lazy">` : `<div class="play">${icon.play}</div>`;
   return `<div class="thumb">${img}${source?.is_demo ? '<span class="demo-tag">تجريبي</span>' : ''}${duration ? `<span class="dur">${esc(fmtDuration(duration))}</span>` : ''}</div>`;
 }
+
+// ---- 3Goal line icons (one style everywhere, instead of chat emojis)
+Object.assign(icon, {
+  bookOpen: svg('<path d="M2 4.5h6a4 4 0 0 1 4 4V21a3 3 0 0 0-3-3H2z"/><path d="M22 4.5h-6a4 4 0 0 0-4 4V21a3 3 0 0 1 3-3h7z"/>'),
+  library: svg('<path d="M4 4v16M8 4v16"/><path d="m12.5 4.6 4.2-1.1 4 15.4-4.2 1.1z"/>'),
+  chat: svg('<path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.2A8 8 0 1 1 21 12z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/>'),
+  sprout: svg('<path d="M12 21v-9"/><path d="M12 12C12 7 8 5 4 5c0 4 3 7 8 7z"/><path d="M12 10c0-4 3-6 8-6 0 4-3 6-8 6z"/>'),
+  flask: svg('<path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3"/><path d="M7 15h10"/>'),
+  brain: svg('<path d="M12 5a3 3 0 0 0-5.8-1A3 3 0 0 0 4 9a3.5 3.5 0 0 0 1 6.5A3 3 0 0 0 12 19z"/><path d="M12 5a3 3 0 0 1 5.8-1A3 3 0 0 1 20 9a3.5 3.5 0 0 1-1 6.5A3 3 0 0 1 12 19z"/>'),
+  heart: svg('<path d="M20.8 5.6a5 5 0 0 0-7.6-.6L12 6.2 10.8 5a5 5 0 0 0-7.1 7.1L12 20.5l8.3-8.4a5 5 0 0 0 .5-6.5z"/>'),
+  palette: svg('<circle cx="12" cy="12" r="9"/><circle cx="8" cy="10" r="1.2" fill="currentColor"/><circle cx="12" cy="7.5" r="1.2" fill="currentColor"/><circle cx="16" cy="10" r="1.2" fill="currentColor"/><path d="M12 21a2.5 2.5 0 0 1 0-5h2a3 3 0 0 0 3-3"/>'),
+  smile: svg('<circle cx="12" cy="12" r="9"/><path d="M8 14a5 5 0 0 0 8 0M9 9.5h.01M15 9.5h.01"/>'),
+  video: svg('<rect x="2.5" y="6" width="13" height="12" rx="2.5"/><path d="m15.5 10 6-3.5v11l-6-3.5"/>'),
+  cpu: svg('<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>'),
+  chef: svg('<path d="M6 13.9V21h12v-7.1"/><path d="M6 14a4 4 0 1 1 1.2-7.8 5 5 0 0 1 9.6 0A4 4 0 1 1 18 14z"/><path d="M6 17h12"/>'),
+  ball: svg('<circle cx="12" cy="12" r="9"/><path d="m12 7 4 3-1.5 4.5h-5L8 10z"/><path d="M12 3v4M3.5 9.5 8 10M20.5 9.5 16 10M7 19.5l2.5-5M17 19.5l-2.5-5"/>'),
+  landmark: svg('<path d="M3 21h18M5 21V10M19 21V10M9.5 21V10M14.5 21V10M2 10l10-6 10 6z"/>'),
+  pulse: svg('<path d="M3 12h4l2-5 4 10 2-5h6"/>'),
+  stars: svg('<path d="m12 3 1.8 4.6L18.5 9l-4.7 1.4L12 15l-1.8-4.6L5.5 9l4.7-1.4z"/><path d="M19 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z"/>'),
+  mic: svg('<rect x="9" y="2.5" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3.5M8.5 21.5h7"/>'),
+  podcast: svg('<circle cx="12" cy="10" r="2.5"/><path d="M8 14.5a5.5 5.5 0 1 1 8 0M5.2 17.3a9.5 9.5 0 1 1 13.6 0"/><path d="M12 13v8.5"/>'),
+  star: svg('<path d="m12 2.8 2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17.2l-5.6 3 1.1-6.3L2.9 9.5l6.3-.9z"/>'),
+  news: svg('<rect x="3" y="4" width="15" height="16" rx="2"/><path d="M18 8h3v10a2 2 0 0 1-2 2H5M7 8h7M7 12h7M7 16h4"/>'),
+  briefcase: svg('<rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8.5 7V5a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v2M3 12.5h18"/>'),
+  child: svg('<circle cx="12" cy="6" r="3"/><path d="M8.5 21v-6l-2.5-2.5M15.5 21v-6l2.5-2.5M8.5 12.5h7"/>'),
+  plane: svg('<path d="M10.5 13.5 3 11l1.5-1.5 8 .5 4.5-5a2.1 2.1 0 0 1 3 3l-5 4.5.5 8L14 22l-2.5-7.5L8 18v2.5L6.5 22 5 19l-3-1.5L3.5 16H6z"/>'),
+  target: svg('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/>'),
+  expand: svg('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>'),
+  list: svg('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1" fill="currentColor"/><circle cx="4.5" cy="12" r="1" fill="currentColor"/><circle cx="4.5" cy="18" r="1" fill="currentColor"/>'),
+  speech: svg('<path d="M4 12a7 7 0 0 1 12.2-4.7"/><circle cx="9" cy="12" r="3"/><path d="M17.5 9.5a4 4 0 0 1 0 5M20 7a7.5 7.5 0 0 1 0 10"/>'),
+  save: svg('<path d="M5 3h11l3 3v15H5z"/><path d="M8 3v5h7V3M8 21v-6h8v6"/>'),
+  sliders: svg('<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>'),
+  clock: svg('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+  layers: svg('<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>'),
+  hash: svg('<path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/>'),
+  sun: svg('<circle cx="12" cy="12" r="4"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2 6 6M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8 6 18M18 6l1.8-1.8"/>'),
+  help: svg('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5h.01"/>'),
+});

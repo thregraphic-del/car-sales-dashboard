@@ -73,6 +73,7 @@ export function selectWords(all, F, now = Date.now()) {
     if (F.from === 'groups' && F.groups.length && !F.groups.some((g) => w.group_ids.includes(Number(g)))) return false;
     const t = new Date(w.saved_at).getTime();
     if (F.when === 'today' && new Date(t).toDateString() !== new Date(now).toDateString()) return false;
+    if (F.when === 'yesterday' && new Date(t).toDateString() !== new Date(now - DAY).toDateString()) return false;
     if (F.when === 'week' && now - t > 7 * DAY) return false;
     if (F.when === 'month' && now - t > 30 * DAY) return false;
     if (F.when === 'older' && now - t <= 30 * DAY) return false;
@@ -125,7 +126,7 @@ export function videoList(all) {
 /** One-line summary of a filter, for its folded header. */
 function summary(F, key, ctx) {
   if (key === 'from') return { all: 'كل كلماتي', lastVideo: `آخر مقطع${ctx.vids[0] ? ` — ${ctx.vids[0].title.slice(0, 28)}` : ''}`, last3: 'آخر ٣ مقاطع', videos: F.sources.length ? `${F.sources.length} مقطع` : 'اختر المقاطع', groups: F.groups.length ? `${F.groups.length} مجموعة` : 'اختر المجموعات' }[F.from];
-  if (key === 'when') return { all: 'أي وقت', lastN: `آخر ${F.lastN} كلمة`, today: 'اليوم', week: 'آخر ٧ أيام', month: 'آخر ٣٠ يومًا', older: 'أقدم من شهر' }[F.when];
+  if (key === 'when') return { all: 'أي وقت', lastN: `آخر ${F.lastN} كلمة`, today: 'اليوم', yesterday: 'أمس', week: 'آخر ٧ أيام', month: 'آخر ٣٠ يومًا', older: 'أقدم من شهر' }[F.when];
   if (key === 'perf') return F.perf.length ? PERF.filter(([k]) => F.perf.includes(k)).map(([, l]) => l.split(' ').slice(1).join(' ')).join('، ') : 'كل الحالات';
   if (key === 'level') return [F.levels.join(' ') || 'كل المستويات', F.usage.length ? F.usage.map((u) => ({ common: 'شائعة', medium: 'متوسطة', rare: 'نادرة' })[u]).join('/') : '', { all: '', words: 'كلمات', expressions: 'عبارات' }[F.kind]].filter(Boolean).join(' · ');
   if (key === 'count') return `${F.count ? `${F.count} كلمة` : 'كل النتائج'} · ${{ smart: 'ذكي', random: 'عشوائي', new: 'الأحدث', old: 'الأقدم', hard: 'الأصعب' }[F.order]}${F.notToday ? ' · بلا تكرار اليوم' : ''}`;
@@ -174,11 +175,11 @@ export function renderBuilder(stage, { words: all, groups = [], games = [], onGo
     const lv = LEVELS.map((l) => [l, chosen.filter((w) => w.level === l).length]).filter(([, n]) => n);
     // 4 simple drop-downs — one tap opens a short list, one tap picks
     const DD = {
-      from: ['📚 من', [['all', 'كل كلماتي'], ...(vids.length ? [['lastVideo', 'آخر مقطع'], ['last3', 'آخر ٣ مقاطع']] : []), ...groups.map((g) => [`g:${g.id}`, `📁 ${g.name}`])],
+      from: ['من', [['all', 'كل كلماتي'], ...(vids.length ? [['lastVideo', 'آخر مقطع'], ['last3', 'آخر ٣ مقاطع']] : []), ...groups.map((g) => [`g:${g.id}`, `📁 ${g.name}`])],
         F.from === 'groups' && F.groups.length === 1 ? `g:${F.groups[0]}` : F.from],
-      when: ['🕒 متى', [['all', 'أي وقت'], ['today', 'اليوم'], ['week', 'آخر أسبوع'], ['month', 'آخر شهر']], F.when],
-      perf: ['📈 الحالة', [['', 'الكل'], ['wrong', 'أخطائي'], ['never', 'جديدة'], ['due', 'للمراجعة'], ['weak', 'صعبة'], ['mastered', 'متقنة']], F.perf.length === 1 ? F.perf[0] : ''],
-      count: ['🎯 العدد', [['10', '10'], ['20', '20'], ['30', '30'], ['50', '50'], ['0', 'الكل']], String(Number(F.count) || 0)],
+      when: ['متى', [['all', 'أي وقت'], ['today', 'اليوم'], ['yesterday', 'أمس'], ['week', 'آخر أسبوع'], ['month', 'آخر شهر']], F.when],
+      perf: ['الحالة', [['', 'الكل'], ['wrong', 'أخطائي'], ['never', 'جديدة'], ['due', 'للمراجعة'], ['weak', 'صعبة'], ['mastered', 'متقنة']], F.perf.length === 1 ? F.perf[0] : ''],
+      count: ['العدد', [['10', '10'], ['20', '20'], ['30', '30'], ['50', '50'], ['0', 'الكل']], String(Number(F.count) || 0)],
     };
     const label = (k) => (DD[k][1].find(([v]) => v === DD[k][2]) || DD[k][1][0])[1];
     stage.innerHTML = `<div class="card pb pb4">

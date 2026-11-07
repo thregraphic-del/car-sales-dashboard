@@ -2,28 +2,11 @@
 
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
-| 1 | ▶ Video starts by itself when the page opens (try with sound; if the phone blocks it, play muted and show a big «🔊 شغّل الصوت» tap) | to build | in the batch | 0 |
-| 2 | 🎯 Remove the goal counter from the video page bar; the daily goal stays on the home page only | to build | in the batch | 0 |
-| 3 | ✕ + clear on/off look everywhere: every option/toggle that opens or turns on shows a small ✕ to close/turn it off; ON = green, OFF = grey (reader bar buttons, settings options, filters, favourites, tiles, toggles) | to build | in the batch | 0 |
-| 4 | 📝 Reader words panel simplified: title + count, then one row of icon buttons with a glowing animated border (tappable): 💾 حفظ الكل · 🎯 تدرّب (opens: بطاقات/المعنى/استمع/روابط/اختر بدقة) · 🎚 المستوى (drop-down) · 🔍 بحث (opens the field) · ☐ غير المحفوظة; remove the long notes (keep a tiny colour legend), list right under | to build | in the batch | 0 |
-| 5 | ⏱ Option to hide the line times (00:04…) in the transcript to widen the text — a toggle in ⚙ (remembered); hidden by default on phones | to build | in the batch | 0 |
-| 6 | ☀️ «راجع كلمات أمس» clearly visible on phones: a big button at the top of «اليوم» (with the count), also in «تدرّب» (من ▾ أمس). PLUS a full phone audit: list every feature of the site and make sure each one is reachable on a phone (menu/icons), fix any that isn't | to build | in the batch | 0 |
-| 7 | ⏯ Resume exactly where you stopped: the place is saved when you pause, leave the page, close the tab or lock the phone (one tiny save each time, sendBeacon), and opening the video continues from there automatically (with #1 autoplay); also «أكمل المشاهدة» on the home page opens at that point | to build | in the batch | tiny: one save on pause/leave |
-| 8 | 🧹 Word details (كلماتي) cleaner, no feature removed: drop the 🐢 slow buttons (tap 🔊 twice = slow instead), drop sub-headings («صيغ الكلمة», «أبسط صيغة», the forms summary line) and the 3-colour legend; keep word, sound, level, meaning, forms with save, examples, contexts, groups, practice | to build | in the batch | 0 |
-| 9 | 🏠 Tapping the LexiTube logo (top bar on phones and the sidebar) goes to the home page «اليوم» | to build | in the batch | 0 |
-| 10 | ⏯ Resume silently: no message/card that covers the screen — the video just continues from where you stopped | to build | in the batch | 0 |
-| 11 | ❗ Floating «!» help button on EVERY page and every game/screen (draggable, remembers its spot); tap = a tour of that screen explaining each button/option/part; a small ✕ shrinks it to a tiny dot at the top (tap the dot to bring it back) so it never blocks the view; tours written for: اليوم، أضف، المقطع (must show: resize the video (drag the line under it / the corner ↘ when floating), and its place فوق / تحت / عائم from ⚙)، كلماتي، تفاصيل الكلمة، تدرّب (الفلاتر)، كل لعبة، البطاقات، الاستماع، القصة، أصدقائي، الإعدادات | to build | in the batch | 0 (browser only) |
-| 12 | 📝 Extracted words, clear and stable: (a) the 📝 count = every NEW word of the video (not in my words before I opened it) and it never drops to 0 after saving — saved ones stay listed with ✓; (b) extract most of the video's words (≥80% of its content words, from the built-in dictionary, no extra AI), all marked green in the text; (c) «حفظ الكل» pressed while words are still loading also saves the ones that arrive later, automatically | to build | in the batch | 0 extra AI (dictionary) |
-| 13 | ➕ «المزيد» under each channels field: a ＋ button finds more channels in that field (and level), AI once per field+page, each channel checked once on YouTube, saved for everyone — the next person gets them instantly | to build | in the batch | small: AI once per field page, then shared |
-| 14 | 🎮 Every game fits the phone screen with no scrolling: compact question card, smaller options, the feedback short, and «التالي/تحقّق/موافق» always visible (sticky at the bottom, above the tab bar) | to build | in the batch | 0 |
-| 15 | 🗨 Saudi-dialect recap («السالفة باختصار») under the learner's control in ⚙: every 3 / 5 / 10 min or a number they type; «قبل» (what the next part is about, before it plays) or «بعد» (what was just said); on/off switch; shown as a small card that doesn't cover the text | to build | in the batch | same as now: AI once per part, saved |
-| 16 | 🔊 Pasted words (Add page results): a 🔊 button on every extracted word (tap again = slow), and the words are read aloud once when the list appears; ALSO fix parsing «Boundaries / Limits» → two separate words (boundaries, limits) instead of one term | to build | in the batch | 0 (phone's own voice) |
-| 17 | 🔤 Arabic-letter pronunciation (e.g. Boundaries → باوندَريز) as a small grey note next to every 🔊 on every page (word panel, my words, word details, games, cards, listening, pasted words); made by AI once per word in batches, saved in the dictionary for everyone, never recomputed | to build | in the batch | small: AI once per word (batched), shared |
-| 18 | 📝 The words button in the video bar reads «📝 الكلمات 96» in clear text, bright glowing yellow so it stands out from the other buttons | to build | in the batch | 0 |
-| 19 | 🎨 Rebrand to «3Goal»: new logo (public/img/3goal-logo.png — also favicon/app icon, small version without text in the top bar), name everywhere (title, login, share page, emails), palette: primary Deep Navy #1B263A · secondary Dark Teal #105C6D · accent Muted Gold #CBA55E · background Warm Ivory Gray #F5F3EF; light, eye-friendly theme by default (dark mode stays optional, in matching navy tones); usage colours (green/orange/red) and the yellow words button kept readable | to build | in the batch | 0 |
-| 20 | ✏️ Professional line icons (SVG, brand colours) instead of chat emojis across the UI: channel fields, tiles, reader bar, practice games, filters, favourites, friends, tour | building now | in the batch | 0 |
 
-(Batch 3 deployed on 2026-11-06 at the owner's «نفذها الآن»: phone layout audit + 📝 words icon in the
-reader bar, font size pill with live preview, 🗣 «ردّد معي» icon, ❗ guided tours (home + video page),
-smarter daily video suggestions inside ⭐ المفضلة (closed, 3 at a time), compact Add tiles, 4 simple
-practice drop-downs, compact listening screen + correct example sentence.)
+(Batch 4 of 20 deployed on 2026-11-07: autoplay (+ unmute), no goal chip on the video page, on=green/off=grey
+with ✕, simpler words panel (glowing icon row), hide line times, «راجع كلمات أمس» on top + «أمس» filter,
+exact resume saved on pause/leave/lock, cleaner word details (tap 🔊 twice = slow), logo → home, silent
+resume, floating «!» help with tours on every screen, stable new-words count + up to 400 words + save-all
+while loading, ＋ more channels per field, games fit the screen (sticky next), recap every N min before/after,
+🔊 + auto-read for pasted words and «A / B» split, Arabic-letter pronunciation next to every 🔊, yellow
+«الكلمات» button, 3Goal rebrand (logo + palette, light by default), line icons instead of emojis.)

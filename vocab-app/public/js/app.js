@@ -55,7 +55,7 @@ function renderNav(active) {
        <div class="tiny muted" style="margin-top:6px">${state.config?.ai?.configured ? '✨ الذكاء الاصطناعي مفعّل' : '📘 القاموس المحلي'}</div>
        ${creditsBell()}
        <button type="button" class="link-btn small" id="feedbackLink" style="display:block;margin-top:8px">💡 اقتراحاتكم — ساعدنا نطوّر الموقع</button>
-       <div class="tiny muted en-inline" style="margin-top:4px">LexiTube v${esc(state.config?.app?.version || '?')}</div>`
+       <div class="tiny muted en-inline" style="margin-top:4px">3Goal v${esc(state.config?.app?.version || '?')}</div>`
     : '';
 }
 
@@ -194,14 +194,18 @@ async function start() {
     started = true;
     window.addEventListener('hashchange', route);
     loadCredits(); // once per visit (owner only)
+    import('./tour.js').then((m) => m.mountHelp()).catch(() => {});
+    if (state.config?.ai?.configured) import('./say-ar.js').then((m) => m.watchSayAr()).catch(() => {});
   }
   return route();
 }
 
+let lastSay = { text: '', at: 0, slow: false };
+
 async function init() {
   try {
     const t = localStorage.getItem('theme');
-    if (t && t !== 'system') document.documentElement.setAttribute('data-theme', t);
+    if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
   } catch {
     /* storage unavailable */
   }
@@ -211,7 +215,10 @@ async function init() {
     const b = e.target.closest?.('[data-say]');
     if (!b || b.disabled) return;
     e.preventDefault();
-    speak(b.dataset.say, { rate: Number(b.dataset.rate) || 1, lang: b.dataset.lang || 'en' }).catch(() => {});
+    // the same 🔊 tapped again within 4 s = slowly
+    const again = lastSay.text === b.dataset.say && Date.now() - lastSay.at < 4000 && !lastSay.slow;
+    lastSay = { text: b.dataset.say, at: Date.now(), slow: again };
+    speak(b.dataset.say, { rate: again ? 0.6 : Number(b.dataset.rate) || 1, lang: b.dataset.lang || 'en' }).catch(() => {});
   });
   $('#menuBtn').addEventListener('click', () => document.body.classList.add('nav-open'));
   $('#scrim').addEventListener('click', () => document.body.classList.remove('nav-open'));

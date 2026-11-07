@@ -63,8 +63,8 @@ export async function render(view, { params }) {
       return;
     }
     if (e.target.closest('#shareUser')) {
-      const text = `أضفني في LexiTube ونتحدّى في الإنجليزي 💪\nاسم المستخدم: @${me}\n${location.origin}`;
-      if (navigator.share) await navigator.share({ title: 'LexiTube', text }).catch(() => {});
+      const text = `أضفني في 3Goal ونتحدّى في الإنجليزي 💪\nاسم المستخدم: @${me}\n${location.origin}`;
+      if (navigator.share) await navigator.share({ title: '3Goal', text }).catch(() => {});
       else { await navigator.clipboard?.writeText(text).catch(() => {}); window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener'); toast('نسخنا اسمك ✓'); }
       return;
     }
@@ -72,8 +72,8 @@ export async function render(view, { params }) {
       try {
         const { token } = await api.shareLink();
         const url = `${location.origin}/#/p/${token}`;
-        const text = 'شوف تقدمي في تعلّم الإنجليزي على LexiTube 📚';
-        if (navigator.share) await navigator.share({ title: 'LexiTube', text, url }).catch(() => {});
+        const text = 'شوف تقدمي في تعلّم الإنجليزي على 3Goal 📚';
+        if (navigator.share) await navigator.share({ title: '3Goal', text, url }).catch(() => {});
         else { await navigator.clipboard?.writeText(url).catch(() => {}); window.open(`https://wa.me/?text=${encodeURIComponent(`${text}\n${url}`)}`, '_blank', 'noopener'); toast('نسخنا الرابط ✓'); }
       } catch (err) { toast(err.message); }
       return;
@@ -144,6 +144,6 @@ export async function renderPublic(view, token) {
       ${p.words.length ? `<p class="small ink-2" style="margin-top:12px">آخر كلمات تعلّمها:</p><div class="word-peek">${p.words.map((w) => `<span><b class="en-inline">${esc(w.term)}</b> <span class="tiny muted">${esc(w.arabic)}</span></span>`).join('')}</div>` : ''}
       <div class="btn-row" style="justify-content:center;margin-top:16px"><a class="btn primary" href="/">ابدأ تتعلّم معنا ←</a></div></div>`;
   } catch (err) {
-    view.innerHTML = `<div class="card empty"><h3>${esc(err.message)}</h3><a class="btn" href="/">LexiTube</a></div>`;
+    view.innerHTML = `<div class="card empty"><h3>${esc(err.message)}</h3><a class="btn" href="/">3Goal</a></div>`;
   }
 }

@@ -1,7 +1,7 @@
 // Extras on the "Add" page: attach a file or photo, ready-made word packs, video ideas.
 import { api } from './api.js';
 import { state, loadGroups } from './state.js';
-import { esc, toast, openModal, closeModal, $ } from './ui.js';
+import { esc, toast, openModal, closeModal, $, icon } from './ui.js';
 import { PACKS, packSummary } from './packs-data.js';
 import { FIELDS as CH_FIELDS } from './channel-fields.js';
 
@@ -127,8 +127,8 @@ export function bindAttach(view, { input, go, status }) {
 /* ------------------------------------------------------- ready-made packs */
 
 export const packsHtml = () => `
-  <div class="tile-row">${PACKS.map((p) => `<button class="tile" data-pack="${p.key}" title="${esc(p.description)}"><span class="tile-ic">${p.icon}</span><span>${esc(p.name.replace(/\s*\(.*\)/, ''))}</span></button>`).join('')}
-    <button class="tile" id="swTile"><span class="tile-ic">✨</span><span>اقترح لي كلمات</span></button></div>`;
+  <div class="tile-row">${PACKS.map((p) => `<button class="tile" data-pack="${p.key}" title="${esc(p.description)}"><span class="tile-ic">${p.key.includes('phrasal') ? icon.layers : icon.library}</span><span>${esc(p.name.replace(/\s*\(.*\)/, ''))}</span></button>`).join('')}
+    <button class="tile" id="swTile"><span class="tile-ic">${icon.stars}</span><span>اقترح لي كلمات</span></button></div>`;
 
 async function savePack(pack, mode, onProgress) {
   const { categories, total } = packSummary(pack);
@@ -367,7 +367,7 @@ export function bindSuggestWords(view) {
 
 export const channelsHtml = () => `
   <div id="favBox" class="fav-box hidden">
-    <div class="row wrap" style="gap:6px;margin-bottom:8px"><button class="btn primary" id="chSimilar">✨ قنوات مشابهة</button><button class="btn primary" id="sugOpen">🎬 فيديوهات مشابهة</button><button class="btn sm ghost" id="chAdd">＋ قناة</button><button class="btn sm ghost" id="chEdit">✎ تعديل</button></div>
+    <div class="row wrap" style="gap:6px;margin-bottom:8px"><button class="btn primary" id="chSimilar">${icon.stars} قنوات مشابهة</button><button class="btn primary" id="sugOpen">${icon.video} فيديوهات مشابهة</button><button class="btn sm ghost" id="chAdd">＋ قناة</button><button class="btn sm ghost" id="chEdit">✎ تعديل</button></div>
     ${suggestionsInner()}
     <div id="chBox"><p class="tiny muted"><span class="spinner"></span></p></div>
     <div id="chExtra"></div>
@@ -474,15 +474,17 @@ export function bindChannels(view, { onPick }) {
 }
 
 /* ------------------------------------------- 📚 channels by field (checked once on the server) */
-const LV = [['', 'كل المستويات'], ['1', '🌱 سهل'], ['2', '🌿 متوسط'], ['3', '🌳 صعب']];
+const LV = [['', 'كل المستويات'], ['1', 'سهل'], ['2', 'متوسط'], ['3', 'صعب']];
+const FIELD_IC = { stories: 'bookOpen', books: 'library', talk: 'chat', beginner: 'sprout', science: 'flask', neuro: 'brain', psych: 'heart', cartoon: 'palette', comedy: 'smile', vlogs: 'video', tech: 'cpu', cooking: 'chef', sport: 'ball', history: 'landmark', health: 'pulse', spirit: 'stars', speakers: 'mic', podcast: 'podcast', self: 'target', news: 'news', business: 'briefcase', kids: 'child', travel: 'plane' };
+const fic = (k) => `<span class="ic">${icon[FIELD_IC[k]] || ''}</span>`;
 const CHK_KEY = 'ytch.v1';
 const chkCache = (() => { try { return JSON.parse(localStorage.getItem(CHK_KEY) || '{}'); } catch { return {}; } })();
 const saveChk = () => { try { localStorage.setItem(CHK_KEY, JSON.stringify(chkCache)); } catch { /* ignore */ } };
 
 export const fieldsHtml = () => `
-  <div class="section-title row between" style="gap:8px"><h2>🎯 قنوات لتعلّم الإنجليزي</h2>
-    <button type="button" class="fav-chip" id="favChip">⭐ المفضلة</button></div>
-  <div class="chip-row" id="fdChips">${CH_FIELDS.map((f) => `<button type="button" class="gchip" data-fd="${f.k}">${f.n}</button>`).join('')}</div>
+  <div class="section-title row between" style="gap:8px"><h2>قنوات لتعلّم الإنجليزي</h2>
+    <button type="button" class="fav-chip" id="favChip"><span class="ic">${icon.star}</span> المفضلة</button></div>
+  <div class="chip-row" id="fdChips">${CH_FIELDS.map((f) => `<button type="button" class="gchip ic-chip" data-fd="${f.k}">${fic(f.k)}${f.n}</button>`).join('')}</div>
   <div id="fdBox"></div>`;
 
 export function bindFields(view) {
@@ -496,14 +498,15 @@ export function bindFields(view) {
   const draw = () => {
     view.querySelectorAll('[data-fd]').forEach((b) => b.classList.toggle('on', b.dataset.fd === field?.k));
     if (!field) { box.innerHTML = '<p class="tiny muted">اختر مجالًا لتظهر أشهر قنواته — أو ⭐ المفضلة لقنواتك.</p>'; return; }
-    const list = field.c.filter((c) => (!lv || String(c[2]) === lv) && chkCache[c[1]]?.ok !== false);
+    const extra = (moreOf[field.k] || []).filter((c) => !lv || String(c[2]) === lv);
+    const list = [...field.c, ...extra].filter((c) => (!lv || String(c[2]) === lv) && chkCache[c[1]]?.ok !== false);
     const logo = (c) => {
       const k = chkCache[c[1]];
       return `<span class="ch-ava" aria-hidden="true">${k?.logo ? `<img src="${esc(k.logo)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<span>${esc(c[0].slice(0, 1).toUpperCase())}</span></span>`;
     };
     box.innerHTML = `<div class="sopts" style="margin:8px 0">${LV.map(([k, l]) => `<button type="button" class="sopt${k === lv ? ' active' : ''}" data-lv="${k}">${l}</button>`).join('')}</div>
       <div class="fd-grid">${list.map((c) => `<a class="fd-card" href="${esc(chkCache[c[1]]?.url || `https://www.youtube.com/@${encodeURIComponent(c[1])}`)}" target="_blank" rel="noopener" title="${esc(c[0])}">${logo(c)}<b class="en">${esc(c[0])}</b><span class="tiny muted">${c[3] ? esc(c[3]) : LV[c[2]][1]}</span></a>`).join('') || '<p class="tiny muted">لا توجد قنوات بهذا المستوى هنا.</p>'}</div>
-      <p class="tiny muted">اضغط القناة لتفتح صفحتها في يوتيوب، وانسخ رابط أي فيديو والصقه فوق.</p>`;
+      <div class="more-row"><button type="button" class="btn sm" id="fdMore">${moreBusy ? '<span class="spinner"></span>' : '＋'} المزيد</button></div>`;
   };
   // ask the server only about channels this browser hasn't checked yet (each is checked once for everyone)
   const check = async (f) => {
@@ -516,7 +519,28 @@ export function bindFields(view) {
       if (field === f) draw();
     } catch { /* show them unchecked for now */ }
   };
+  // ＋ more channels in this field (found once, then shared by everyone)
+  const moreOf = (() => { try { return JSON.parse(localStorage.getItem('fields.more') || '{}'); } catch { return {}; } })();
+  let moreBusy = false;
+  const more = async () => {
+    if (!field || moreBusy) return;
+    moreBusy = true;
+    draw();
+    try {
+      const page = Math.floor((moreOf[field.k] || []).length / 10) + 1;
+      const have = [...field.c, ...(moreOf[field.k] || [])].map((c) => c[1]);
+      const r = await api.channelsMore({ field: field.n, level: lv, page, have });
+      const add = r.channels.map((c) => { chkCache[c.handle] = { ok: true, url: c.url, logo: c.logo }; return [c.name, c.handle, Number(lv) || 2, c.type]; });
+      moreOf[field.k] = [...(moreOf[field.k] || []), ...add];
+      saveChk();
+      try { localStorage.setItem('fields.more', JSON.stringify(moreOf)); } catch { /* ignore */ }
+      if (!add.length) toast('ما لقينا قنوات جديدة أكثر هنا');
+    } catch (err) { toast(err.message); }
+    moreBusy = false;
+    draw();
+  };
   view.addEventListener('click', (e) => {
+    if (e.target.closest('#fdMore')) { more(); return; }
     if (e.target.closest('#favChip')) { const on = fav?.classList.contains('hidden'); showFav(on); if (on) { field = null; draw(); } return; }
     const f = e.target.closest('[data-fd]');
     if (f) { field = field?.k === f.dataset.fd ? null : CH_FIELDS.find((x) => x.k === f.dataset.fd); showFav(false); draw(); if (field) check(field); return; }

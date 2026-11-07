@@ -69,7 +69,7 @@ export async function render(view, { params }) {
 
   view.innerHTML = `
     <div class="page-head compact"><div><h1>تدرّب</h1></div>
-      <a class="btn sm ghost" href="#/practice">🎛 الفلتر وكل الألعاب</a>
+      <a class="btn sm ghost" href="#/practice">${icon.sliders} الفلتر وكل الألعاب</a>
     </div>
     ${label ? `<div class="chip-row"><span class="gchip on">${esc(label)}</span>${params.source ? `<a class="link-btn" href="#/source/${esc(params.source)}">↩ رجوع للمقطع</a>` : `<a class="link-btn" href="${href({ mode })}">↩ غيّر الاختيار</a>`}</div>`
       : `<div class="chip-row">${mode === 'story' ? `<a class="tab active" href="${href({ mode })}">كلماتي الأخيرة</a>` : params.focus ? FOCUS.map(([k, l]) => `<a class="tab ${k === focus ? 'active' : ''}" href="${href({ ...base, focus: k })}">${l}</a>`).join('') : ''}
@@ -96,10 +96,10 @@ export async function render(view, { params }) {
     // one page: the smart filter on top, every way to practise right under it
     view.querySelector('.page-head .btn')?.remove();
     const games = [
-      { mode: 'quiz', icon: '✅', name: 'اختبار', desc: 'أسئلة متنوعة' },
-      { mode: 'cards', icon: '🃏', name: 'البطاقات', desc: 'تذكّر وقيّم نفسك' },
-      { mode: 'listen', icon: '🎧', name: 'استماع', desc: 'اسمع الكلمة ومعناها' },
-      { mode: 'story', icon: '📖', name: 'قصة', desc: 'قصة بكلماتك' },
+      { mode: 'quiz', icon: icon.check, name: 'اختبار', desc: 'أسئلة متنوعة' },
+      { mode: 'cards', icon: icon.cards, name: 'البطاقات', desc: 'تذكّر وقيّم نفسك' },
+      { mode: 'listen', icon: icon.headphones, name: 'استماع', desc: 'اسمع الكلمة ومعناها' },
+      { mode: 'story', icon: icon.bookOpen, name: 'قصة', desc: 'قصة بكلماتك' },
       ...GAME_ORDER.map((k) => ({ mode: 'games', type: k, icon: icon[TYPES[k].icon] || '🎮', name: TYPES[k].name, desc: TYPES[k].description })),
     ];
     renderBuilder(stage, {

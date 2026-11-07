@@ -95,6 +95,13 @@ export function parseInput(raw) {
     return item;
   };
 
+  // "Boundaries / Limits" = two words (each with the same meaning), not one term
+  const pushTerms = (en, opts) => {
+    const alts = en.split(/\s*\/\s*/).map((x) => x.trim()).filter(Boolean);
+    if (alts.length > 1 && alts.every((x) => words(x).length <= 3)) alts.forEach((x) => pushItem(x, opts));
+    else pushItem(en, opts);
+  };
+
   const attachSentence = (sentence, arabic = null) => {
     if (current && sentenceUses(sentence, current.term) && current.examples.length < 3) {
       const ex = { sentence, arabic };
@@ -141,7 +148,7 @@ export function parseInput(raw) {
       en = en.trim();
       ar = cleanArabic(ar);
       if (isSentence(en)) attachSentence(en, ar || null);
-      else pushItem(en, { arabic: ar || null });
+      else pushTerms(en, { arabic: ar || null });
       continue;
     }
 
@@ -176,7 +183,7 @@ export function parseInput(raw) {
       current = null;
       continue;
     }
-    if (words(line).length <= 5) pushItem(line);
+    if (words(line).length <= 5) pushTerms(line);
     else unclear.push(line);
   }
 

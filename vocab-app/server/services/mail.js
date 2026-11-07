@@ -11,5 +11,5 @@ export async function sendMail({ to, subject, text, html }) {
     host: 'smtp.gmail.com', port: 465, secure: true,
     auth: { user: process.env.GMAIL_USER, pass: String(process.env.GMAIL_APP_PASSWORD).replace(/\s+/g, '') },
   });
-  await transport.sendMail({ from: `LexiTube <${process.env.GMAIL_USER}>`, to, subject, text, html });
+  await transport.sendMail({ from: `3Goal <${process.env.GMAIL_USER}>`, to, subject, text, html });
 }

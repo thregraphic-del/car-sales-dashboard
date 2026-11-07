@@ -1,6 +1,7 @@
 // أضف — one box for everything: a YouTube link, a word list, notes or a text.
 import { bindMyVideos } from '../my-videos.js';
 import { api } from '../api.js';
+import { speak } from '../audio.js';
 import { state, loadGroups } from '../state.js';
 import { esc, icon, levelChip, thumbHtml, relDate, toast, fmtTime, $ } from '../ui.js';
 import { groupPickerHtml, bindGroupPicker } from '../components.js';
@@ -29,7 +30,7 @@ export async function render(view, { params }) {
         <ol class="tiny muted" style="margin:0;padding-inline-start:20px;line-height:1.9">
           <li>افتح الفيديو في يوتيوب، ثم تحت الفيديو: <b>…المزيد</b> ← <b>عرض النص (Show transcript)</b>.</li>
           <li>حدّد النص كله في لوحة النص وانسخه (مع الأوقات).</li>
-          <li>الصقه هنا واضغط «افتح الفيديو» — سيعمل الفيديو داخل LexiTube والنص يتابعه جملةً جملة.</li>
+          <li>الصقه هنا واضغط «افتح الفيديو» — سيعمل الفيديو داخل 3Goal والنص يتابعه جملةً جملة.</li>
         </ol>
       </div>
       <div id="status"></div>
@@ -194,7 +195,7 @@ export async function render(view, { params }) {
         <div class="import-row ${it.keep ? '' : 'off'} ${it.saved_result ? 'done' : ''}" data-i="${i}">
           <input type="checkbox" class="check" ${it.keep ? 'checked' : ''} ${it.saved_result ? 'disabled' : ''} aria-label="تحديد">
           <div style="min-width:0">
-            <div class="row wrap" style="gap:6px"><b class="en term-sm">${esc(it.term)}</b>${levelChip(it.level)}${badge}
+            <div class="row wrap" style="gap:6px"><b class="en term-sm">${esc(it.term)}</b><button type="button" class="btn icon sm ghost" data-say="${esc(it.term)}" aria-label="استمع">${icon.speaker}</button>${levelChip(it.level)}${badge}
               ${it.unsure ? '<span class="chip ar-chip st-difficult" title="لم نتعرّف عليها بثقة">غير متأكدين منها</span>' : ''}
               ${it.saved_result ? `<span class="chip ar-chip st-mastered">${it.saved_result === 'added' ? 'تم الحفظ ✓' : it.saved_result === 'updated' ? 'تم التحديث ✓' : 'موجودة عندك ✓'}</span>` : ''}</div>
             ${it.term.toLowerCase() !== it.input.toLowerCase() ? `<div class="tiny muted en">كتبتَ: ${esc(it.input)}</div>` : ''}
@@ -205,6 +206,13 @@ export async function render(view, { params }) {
         </div>`;
     };
     draw();
+    // 🔊 the pasted words are read aloud once (up to 10), one after another
+    (async () => {
+      for (const it of items.slice(0, 10)) {
+        if (!result.isConnected || !document.contains(result)) break;
+        await speak(it.term).catch(() => {});
+      }
+    })();
 
     (async () => {
       const size = p.enrich_batch || 10;

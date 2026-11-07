@@ -7,10 +7,10 @@ import { config } from '../config.js';
 import { wrap, num } from '../http.js';
 import { httpError } from '../lib/errors.js';
 import { aiStatus, checkModel, usageToday, usageReport, AiError } from '../services/ai.js';
-import { explainWithAi, formsWithAi, extractFromFileWithAi, storyWithAi, suggestVideosWithAi, suggestWordsWithAi, ladderWithAi, synonymsWithAi } from '../services/extractor.js';
+import { explainWithAi, formsWithAi, extractFromFileWithAi, storyWithAi, suggestVideosWithAi, suggestWordsWithAi, ladderWithAi, synonymsWithAi, sayArabicWithAi } from '../services/extractor.js';
 import { matchKey } from '../../public/js/shared/text.js';
 import { listWords } from '../data/words.js';
-import { get } from '../db/index.js';
+import { get, run } from '../db/index.js';
 import { listSources } from '../data/sources.js';
 import { oembed } from '../lib/youtube.js';
 import { getLine, getSource } from '../data/sources.js';
@@ -39,6 +39,30 @@ router.post('/explain', wrap(async (req, res) => {
     res.status(err.status || 503).json({ ok: false, error: err.message, ai: aiStatus() });
     return undefined;
   }
+}));
+
+// 🔤 Arabic-letter pronunciation: saved once per word for everyone; only the missing ones go to AI.
+router.post('/say', wrap(async (req, res) => {
+  const terms = [...new Set((Array.isArray(req.body?.terms) ? req.body.terms : []).map((t) => String(t).toLowerCase().replace(/[^a-z' -]/g, '').replace(/\s+/g, ' ').trim()).filter((t) => t && t.length <= 40))].slice(0, 60);
+  const out = {};
+  const missing = [];
+  for (const t of terms) {
+    const row = await get('SELECT value FROM app_settings WHERE key = ?', `sayar:${t}`);
+    if (row) out[t] = row.value; else missing.push(t);
+  }
+  if (missing.length) {
+    try {
+      const items = await sayArabicWithAi(missing);
+      for (const it of items) {
+        const w = String(it.w || '').toLowerCase().trim();
+        const ar = String(it.ar || '').trim().slice(0, 40);
+        if (!missing.includes(w) || !/[\u0600-\u06FF]/.test(ar)) continue;
+        out[w] = ar;
+        await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO NOTHING', `sayar:${w}`, ar);
+      }
+    } catch { /* show what we have */ }
+  }
+  return { say: out };
 }));
 
 router.get('/synonyms', wrap(async (req, res) => {

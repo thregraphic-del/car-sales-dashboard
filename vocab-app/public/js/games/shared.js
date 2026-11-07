@@ -72,7 +72,7 @@ export function choice(stage, w, { prompt, options, text, after = '', sentence =
     const opts = shuffle([w, ...options]);
     // the English word is on the screen: it can be heard too (said once by itself)
     const showsWord = prompt.includes(esc(w.term));
-    stage.innerHTML = `<div class="card question">${prompt}${showsWord ? `<div class="q-say"><button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="1" aria-label="استمع">🔊</button><button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="0.65" aria-label="ببطء">🐢</button></div>` : ''}</div>
+    stage.innerHTML = `<div class="card question">${prompt}${showsWord ? `<div class="q-say"><button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="1" aria-label="استمع">🔊</button></div>` : ''}</div>
       <div class="options">${opts.map((o, k) => `<button class="option" data-k="${k}">${text(o)}</button>`).join('')}</div>
       <div class="feedback" id="fb"></div>
       <div class="next-wrap"><button class="btn primary hidden" id="nextBtn">التالي ←</button></div>`;
@@ -99,9 +99,9 @@ export function choice(stage, w, { prompt, options, text, after = '', sentence =
 export function reveal(stage, w, ok, extra = '', sentence = null) {
   const fb = stage.querySelector('#fb');
   fb.className = `feedback show ${ok ? 'ok' : 'no'}`;
-  fb.innerHTML = `<b>${ok ? 'صحيح ✓' : 'ليست صحيحة'}</b> — <span class="en-inline"><b>${esc(w.term)}</b></span> <button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="1" aria-label="استمع">🔊</button><button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="0.65" aria-label="ببطء">🐢</button>: ${esc(w.arabic || '')}${extra}${exampleHtml(w, sentence)}`;
+  fb.innerHTML = `<b>${ok ? 'صحيح ✓' : 'ليست صحيحة'}</b> — <span class="en-inline"><b>${esc(w.term)}</b></span> <button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="1" aria-label="استمع">🔊</button>: ${esc(w.arabic || '')}${extra}${exampleHtml(w, sentence)}`;
   speak(w.term).catch(() => {}); // every game: hear the word after answering
 }
 
-/** 🔊 + 🐢 buttons for a word or sentence (works again and again, via the global data-say handler). */
-export const sayBtns = (text) => `<span class="q-say"><button class="btn icon sm ghost" data-say="${esc(text)}" data-rate="1" aria-label="استمع">🔊</button><button class="btn icon sm ghost" data-say="${esc(text)}" data-rate="0.65" aria-label="ببطء">🐢</button></span>`;
+/** 🔊 button (tap twice = slow) for a word or sentence (works again and again, via the global data-say handler). */
+export const sayBtns = (text) => `<span class="q-say"><button class="btn icon sm ghost" data-say="${esc(text)}" data-rate="1" aria-label="استمع">🔊</button></span>`;

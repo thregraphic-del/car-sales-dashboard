@@ -16,7 +16,7 @@ export async function render(view, { onDone, mode: initial }) {
     view.className = 'view page-login';
     view.innerHTML = `
     <div class="auth-wrap">
-      <div class="brand"><div class="brand-mark">L</div><div><div class="brand-name">LexiTube</div><div class="brand-sub">مفردات حقيقية من يوتيوب</div></div></div>
+      <div class="brand"><img class="brand-logo" src="/img/3goal-mark-64.png" alt="" width="44" height="44"><div><div class="brand-name">3Goal</div><div class="brand-sub">مفردات حقيقية من يوتيوب</div></div></div>
       <div class="card stack">
         ${first ? '' : `<div class="segmented" role="tablist" style="justify-self:start">
           <button type="button" data-mode="login" class="${reg ? '' : 'active'}" role="tab" aria-selected="${!reg}">تسجيل الدخول</button>
@@ -69,7 +69,7 @@ export async function render(view, { onDone, mode: initial }) {
   };
   // 🔐 «نسيت كلمة المرور»: a 6-digit code by email, then a new password
   const forgot = (login0 = '') => {
-    view.innerHTML = `<div class="auth-wrap"><div class="brand"><div class="brand-mark">L</div><div><div class="brand-name">LexiTube</div></div></div>
+    view.innerHTML = `<div class="auth-wrap"><div class="brand"><img class="brand-logo" src="/img/3goal-mark-64.png" alt="" width="44" height="44"><div><div class="brand-name">3Goal</div></div></div>
       <div class="card stack"><h2 style="margin:0">استرجاع الحساب</h2>
         <p class="small ink-2">اكتب اسم المستخدم أو الإيميل، ويوصلك كود من ٦ أرقام على إيميلك.</p>
         <form id="f1"><label class="field">اسم المستخدم أو الإيميل<input class="input en" id="login" value="${esc(login0)}" required></label>

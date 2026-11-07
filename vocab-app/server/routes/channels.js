@@ -7,7 +7,7 @@ import { httpError } from '../lib/errors.js';
 import { all, get, run } from '../db/index.js';
 import { oembed } from '../lib/youtube.js';
 import { AiError } from '../services/ai.js';
-import { suggestChannelsWithAi, suggestVideosWithAi } from '../services/extractor.js';
+import { suggestChannelsWithAi, suggestVideosWithAi, moreChannelsWithAi } from '../services/extractor.js';
 
 const router = Router();
 
@@ -145,6 +145,26 @@ router.post('/check', wrap(async (req) => {
     result[h] = await checkHandle(h);
   }));
   return { channels: result };
+}));
+
+// ＋ more channels for a field: AI once per field/level/page (cached for everyone), each one checked on YouTube
+router.post('/more', wrap(async (req, res) => {
+  const field = clean(req.body?.field, 40);
+  const level = ['1', '2', '3'].includes(String(req.body?.level)) ? String(req.body.level) : '';
+  const page = Math.max(1, Math.min(5, Number(req.body?.page) || 1));
+  const have = (Array.isArray(req.body?.have) ? req.body.have : []).map((h) => clean(h, 60)).slice(0, 150);
+  if (!field) throw httpError(400, 'اختر مجالًا.');
+  try {
+    const r = await moreChannelsWithAi({ field, level, page, have });
+    const known = new Set(have.map((h) => h.toLowerCase()));
+    const list = r.channels.map((c) => ({ ...c, handle: String(c.handle || '').replace(/^@/, '').replace(/[^\w.-]/g, '') }))
+      .filter((c) => c.handle && !known.has(c.handle.toLowerCase())).slice(0, 12);
+    const checked = await Promise.all(list.map(async (c) => ({ c, v: await checkHandle(c.handle) })));
+    return { channels: checked.filter(({ v }) => v?.ok !== false).map(({ c, v }) => ({ name: c.name, handle: c.handle, type: c.field, url: v?.url || `https://www.youtube.com/@${c.handle}`, logo: v?.logo || '' })) };
+  } catch (err) {
+    if (err instanceof AiError) return res.status(503).json({ error: 'الاقتراحات غير متاحة الآن.' });
+    throw err;
+  }
 }));
 
 router.post('/similar', wrap(async (req, res) => {

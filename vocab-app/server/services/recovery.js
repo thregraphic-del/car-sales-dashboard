@@ -56,9 +56,9 @@ export async function sendResetCode(login) {
   await set(`reset:${user.id}`, JSON.stringify({ h: sha(`${user.id}:${code}`), exp: Date.now() + 15 * 60000, tries: 0, at: Date.now() }));
   await sendMail({
     to: email,
-    subject: `LexiTube — كود استرجاع الحساب: ${code}`,
-    text: `كود استرجاع حسابك في LexiTube: ${code}\nصالح لمدة ١٥ دقيقة. إذا ما طلبته تجاهل هذه الرسالة.`,
-    html: `<div dir="rtl" style="font-family:Arial,sans-serif;font-size:16px"><p>كود استرجاع حسابك في <b>LexiTube</b>:</p><p style="font-size:30px;letter-spacing:6px;font-weight:bold">${code}</p><p>صالح لمدة ١٥ دقيقة. إذا ما طلبته تجاهل هذه الرسالة.</p></div>`,
+    subject: `3Goal — كود استرجاع الحساب: ${code}`,
+    text: `كود استرجاع حسابك في 3Goal: ${code}\nصالح لمدة ١٥ دقيقة. إذا ما طلبته تجاهل هذه الرسالة.`,
+    html: `<div dir="rtl" style="font-family:Arial,sans-serif;font-size:16px"><p>كود استرجاع حسابك في <b>3Goal</b>:</p><p style="font-size:30px;letter-spacing:6px;font-weight:bold">${code}</p><p>صالح لمدة ١٥ دقيقة. إذا ما طلبته تجاهل هذه الرسالة.</p></div>`,
   });
   return { ok: true };
 }

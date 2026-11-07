@@ -263,7 +263,7 @@ export function extractWithDictionary({ lines }) {
       origin: 'dictionary',
     }))
     .sort((a, b) => b.usefulness - a.usefulness)
-    .slice(0, 60);
+    .slice(0, 400); // most of the video's words (≥80%), not only the top few
 }
 
 /**
@@ -710,6 +710,18 @@ export async function suggestChannelsWithAi({ names }) {
   });
 }
 
+/** ＋ More channels in one field (and level), family-friendly, saved for everyone (cache by field+level+page). */
+export async function moreChannelsWithAi({ field, level, page, have }) {
+  return jsonCall({
+    task: 'more_channels_v1',
+    system: 'You recommend real, popular, family-friendly English-language YouTube channels with clear speech, for an Arabic-speaking learner of English, in the given field and level (1 easy, 2 medium, 3 advanced). Up to 12 channels not in the given list. "handle" = the channel\'s @handle without "@" (must be the exact real handle; skip the channel if unsure). "field" = a 1–3 word Arabic type label. "why_ar" = short Arabic sentence.',
+    user: `Field: ${field}\nLevel: ${level || 'any'}\nPage: ${page}\nAlready listed: ${have.slice(0, 120).join(', ')}`,
+    schema: CHANNELS_SCHEMA,
+    zod: ChannelsZ,
+    maxTokens: 1400,
+  });
+}
+
 const LADDER_SCHEMA = obj({ items: { type: 'array', items: obj({ term: str, level: { type: 'string', enum: LEVELS }, arabic: str, note_ar: str, example: str }) } });
 const LadderZ = z.object({ items: z.array(z.object({ term: z.string(), level: z.enum(LEVELS), arabic: z.string(), note_ar: z.string(), example: z.string() })) });
 
@@ -817,4 +829,19 @@ export async function sameMeaningWithAi(head, candidates) {
     maxTokens: 300,
   });
   return new Set(r.same.map((x) => x.trim().toLowerCase()));
+}
+
+/* ------------------------------ Arabic-letter pronunciation (e.g. boundaries → باوندَريز) */
+const SAYAR_SCHEMA = obj({ items: { type: 'array', items: obj({ w: str, ar: str }) } });
+const SayArZ = z.object({ items: z.array(z.object({ w: z.string(), ar: z.string() })) });
+export async function sayArabicWithAi(terms) {
+  const r = await jsonCall({
+    task: 'say_ar_v1',
+    system: 'For each English word or short phrase, write how it is pronounced (American English) using Arabic letters, the way an Arabic speaker would read it aloud, with a few short vowel marks (fatha/kasra/damma) only where they help, e.g. boundaries → باوندَريز, abundance → أبَندَنس, thought → ثوت. Return "w" exactly as given and "ar" the Arabic-letter pronunciation only.',
+    user: terms.join('\n'),
+    schema: SAYAR_SCHEMA,
+    zod: SayArZ,
+    maxTokens: Math.min(4000, 40 * terms.length + 200),
+  });
+  return r.items;
 }
