@@ -19,6 +19,7 @@
 | 15 | 🗨 Saudi-dialect recap («السالفة باختصار») under the learner's control in ⚙: every 3 / 5 / 10 min or a number they type; «قبل» (what the next part is about, before it plays) or «بعد» (what was just said); on/off switch; shown as a small card that doesn't cover the text | to build | in the batch | same as now: AI once per part, saved |
 | 16 | 🔊 Pasted words (Add page results): a 🔊 button on every extracted word (tap again = slow), and the words are read aloud once when the list appears; ALSO fix parsing «Boundaries / Limits» → two separate words (boundaries, limits) instead of one term | to build | in the batch | 0 (phone's own voice) |
 | 17 | 🔤 Arabic-letter pronunciation (e.g. Boundaries → باوندَريز) as a small grey note next to every 🔊 on every page (word panel, my words, word details, games, cards, listening, pasted words); made by AI once per word in batches, saved in the dictionary for everyone, never recomputed | to build | in the batch | small: AI once per word (batched), shared |
+| 18 | 📝 The words button in the video bar reads «📝 الكلمات 96» in clear text, bright glowing yellow so it stands out from the other buttons | to build | in the batch | 0 |
 
 (Batch 3 deployed on 2026-11-06 at the owner's «نفذها الآن»: phone layout audit + 📝 words icon in the
 reader bar, font size pill with live preview, 🗣 «ردّد معي» icon, ❗ guided tours (home + video page),
