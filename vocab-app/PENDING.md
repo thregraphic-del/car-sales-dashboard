@@ -16,6 +16,7 @@
 | 12 | 📝 Extracted words, clear and stable: (a) the 📝 count = every NEW word of the video (not in my words before I opened it) and it never drops to 0 after saving — saved ones stay listed with ✓; (b) extract most of the video's words (≥80% of its content words, from the built-in dictionary, no extra AI), all marked green in the text; (c) «حفظ الكل» pressed while words are still loading also saves the ones that arrive later, automatically | to build | in the batch | 0 extra AI (dictionary) |
 | 13 | ➕ «المزيد» under each channels field: a ＋ button finds more channels in that field (and level), AI once per field+page, each channel checked once on YouTube, saved for everyone — the next person gets them instantly | to build | in the batch | small: AI once per field page, then shared |
 | 14 | 🎮 Every game fits the phone screen with no scrolling: compact question card, smaller options, the feedback short, and «التالي/تحقّق/موافق» always visible (sticky at the bottom, above the tab bar) | to build | in the batch | 0 |
+| 15 | 🗨 Saudi-dialect recap («السالفة باختصار») under the learner's control in ⚙: every 3 / 5 / 10 min or a number they type; «قبل» (what the next part is about, before it plays) or «بعد» (what was just said); on/off switch; shown as a small card that doesn't cover the text | to build | in the batch | same as now: AI once per part, saved |
 
 (Batch 3 deployed on 2026-11-06 at the owner's «نفذها الآن»: phone layout audit + 📝 words icon in the
 reader bar, font size pill with live preview, 🗣 «ردّد معي» icon, ❗ guided tours (home + video page),
