@@ -43,8 +43,17 @@ export async function fetchTranscript(videoId, origin) {
     set: (v, j) => run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', `ytjob:${v}`, j),
     clear: (v) => run('DELETE FROM app_settings WHERE key = ?', `ytjob:${v}`),
   };
+  // 0) Someone already added this video: reuse its transcript (no service call at all)
+  try {
+    const src = await get('SELECT id FROM sources WHERE youtube_id = ? AND is_demo = 0 ORDER BY id LIMIT 1', videoId);
+    const lines = src ? await all('SELECT start_seconds, text FROM transcript_lines WHERE source_id = ? ORDER BY idx', src.id) : [];
+    if (lines.length >= 3) return { meta: await getVideoMeta(videoId), segments: lines.map((l) => ({ start: Number(l.start_seconds) || 0, dur: 0, text: l.text })), source: 'shared', via: 'shared' };
+  } catch { /* fetch it as usual */ }
   // 1) A configured transcript service: the most reliable path on hosted servers.
-  if ((options.transcriptProvider && options.transcriptApiKey) || options.transcriptApiUrl) {
+  //    Its monthly limit reached → don't call it again for an hour (every refused call is wasted).
+  const limited = Number((await get('SELECT value FROM app_settings WHERE key = ?', 'ytsvc:limit'))?.value || 0);
+  if (Date.now() - limited < 3600000) throw new TranscriptError('service_limit', { details: ['transcript service limit reached (waiting an hour before trying again)'] });
+  if (((options.transcriptProvider && options.transcriptApiKey) || options.transcriptApiUrl) && Date.now() - limited > 3600000) {
     try {
       const segments = await externalTranscript(videoId, { ...options, deadline, jobs });
       if (segments?.length) {
@@ -54,6 +63,10 @@ export async function fetchTranscript(videoId, origin) {
       details.push('service: empty transcript');
     } catch (err) {
       if (err.pending) throw err; // a long video: the service is still writing its transcript
+      if (err.limit) {
+        await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', 'ytsvc:limit', String(Date.now()));
+        throw new TranscriptError('service_limit', { details: [err.message] });
+      }
       details.push(err.message.slice(0, 160));
     }
   }

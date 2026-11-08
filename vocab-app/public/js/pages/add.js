@@ -9,7 +9,7 @@ import { attachButtonHtml, bindAttach, packsHtml, bindPacks, suggestionsHtml, bi
 
 const isYoutube = (s) => /^\s*(https?:\/\/)?((www|m|music)\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)\/\S+\s*$/i.test(s);
 // Pasting the transcript is offered for every reason except a bad link.
-const PASTE_HELP = new Set(['no_captions', 'blocked', 'fetch_failed', 'age_restricted', 'region_blocked', 'transcript_fetch_failed']);
+const PASTE_HELP = new Set(['no_captions', 'blocked', 'service_limit', 'fetch_failed', 'age_restricted', 'region_blocked', 'transcript_fetch_failed']);
 
 // «مقاطعي»: drawn at once from the last list kept on this device, then refreshed quietly.
 const srcKey = () => `add.sources.${state.user?.id || 'me'}`; // per account on a shared device
@@ -106,9 +106,10 @@ export async function render(view, { params }) {
       };
       let r = await ask();
       // A long video: its transcript is prepared in the background — ask again every few seconds (up to ~3 min).
-      for (let i = 0; r?.pending && i < 45 && view.isConnected; i++) {
-        status.innerHTML = `<p class="small muted" style="margin-top:12px"><span class="spinner"></span> ${esc(r.message || 'نجهّز نص الفيديو…')} (${(i + 1) * 4} ث)</p>`;
-        await new Promise((res) => setTimeout(res, 4000));
+      // a long video: ask again every 10 s, for about 2 minutes (each check may cost the service a credit)
+      for (let i = 0; r?.pending && i < 12 && view.isConnected; i++) {
+        status.innerHTML = `<p class="small muted" style="margin-top:12px"><span class="spinner"></span> ${esc(r.message || 'نجهّز نص الفيديو…')} (${(i + 1) * 10} ث)</p>`;
+        await new Promise((res) => setTimeout(res, 10000));
         r = await ask();
       }
       if (r?.pending) throw Object.assign(new Error('الفيديو طويل جدًا وما زال نصّه يُجهَّز — جرّب بعد دقيقة.'), { data: {} });

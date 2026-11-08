@@ -39,6 +39,7 @@ export const MESSAGES = {
   live: 'هذا بث مباشر لم ينتهِ بعد — لا يوجد له نص كامل الآن. جرّب بعد انتهاء البث.',
   no_captions: 'هذا الفيديو بلا ترجمة نصية (captions) على يوتيوب، لذلك لا يوجد نص لتحليله. اختر فيديو فيه زر CC، أو الصق النص يدويًا.',
   blocked: 'يوتيوب يمنع خوادم الاستضافة من تنزيل نصوص الفيديو (يطلب التحقق من أنها ليست روبوتًا)، لذلك لم نستطع جلب النص تلقائيًا. انسخ النص من «عرض النص» في يوتيوب والصقه هنا — سيعمل الفيديو والمتابعة المباشرة كالمعتاد.',
+  service_limit: 'خدمة جلب النصوص وصلت حدها الشهري الآن، فما نقدر نجيب نص هذا الفيديو تلقائيًا. انسخ النص من «عرض النص» في يوتيوب والصقه هنا — يشتغل الفيديو والمتابعة المباشرة كالمعتاد.',
   fetch_failed: 'تعذّر تنزيل نص الفيديو من يوتيوب الآن. تأكد أن للفيديو ترجمة (CC) وجرّب مرة أخرى، أو انسخ النص من «عرض النص» في يوتيوب والصقه هنا.',
 };
 
@@ -318,25 +319,32 @@ async function plainTimedtext(videoId, ms) {
 async function supadataTranscript(videoId, key, { deadline = Date.now() + 18000, jobs = null } = {}) {
   const headers = { 'x-api-key': key, Accept: 'application/json' };
   const left = () => deadline - Date.now();
-  let jobId = (await jobs?.get(videoId).catch(() => null)) || null;
+  // the job is kept as "id|time of the last check": a long video is checked at most once every 10 s
+  const saved = String((await jobs?.get(videoId).catch(() => null)) || '');
+  let [jobId, lastAt] = saved.split('|');
+  jobId = jobId || null;
   let res = null;
   let data = {};
   if (!jobId) {
     res = await fetchWithTimeout(`https://api.supadata.ai/v1/youtube/transcript?videoId=${videoId}&lang=en`, { headers }, Math.max(4000, Math.min(15000, left() - 2000)));
     data = await res.json().catch(() => ({}));
-    if (res.ok && data.jobId && !data.content) jobId = data.jobId;
+    if (res.ok && data.jobId && !data.content) {
+      jobId = data.jobId;
+      lastAt = '0';
+      // most jobs finish in a few seconds: wait once, then check once, in this same request
+      if (left() > 9000) await new Promise((r) => setTimeout(r, 4000));
+    }
   }
-  // Long videos are processed as a job: poll while there is time, otherwise come back later.
-  while (jobId && !data.content && left() > 3500) {
+  if (jobId && !data.content && left() > 3500 && Date.now() - Number(lastAt || 0) >= 10000) {
+    // ONE status check per request (never a loop of checks — each one may cost a credit)
     res = await fetchWithTimeout(`https://api.supadata.ai/v1/transcript/${encodeURIComponent(jobId)}`, { headers }, Math.min(8000, left() - 1000));
     data = await res.json().catch(() => ({}));
     if (data.result) data = data.result;
-    if (data.content) break;
-    if (data.status && !['completed', 'active', 'queued'].includes(data.status)) { await jobs?.clear(videoId).catch(() => {}); jobId = null; break; }
-    if (left() > 5500) await new Promise((r) => setTimeout(r, 2000)); else break;
+    lastAt = String(Date.now());
+    if (data.status && !['completed', 'active', 'queued'].includes(data.status)) { await jobs?.clear(videoId).catch(() => {}); jobId = null; }
   }
   if (jobId && !data.content) {
-    await jobs?.set(videoId, jobId).catch(() => {});
+    await jobs?.set(videoId, `${jobId}|${lastAt || Date.now()}`).catch(() => {});
     const err = new Error('transcript is being prepared');
     err.pending = true;
     throw err;
@@ -348,6 +356,7 @@ async function supadataTranscript(videoId, key, { deadline = Date.now() + 18000,
     err.noTranscript = true;
     throw err;
   }
+  if (res.status === 429) { const err = new Error('transcript service HTTP 429'); err.limit = true; throw err; }
   if (!res.ok) throw new Error(`transcript service HTTP ${res.status}`);
   const content = Array.isArray(data.content) ? data.content : [];
   return content.map((c) => ({ start: Number(c.offset || 0) / 1000, dur: Number(c.duration || 0) / 1000, text: String(c.text || '').replace(/\s+/g, ' ').trim() }))

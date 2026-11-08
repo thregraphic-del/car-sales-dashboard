@@ -258,7 +258,8 @@ test('transcript service: a long video still being written is remembered and fet
   const jobs = { get: async (v) => store.get(v) || null, set: async (v, j) => { store.set(v, j); }, clear: async (v) => { store.delete(v); } };
   const opts = { transcriptProvider: 'supadata', transcriptApiKey: 'test-key', jobs };
   await assert.rejects(yt.externalTranscript('SLOWSLOWSLO', { ...opts, deadline: Date.now() + 3000 }), (err) => err.pending === true);
-  assert.equal(store.get('SLOWSLOWSLO'), 'job-slow', 'the job is remembered');
+  assert.ok(String(store.get('SLOWSLOWSLO')).startsWith('job-slow'), 'the job is remembered');
+  store.set('SLOWSLOWSLO', 'job-slow|0'); // the next try comes 10 s later
   ready = true;
   const segs = await yt.externalTranscript('SLOWSLOWSLO', { ...opts, deadline: Date.now() + 8000 });
   assert.equal(segs[0].text, 'Finally ready.');
