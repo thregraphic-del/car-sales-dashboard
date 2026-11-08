@@ -18,6 +18,7 @@
 | 14 | 🖥 iPad / big screens: all video controls as a row of labelled icons on the page (speed, pause after line, ردّد معي, ×2, translation, layout, font, times, video place, summary, listening) — no need to open ⚙; phones keep the main ones outside and the rest inside ⚙ | to build | in the batch | 0 |
 | 15 | 💾 Words panel: one «حفظ» button that opens a small menu like «المستوى»: «احفظ الكل (N)» + show filter «الكل / غير المحفوظة / المحفوظة»; the separate 🔖 filter and the «✓ محفوظة» state chip are removed; when every word is saved the «حفظ» button disappears. ALSO: once «احفظ الكل» is pressed for a video it is remembered for that video — every word that arrives later (still loading, AI adding more, or on a later visit) is saved automatically (the current version only did this while one specific step was running) | to build | in the batch | 0 |
 | 16 | 🔤 Remove the phonetic symbols (IPA like /ˌoʊvərəˈtʃivɪŋ/) under words everywhere (cards, word panel, details, listening); the simple Arabic-letter pronunciation next to 🔊 replaces it | to build | in the batch | 0 |
+| 17 | 🧹 «كلماتي»: remove the «الأوضح» filter (and its synonym groups line); the list opens on «الكل»; the synonym chips no longer show on rows (easier synonyms stay inside each word's details) | to build | in the batch | 0 (also no more AI checks for groups) |
 
 (Batch 4 of 20 deployed on 2026-11-07: autoplay (+ unmute), no goal chip on the video page, on=green/off=grey
 with ✕, simpler words panel (glowing icon row), hide line times, «راجع كلمات أمس» on top + «أمس» filter,
