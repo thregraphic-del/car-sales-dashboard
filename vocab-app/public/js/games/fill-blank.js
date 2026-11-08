@@ -1,5 +1,5 @@
 // Game: املأ الفراغ (Fill in the blank)
-import { esc } from '../ui.js';
+import { esc, icon } from '../ui.js';
 import { blankable, distractors, choice } from './shared.js';
 
 export default {
@@ -15,7 +15,8 @@ export default {
     const b = blankable(w);
     return choice(stage, w, {
       prompt: `<div class="prompt">أكمل الجملة</div>
-        <div class="q-sentence">${esc(b.sentence.slice(0, b.index))}<span class="blank">&nbsp;</span>${esc(b.sentence.slice(b.index + b.match.length))}</div>
+        <div class="q-sentence">${esc(b.sentence.slice(0, b.index))}<span class="blank">&nbsp;</span>${esc(b.sentence.slice(b.index + b.match.length))}
+          <button class="btn icon sm ghost" data-say="${esc(`${b.sentence.slice(0, b.index)} ... ${b.sentence.slice(b.index + b.match.length)}`)}" aria-label="استمع للجملة">${icon.speaker}</button></div>
         ${w.arabic ? `<div class="small muted" style="margin-top:8px">التلميح: ${esc(w.arabic)}</div>` : ''}`,
       options: distractors(w, pool, 3, (x) => x.term.toLowerCase()),
       text: (o) => `<span class="en-inline">${esc(o.term)}</span>`,

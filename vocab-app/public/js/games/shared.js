@@ -39,7 +39,8 @@ export function exampleHtml(w, sentence = null) {
 export function blankable(w) {
   const re = termRegex(w.term);
   if (!re) return null;
-  for (const s of sentencesFor(w)) {
+  // a real sentence only (5+ words) — a one-word "sentence" would leave nothing to read
+  for (const s of sentencesFor(w).filter((x) => wordCount(x) >= 5)) {
     const m = s.match(re);
     if (m) return { sentence: s, match: m[0], index: m.index, arabic: arabicFor(w, s) };
   }

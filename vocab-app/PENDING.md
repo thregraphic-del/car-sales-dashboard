@@ -17,3 +17,5 @@ resume, floating «!» help with tours on every screen, stable new-words count +
 while loading, ＋ more channels per field, games fit the screen (sticky next), recap every N min before/after,
 🔊 + auto-read for pasted words and «A / B» split, Arabic-letter pronunciation next to every 🔊, yellow
 «الكلمات» button, 3Goal rebrand (logo + palette, light by default), line icons instead of emojis.)
+
+Bug fixed (rides with the batch, not counted): «أكمل الجملة» / «تحدّي السياق» showed an empty sentence when the saved example was a single word — now only real sentences (5+ words) are used, and the sentence has a 🔊.

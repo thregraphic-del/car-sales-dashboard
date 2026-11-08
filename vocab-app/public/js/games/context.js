@@ -10,7 +10,7 @@ export default {
   icon: 'quote',
   description: 'جملة حقيقية: ماذا تعني الكلمة هنا؟',
   /** Can this word be asked in this format? */
-  can: (w) => !!(w.context_sentence && w.arabic),
+  can: (w) => !!(w.context_sentence && w.arabic && w.context_sentence.trim().split(/\s+/).length >= 5),
   /** Ask one word; resolves true (correct) or false. */
   play: (stage, w, pool) => choice(stage, w, {
     prompt: `<div class="prompt">${w.source?.title ? `من <span class="en-inline">“${esc(w.source.title.slice(0, 48))}”</span>` : 'جملة حقيقية'}</div>
