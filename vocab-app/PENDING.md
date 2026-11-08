@@ -21,6 +21,7 @@
 | 17 | 🧹 «كلماتي»: remove the «الأوضح» filter (and its synonym groups line); the list opens on «الكل»; the synonym chips no longer show on rows (easier synonyms stay inside each word's details) | to build | in the batch | 0 (also no more AI checks for groups) |
 | 18 | ✅ Simple word states from quiz answers: جديدة (never asked) · متقنة (right twice in a row on two different days) · تحتاج مراجعة (last answer wrong) · صعبة (wrong 2+ of the last 3); wrong on a mastered word → تحتاج مراجعة, again → صعبة; right twice on 2 days → back to متقنة. Review timing stays smart behind the scenes; used in «كلماتي», «تدرّب» filter and Excel | to build | in the batch | 0 |
 | 19 | 🖼 Video filter with pictures: «كل المقاطع» in «كلماتي» (and «من» in «تدرّب») opens a list with each video's thumbnail + title (instead of a plain text list) | to build | in the batch | 0 (thumbnails from YouTube) |
+| 20 | 🧩 «ركّب الجملة»: show the sentence's Arabic translation as the guide to build it (only sentences that have their Arabic; missing ones get it from #8's saved AI examples) | building now | in the batch | 0 extra |
 
 (Batch 4 of 20 deployed on 2026-11-07: autoplay (+ unmute), no goal chip on the video page, on=green/off=grey
 with ✕, simpler words panel (glowing icon row), hide line times, «راجع كلمات أمس» on top + «أمس» filter,
