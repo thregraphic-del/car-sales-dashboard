@@ -310,7 +310,7 @@ export async function render(view, { segments, params }) {
           <div class="sgroup">أدوات</div>
           <div class="srow"><span class="slabel">شرح</span><div class="sopts"><button class="sopt" id="tourR">شرح الأزرار</button></div></div>
           <div class="srow"><span class="slabel">أدوات</span><div class="sopts">
-            <button class="sopt" id="summaryBtn">📝 الملخص</button><button class="sopt" id="listenBtn">🎧 استماع</button>
+            <button class="sopt" id="retrBtn">ترجمة أدق</button><button class="sopt" id="summaryBtn">📝 الملخص</button><button class="sopt" id="listenBtn">🎧 استماع</button>
             ${source.youtube_id && !source.is_demo ? `<a class="sopt" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">يوتيوب ↗</a>` : ''}
             <button class="sopt" id="del" style="color:var(--bad)">🗑 حذف</button></div></div>
           <button type="button" class="btn primary rset-ok" id="setOk">موافق</button>
@@ -1137,6 +1137,17 @@ export async function render(view, { segments, params }) {
   ensureAlignment();
   ensureTranslation();
   if (!missingAr()) repairTranslation();
+  // 🌐 «ترجمة أدق»: translate this video again with the newer rules (once, then saved)
+  $('#retrBtn', view)?.addEventListener('click', async () => {
+    toggleSet(false);
+    try {
+      await api.retranslate(id);
+      setTrNote('<span class="spinner"></span> نعيد ترجمة المقطع بدقة أكثر…');
+      repairing = false;
+      await repairTranslation();
+      toast('تمت الترجمة الأدق ✓');
+    } catch (err) { toast(err.message); }
+  });
 
   // 2) Smarter word choice: AI reads the transcript in chunks and adds the
   //    useful words / expressions with their meaning in context.

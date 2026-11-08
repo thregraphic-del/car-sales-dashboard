@@ -1394,3 +1394,24 @@ body.reader-focus .reader-grid[data-tab="words"] .reader-main { display: none !i
 .cal-key i { width: 12px; height: 12px; border-radius: 4px; display: inline-block; background: var(--surface-2); }
 .cal-key i.l1 { background: color-mix(in srgb, var(--accent) 30%, transparent); } .cal-key i.l2 { background: var(--accent); }
 .cal-info { text-align: center; min-height: 22px; }
+/* 🖥 iPad / big screens: every video option sits on the page as a compact toolbar — no ⚙ needed */
+@media (min-width: 1000px) {
+  .page-reader #setBtn { display: none; }
+  .page-reader .rset, .page-reader .rset.hidden { display: flex !important; flex-wrap: wrap; gap: 4px 14px; align-items: center; position: static; max-width: none; margin: 0 0 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: none; }
+  .page-reader .rset .rset-title, .page-reader .rset .sgroup, .page-reader .rset .rset-ok, .page-reader .rset #viewBtn { display: none !important; }
+  .page-reader .rset .rgrp, .page-reader .rset #viewMenu { display: contents !important; }
+  .page-reader .rset .srow { display: inline-flex; align-items: center; gap: 6px; border: 0; padding: 2px 0; margin: 0; }
+  .page-reader .rset .slabel { font-size: 12px; min-width: 0; color: var(--ink-2); }
+  .page-reader .rset .sopt { padding: 4px 9px; font-size: 12.5px; }
+  .page-reader .rset .tr-search .input { width: 150px; }
+}
+.src-pick { display: inline-flex; align-items: center; gap: 6px; max-width: 220px; cursor: pointer; }
+.src-pick svg { width: 18px; height: 18px; flex: none; }
+.src-pick img { width: 34px; height: 24px; object-fit: cover; border-radius: 4px; flex: none; }
+.src-pick.on { border-color: var(--accent); color: var(--accent); }
+.src-list { display: grid; gap: 8px; max-height: 60vh; overflow-y: auto; }
+.src-row { display: grid; grid-template-columns: 96px 1fr auto; gap: 10px; align-items: center; text-align: start; padding: 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; }
+.src-row.on { border-color: var(--accent); background: var(--accent-soft); }
+.src-row img { width: 96px; height: 54px; object-fit: cover; border-radius: 8px; }
+.src-all { width: 96px; height: 54px; border-radius: 8px; background: var(--surface-2); display: grid; place-items: center; }
+.src-all svg { width: 24px; height: 24px; color: var(--accent); }

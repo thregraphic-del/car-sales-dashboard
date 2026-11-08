@@ -51,6 +51,8 @@ router.delete('/:id', wrap(async (req) => {
 router.post('/:id/refine', wrap(async (req) => service.refineSource(idParam(req), req.userId)));
 router.get('/:id/translation', wrap(async (req) => service.translationStatus(idParam(req), req.userId)));
 // A short recap in Saudi dialect of the part just watched (from–to seconds).
+router.post('/:id/retranslate', wrap(async (req) => sources.retranslate(idParam(req), req.userId)));
+
 router.post('/:id/recap', wrap(async (req, res) => {
   const id = idParam(req);
   const src = await sources.getSource(id, req.userId);

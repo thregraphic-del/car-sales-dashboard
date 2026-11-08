@@ -416,7 +416,7 @@ export function dictionaryDetails(term) {
 const TRANSLATE_SCHEMA = obj({ lines: { type: 'array', items: obj({ i: { type: 'integer' }, ar: str }) } });
 const TranslateZ = z.object({ lines: z.array(z.object({ i: z.number().int(), ar: z.string() })) });
 
-const TRANSLATE_RULES = 'Translate English video subtitles into natural Modern Standard Arabic for a learner reading along, line by line. IMPORTANT: each numbered line is a FRAGMENT of speech, often cut in the middle of a sentence. Translate ONLY the words of that line, in the same order, even when the fragment is incomplete (e.g. "It makes them" → "إنه يجعلهم"). Never move words to or from the neighbouring lines, never merge, split, summarise or skip lines, never leave English words untranslated (names may stay). Return exactly one item per input line, with its number. Use the surrounding lines only to choose the right meaning.';
+const TRANSLATE_RULES = 'Translate English video subtitles into accurate, natural Modern Standard Arabic for a learner reading along, line by line. Method: first understand the WHOLE sentence across the neighbouring lines and its real meaning in context (idioms, phrasal verbs, tone), then give each line the exact Arabic part that corresponds to its own words, so that read together the Arabic lines form one correct, fluent sentence. Prefer the meaning a native speaker intends over word-for-word; keep names, numbers and brands as they are. IMPORTANT: each numbered line is a FRAGMENT of speech, often cut in the middle of a sentence. Translate ONLY the words of that line, in the same order, even when the fragment is incomplete (e.g. "It makes them" → "إنه يجعلهم"). Never move words to or from the neighbouring lines, never merge, split, summarise or skip lines, never leave English words untranslated (names may stay). Return exactly one item per input line, with its number. Use the surrounding lines only to choose the right meaning.';
 
 /**
  * Lines whose Arabic does not belong to them: missing, English left in, or far too long/short
@@ -439,7 +439,7 @@ export function suspiciousTranslations(lines, ar) {
 export async function translateWithAi(lines, title = '', { strict = false } = {}) {
   const ask = async (strict) => {
     const r = await jsonCall({
-      task: 'translate_lines_v2',
+      task: 'translate_lines_v3',
       system: TRANSLATE_RULES,
       user: `${strict ? 'Check carefully: one Arabic line per English fragment, nothing moved between lines.\n' : ''}${title ? `Video: ${title}\n` : ''}${lines.map((l) => `[${l.idx}] ${l.text}`).join('\n')}`,
       schema: TRANSLATE_SCHEMA,

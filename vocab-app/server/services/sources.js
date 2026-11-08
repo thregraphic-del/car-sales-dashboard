@@ -253,6 +253,13 @@ export async function repairTranslation(sourceId, userId, { budgetMs = 15000 } =
   return { more: true, fixed };
 }
 
+/** «ترجمة أدق»: the video is translated again (new, more accurate rules), once, when the learner asks. */
+export async function retranslate(sourceId, userId) {
+  await requireSource(sourceId, userId);
+  await run('DELETE FROM app_settings WHERE key = ?', `tr-fix2:${sourceId}`);
+  return { ok: true };
+}
+
 export async function translationStatus(sourceId, userId) {
   const src = await requireSource(sourceId, userId);
   const c = await sources.translationCounts(sourceId);
