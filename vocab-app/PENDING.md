@@ -20,3 +20,4 @@ while loading, ＋ more channels per field, games fit the screen (sticky next), 
 «الكلمات» button, 3Goal rebrand (logo + palette, light by default), line icons instead of emojis.)
 
 Bug fixed (rides with the batch, not counted): «أكمل الجملة» / «تحدّي السياق» showed an empty sentence when the saved example was a single word — now only real sentences (5+ words) are used, and the sentence has a 🔊.
+Bug fixed (rides with the batch, not counted): «ما معنى هذه الكلمة؟» showed two 🔊 buttons and the pronunciation twice — now one.

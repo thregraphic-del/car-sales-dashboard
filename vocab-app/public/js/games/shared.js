@@ -72,7 +72,8 @@ export function choice(stage, w, { prompt, options, text, after = '', sentence =
   return new Promise((resolve) => {
     const opts = shuffle([w, ...options]);
     // the English word is on the screen: it can be heard too (said once by itself)
-    const showsWord = prompt.includes(esc(w.term));
+    // one 🔊 only: skip ours when the game's prompt already has a listen button for the word
+    const showsWord = prompt.includes(esc(w.term)) && !prompt.includes('data-say');
     stage.innerHTML = `<div class="card question">${prompt}${showsWord ? `<div class="q-say"><button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="1" aria-label="استمع">🔊</button></div>` : ''}</div>
       <div class="options">${opts.map((o, k) => `<button class="option" data-k="${k}">${text(o)}</button>`).join('')}</div>
       <div class="feedback" id="fb"></div>
