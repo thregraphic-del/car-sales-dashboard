@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { jsonCall, aiConfigured, aiAvailable, AiError } from './ai.js';
 import { matchKey } from '../../public/js/shared/text.js';
 import { lexicon, lexiconPatterns, findSpan } from '../lib/matcher.js';
+import { all } from '../db/index.js';
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const TOPICS = ['business', 'work', 'academic', 'daily', 'media', 'tech', 'emotions', 'health', 'travel', 'society', 'finance', 'data'];
@@ -266,6 +267,46 @@ export function extractWithDictionary({ lines }) {
     .slice(0, 400); // most of the video's words (≥80%), not only the top few
 }
 
+// ⚡ The site's own word index: every word anyone has saved (with Arabic + level) is matched at once,
+// no AI. Small grammar words are left out.
+const STOP = new Set('the a an and or but if of to in on at by for from with as is am are was were be been being it its this that these those he she they we you i me him her them us my your his our their what which who whom whose when where why how not no yes do does did done have has had will would can could should shall may might must just very so too also than then there here about into over under up down out off again more most some any all each every other such only own same few both'.split(' '));
+const stems = (w) => {
+  const out = [w];
+  if (w.endsWith('ies')) out.push(`${w.slice(0, -3)}y`);
+  if (w.endsWith('es')) out.push(w.slice(0, -2));
+  if (w.endsWith('s') && !w.endsWith('ss')) out.push(w.slice(0, -1));
+  if (w.endsWith('ed')) out.push(w.slice(0, -2), w.slice(0, -1));
+  if (w.endsWith('ing')) out.push(w.slice(0, -3), `${w.slice(0, -3)}e`);
+  return out.filter((x) => x.length >= 3);
+};
+export async function extractFromIndex({ lines }) {
+  const firstLine = new Map(); // candidate → line idx
+  for (const l of lines) {
+    const toks = String(l.text).toLowerCase().replace(/[^a-z' -]/g, ' ').split(/\s+/).filter(Boolean);
+    toks.forEach((t, i) => {
+      const w = t.replace(/^'+|'+$/g, '');
+      if (w.length >= 3 && !STOP.has(w)) for (const c of stems(w)) if (!firstLine.has(c)) firstLine.set(c, l.idx);
+      const two = toks[i + 1] && `${w} ${toks[i + 1].replace(/^'+|'+$/g, '')}`;
+      if (two && !STOP.has(w)) { if (!firstLine.has(two)) firstLine.set(two, l.idx); }
+    });
+  }
+  const keys = [...firstLine.keys()];
+  const rows = [];
+  for (let i = 0; i < keys.length; i += 400) {
+    const part = keys.slice(i, i + 400);
+    try {
+      rows.push(...await all(`SELECT term, match_key, item_type, part_of_speech, level, usefulness, arabic, simple_english, topic FROM vocabulary WHERE arabic IS NOT NULL AND arabic <> '' AND level IS NOT NULL AND match_key IN (${part.map(() => '?').join(',')})`, ...part));
+    } catch { /* the index is optional */ }
+  }
+  return rows.map((r) => ({
+    term: r.term, item_type: r.item_type || 'word', part_of_speech: r.part_of_speech, level: r.level,
+    band: r.level === 'C1' || r.level === 'C2' ? 'advanced' : 'useful', usefulness: r.usefulness ?? 60,
+    pronunciation: null, arabic: r.arabic, contextual_meaning: null, simple_english: r.simple_english,
+    line: firstLine.get(r.match_key) ?? 0, context_arabic: null, topic: r.topic, example: null, example_arabic: null,
+    easy_example: null, easy_example_arabic: null, similar: [], origin: 'dictionary',
+  })).slice(0, 600);
+}
+
 /**
  * lines: [{idx, start, text}] (already sentence-split).
  * Returns {items, engine, word_count}; each item has `line` (an idx in lines).
@@ -287,7 +328,7 @@ export async function extractVocabulary({ title, channel, lines, engine = 'dicti
       useAi = false;
     }
   }
-  if (!useAi) items = extractWithDictionary({ lines });
+  if (!useAi) items = [...extractWithDictionary({ lines }), ...await extractFromIndex({ lines })];
   const seen = new Set();
   items = items.filter((it) => {
     const key = matchKey(it.term);
@@ -842,6 +883,21 @@ export async function sayArabicWithAi(terms) {
     schema: SAYAR_SCHEMA,
     zod: SayArZ,
     maxTokens: Math.min(4000, 40 * terms.length + 200),
+  });
+  return r.items;
+}
+
+/* ----------------------- one simple, clear example per word (games), saved for everyone */
+const EX1_SCHEMA = obj({ items: { type: 'array', items: obj({ w: str, en: str, ar: str }) } });
+const Ex1Z = z.object({ items: z.array(z.object({ w: z.string(), en: z.string(), ar: z.string() })) });
+export async function simpleExamplesWithAi(words) {
+  const r = await jsonCall({
+    task: 'simple_example_v1',
+    system: 'For each English word (with its Arabic meaning), write ONE short, complete, natural, everyday English sentence (7-14 words, starts with a capital letter, ends with a full stop) that clearly shows that meaning and contains the word exactly as given (or its natural inflection), family-friendly. "ar" = a natural Arabic translation of the sentence. Return "w" exactly as given.',
+    user: words.map((w) => `${w.term} (${w.arabic || ''})`).join('\n'),
+    schema: EX1_SCHEMA,
+    zod: Ex1Z,
+    maxTokens: Math.min(6000, 90 * words.length + 300),
   });
   return r.items;
 }

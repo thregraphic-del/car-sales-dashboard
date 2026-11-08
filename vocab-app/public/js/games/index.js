@@ -17,9 +17,11 @@ import translate from './translate.js';
 import memory from './memory.js';
 import missing from './missing.js';
 import guess from './hangman.js';
+import listenFill from './listen-fill.js';
+import soundTf from './sound-tf.js';
 
 /** In display order. */
-export const GAMES = [connections, similar, trueFalse, speed, meaning, listen, spelling, unscramble, fillBlank, context, buildSentence, translate, memory, missing, guess];
+export const GAMES = [connections, similar, trueFalse, speed, meaning, listen, spelling, unscramble, fillBlank, context, buildSentence, translate, memory, missing, guess, listenFill, soundTf];
 export const GAME_BY_KEY = Object.fromEntries(GAMES.map((g) => [g.key, g]));
 
 /** Question formats for mixed rounds: recognition while a word is weak, recall once it is stronger. */

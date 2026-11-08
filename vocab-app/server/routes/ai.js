@@ -7,7 +7,7 @@ import { config } from '../config.js';
 import { wrap, num } from '../http.js';
 import { httpError } from '../lib/errors.js';
 import { aiStatus, checkModel, usageToday, usageReport, AiError } from '../services/ai.js';
-import { explainWithAi, formsWithAi, extractFromFileWithAi, storyWithAi, suggestVideosWithAi, suggestWordsWithAi, ladderWithAi, synonymsWithAi, sayArabicWithAi } from '../services/extractor.js';
+import { explainWithAi, formsWithAi, extractFromFileWithAi, storyWithAi, suggestVideosWithAi, suggestWordsWithAi, ladderWithAi, synonymsWithAi, sayArabicWithAi, simpleExamplesWithAi } from '../services/extractor.js';
 import { matchKey } from '../../public/js/shared/text.js';
 import { listWords } from '../data/words.js';
 import { get, run } from '../db/index.js';
@@ -39,6 +39,29 @@ router.post('/explain', wrap(async (req, res) => {
     res.status(err.status || 503).json({ ok: false, error: err.message, ai: aiStatus() });
     return undefined;
   }
+}));
+
+// 📝 One complete, simple example sentence per word (for the games): saved once for everyone.
+router.post('/examples', wrap(async (req) => {
+  const items = (Array.isArray(req.body?.words) ? req.body.words : []).slice(0, 40)
+    .map((w) => ({ term: String(w.term || '').trim().slice(0, 60), arabic: String(w.arabic || '').slice(0, 60) })).filter((w) => /[a-z]/i.test(w.term));
+  const out = {};
+  const missing = [];
+  for (const w of items) {
+    const row = await get('SELECT value FROM app_settings WHERE key = ?', `ex1:${w.term.toLowerCase()}`);
+    if (row) { try { out[w.term.toLowerCase()] = JSON.parse(row.value); } catch { missing.push(w); } } else missing.push(w);
+  }
+  if (missing.length) {
+    try {
+      for (const it of await simpleExamplesWithAi(missing)) {
+        const k = String(it.w || '').toLowerCase().trim();
+        if (!missing.some((m) => m.term.toLowerCase() === k) || it.en.split(/\s+/).length < 5) continue;
+        out[k] = { sentence: it.en.trim(), arabic: it.ar.trim() };
+        await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO NOTHING', `ex1:${k}`, JSON.stringify(out[k]));
+      }
+    } catch { /* games still work with what exists */ }
+  }
+  return { examples: out };
 }));
 
 // 🔤 Arabic-letter pronunciation: saved once per word for everyone; only the missing ones go to AI.

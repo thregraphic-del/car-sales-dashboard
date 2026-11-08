@@ -63,7 +63,7 @@ function headHtml(w, { big = false } = {}) {
     <div class="wp-head">
       <div class="en" style="min-width:0">
         <div class="${big ? 'wd-term' : 'wp-term'}">${esc(w.term)}</div>
-        <div class="wd-ipa">${esc(w.pronunciation || '')} ${listenRow(w.term)}</div>
+        <div class="wd-ipa">${listenRow(w.term)}</div>
       </div>
     </div>
     <div class="row wrap" style="gap:6px;margin-top:6px">${levelChip(w.level)}${typeLabel(w) ? `<span class="chip ar-chip">${esc(typeLabel(w))}</span>` : ''}${w.band === 'specialized' ? '<span class="chip ar-chip">متخصصة</span>' : ''}</div>`;

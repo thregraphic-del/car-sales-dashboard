@@ -1,102 +1,85 @@
-// اليوم — "What should I learn today?" One clear next action, nothing to configure.
+// اليوم — one screen, three things: greeting + streak (→ calendar), start today's session,
+// and two small shortcuts (yesterday's words · continue watching).
 import { api } from '../api.js';
 import { maybeTour } from '../tour.js';
 import { state } from '../state.js';
-import { esc, icon, thumbHtml, relDate, levelChip } from '../ui.js';
+import { esc, icon, openModal } from '../ui.js';
 
 export async function render(view) {
-  const [{ plan, stats, watch_goal: wg }, sources, yesterday] = await Promise.all([api.today(), api.sources(), api.words({ section: 'yesterday' }).catch(() => [])]);
+  const [{ plan, stats }, sources, yesterday] = await Promise.all([api.today(), api.sources(), api.words({ section: 'yesterday' }).catch(() => [])]);
   state.stats = stats;
   const left = plan.items.filter((i) => !i.completed);
   const hour = new Date().getHours();
   const greet = hour < 12 ? 'صباح الخير' : 'مساء الخير';
-  const minutes = Math.max(2, Math.round(left.length * 0.5));
+  const name = state.user?.name && state.user.name !== 'Learner' ? `، ${esc(state.user.name)}` : '';
+  const last = sources.find((x) => x.kind === 'youtube' && Number(x.progress_seconds) > 5) || sources.find((x) => x.kind === 'youtube');
+  const parts = [
+    plan.counts.difficult + plan.counts.mistakes ? `${plan.counts.difficult + plan.counts.mistakes} تحتاج تدريب` : '',
+    plan.counts.review ? `${plan.counts.review} مراجعة` : '',
+    plan.counts.new ? `${plan.counts.new} جديدة` : '',
+  ].filter(Boolean).join(' · ');
 
-  let main;
-  if (!stats.total) {
-    main = `
-      <div class="card hero-simple">
-        <div class="hero-emoji">🌱</div>
-        <h2>ابدأ بأول كلماتك</h2>
-        <p class="ink-2">الصق رابط فيديو يوتيوب إنجليزي، أو كلمات، أو أي نص — وسنحوّله إلى كلمات تتعلمها وتراجعها تلقائيًا.</p>
-        <a class="btn primary lg" href="#/add">${icon.plus} أضف فيديو أو نصًا</a>
-        <p class="small muted" style="margin-top:14px">عندك كلمات في النسخة المحلية؟ <a href="#/settings">انقلها من الإعدادات ← بياناتك</a></p>
-      </div>`;
-  } else if (left.length) {
-    const parts = [
-      plan.counts.difficult + plan.counts.mistakes ? `${plan.counts.difficult + plan.counts.mistakes} تحتاج تدريب` : '',
-      plan.counts.review ? `${plan.counts.review} مراجعة` : '',
-      plan.counts.new ? `${plan.counts.new} جديدة` : '',
-    ].filter(Boolean).join(' · ');
-    main = `
-      <div class="card hero-simple">
-        <div class="ring sm" style="--p:${plan.total ? Math.round((100 * plan.completed) / plan.total) : 0}"><div><div class="num">${left.length}</div><div class="tiny muted">كلمات</div></div></div>
-        <div style="flex:1;min-width:220px">
-          <h2>${plan.completed ? 'تابع جلسة اليوم' : 'جلسة اليوم جاهزة'}</h2>
-          <p class="ink-2">${parts} · حوالي ${minutes} دقائق</p>
-          <div class="word-peek en">${left.slice(0, 6).map((w) => `<span>${esc(w.term)}</span>`).join('')}${left.length > 6 ? '<span class="muted">…</span>' : ''}</div>
-        </div>
-        <a class="btn primary lg today-go" href="#/practice?session=today">▶ ابدأ تدريب اليوم</a>
-      </div>`;
-  } else {
-    main = `
-      <div class="card hero-simple">
-        <div class="hero-emoji">🎉</div>
-        <div style="flex:1;min-width:220px"><h2>أنهيت جلسة اليوم</h2>
-        <p class="ink-2">${stats.due ? `ما زالت ${stats.due} كلمة جاهزة للمراجعة.` : 'كل شيء مراجَع. أضف كلمات جديدة أو العب اختبارًا سريعًا.'}</p></div>
-        <div class="btn-row">
-          <a class="btn primary" href="#/practice?mode=quiz">${icon.game} اختبار سريع</a>
-          <button class="btn" id="more">${icon.plus} 5 كلمات إضافية</button>
-        </div>
-      </div>`;
-  }
+  const main = !stats.total
+    ? `<a class="card today-main" href="#/add"><span class="tm-ic">${icon.plus}</span><b>ابدأ بأول كلماتك</b><span class="small ink-2">الصق رابط يوتيوب أو كلمات</span></a>`
+    : left.length
+      ? `<a class="card today-main" href="#/practice?session=today"><span class="tm-ic">${icon.play}</span><b>ابدأ تدريب اليوم (${left.length})</b><span class="small ink-2">${parts}</span></a>`
+      : `<div class="card today-main done"><span class="tm-ic">${icon.check}</span><b>أنهيت جلسة اليوم 🎉</b><button class="btn sm" id="more">${icon.plus} 5 كلمات إضافية</button></div>`;
 
   view.innerHTML = `
-    <div class="page-head compact">
-      <div><h1>${greet}${state.user?.name && state.user.name !== 'Learner' ? `، ${esc(state.user.name)}` : ''}</h1></div>
-      <span class="row" style="gap:8px">
-      ${stats.streak.current ? `<span class="streak-chip">🔥 ${stats.streak.current} ${stats.streak.current === 1 ? 'يوم' : 'أيام'}</span>` : ''}</span>
-    </div>
-    ${yesterday.length ? `<a class="card yday-btn" href="#/practice?mode=cards&ids=${yesterday.slice(0, 60).map((w) => w.uv_id).join(',')}&yesterday=1&exact=1&n=1">
-      <span class="yday-ic">${icon.sun}</span><span><b>راجع كلمات أمس</b><span class="small ink-2"> · ${yesterday.length} ${yesterday.length === 1 ? 'كلمة' : 'كلمات'}</span></span><span class="yday-go">ابدأ ←</span></a>` : ''}
+    <button type="button" class="today-head" id="calBtn" title="تقويم أدائك">
+      <span class="th-greet">${greet}${name}</span>
+      <span class="streak-chip">🔥 ${stats.streak.current} ${stats.streak.current === 1 ? 'يوم' : 'أيام'} ${icon.today}</span>
+    </button>
     ${main}
-    ${(() => {
-      // Start of the day: yesterday's words as quick cards; the watching goal; the video to continue.
-      const last = sources.find((x) => x.kind === 'youtube' && Number(x.progress_seconds) > 5) || sources.find((x) => x.kind === 'youtube');
-      const pct = wg ? Math.min(100, Math.round((100 * wg.count) / Math.max(1, wg.goal))) : 0;
-      const tiles = [
-        wg ? `<div class="card day-tile"><div class="day-ico">${icon.target}</div><div style="flex:1"><b>هدف المشاهدة اليوم</b>
-          <div class="small ink-2">مررت على <b class="en-inline">${Math.min(wg.count, wg.goal)}/${wg.goal}</b> كلمة${wg.count >= wg.goal ? ' — أحسنت ✓' : ''}</div>
-          <div class="bar" style="margin-top:6px"><span style="width:${pct}%"></span></div></div></div>` : '',
-        last ? `<a class="card day-tile" href="#/source/${last.id}"><div class="day-ico">${icon.play}</div><div style="min-width:0"><b>${Number(last.progress_seconds) > 5 ? 'أكمل المشاهدة' : 'آخر مقطع'}</b>
-          <div class="small ink-2 en clamp1">${esc(last.title)}</div></div></a>` : '',
-      ].filter(Boolean);
-      const wk = stats.week;
-      const weekLine = wk && (wk.saved || wk.reviews || wk.seen)
-        ? `<p class="small ink-2 week-line">📅 هذا الأسبوع: <b class="en-inline">${wk.seen}</b> كلمة مررت عليها · <b class="en-inline">${wk.saved}</b> حفظتها · <b class="en-inline">${wk.reviews}</b> إجابة تدريب${wk.reviews ? ` (${Math.round((100 * wk.correct) / wk.reviews)}% صحيحة)` : ''}</p>` : '';
-      return (tiles.length ? `<div class="day-tiles">${tiles.join('')}</div>` : '') + weekLine;
-    })()}
+    <div class="today-two">
+      ${yesterday.length ? `<a class="card t2" href="#/practice?mode=cards&ids=${yesterday.slice(0, 60).map((w) => w.uv_id).join(',')}&yesterday=1&exact=1&n=1"><span class="t2-ic">${icon.sun}</span><b>كلمات أمس</b><span class="tiny muted">${yesterday.length}</span></a>` : `<a class="card t2" href="#/words"><span class="t2-ic">${icon.book}</span><b>كلماتي</b><span class="tiny muted">${stats.total}</span></a>`}
+      ${last ? `<a class="card t2" href="#/source/${last.id}"><span class="t2-ic">${icon.play}</span><b>${Number(last.progress_seconds) > 5 ? 'أكمل المشاهدة' : 'آخر مقطع'}</b><span class="tiny muted en clamp1">${esc(last.title)}</span></a>` : `<a class="card t2" href="#/add"><span class="t2-ic">${icon.youtube}</span><b>أضف مقطع</b><span class="tiny muted">من يوتيوب</span></a>`}
+    </div>`;
 
-    <details class="more-box"><summary>المزيد ▾</summary>
-    ${stats.attention.length ? `
-      <div class="section-title"><h2>تحتاج انتباهك</h2><a href="#/practice?focus=difficult">تدرّب عليها ←</a></div>
-      <div class="attention">${stats.attention.map((w) => `
-        <a class="attn" href="#/practice?ids=${w.uv_id}&mode=cards"><span class="en">${esc(w.term)}</span>${levelChip(w.level)}<span class="small ink-2">${esc(w.arabic || '')}</span></a>`).join('')}
-      </div>` : ''}
-
-    ${sources.length ? `
-      <div class="section-title"><h2>تابع القراءة والمشاهدة</h2><a href="#/add">أضف جديدًا ←</a></div>
-      <div class="grid cols-3">${sources.slice(0, 3).map((s) => `
-        <a class="video-mini" href="#/source/${s.id}">${thumbHtml(s, { duration: s.duration_seconds })}
-          <div style="min-width:0"><div class="en small clamp2" style="font-weight:600">${esc(s.title)}</div>
-          <div class="tiny muted">${s.saved_count} محفوظة · ${esc(relDate(s.analyzed_at))}</div></div></a>`).join('')}
-      </div>` : ''}
-    <a class="card day-tile" href="#/friends" style="margin-top:12px"><div class="day-ico">${icon.users}</div><div><b>أصدقائي</b><div class="small ink-2">تحدَّ صديق وشارك تقدمك</div></div></a>
-    </details>`;
-
+  view.querySelector('#calBtn').addEventListener('click', openCalendar);
+  view.querySelector('#more')?.addEventListener('click', async () => { await api.extendToday(5); render(view); });
   maybeTour('home');
-  view.querySelector('#more')?.addEventListener('click', async () => {
-    await api.extendToday(5);
-    render(view);
+}
+
+/* 📅 A full calendar since the first day: colour = how much was done, tap a day for its numbers. */
+async function openCalendar() {
+  const box = openModal('<p class="tiny muted"><span class="spinner"></span></p>');
+  let r;
+  try { r = await api.calendar(); } catch (err) { box.innerHTML = `<p>${esc(err.message)}</p>`; return; }
+  const days = r.days || {};
+  const goal = r.goal || 10;
+  const keys = Object.keys(days).sort();
+  const first = keys[0] ? new Date(`${keys[0]}T12:00:00`) : new Date();
+  const now = new Date();
+  let y = now.getFullYear();
+  let m = now.getMonth();
+  const fmt = (d) => d.toISOString().slice(0, 10);
+  const level = (d) => { const x = days[d]; if (!x) return 0; const n = x.answers + x.saved + x.seen; return n >= goal ? 2 : n ? 1 : 0; };
+  const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+  const draw = (pick = null) => {
+    const start = new Date(y, m, 1, 12);
+    const count = new Date(y, m + 1, 0).getDate();
+    const cells = [];
+    for (let i = 0; i < start.getDay(); i += 1) cells.push('<span></span>');
+    for (let d = 1; d <= count; d += 1) {
+      const key = fmt(new Date(y, m, d, 12));
+      cells.push(`<button type="button" class="cal-d l${level(key)} ${pick === key ? 'pick' : ''} ${key === fmt(now) ? 'today' : ''}" data-d="${key}">${d}</button>`);
+    }
+    const x = pick && days[pick];
+    const active = keys.length;
+    box.innerHTML = `<div class="cal">
+      <div class="row between"><button class="btn icon sm ghost" data-m="1" ${new Date(y, m + 1, 1) > now ? 'disabled' : ''}>${icon.next}</button><b>${MONTHS[m]} ${y}</b><button class="btn icon sm ghost" data-m="-1" ${new Date(y, m, 1) <= new Date(first.getFullYear(), first.getMonth(), 1) ? 'disabled' : ''}>${icon.prev}</button></div>
+      <div class="cal-w">${['أحد', 'إثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت'].map((d) => `<span>${d}</span>`).join('')}</div>
+      <div class="cal-g">${cells.join('')}</div>
+      <div class="cal-key tiny"><i class="l0"></i> ما سويت شي <i class="l1"></i> شوي <i class="l2"></i> وصلت هدفك</div>
+      <div class="cal-info">${pick ? (x ? `<b>${pick}</b> · مرّت ${x.seen} · حفظت ${x.saved} · ✅ ${x.right} · ❌ ${x.answers - x.right}` : `<b>${pick}</b> · ما فيه نشاط`) : `<span class="tiny muted">${active} يوم فيه نشاط منذ ${keys[0] || 'اليوم'} — اضغط أي يوم لأرقامه</span>`}</div>
+      <div class="btn-row" style="justify-content:center"><button class="btn ghost" data-close>إغلاق</button></div></div>`;
+  };
+  box.addEventListener('click', (e) => {
+    const nav = e.target.closest('[data-m]');
+    if (nav && !nav.disabled) { m -= Number(nav.dataset.m) * -1; if (m < 0) { m = 11; y -= 1; } if (m > 11) { m = 0; y += 1; } draw(); return; }
+    const d = e.target.closest('[data-d]');
+    if (d) draw(d.dataset.d);
   });
+  draw();
 }

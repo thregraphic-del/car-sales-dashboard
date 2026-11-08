@@ -5,6 +5,23 @@ import { api } from './api.js';
 import { toast } from './ui.js';
 import { bindSpeech } from './components.js';
 import { GAMES, GAME_BY_KEY, chooseType } from './games/index.js';
+import { examplesFor } from './games/shared.js';
+import { state } from './state.js';
+
+/** 📝 Words without a complete, translated example get one simple sentence (made once, saved for everyone). */
+export async function ensureExamples(words) {
+  if (!state.config?.ai?.configured) return;
+  const good = (w) => { const e = examplesFor(w)[0]; return e && e.arabic && /[.?!]["')”]?\s*$/.test(e.sentence); };
+  const need = words.filter((w) => !good(w)).slice(0, 40);
+  if (!need.length) return;
+  try {
+    const r = await Promise.race([api.simpleExamples(need.map((w) => ({ term: w.term, arabic: w.user_arabic || w.arabic }))), new Promise((res) => setTimeout(() => res(null), 8000))]);
+    for (const w of need) {
+      const ex = r?.examples?.[w.term.toLowerCase()];
+      if (ex) w.examples = [{ sentence: ex.sentence, arabic: ex.arabic, kind: 'ai1' }, ...(w.examples || [])];
+    }
+  } catch { /* play with what we have */ }
+}
 
 export const TYPES = Object.fromEntries(GAMES.map((g) => [g.key, g]));
 export const GAME_ORDER = GAMES.map((g) => g.key);
@@ -16,6 +33,8 @@ export { chooseType };
  */
 export async function runQuiz(stage, { words, distractors: pool, type = 'mixed', onProgress = () => {} }) {
   bindSpeech(stage);
+  stage.innerHTML = '<p class="tiny muted"><span class="spinner"></span></p>';
+  await ensureExamples(words);
   const score = { correct: 0, wrong: 0, missed: [] };
   const record = async (w, ok) => {
     if (ok) score.correct += 1;

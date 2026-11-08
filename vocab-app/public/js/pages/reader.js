@@ -266,6 +266,8 @@ export async function render(view, { segments, params }) {
   let syncTimer = null;
   let frame = 0;
   let playing = false;
+  let lastSelfPause = 0;
+  const selfPause = () => { lastSelfPause = Date.now(); };
   let timeline = buildTimeline(data.lines);
   let userScrollUntil = 0; // the learner is scrolling: don't pull the transcript back for a moment
   let tab = 'text';
@@ -275,7 +277,7 @@ export async function render(view, { segments, params }) {
       <a class="btn icon sm ghost" href="#/add" aria-label="رجوع">${icon.prev}</a>
       <div class="reader-title-sm en" dir="auto" title="${esc(source.title)}">${esc(source.title)}</div>
       ${isVideo ? `<button type="button" class="rb-btn rb-ic play-btn" id="playBtn" title="تشغيل / إيقاف (مسافة)" aria-label="تشغيل أو إيقاف">${icon.play}</button>` : ''}
-      ${isVideo && hasTimes ? `<button type="button" class="rb-btn rb-ic" id="againBtn" aria-pressed="false" title="كل جملة تُعاد مرتين تلقائيًا">${icon.repeat}<span class="rb-x">×2</span></button><button type="button" class="rb-btn rb-ic" id="shadowBtn" aria-pressed="false" title="ردّد معي: يقف بعد كل جملة لتعيدها">${icon.speech}</button>` : ''}
+      ${isVideo && hasTimes ? `<button type="button" class="rb-btn rb-ic" id="againBtn" aria-pressed="false" title="كل جملة تُعاد مرتين تلقائيًا">${icon.repeat}<span class="rb-x">×2</span></button><button type="button" class="rb-btn rb-ic" id="shadowBtn" aria-pressed="false" title="ردّد معي: يقف بعد كل جملة لتعيدها">${icon.mic}<span>ردّد</span></button>` : ''}
       <button type="button" class="rb-btn words-btn" id="wordsBtn" aria-pressed="false" title="الكلمات الجديدة في المقطع">${icon.list}<span>الكلمات</span> <b id="wcount2">${data.items.length}</b></button>
       <button type="button" class="rb-btn rb-ic" id="focusBtn" aria-pressed="false" title="توسيع الشاشة">${icon.expand}</button>
       <button type="button" class="btn icon sm ghost set-btn" id="setBtn" aria-expanded="false" title="إعدادات المقطع">${icon.settings}</button>
@@ -520,7 +522,7 @@ export async function render(view, { segments, params }) {
   function listCard(list, title, actionLabel) {
     list.forEach((w) => shown.add(w.vocabulary_id));
     saveShown();
-    player?.pause?.();
+    selfPause(); player?.pause?.();
     const href = `#/practice?${new URLSearchParams({ source: id, title: source.title.slice(0, 40), mode: 'quiz', vids: list.map((w) => w.vocabulary_id).join(','), n: Date.now() })}`;
     const n = popNote(`<div class="lt-title">${title}</div>
       <div class="lt-words">${list.map((w) => `<div class="lt-w u-${esc(w.usage || '')}"><b class="en">${esc(w.term)}</b><span>${esc(w.arabic || '')}</span></div>`).join('')}</div>
@@ -917,11 +919,11 @@ export async function render(view, { segments, params }) {
     }
     if (added) { try { localStorage.setItem(newKey, JSON.stringify([...newSet].slice(-3000))); } catch { /* ignore */ } }
   };
-  let autoSaveAll = false; // «حفظ الكل» pressed while words were still arriving: save the later ones too
+  let autoSaveAll = (() => { try { return localStorage.getItem(`reader.saveall.${id}`) === '1'; } catch { return false; } })(); // «احفظ الكل» once = the later ones too
   noteKnown();
   const isNew = (it) => !knownBefore.has(it.vocabulary_id);
   const sideShown = () => data.items.filter(isNew).filter((it) => (!sideF.level || it.level === sideF.level)
-    && (!sideF.unsaved || !it.user_state)
+    && (!sideF.show || sideF.show === 'all' || (sideF.show === 'unsaved' ? !it.user_state : it.user_state === 'saved'))
     && (!sideF.q || `${it.term} ${it.arabic || ''}`.toLowerCase().includes(sideF.q.toLowerCase())));
   const drawSide = () => {
     const shown = sideShown();
@@ -934,14 +936,15 @@ export async function render(view, { segments, params }) {
     side.innerHTML = `
       <div class="side-head">
         <div class="row between"><b>الكلمات الجديدة <span class="tiny muted en-inline">${shown.length}${shown.length !== fresh.length ? `/${fresh.length}` : ''}</span></b>
-          <span class="u-dots" title="شائعة · أقل · نادرة"><i class="u-d common"></i><i class="u-d medium"></i><i class="u-d rare"></i></span></div>
+          <span class="row" style="gap:8px"><span class="u-dots" title="شائعة · أقل · نادرة"><i class="u-d common"></i><i class="u-d medium"></i><i class="u-d rare"></i></span><button type="button" class="pop-x side-close" id="sideClose" aria-label="إغلاق">✕</button></span></div>
         <div class="glow-row">
-          ${unsavedShown.length ? `<button class="glow-ic" id="saveAll" title="حفظ الكل">${icon.save}<span>حفظ ${unsavedShown.length}</span></button>` : `<span class="glow-ic done">${icon.check}<span>محفوظة</span></span>`}
+          ${fresh.some((i) => !i.user_state) ? `<button class="glow-ic ${sideF.show && sideF.show !== 'all' ? 'on' : ''}" data-pop="save" title="حفظ">${icon.save}<span>حفظ</span></button>` : ''}
           ${data.items.length >= 4 ? `<button class="glow-ic" data-pop="prac" title="تدرّب">${icon.game}<span>تدرّب</span></button>` : ''}
           ${levels.length > 1 ? `<button class="glow-ic ${sideF.level ? 'on' : ''}" data-pop="lv" title="المستوى">${icon.sliders}<span>${sideF.level || 'المستوى'}</span></button>` : ''}
           <button class="glow-ic ${sideF.q ? 'on' : ''}" data-pop="q" title="بحث">${icon.search}</button>
-          <button class="glow-ic ${sideF.unsaved ? 'on' : ''}" id="sideUnsavedBtn" title="غير المحفوظة فقط">${icon.bookmark}${sideF.unsaved ? '<b class="x">✕</b>' : ''}</button>
+
         </div>
+        ${sidePop === 'save' ? `<div class="pop-menu">${unsavedShown.length ? `<button type="button" class="pop-opt" id="saveAll">${icon.save} احفظ الكل (${unsavedShown.length})</button>` : ''}<span class="tiny muted">عرض:</span>${[['all', 'الكل'], ['unsaved', 'غير المحفوظة'], ['saved', 'المحفوظة']].map(([k, l]) => `<button type="button" class="pop-opt ${(sideF.show || 'all') === k ? 'on' : ''}" data-show="${k}">${l}</button>`).join('')}<button type="button" class="pop-x" data-pop="">✕</button></div>` : ''}
         ${sidePop === 'prac' ? `<div class="pop-menu"><a class="pop-opt" href="${q({ mode: 'cards' })}">بطاقات</a><a class="pop-opt" href="${q({ mode: 'games', type: 'meaning' })}">المعنى</a><a class="pop-opt" href="${q({ mode: 'games', type: 'listen' })}">استمع واختر</a><a class="pop-opt" href="${q({ mode: 'games', type: 'connect' })}">روابط</a><button type="button" class="pop-opt pf-open" id="pfOpen">اختر بدقة</button><button type="button" class="pop-x" data-pop="">✕</button></div>` : ''}
         ${sidePop === 'lv' ? `<div class="pop-menu"><button class="pop-opt lv ${sideF.level ? '' : 'on'}" data-lv="">الكل</button>${levels.map((l) => `<button class="pop-opt lv ${sideF.level === l ? 'on' : ''}" data-lv="${l}">${l}</button>`).join('')}<button type="button" class="pop-x" data-pop="">✕</button></div>` : ''}
         ${sidePop === 'q' || sideF.q ? `<div class="row" style="gap:6px;margin-top:6px"><input class="input sm" id="sideQ" type="search" placeholder="ابحث…" value="${esc(sideF.q)}" style="flex:1;min-width:0"><button type="button" class="pop-x" data-clearq>✕</button></div>` : ''}
@@ -960,7 +963,9 @@ export async function render(view, { segments, params }) {
     const pop = e.target.closest('[data-pop]');
     if (pop) { sidePop = sidePop === pop.dataset.pop ? '' : pop.dataset.pop; drawSide(); if (sidePop === 'q') $('#sideQ', view)?.focus(); return; }
     if (e.target.closest('[data-clearq]')) { sideF.q = ''; sidePop = ''; saveSideF(); drawSide(); return; }
-    if (e.target.closest('#sideUnsavedBtn')) { sideF.unsaved = !sideF.unsaved; saveSideF(); drawSide(); return; }
+    if (e.target.closest('#sideClose')) { switchTab('text'); return; }
+    const sh = e.target.closest('[data-show]');
+    if (sh) { sideF.show = sh.dataset.show; sidePop = ''; saveSideF(); drawSide(); return; }
     const lv = e.target.closest('[data-lv]');
     if (lv) { sideF.level = lv.dataset.lv; sideLimit = 150; sidePop = ''; saveSideF(); drawSide(); return; }
     if (e.target.closest('#sideMore')) { sideLimit += 150; drawSide(); }
@@ -1000,6 +1005,8 @@ export async function render(view, { segments, params }) {
 
   drawLines();
   drawSide();
+  // «احفظ الكل» was pressed on an earlier visit: words that arrived since are saved now
+  if (autoSaveAll && data.items.some((it) => !it.user_state && newSet.has(it.vocabulary_id))) refresh().catch(() => {});
 
   // AI work runs in short steps (one request each) so it fits any hosting
   // time limit; every finished step is saved, and the page stops when you leave.
@@ -1168,7 +1175,7 @@ export async function render(view, { segments, params }) {
     showGoal(e.detail);
     if (e.detail.just_reached) {
       closeWordPanel();
-      player?.pause?.();
+      selfPause(); player?.pause?.();
       celebrateGoal(e.detail, `#/practice?${new URLSearchParams({ source: id, title: source.title.slice(0, 40), mode: 'cards' })}`);
     }
   };
@@ -1342,7 +1349,7 @@ export async function render(view, { segments, params }) {
     const ms = playMode === 'shadow'
       ? Math.min(25000, Math.max(1500, ((entry.end - paraOf(entry).start) * 1000) / (rate || 1) + 800))
       : gapMs;
-    player.pause();
+    selfPause(); player.pause();
     const until = Date.now() + ms;
     const show = () => {
       const left = Math.max(0, Math.ceil((until - Date.now()) / 1000));
@@ -1478,7 +1485,7 @@ export async function render(view, { segments, params }) {
     if ((player.playing?.() || gapTimer) && !held) {
       held = true;
       cancelGap();
-      player.pause();
+      selfPause(); player.pause();
     } else {
       held = false;
       cancelGap();
@@ -1563,6 +1570,8 @@ export async function render(view, { segments, params }) {
   };
   function setPlaying(isPlaying) {
     if (playing && !isPlaying && !gapTimer) setTimeout(() => saveProgress(), 0);
+    // ⏸ stopped on the YouTube player itself (not by our own pauses): it stays stopped
+    if (playing && !isPlaying && Date.now() - lastSelfPause > 1500 && !gapTimer) held = true;
     if (isPlaying) held = false; // started again (here or on the YouTube player)
     if (isPlaying && wbOn && wbWhen === 'before' && !previewDone) { previewDone = true; setTimeout(previewNext, 0); }
     playing = isPlaying;
@@ -1611,13 +1620,9 @@ export async function render(view, { segments, params }) {
   const onLeave = () => saveProgress(true);
   document.addEventListener('visibilitychange', onHide);
   window.addEventListener('pagehide', onLeave);
-  // 🔊 the phone allowed only a muted start: one tap brings the sound back
-  const onMuted = () => {
-    const box = $('.player-box', view);
-    if (!box || box.querySelector('.unmute-btn')) return;
-    box.insertAdjacentHTML('beforeend', `<button type="button" class="unmute-btn">${icon.speaker} شغّل الصوت</button>`);
-    box.querySelector('.unmute-btn').addEventListener('click', (e) => { player?.unmute?.(); e.currentTarget.remove(); });
-  };
+  // 🔊 the phone allowed only a muted start: the first touch anywhere on the page turns the sound on (no button)
+  const unmuteOnTouch = () => { player?.unmute?.(); document.removeEventListener('pointerdown', unmuteOnTouch, true); };
+  const onMuted = () => document.addEventListener('pointerdown', unmuteOnTouch, true);
   window.addEventListener('lexitube:muted', onMuted);
   if (params.line) {
     setTimeout(() => {
@@ -1679,7 +1684,7 @@ export async function render(view, { segments, params }) {
         lastT = null;
         tick();
       }
-      player?.pause?.();
+      selfPause(); player?.pause?.();
       const onClose = () => {
         if (resumeAfterWord && alive && !held) player?.play?.();
         resumeAfterWord = false;
@@ -1713,8 +1718,9 @@ export async function render(view, { segments, params }) {
         // one request; "save all" does not count as words gone through
         const r = await api.saveWordsBulk(unsaved.map((it) => ({ vocabulary_id: it.vocabulary_id, occurrence_id: it.occurrence_id })));
         toast(`تم حفظ ${r.saved} كلمة ✓`);
-        // words still coming (AI choosing more): they will be saved too when they arrive
-        if (refining) autoSaveAll = true;
+        // remembered for this video: every word that arrives later (now or on a later visit) is saved too
+        autoSaveAll = true;
+        try { localStorage.setItem(`reader.saveall.${id}`, '1'); } catch { /* ignore */ }
         return refresh();
       }
       const item = e.target.closest('.side-item');
@@ -1865,7 +1871,7 @@ export async function render(view, { segments, params }) {
   };
   const startListening = async () => {
     const my = ++listenRun;
-    player?.pause?.();
+    selfPause(); player?.pause?.();
     listenBar.classList.remove('hidden');
     $('#listenBtn', view).classList.add('primary');
     showOrder();
@@ -1950,6 +1956,7 @@ export async function render(view, { segments, params }) {
     document.removeEventListener('visibilitychange', onHide);
     window.removeEventListener('pagehide', onLeave);
     window.removeEventListener('lexitube:muted', onMuted);
+    document.removeEventListener('pointerdown', unmuteOnTouch, true);
     document.querySelector('#fontPill')?.remove();
     alive = false;
     clearInterval(progressTimer);

@@ -31,7 +31,7 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
             <div class="fc-face fc-front">
               <div class="row" style="gap:6px">${levelChip(w.level)}<span class="chip ar-chip">${esc(typeLabel(w))}</span></div>
               <div class="fc-term">${esc(w.term)}</div>
-              <div class="en muted">${esc(w.pronunciation || '')}</div>
+              
               <button class="btn sm ghost" data-say="${esc(w.term)}" data-rate="1">${icon.speaker} استمع</button>
               <div class="fc-hint">اضغط على البطاقة لقلبها <span class="kbd">Space</span></div>
             </div>

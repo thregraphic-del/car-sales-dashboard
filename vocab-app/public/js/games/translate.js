@@ -29,7 +29,7 @@ export default {
       if (done) return;
       done = true;
       input.disabled = true;
-      reveal(stage, w, ok, ` <span class="en-inline">${esc(w.pronunciation || '')}</span>`);
+      reveal(stage, w, ok);
       const next = stage.querySelector('#nextBtn');
       next.classList.remove('hidden');
       next.focus();

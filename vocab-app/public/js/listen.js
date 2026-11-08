@@ -55,7 +55,7 @@ export function runListening(body, words) {
     player.innerHTML = `
       <div class="row" style="gap:6px">${levelChip(w.level)}<span class="chip ar-chip">${esc(typeLabel(w))}</span><span class="tiny muted en-inline">${idx + 1} / ${words.length}</span></div>
       <div class="lt-step lt-term ${step >= 0 ? 'on' : ''}">${esc(w.term)}</div>
-      <div class="lt-step en muted ${step >= 1 ? 'on' : ''}" style="font-size:15px">${esc(w.pronunciation || '')}</div>
+      <div class="lt-step en muted ${step >= 1 ? 'on' : ''}" style="font-size:15px"><button class="btn icon sm ghost" data-say="${esc(w.term)}" aria-label="استمع">${icon.speaker}</button></div>
       <div class="lt-step ${step >= 2 ? 'on' : ''}"><div style="font-size:20px;font-weight:700">${esc(w.arabic || '')}</div><div class="en ink-2" style="text-align:center">${esc(w.simple_english || '')}</div></div>
       ${exText ? `<div class="lt-step quote ${step >= 3 ? 'on' : ''}" style="max-width:520px;text-align:left"><p class="en">${highlight(exText, w.term)}</p>${exAr ? `<p class="ink-2" dir="rtl" style="text-align:right;margin-top:6px">${esc(exAr)}</p>` : ''}</div>` : ''}`;
     queue.innerHTML = words.map((x, k) => `<button class="${k === idx ? 'on' : ''}" data-k="${k}"><span class="en-inline">${esc(x.term)}</span><span class="tiny muted">${esc(x.level)}</span></button>`).join('');

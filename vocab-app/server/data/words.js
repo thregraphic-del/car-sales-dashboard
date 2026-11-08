@@ -151,10 +151,32 @@ function toWord(r, ex, now) {
   };
 }
 
+/**
+ * ✅ Simple states from the quiz answers: new · mastered (right twice in a row on two different days)
+ * · review (last answer wrong) · hard (wrong 2+ of the last 3) · learning (in between).
+ */
+export function answerState(logs) {
+  if (!logs?.length) return 'new';
+  const last3 = logs.slice(0, 3);
+  if (last3.filter((l) => !Number(l.correct)).length >= 2) return 'hard';
+  if (!Number(last3[0].correct)) return 'review';
+  if (last3[1] && Number(last3[1].correct) && String(last3[0].created_at).slice(0, 10) !== String(last3[1].created_at).slice(0, 10)) return 'mastered';
+  return 'learning';
+}
+
 async function hydrate(rows, userId) {
   const ex = await examplesFor([...new Set(rows.map((r) => r.vocabulary_id))], userId);
   const now = new Date();
-  return rows.map((r) => toWord(r, ex, now));
+  const logs = new Map();
+  if (rows.length && userId) {
+    try {
+      for (const l of await all('SELECT user_vocabulary_id AS id, correct, created_at FROM review_logs WHERE user_id = ? ORDER BY created_at DESC, id DESC', userId)) {
+        const list = logs.get(l.id) || [];
+        if (list.length < 3) { list.push(l); logs.set(l.id, list); }
+      }
+    } catch { /* states fall back to "new" */ }
+  }
+  return rows.map((r) => ({ ...toWord(r, ex, now), state: r.review_count > 0 ? answerState(logs.get(r.uv_id)) : 'new' }));
 }
 
 export async function getWord(userId, uvId) {

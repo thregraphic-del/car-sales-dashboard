@@ -1346,3 +1346,51 @@ body.reader-focus .reader-grid[data-tab="words"] .reader-main { display: none !i
 .say-ar:empty { display: none; }
 .day-ico svg { width: 24px; height: 24px; color: var(--accent); }
 @media (max-width: 900px) { .page-reader .side-head { position: static; } }
+/* ---- one palette: brand teal for every «on» state, one gold for every yellow ---- */
+:root { --on: var(--accent); --on-ink: #fff; --yellow: var(--gold); }
+.rb-btn.primary, .rb-btn[aria-pressed="true"], .gchip.on, .tile.on, .tg input:checked + span, .sopt.active,
+.glow-ic.on, .pop-opt.on, .lv.on, .pf-open.on { background: var(--on) !important; border-color: var(--on) !important; color: var(--on-ink) !important; }
+.dd.open .dd-btn { border-color: var(--on); }
+.dd-opt.on { background: var(--accent-soft); color: var(--on); }
+.glow-ic.done { border-color: var(--on); color: var(--on); }
+.words-btn { background: var(--yellow) !important; border-color: var(--yellow) !important; color: #1B263A !important; }
+.words-btn.primary { background: var(--on) !important; border-color: var(--on) !important; color: #fff !important; }
+@keyframes wordsGlow { 50% { box-shadow: 0 0 12px 3px color-mix(in srgb, var(--gold) 60%, transparent); } }
+.line.current .w-now { background: var(--yellow); box-shadow: 0 0 0 2px var(--yellow); color: #1B263A; }
+.line.current .chunk.c-now { background: color-mix(in srgb, var(--yellow) 28%, transparent); }
+.transcript .line.current .line-body:not(.chunked) { background: color-mix(in srgb, var(--yellow) 26%, transparent); }
+.line.current .aw.w-now { text-decoration-color: var(--yellow); }
+.yday-btn { border-color: var(--yellow); }
+/* words in the text: NEW = teal fill · already in «كلماتي» = purple outline */
+.transcript .mark:not(.s-saved), .reader-hint .mark:not(.s-saved) { background: color-mix(in srgb, var(--accent) 22%, transparent); box-shadow: none; border-radius: 5px; }
+.transcript .mark.s-light:not(.s-saved) { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+.transcript .mark.s-saved, .reader-hint .mark.s-saved { background: transparent; box-shadow: inset 0 0 0 1.6px #8b5cf6; }
+/* games: a tried wrong option, hints */
+.option.tried { opacity: .45; text-decoration: line-through; }
+.hint-line { margin-top: 6px; }
+.hint-btn { margin-top: 4px; }
+.hint-box { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--gold-soft); border: 1px dashed var(--gold); text-align: start; }
+.hint-box p { margin: 0; }
+.q-ar-guide { font-size: 18px; font-weight: 700; margin: 6px 0; color: var(--ink); }
+.today-head { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 8px; background: none; border: 0; padding: 4px 0 12px; font: inherit; color: var(--ink); cursor: pointer; }
+.th-greet { font-size: 24px; font-weight: 800; }
+.today-head .streak-chip svg { width: 16px; height: 16px; vertical-align: -3px; margin-inline-start: 4px; }
+.today-main { display: grid; justify-items: center; gap: 6px; padding: 26px 16px; text-align: center; text-decoration: none; color: var(--ink); background: linear-gradient(160deg, var(--accent-soft), var(--surface)); border: 1.5px solid var(--accent); }
+.today-main b { font-size: 20px; }
+.tm-ic { width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff; }
+.tm-ic svg { width: 28px; height: 28px; }
+.today-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.t2 { display: grid; gap: 2px; padding: 14px; text-decoration: none; color: var(--ink); min-width: 0; }
+.t2-ic svg { width: 24px; height: 24px; color: var(--gold); }
+.cal { display: grid; gap: 10px; }
+.cal-w, .cal-g { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; }
+.cal-w span { font-size: 11px; color: var(--muted); }
+.cal-d { aspect-ratio: 1; border: 0; border-radius: 10px; font: inherit; font-size: 13px; cursor: pointer; background: var(--surface-2); color: var(--ink-2); }
+.cal-d.l1 { background: color-mix(in srgb, var(--accent) 30%, transparent); color: var(--ink); }
+.cal-d.l2 { background: var(--accent); color: #fff; font-weight: 800; }
+.cal-d.today { outline: 2px solid var(--gold); }
+.cal-d.pick { outline: 3px solid var(--navy); }
+.cal-key { display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; color: var(--ink-2); }
+.cal-key i { width: 12px; height: 12px; border-radius: 4px; display: inline-block; background: var(--surface-2); }
+.cal-key i.l1 { background: color-mix(in srgb, var(--accent) 30%, transparent); } .cal-key i.l2 { background: var(--accent); }
+.cal-info { text-align: center; min-height: 22px; }

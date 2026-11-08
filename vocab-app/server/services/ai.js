@@ -87,7 +87,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 // Preparing a video (its Arabic lines and phrase alignment) is bounded by the
 // video's length and saved for everyone, so it never uses up the learner's daily limit;
 // so is a word's family (asked once per word, then shared).
-const VIDEO_TASKS = new Set(['translate_lines', 'translate_lines_v2', 'align_lines', 'word_forms_v2', 'word_forms_v3', 'easy_synonyms', 'easy_synonyms_v2', 'say_ar_v1', 'recap_saudi']);
+const VIDEO_TASKS = new Set(['translate_lines', 'translate_lines_v2', 'align_lines', 'word_forms_v2', 'word_forms_v3', 'easy_synonyms', 'easy_synonyms_v2', 'say_ar_v1', 'simple_example_v1', 'recap_saudi']);
 
 async function useQuota(task) {
   const userId = aiContext.getStore()?.userId;
