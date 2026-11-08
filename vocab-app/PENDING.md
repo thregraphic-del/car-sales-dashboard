@@ -8,6 +8,7 @@
 | 4 | ⏸ A pause is a pause: when I stop the video (from the YouTube player itself, not only the top button), it stays stopped — «ردّد معي»/repeat/auto-continue never restart it until I press play | to build | in the batch | 0 |
 | 5 | 🎨 Words in the transcript: NEW extracted words (not in my words) = teal fill highlight; words already in «كلماتي» = purple outline | to build | in the batch | 0 |
 | 6 | ⚡ Fast word extraction from a site index: (a) match the transcript against the site's own word table (thousands of words already saved with Arabic + level, grows with every word anyone adds) — instant, no AI; AI only for words not in the index; (b) a video already added by anyone reuses its words + translation instantly; (c) AI for the remaining words in bigger parallel chunks | to build | in the batch | less AI than now (index first) |
+| 7 | 🎮 Two more games so practice has more than 20 ways (the ad says «أكثر من ٢٠»): e.g. «اسمع وأكمل الجملة» and «صح أم خطأ بالصوت» — from saved words/sentences, no AI | to build | in the batch | 0 |
 
 (Batch 4 of 20 deployed on 2026-11-07: autoplay (+ unmute), no goal chip on the video page, on=green/off=grey
 with ✕, simpler words panel (glowing icon row), hide line times, «راجع كلمات أمس» on top + «أمس» filter,
