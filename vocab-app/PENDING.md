@@ -16,6 +16,7 @@
 | 12 | 🌐 More accurate Arabic: the AI translates the whole sentence first (across its line breaks) then gives each line its exact part, natural Arabic, meaning in context, names/numbers kept; a «ترجمة أدق» button per video re-translates an old video once (saved) | to build | in the batch | AI once per video when asked; new videos same cost |
 | 13 | 🗣 «ردّد معي» button clearly about repeating: microphone icon + the word «ردّد» on it (not an unclear icon) | to build | in the batch | 0 |
 | 14 | 🖥 iPad / big screens: all video controls as a row of labelled icons on the page (speed, pause after line, ردّد معي, ×2, translation, layout, font, times, video place, summary, listening) — no need to open ⚙; phones keep the main ones outside and the rest inside ⚙ | to build | in the batch | 0 |
+| 15 | 💾 Words panel: one «حفظ» button that opens a small menu like «المستوى»: «احفظ الكل (N)» + show filter «الكل / غير المحفوظة / المحفوظة»; the separate 🔖 filter and the «✓ محفوظة» state chip are removed; when every word is saved the «حفظ» button disappears | to build | in the batch | 0 |
 
 (Batch 4 of 20 deployed on 2026-11-07: autoplay (+ unmute), no goal chip on the video page, on=green/off=grey
 with ✕, simpler words panel (glowing icon row), hide line times, «راجع كلمات أمس» on top + «أمس» filter,
