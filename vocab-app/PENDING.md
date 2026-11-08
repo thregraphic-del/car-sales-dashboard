@@ -9,6 +9,7 @@
 | 5 | 🎨 Words in the transcript: NEW extracted words (not in my words) = teal fill highlight; words already in «كلماتي» = purple outline | to build | in the batch | 0 |
 | 6 | ⚡ Fast word extraction from a site index: (a) match the transcript against the site's own word table (thousands of words already saved with Arabic + level, grows with every word anyone adds) — instant, no AI; AI only for words not in the index; (b) a video already added by anyone reuses its words + translation instantly; (c) AI for the remaining words in bigger parallel chunks | to build | in the batch | less AI than now (index first) |
 | 7 | 🎮 Two more games so practice has more than 20 ways (the ad says «أكثر من ٢٠»): e.g. «اسمع وأكمل الجملة» and «صح أم خطأ بالصوت» — from saved words/sentences, no AI | to build | in the batch | 0 |
+| 8 | 📝 Clear, useful example sentences in games: complete sentences only (the full sentence from the video, joined across its lines until it really ends, or the word's dictionary example); a word with none gets ONE simple clear example written by AI once and saved for everyone; plus a small hint line under the question (word type + first letter, e.g. «اسم · يبدأ بـ t») | to build | in the batch | small: AI once per word without an example |
 
 (Batch 4 of 20 deployed on 2026-11-07: autoplay (+ unmute), no goal chip on the video page, on=green/off=grey
 with ✕, simpler words panel (glowing icon row), hide line times, «راجع كلمات أمس» on top + «أمس» filter,
