@@ -2,6 +2,7 @@
 
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
+| 1 | 💾 Words panel: a separate «حفظ الكل» button in its own colour (gold), text exactly «حفظ الكل», with a clear save icon (bookmark ✓, not a printer/disk look); next to it a separate chip «المحفوظة» that shows only the saved words (tap again = all) | to build | in the batch | 0 |
 
 (Batch 5 of 21 deployed on 2026-11-08: one teal/gold palette, autoplay without the sound button (first touch
 unmutes), ✕ on the words list, a pause stays a pause, new words teal / saved purple, fast extraction from the
