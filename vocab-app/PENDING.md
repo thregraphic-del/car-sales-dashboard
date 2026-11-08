@@ -8,6 +8,7 @@
 | 4 | 🎚 «كلماتي»: the level filter as clear chips A1 · A2 · B1 · B2 · C1 · C2 (with counts, more than one can be picked) instead of the hidden «كل المستويات» drop-down | to build | in the batch | 0 |
 | 5 | ✨ Clear contrast for buttons and filters everywhere: tappable = teal outline with a soft moving glow; chosen = filled teal with white text; everything else grey — same look for filter chips, drop-downs, level chips, settings options and tabs | to build | in the batch | 0 |
 | 6 | 🗂 «كلماتي»: the 5 state chips (الكل · جديدة · تحتاج مراجعة · صعبة · متقنة) merged into ONE drop-down button «الحالة ▾» (shows the chosen state, with counts), next to the level / time / video / sort filters | to build | in the batch | 0 |
+| 7 | 🧩 One filter bar for «تدرّب» and «كلماتي» (same component, same look, teal): العدد · المستوى · الحالة · المقطع · الوقت; «كلماتي» also gets الترتيب (أبجدي · الأقدم · الأحدث). The video filter opens a narrow drop-down right under it with each video's picture + title (not a full-screen window). Replaces #6's separate state button | to build | in the batch | 0 |
 
 (Batch 5 of 21 deployed on 2026-11-08: one teal/gold palette, autoplay without the sound button (first touch
 unmutes), ✕ on the words list, a pause stays a pause, new words teal / saved purple, fast extraction from the
