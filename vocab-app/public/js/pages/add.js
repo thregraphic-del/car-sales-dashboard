@@ -99,7 +99,7 @@ export async function render(view, { params }) {
       const ask = async () => {
         for (let t = 0; ; t++) {
           try { return await api.analyzeYoutube(body); } catch (err) {
-            if (t >= 2 || !(err.status === 0 || err.status >= 500)) throw err;
+            if (t >= 1 || !(err.status === 0 || err.status === 502 || err.status === 503)) throw err; // never re-run a request that timed out (504)
             await new Promise((res) => setTimeout(res, 1500 * (t + 1)));
           }
         }

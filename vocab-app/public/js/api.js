@@ -103,6 +103,7 @@ export const api = {
   myEmail: () => request('GET', '/api/auth/email'),
   saveEmail: (email) => request('POST', '/api/auth/email', { email }),
   logout: () => request('POST', '/api/auth/logout'),
+  indexStep: (id) => request('POST', `/api/sources/${id}/index-step`),
   retranslate: (id) => request('POST', `/api/sources/${id}/retranslate`),
   calendar: () => request('GET', '/api/calendar'),
   simpleExamples: (words) => request('POST', '/api/ai/examples', { words }),

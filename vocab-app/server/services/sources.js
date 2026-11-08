@@ -102,14 +102,16 @@ export async function analyzeYoutube({ url, transcript, force, origin }, userId)
   const lines = toLines(segments);
   if (!lines.length) throw httpError(422, 'لم نجد نصًا في هذا الفيديو.');
   let items = [];
+  let rest = [];
   let engine = 'dictionary';
   let word_count = lines.reduce((n, l) => n + l.text.split(/\s+/).length, 0);
   try {
-    ({ items, engine, word_count } = await extractVocabulary({ title: meta.title, channel: meta.channel, lines }));
+    ({ items, rest = [], engine, word_count } = await extractVocabulary({ title: meta.title, channel: meta.channel, lines }));
   } catch (err) {
     if (!(err instanceof ExtractionError) || err.status !== 422) throw err; // very short video: keep it readable anyway
   }
   const sourceId = await sources.saveSource({ ...meta, kind: 'youtube', transcript_source: transcriptSource, extractor: engine, word_count }, lines, items, userId);
+  if (rest.length) await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', `idxrest:${sourceId}`, JSON.stringify(rest));
   return { source_id: sourceId, cached: false, ai: aiAvailable() };
 }
 
@@ -121,10 +123,11 @@ export async function analyzeText(text, userId, title) {
   const words = clean.split(/\s+/);
   const firstWords = words.slice(0, 7).join(' ');
   let items = [];
+  let rest = [];
   let engine = 'dictionary';
   let wordCount = words.length;
   try {
-    ({ items, engine, word_count: wordCount } = await extractVocabulary({ title: title || firstWords, lines }));
+    ({ items, rest = [], engine, word_count: wordCount } = await extractVocabulary({ title: title || firstWords, lines }));
   } catch (err) {
     if (!(err instanceof ExtractionError) || err.status !== 422) throw err; // very short text: keep it readable anyway
   }
@@ -132,7 +135,24 @@ export async function analyzeText(text, userId, title) {
     { kind: 'text', title: title || `${firstWords}${words.length > 7 ? '…' : ''}`, transcript_source: 'text', extractor: engine, word_count: wordCount },
     lines, items, userId,
   );
+  if (rest.length) await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', `idxrest:${sourceId}`, JSON.stringify(rest));
   return { source_id: sourceId, ai: aiAvailable() };
+}
+
+/** ⚡ One short step: add up to 30 more words from the site index to an opened video. */
+export async function indexStep(sourceId, userId) {
+  await requireSource(sourceId, userId);
+  const key = `idxrest:${sourceId}`;
+  const row = await get('SELECT value FROM app_settings WHERE key = ?', key);
+  if (!row) return { added: 0, more: false };
+  let rest = [];
+  try { rest = JSON.parse(row.value); } catch { rest = []; }
+  const now = rest.slice(0, 30);
+  const later = rest.slice(30);
+  const added = now.length ? await sources.addItemsToSource(sourceId, now) : 0;
+  if (later.length) await run('UPDATE app_settings SET value = ? WHERE key = ?', JSON.stringify(later), key);
+  else await run('DELETE FROM app_settings WHERE key = ?', key);
+  return { added, more: later.length > 0 };
 }
 
 async function requireSource(id, userId) {

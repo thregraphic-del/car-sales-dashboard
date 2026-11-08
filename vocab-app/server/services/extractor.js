@@ -328,7 +328,14 @@ export async function extractVocabulary({ title, channel, lines, engine = 'dicti
       useAi = false;
     }
   }
-  if (!useAi) items = [...extractWithDictionary({ lines }), ...await extractFromIndex({ lines })];
+  // the index words beyond the first ones are added right after the video opens, in short steps
+  // (saving hundreds at once would take longer than the hosting allows)
+  let rest = [];
+  if (!useAi) {
+    const idx = await extractFromIndex({ lines });
+    items = [...extractWithDictionary({ lines }), ...idx.slice(0, 40)];
+    rest = idx.slice(40);
+  }
   const seen = new Set();
   items = items.filter((it) => {
     const key = matchKey(it.term);
@@ -336,7 +343,7 @@ export async function extractVocabulary({ title, channel, lines, engine = 'dicti
     seen.add(key);
     return true;
   });
-  return { items, engine: useAi ? 'ai' : 'dictionary', word_count: wordCount, ai_error: aiError };
+  return { items, rest, engine: useAi ? 'ai' : 'dictionary', word_count: wordCount, ai_error: aiError };
 }
 
 /* ---------------------------------------------------- 2. click lookup */

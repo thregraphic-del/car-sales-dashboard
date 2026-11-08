@@ -1151,6 +1151,17 @@ export async function render(view, { segments, params }) {
 
   // 2) Smarter word choice: AI reads the transcript in chunks and adds the
   //    useful words / expressions with their meaning in context.
+  // ⚡ the rest of the words found in the site index arrive in short steps right after opening
+  (async () => {
+    if (source.is_demo) return;
+    try {
+      for (let i = 0; alive && i < 40; i++) {
+        const r = await api.indexStep(id);
+        if (r.added) await refresh();
+        if (!r.more) break;
+      }
+    } catch { /* the first words are already there */ }
+  })();
   let refining = false;
   async function refineWords() {
     if (source.is_demo || source.extractor === 'ai' || !ai()) return;
