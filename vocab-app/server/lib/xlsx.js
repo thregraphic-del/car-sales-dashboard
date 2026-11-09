@@ -83,7 +83,11 @@ function zip(files) {
  * rows: array of objects; columns: [{key, title, width, rtl?}] in order.
  * Header row is bold and frozen; text wraps inside its own column.
  */
-export function toXlsx(rows, columns, sheetName = 'Words', { countLabel = null } = {}) {
+export function toXlsx(rows, columns, sheetName = 'Words', { countLabel = null, rowNumbers = false } = {}) {
+  // optional first column «#»: each row's number among the rows Excel's filter still shows
+  // (AGGREGATE 3,5 = count, skipping hidden rows — unlike SUBTOTAL it doesn't confuse the filter's last row)
+  if (rowNumbers) columns = [{ key: '__n', title: '#', width: 6, num: true }, ...columns];
+  const k = rowNumbers ? 'B' : 'A'; // a column that always has a value
   const cell = (r, c, v, style) => {
     const ref = `${colName(c)}${r}`;
     if (typeof v === 'number' && Number.isFinite(v)) return `<c r="${ref}" s="${style}"><v>${v}</v></c>`;
@@ -94,14 +98,15 @@ export function toXlsx(rows, columns, sheetName = 'Words', { countLabel = null }
   const h = 1 + top; // header row number
   const lastRow = rows.length + h;
   const countRow = countLabel
-    ? `<row r="1"><c r="A1" s="1" t="inlineStr"><is><t xml:space="preserve">${escXml(countLabel)}</t></is></c><c r="B1" s="1"><f>SUBTOTAL(103,A${h + 1}:A${Math.max(h + 1, lastRow)})</f><v>${rows.length}</v></c></row>`
+    ? `<row r="1"><c r="A1" s="1" t="inlineStr"><is><t xml:space="preserve">${escXml(countLabel)}</t></is></c><c r="B1" s="1"><f>SUBTOTAL(103,${k}${h + 1}:${k}${Math.max(h + 1, lastRow)})</f><v>${rows.length}</v></c></row>`
     : '';
   const header = `<row r="${h}">${columns.map((col, c) => cell(h, c, col.title, 1)).join('')}</row>`;
   // a row may carry __fill: 'common' | 'medium' | 'rare' → a light green / yellow / red background
   const FILL = { common: 2, medium: 4, rare: 6 };
   const body = rows.map((row, i) => {
     const base = FILL[row.__fill] ?? 0;
-    return `<row r="${i + h + 1}">${columns.map((col, c) => cell(i + h + 1, c, row[col.key] ?? '', base ? base + 2 + (col.rtl ? 1 : 0) : (col.rtl ? 3 : 2))).join('')}</row>`;
+    const r = i + h + 1;
+    return `<row r="${r}">${columns.map((col, c) => col.key === '__n' ? `<c r="A${r}" s="${base ? base + 2 : 2}"><f>_xlfn.AGGREGATE(3,5,${k}$${h + 1}:${k}${r})</f><v>${i + 1}</v></c>` : cell(i + h + 1, c, row[col.key] ?? '', base ? base + 2 + (col.rtl ? 1 : 0) : (col.rtl ? 3 : 2))).join('')}</row>`;
   }).join('');
   const cols = `<cols>${columns.map((col, c) => `<col min="${c + 1}" max="${c + 1}" width="${col.width || 16}" customWidth="1"/>`).join('')}</cols>`;
   const last = `${colName(columns.length - 1)}${lastRow}`;

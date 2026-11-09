@@ -718,8 +718,9 @@ export async function render(view, { segments, params }) {
     showLayout();
     recenter();
   }));
-  // Font size of the transcript (remembered).
-  let fontPx = Number(pref('reader.font', '16')) || 16;
+  // Font size of the transcript (remembered). Phones start at 13 until the learner changes it.
+  const defFont = window.matchMedia?.('(max-width: 760px)').matches ? '13' : '16';
+  let fontPx = Number(pref('reader.font', defFont)) || Number(defFont);
   const applyFont = () => linesEl.style.setProperty('--reader-font', `${fontPx}px`);
   applyFont();
   const stepFont = (d) => {
@@ -1698,7 +1699,7 @@ export async function render(view, { segments, params }) {
     const entry = timeline.find((x) => String(x.id) === line.dataset.id);
     const wi = wEl ? Number(wEl.dataset.wi) : -1;
     // A word: the video goes to it and waits (paused) while its meaning is open;
-    // closing the meaning (or saving) continues playback if it was playing.
+    // closing the meaning (or saving) plays the video again by itself.
     if (mark || tok) {
       const inGap = cancelGap();
       if (player && !isPanelOpen()) resumeAfterWord = resumeAfterWord || inGap || (player.playing?.() ?? false);
@@ -1709,9 +1710,14 @@ export async function render(view, { segments, params }) {
         tick();
       }
       selfPause(); player?.pause?.();
+      // closing the meaning (✕, tap outside, or after «حفظ») always plays the video again — no extra tap
       const onClose = () => {
-        if (resumeAfterWord && alive && !held) player?.play?.();
         resumeAfterWord = false;
+        if (!alive || !player || isPanelOpen()) return;
+        held = false;
+        cancelGap();
+        player.play?.();
+        showPlayBtn();
       };
       if (mark) openWordPanel(mark, { vocabulary_id: mark.dataset.vid, line_id: line.dataset.id }, { onChange, onClose });
       else openWordPanel(tok, { word: tok.dataset.w, line_id: line.dataset.id }, { onChange, onClose });

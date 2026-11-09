@@ -1,5 +1,8 @@
 # Changes waiting for the next deploy (deploy at 20, or when the owner says «ارفع»)
 
+Free preview: every change is pushed to the `preview` branch → https://preview--lexitube.netlify.app (no deploy credits).
+The live site deploys from `lexitube-live` — only on «ارفع».
+
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
 | 1 | 💾 Words panel: a separate «حفظ الكل» button in its own colour (gold), text exactly «حفظ الكل», with a clear save icon (bookmark ✓, not a printer/disk look); next to it a separate chip «المحفوظة» that shows only the saved words (tap again = all) | deployed (8b548d0) | in the batch | 0 |
@@ -13,6 +16,9 @@
 | 9 | 🧭 New channels field «مغامرات» (Yes Theory, Peter Santenello, Indigo Traveller, Kurt Caz, Drew Binsky, Eva zu Beck, Simon Wilson, Ruhi Çenet, Fearless & Far, Bald and Bankrupt, Kara and Nate) with a one-line Arabic description each; the fields become a drop-down list (accordion): one field is already OPEN when the page loads (the last one used, else «مغامرات») showing its channels in two rows of cards (logo + name + short description), so people see that tapping a field opens its channels; tapping another field opens it and closes the previous | built — waiting for «ارفع» | in the batch | 0 (each channel checked once) |
 | 10 | 📩 Every suggestion sent from «💡 اقتراحاتكم» is also emailed to the owner (GMAIL_USER) with the text, the sender's username and the page it was sent from — still saved in the site as now | built — waiting for «ارفع» | in the batch | one email per suggestion |
 | 11 | 🎬 (BUILT) Use the transcript service (Supadata) sparingly — once per video: reuse any existing transcript of the same video, one status check per request for long videos, 1-hour pause after a 429 and say clearly when it hits its limit: a «429» shows «خدمة النصوص وصلت حدها — الصق النص أو جرّب بعد شوي» instead of the YouTube-blocked message; waiting for a long video checks every 10 s (not 4 s) and at most ~2 min; a video's transcript is fetched once and reused by everyone | deployed (8b548d0) | in the batch | fewer service calls |
+| 12 | 🔢 Excel export: a «#» column — every row has its number, and the numbers follow Excel's filter (1, 2, 3… among the rows shown) | built — on the free preview | in the batch | 0 |
+| 13 | 🔠 Phones start the transcript at font 13 (until the learner changes it with A− / A+) | built — on the free preview | in the batch | 0 |
+| 14 | ▶ Opening a word's meaning in the text pauses the video; closing it (✕, tapping outside, or after «حفظ») plays it again by itself — no tap needed | built — on the free preview | in the batch | 0 |
 
 (Batch 5 of 21 deployed on 2026-11-08: one teal/gold palette, autoplay without the sound button (first touch
 unmutes), ✕ on the words list, a pause stays a pause, new words teal / saved purple, fast extraction from the
