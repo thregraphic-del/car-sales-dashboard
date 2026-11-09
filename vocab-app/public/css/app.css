@@ -1491,3 +1491,6 @@ body.reader-focus .reader-grid[data-tab="words"] .reader-main { display: none !i
 .rs-ic[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
 .rset.rs-compact .srow:not(.rs-closed) { display: grid !important; grid-template-columns: 1fr; border: 1px solid var(--accent); border-radius: 12px; padding: 10px; }
 .rset.rs-compact .srow:not(.rs-closed) .slabel { display: none; }
+/* scrolling the transcript up to its first line must not drag the page (iPad left full screen) */
+body.reader-focus .page-reader .transcript { overscroll-behavior: contain; }
+body.reader-focus { overscroll-behavior-y: none; }

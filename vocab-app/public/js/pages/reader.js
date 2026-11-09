@@ -845,7 +845,9 @@ export async function render(view, { segments, params }) {
     }
   };
   $('#focusBtn', view)?.addEventListener('click', () => setFocus(!document.body.classList.contains('reader-focus')));
-  const onFsChange = () => { if (focusFs && !document.fullscreenElement) { focusFs = false; setFocus(false); } };
+  // The browser may leave full screen by itself (on iPad: scrolling up to read earlier lines).
+  // Focus mode stays on — only the ✕ / shrink button takes the learner back.
+  const onFsChange = () => { if (focusFs && !document.fullscreenElement) focusFs = false; };
   document.addEventListener('fullscreenchange', onFsChange);
   // Draggable divider: bigger video ↔ more transcript (remembered).
   const mainEl = $('.reader-main', view);
