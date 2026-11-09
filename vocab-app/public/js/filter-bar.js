@@ -7,15 +7,19 @@
 //   value: a string, or an array when multi ('' / [] = everything)
 import { esc } from './ui.js';
 
+// one small icon per filter (same keys on «كلماتي» and «تدرّب»)
+const ICONS = { count: '🔢', levels: '🎚', filter: '🏷', perf: '🏷', source: '🎬', from: '🎬', when: '🕒', sort: '↕' };
+
 const isOn = (d, v) => (d.multi ? (v === '' ? !d.value.length : d.value.includes(v)) : String(d.value) === v);
 
 function current(d) {
   if (d.multi) {
-    if (!d.value.length) return d.all || 'الكل';
+    if (!d.value.length) return 'الكل';
     return d.value.length > 2 ? `${d.value.slice(0, 2).join(' ')} +${d.value.length - 2}` : d.value.join(' · ');
   }
-  const o = d.opts.find(([v]) => String(v) === String(d.value));
-  return o ? o[1] : d.opts[0]?.[1] || '';
+  const o = d.opts.find(([v]) => String(v) === String(d.value)) || d.opts[0];
+  // «كل المقاطع» / «أي وقت» … read as a short «الكل» on the button (the list keeps the full words)
+  return o ? (/^(كل |أي )/.test(o[1]) ? 'الكل' : o[1]) : '';
 }
 
 const optHtml = (d, [v, label, count, thumb]) => {
@@ -30,7 +34,7 @@ export function filterBarHtml(defs, open = '') {
   return `<div class="fbar" role="toolbar" aria-label="الفلاتر">${defs.map((d) => {
     const active = d.multi ? d.value.length > 0 : String(d.value) !== String(d.opts[0]?.[0] ?? '');
     return `<div class="dd fb${open === d.k ? ' open' : ''}">
-      <button type="button" class="dd-btn fb-btn${active ? ' set' : ''}" data-fb="${d.k}" aria-expanded="${open === d.k}"><span class="dd-t">${esc(d.t)}</span><span class="dd-v">${esc(current(d))} ▾</span></button>
+      <button type="button" class="dd-btn fb-btn${active ? ' set' : ''}" data-fb="${d.k}" aria-expanded="${open === d.k}" title="${esc(d.t)}"><span class="fb-ic" aria-hidden="true">${ICONS[d.k] || '⚙'}</span><span class="fb-txt"><span class="dd-t">${esc(d.t)}</span><span class="dd-v">${esc(current(d))} ▾</span></span></button>
       ${open === d.k ? `<div class="dd-menu fb-menu${d.video ? ' fb-menu-vid' : ''}" role="listbox"${d.multi ? ' aria-multiselectable="true"' : ''}>${d.opts.map((o) => optHtml(d, o)).join('') || '<span class="tiny muted" style="padding:10px">لا يوجد</span>'}</div>` : ''}
     </div>`;
   }).join('')}</div>`;

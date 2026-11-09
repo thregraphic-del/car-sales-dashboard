@@ -7,6 +7,7 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 |---|--------|--------|-------------|--------------|
 | 1 | ⚙ Reader settings sheet: ONE row of small icons (السرعة · التوقف · التدريب · قائمة الكلمات · الملخص · الترجمة · النص · الفيديو · بحث · شرح · أدوات); each group stays closed until its icon is tapped (tap again = close) — on the normal page AND in full screen; on the normal page the icons are bigger and share the full width | built — on the free preview | in the batch | 0 |
 | 2 | ⛶ Full-screen reading stays full-screen: scrolling up to read earlier lines no longer drops back to the normal page (iPad leaves browser full screen by itself) — only the ✕ / shrink button exits; the transcript no longer drags the page when it reaches its first line | built — on the free preview | in the batch | 0 |
+| 3 | 🧩 Filter bar on «كلماتي» and «تدرّب»: one horizontal row of rounded pills (icon + name + choice: 🔢 العدد · 🎚 المستوى · 🏷 الحالة · 🎬 المقطع · 🕒 الوقت · ↕ الترتيب) instead of a column of boxes on iPad; «كل …» shows as a short «الكل»; 3 per row on phones | built — on the free preview | in the batch | 0 |
 
 (Batch 6 deployed on 2026-11-09 — commit adc23df on `lexitube-live`: one teal filter bar for «تدرّب» + «كلماتي» (العدد · المستوى · الحالة · المقطع · الوقت · الترتيب),
 clear button contrast, «إدارة بياناتي» (wipe words / videos / settings with «تأكيد» + automatic backup + restore), «مغامرات» channels field
