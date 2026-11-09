@@ -19,6 +19,7 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 | 12 | 🔢 Excel export: a «#» column — every row has its number, and the numbers follow Excel's filter (1, 2, 3… among the rows shown) | built — on the free preview | in the batch | 0 |
 | 13 | 🔠 Phones start the transcript at font 13 (until the learner changes it with A− / A+) | built — on the free preview | in the batch | 0 |
 | 14 | ▶ Opening a word's meaning in the text pauses the video; closing it (✕, tapping outside, or after «حفظ») plays it again by itself — no tap needed | built — on the free preview | in the batch | 0 |
+| 15 | 🎬 Transcript service out of credits: a 402 / 403 «limit» answer now shows «خدمة النصوص وصلت حدها» (and pauses an hour) instead of the misleading «يوتيوب يمنع…» message; a rejected key says so in the technical details | built — on the free preview | in the batch | fewer service calls |
 
 (Batch 5 of 21 deployed on 2026-11-08: one teal/gold palette, autoplay without the sound button (first touch
 unmutes), ✕ on the words list, a pause stays a pause, new words teal / saved purple, fast extraction from the

@@ -356,7 +356,14 @@ async function supadataTranscript(videoId, key, { deadline = Date.now() + 18000,
     err.noTranscript = true;
     throw err;
   }
-  if (res.status === 429) { const err = new Error('transcript service HTTP 429'); err.limit = true; throw err; }
+  // out of credits / plan limit: Supadata answers 429, and sometimes 402 or 403 with a «limit»/«quota» message
+  const why = String(data.error || data.message || data.details || '');
+  if (res.status === 429 || res.status === 402 || (res.status === 403 && /limit|quota|credit|plan|upgrade/i.test(why))) {
+    const err = new Error(`transcript service HTTP ${res.status}${why ? `: ${why.slice(0, 80)}` : ''}`);
+    err.limit = true;
+    throw err;
+  }
+  if (res.status === 401 || res.status === 403) throw new Error(`transcript service HTTP ${res.status}: key not accepted`);
   if (!res.ok) throw new Error(`transcript service HTTP ${res.status}`);
   const content = Array.isArray(data.content) ? data.content : [];
   return content.map((c) => ({ start: Number(c.offset || 0) / 1000, dur: Number(c.duration || 0) / 1000, text: String(c.text || '').replace(/\s+/g, ' ').trim() }))
