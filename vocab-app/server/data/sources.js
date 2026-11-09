@@ -238,19 +238,26 @@ export async function saveSource(meta, lines, items, userId) {
       }
     }
     for (const [k, v] of keepAr) known.set(k, v);
-    const lineList = [];
-    for (let [i, l] of lines.entries()) { // eslint-disable-line prefer-const
+    // all lines in a few multi-row INSERTs (one per line made long videos time out on the hosting)
+    const prepared = lines.map((l0, i) => {
+      let l = l0;
       const k = known.get(l.text.trim());
       if (k && !l.text_ar) l = { ...l, text_ar: k.ar };
       const align = k?.align && k.ar === l.text_ar ? k.align : null;
       const next = lines[i + 1];
       const dur = l.start !== null && l.start !== undefined && next?.start != null ? Math.max(0, next.start - l.start) : null;
-      const id = await insert(
-        'INSERT INTO transcript_lines (source_id, idx, start_seconds, duration, text, text_ar, words_json, align_json) VALUES (?,?,?,?,?,?,?,?)',
-        source.id, l.idx, l.start ?? null, l.duration ?? dur, l.text, l.text_ar || null, l.words?.length ? JSON.stringify(l.words) : null, align,
+      return { l, row: [source.id, l.idx, l.start ?? null, l.duration ?? dur, l.text, l.text_ar || null, l.words?.length ? JSON.stringify(l.words) : null, align] };
+    });
+    const ids = new Map();
+    for (let i = 0; i < prepared.length; i += 400) {
+      const part = prepared.slice(i, i + 400);
+      const got = await all(
+        `INSERT INTO transcript_lines (source_id, idx, start_seconds, duration, text, text_ar, words_json, align_json) VALUES ${part.map(() => '(?,?,?,?,?,?,?,?)').join(',')} RETURNING id, idx`,
+        ...part.flatMap((x) => x.row),
       );
-      lineList.push({ id, ...l, start: l.start ?? null, text_ar: l.text_ar || null });
+      for (const r of got) ids.set(Number(r.idx), r.id);
     }
+    const lineList = prepared.map(({ l }) => ({ id: ids.get(Number(l.idx)), ...l, start: l.start ?? null, text_ar: l.text_ar || null }));
     await storeItems(source.id, lineList, items);
     await linkSavedWords(source.id, userId);
     return source.id;
@@ -270,26 +277,44 @@ export async function addItemsToSource(sourceId, items) {
  * Mark the learner's saved words wherever they appear in a source, so they
  * are highlighted and gain this sentence as an extra context.
  */
-export async function linkSavedWords(sourceId, userId) {
+export async function linkSavedWords(sourceId, userId, { perWord = 3 } = {}) {
   const lines = await all('SELECT id, start_seconds AS start, text, text_ar FROM transcript_lines WHERE source_id = ? ORDER BY idx', sourceId);
   const saved = await all(
     `SELECT uv.id AS uv_id, uv.occurrence_id, v.id AS vocabulary_id, v.term, v.part_of_speech, v.item_type
      FROM user_vocabulary uv JOIN vocabulary v ON v.id = uv.vocabulary_id WHERE uv.user_id = ? AND uv.state = 'saved'`,
     userId,
   );
+  // what this source already has (one query), then all new contexts in a few multi-row INSERTs
+  const have = new Set((await all('SELECT vocabulary_id, line_id FROM occurrences WHERE source_id = ?', sourceId)).map((o) => `${o.vocabulary_id}:${o.line_id}`));
+  const add = [];
+  const firstOf = new Map(); // uv_id → the first new context, for words that have none yet
   for (const w of saved) {
     let count = 0;
     for (const l of lines) {
-      if (count >= 10) break;
+      if (count >= perWord) break;
       const sp = findSpan(w.term, l.text, { pos: w.part_of_speech, type: w.item_type });
       if (!sp) continue;
       count += 1;
-      const occId = await addOccurrence(sourceId, w.vocabulary_id, l, sp);
-      if (!w.occurrence_id) {
-        await run('UPDATE user_vocabulary SET occurrence_id = ?, source_id = COALESCE(source_id, ?) WHERE id = ?', occId, sourceId, w.uv_id);
-        w.occurrence_id = occId;
-      }
+      const key = `${w.vocabulary_id}:${l.id}`;
+      if (have.has(key)) continue;
+      have.add(key);
+      if (!w.occurrence_id && !firstOf.has(w.uv_id)) firstOf.set(w.uv_id, key);
+      add.push({ key, row: [w.vocabulary_id, sourceId, l.id, sp.start ?? null, sp.end ?? null, l.text, l.text_ar || null, null, floorOrNull(l.start), 0, 0] });
     }
+  }
+  const idOf = new Map();
+  for (let i = 0; i < add.length; i += 300) {
+    const part = add.slice(i, i + 300);
+    const got = await all(
+      `INSERT INTO occurrences (vocabulary_id, source_id, line_id, char_start, char_end, sentence, sentence_ar, contextual_meaning, timestamp_seconds, suggested, rank)
+       VALUES ${part.map(() => '(?,?,?,?,?,?,?,?,?,?,?)').join(',')} RETURNING id, vocabulary_id, line_id`,
+      ...part.flatMap((x) => x.row),
+    );
+    for (const r of got) idOf.set(`${r.vocabulary_id}:${r.line_id}`, r.id);
+  }
+  for (const [uvId, key] of firstOf) {
+    const occId = idOf.get(key);
+    if (occId) await run('UPDATE user_vocabulary SET occurrence_id = ?, source_id = COALESCE(source_id, ?) WHERE id = ?', occId, sourceId, uvId);
   }
 }
 

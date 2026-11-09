@@ -96,6 +96,9 @@ export async function fetchTranscript(videoId, origin) {
 export async function analyzeYoutube({ url, transcript, force, origin }, userId) {
   const youtubeId = parseYoutubeId(url);
   if (!youtubeId) throw httpError(400, MESSAGES.invalid_url);
+  // timings in the hosting log, so a slow step is easy to find (no data, only milliseconds)
+  const t0 = Date.now();
+  const mark = (step) => console.log(`[add ${youtubeId}] ${step} ${Date.now() - t0}ms`);
   const existing = await sources.findSourceByYoutubeId(youtubeId, userId);
   if (existing && !force && !transcript?.trim() && await sources.lineCount(existing.id)) return { source_id: existing.id, cached: true };
   let meta;
@@ -113,6 +116,7 @@ export async function analyzeYoutube({ url, transcript, force, origin }, userId)
     ({ meta, segments, source: transcriptSource } = await fetchTranscript(youtubeId, origin)); // throws TranscriptError
   }
   const lines = toLines(segments);
+  mark(`transcript (${transcriptSource}, ${lines.length} lines)`);
   if (!lines.length) throw httpError(422, 'لم نجد نصًا في هذا الفيديو.');
   let items = [];
   let rest = [];
@@ -123,7 +127,9 @@ export async function analyzeYoutube({ url, transcript, force, origin }, userId)
   } catch (err) {
     if (!(err instanceof ExtractionError) || err.status !== 422) throw err; // very short video: keep it readable anyway
   }
+  mark(`words (${items.length})`);
   const sourceId = await sources.saveSource({ ...meta, kind: 'youtube', transcript_source: transcriptSource, extractor: engine, word_count }, lines, items, userId);
+  mark('saved');
   if (rest.length) await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', `idxrest:${sourceId}`, JSON.stringify(rest));
   return { source_id: sourceId, cached: false, ai: aiAvailable() };
 }
