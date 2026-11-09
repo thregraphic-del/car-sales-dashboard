@@ -278,3 +278,20 @@ test('export: the example\'s Arabic is filled even when the line was translated 
   assert.equal(row.Example, occ.sentence);
   assert.equal(row['Example Arabic'], 'ترجمة السطر لاحقًا');
 });
+
+test('«إدارة بياناتي»: needs «تأكيد», backs up first, wipes only the chosen part', async () => {
+  assert.equal((await call('POST', '/api/data/wipe', { scope: 'words', confirm: 'ok' })).status, 400);
+  assert.equal((await call('POST', '/api/data/wipe', { scope: 'nope', confirm: 'تأكيد' })).status, 400);
+  const before = (await call('GET', '/api/data/summary')).body;
+  assert.ok(before.counts.user_vocabulary > 0 && before.counts.sources > 0);
+  const r = await call('POST', '/api/data/wipe', { scope: 'videos', confirm: 'تأكيد' });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.counts.sources, 0);
+  assert.equal(r.body.counts.user_vocabulary, before.counts.user_vocabulary, 'words stay when videos go');
+  const w = await call('POST', '/api/data/wipe', { scope: 'words', confirm: 'تأكيد' });
+  assert.equal(w.body.counts.user_vocabulary, 0);
+  const after = (await call('GET', '/api/data/summary')).body;
+  assert.ok(after.backups.some((b) => b.reason === 'before-wipe-videos'));
+  const snap = JSON.parse((await call('GET', `/api/data/backups/${r.body.backup_id}`)).text);
+  assert.equal(snap.tables.sources.length, before.counts.sources, 'the backup holds the videos');
+});

@@ -268,3 +268,24 @@ export async function finishImport(userId) {
   await run('DELETE FROM import_map WHERE user_id = ?', userId);
   return counts(userId);
 }
+
+/**
+ * 🧹 «إدارة بياناتي»: back up first, then delete one part of the learner's data.
+ *   words  — saved words + their progress (reviews, plans, groups); videos stay
+ *   videos — the learner's videos (words stay, they just lose the link to the video)
+ *   all    — both
+ */
+export async function wipe(userId, scope) {
+  if (!['words', 'videos', 'all'].includes(scope)) throw httpError(400, 'خيار غير معروف.');
+  const saved = await storeBackup(userId, `before-wipe-${scope}`);
+  await tx(async () => {
+    if (scope === 'words' || scope === 'all') {
+      await run('DELETE FROM user_vocabulary WHERE user_id = ?', userId);
+      await run('DELETE FROM daily_plans WHERE user_id = ?', userId);
+      await run('DELETE FROM word_groups WHERE user_id = ?', userId);
+      await run('DELETE FROM examples WHERE user_id = ?', userId);
+    }
+    if (scope === 'videos' || scope === 'all') await run('DELETE FROM sources WHERE user_id = ?', userId);
+  });
+  return { ok: true, backup_id: saved.id, counts: await counts(userId) };
+}

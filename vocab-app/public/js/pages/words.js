@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import { state, loadGroups } from '../state.js';
 import { esc, icon, emptyState, toast, openModal, closeModal, num, levelChip } from '../ui.js';
 import { wordRowHtml, bindWordList, openWordCard, bindSpeech } from '../components.js';
+import { filterBarHtml, filterBarClick, placeMenus, closeOnOutside, ytThumb, LEVELS, WHEN_OPTS } from '../filter-bar.js';
 
 // ✅ states from the quiz answers (see answerState on the server)
 const FILTERS = [
@@ -16,7 +17,8 @@ const FILTERS = [
 export async function render(view, { params }) {
   let all = await api.words();
   await loadGroups();
-  const f = { filter: params.filter || 'all', group: params.group ? Number(params.group) : null, q: '', level: '', when: params.when || '', source: params.source ? Number(params.source) : null, sort: 'new', view: 'list' };
+  const f = { filter: params.filter || 'all', group: params.group ? Number(params.group) : null, q: '', levels: [], when: params.when || '', source: params.source ? Number(params.source) : null, sort: 'new', count: 0, view: 'list' };
+  let fbOpen = '';
   let clusters = null; // «الأوضح»: words with one meaning under the simplest one
   const DAY = 86400000;
   const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
@@ -42,7 +44,7 @@ export async function render(view, { params }) {
     if (f.group && !w.group_ids.includes(f.group)) return false;
     if (f.filter === 'practice' && !(w.state === 'review' || w.state === 'hard')) return false;
     if (['new', 'review', 'hard', 'mastered'].includes(f.filter) && w.state !== f.filter) return false;
-    if (f.level && w.level !== f.level) return false;
+    if (f.levels.length && !f.levels.includes(w.level)) return false;
     if (f.when && WHEN[f.when]) {
       const t = new Date(w.saved_at).getTime();
       const [from, to] = WHEN[f.when]();
@@ -58,12 +60,8 @@ export async function render(view, { params }) {
     const mastered = all.filter((w) => w.state === 'mastered').length;
     const practice = all.filter((w) => w.state === 'review' || w.state === 'hard').length;
     $('#summary').textContent = all.length ? `${num(all.length)} كلمة · ${num(mastered)} متقنة · ${num(practice)} تحتاج مراجعة` : 'لم تحفظ كلمات بعد.';
-    const src = sourcesOf().find((x) => x.id === f.source);
-    $('#filters').innerHTML = FILTERS.map(([k, l]) => `<button class="tab ${f.view === 'list' && f.filter === k ? 'active' : ''}" data-f="${k}">${l}</button>`).join('')
-      + `<select class="input level-select" id="level" aria-label="المستوى"><option value="">كل المستويات</option>${['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map((l) => `<option ${f.level === l ? 'selected' : ''}>${l}</option>`).join('')}</select>`
-      + `<select class="input level-select" id="when" aria-label="التاريخ">${[['', 'كل الأوقات'], ['today', 'اليوم'], ['yesterday', 'أمس'], ['week', 'آخر أسبوع'], ['month', 'آخر شهر']].map(([k, l]) => `<option value="${k}" ${f.when === k ? 'selected' : ''}>${l}</option>`).join('')}</select>`
-      + `<button type="button" class="input level-select src-pick ${src ? 'on' : ''}" id="srcPick">${src ? `<img src="https://i.ytimg.com/vi/${esc(src.youtube_id || '')}/default.jpg" alt="" loading="lazy" onerror="this.remove()"><span class="en clamp1">${esc(src.title.slice(0, 30))}</span> ✕` : `${icon.video} كل المقاطع ▾`}</button>`
-      + `<select class="input level-select" id="sort" aria-label="الترتيب">${[['new', 'الأحدث'], ['old', 'الأقدم'], ['az', 'أبجديًا'], ['hard', 'الأصعب أولًا']].map(([k, l]) => `<option value="${k}" ${f.sort === k ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+    $('#filters').innerHTML = filterBarHtml(barDefs(), fbOpen);
+    placeMenus($('#filters'));
     $('#groups').innerHTML = `<span class="tiny muted">المجموعات:</span>${state.groups.map((g) => `<button class="gchip ${f.group === g.id ? 'on' : ''}" data-g="${g.id}">${esc(g.name)} <span class="en-inline tiny">${g.count}</span></button>`).join('')}<button class="gchip new" id="newGroup">+ مجموعة</button>${state.groups.length > 1 ? '<button class="gchip new" id="manageGroups">⚙ إدارة المجموعات</button>' : ''}`;
     const g = state.groups.find((x) => x.id === f.group);
     $('#groupHead').innerHTML = g ? `
@@ -83,6 +81,7 @@ export async function render(view, { params }) {
     shown = all.filter(matches);
     const sorters = { old: (a, b) => new Date(a.saved_at) - new Date(b.saved_at), az: (a, b) => a.term.localeCompare(b.term), hard: (a, b) => (b.difficulty || 0) - (a.difficulty || 0) || a.mastery - b.mastery };
     if (sorters[f.sort]) shown.sort(sorters[f.sort]);
+    if (f.count) shown = shown.slice(0, f.count);
     $('#list').innerHTML = shown.length
       ? `<div class="row between" style="margin:4px 0 10px"><span class="small muted">${shown.length} كلمة</span><span class="btn-row">${select ? '' : `<button class="btn sm" id="selectAllQuick">☑ تحديد الكل</button>`}<button class="btn sm ${select ? 'primary' : ''}" id="selectToggle">${icon.check} ${select ? 'إنهاء التحديد' : 'تحديد'}</button></span></div>
          <div class="word-list">${shown.map((w) => wordRowHtml(w, { selectable: select, selected: selected.has(w.uv_id) })).join('')}</div>`
@@ -180,19 +179,19 @@ export async function render(view, { params }) {
     });
   }
 
-  // 🖼 the video filter: a list with each video's picture and title
-  function openSourcePicker() {
-    const list = sourcesOf();
-    const box = openModal(`<h2 style="margin-bottom:8px">اختر المقطع</h2>
-      <div class="src-list"><button type="button" class="src-row" data-src=""><span class="src-all">${icon.video}</span><b>كل المقاطع</b></button>
-      ${list.map((x) => `<button type="button" class="src-row ${f.source === x.id ? 'on' : ''}" data-src="${x.id}">${x.youtube_id && !x.is_demo ? `<img src="https://i.ytimg.com/vi/${esc(x.youtube_id)}/mqdefault.jpg" alt="" loading="lazy">` : `<span class="src-all">${icon.doc}</span>`}<span class="en clamp2">${esc(x.title)}</span><span class="tiny muted">${all.filter((w) => w.source?.id === x.id).length}</span></button>`).join('')}</div>`, { wide: true });
-    box.addEventListener('click', (e) => {
-      const r = e.target.closest('[data-src]');
-      if (!r) return;
-      f.source = Number(r.dataset.src) || null;
-      closeModal();
-      draw();
-    });
+  // 🧩 the shared filter bar: العدد · المستوى · الحالة · المقطع · الوقت · الترتيب
+  function barDefs() {
+    const n = (fn) => all.filter(fn).length;
+    return [
+      { k: 'count', t: 'العدد', value: String(f.count), opts: [['0', 'الكل'], ['20', '20'], ['50', '50'], ['100', '100']] },
+      { k: 'levels', t: 'المستوى', multi: true, all: 'كل المستويات', value: f.levels,
+        opts: [['', 'كل المستويات', all.length], ...LEVELS.map((l) => [l, l, n((w) => w.level === l)])] },
+      { k: 'filter', t: 'الحالة', value: f.filter, opts: FILTERS.map(([k, l]) => [k, l, k === 'all' ? all.length : n((w) => w.state === k)]) },
+      { k: 'source', t: 'المقطع', video: true, value: String(f.source || ''),
+        opts: [['', 'كل المقاطع', all.length], ...sourcesOf().map((x) => [String(x.id), x.title, n((w) => w.source?.id === x.id), ytThumb(x)])] },
+      { k: 'when', t: 'الوقت', value: f.when, opts: WHEN_OPTS },
+      { k: 'sort', t: 'الترتيب', value: f.sort, opts: [['new', 'الأحدث'], ['old', 'الأقدم'], ['az', 'أبجدي']] },
+    ];
   }
 
   // Videos the learner's words come from (for the filter).
@@ -254,15 +253,20 @@ export async function render(view, { params }) {
   };
 
   view.addEventListener('click', async (e) => {
-    if (e.target.closest('#srcPick')) { if (f.source) { f.source = null; return draw(); } return openSourcePicker(); }
-    const cl = e.target.closest('[data-cl]');
-    if (cl) return openLadder(clusters[Number(cl.dataset.cl)]);
-    const fb = e.target.closest('[data-f]');
+    const fb = filterBarClick(e, barDefs(), fbOpen);
     if (fb) {
-      f.filter = fb.dataset.f;
-      f.view = 'list';
+      if ('open' in fb) fbOpen = fb.open;
+      else {
+        if (fb.k === 'count') f.count = Number(fb.value) || 0;
+        else if (fb.k === 'source') f.source = Number(fb.value) || null;
+        else f[fb.k] = fb.value;
+        if (fb.k === 'filter') f.view = 'list';
+        if (fb.close) fbOpen = '';
+      }
       return draw();
     }
+    const cl = e.target.closest('[data-cl]');
+    if (cl) return openLadder(clusters[Number(cl.dataset.cl)]);
     const gb = e.target.closest('[data-g]');
     if (gb) {
       f.group = f.group === Number(gb.dataset.g) ? null : Number(gb.dataset.g);
@@ -352,14 +356,6 @@ export async function render(view, { params }) {
   }, true);
 
   view.addEventListener('change', async (e) => {
-    if (e.target.id === 'level') {
-      f.level = e.target.value;
-      return draw();
-    }
-    if (['when', 'source', 'sort'].includes(e.target.id)) {
-      f[e.target.id] = e.target.id === 'source' ? (Number(e.target.value) || null) : e.target.value;
-      return draw();
-    }
     if (e.target.id === 'toGroup' && e.target.value) {
       let gid = e.target.value;
       if (gid === 'new') {
@@ -386,6 +382,8 @@ export async function render(view, { params }) {
   });
 
   bindWordList($('#list'), () => shown, { onChange: reload });
+  const unOutside = closeOnOutside(view, () => fbOpen, () => { fbOpen = ''; draw(); });
+  window.addEventListener('hashchange', unOutside, { once: true });
   draw();
 
   // Older saved words move to their simplest form once (struggling → struggle), a slice at a time.

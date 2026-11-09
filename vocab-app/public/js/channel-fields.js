@@ -2,6 +2,19 @@
 // once by the server (real link + logo) and a handle YouTube doesn't know is never shown.
 // Entry: [name, handle, level, type?] — level 1 سهل · 2 متوسط · 3 صعب. Family-friendly only.
 export const FIELDS = [
+  { k: 'adventure', n: 'مغامرات', c: [
+    ['Yes Theory', 'YesTheory', 2, 'مغامرات جريئة تكسر حاجز الخوف'],
+    ['Peter Santenello', 'PeterSantenello', 2, 'يعيش مع الناس في أماكن غير مألوفة'],
+    ['Indigo Traveller', 'IndigoTraveller', 2, 'رحلات لأماكن نادرًا ما يزورها أحد'],
+    ['Kurt Caz', 'KurtCaz', 2, 'جولات في أصعب أحياء العالم'],
+    ['Drew Binsky', 'drewbinsky', 2, 'زار كل دول العالم ويحكي عنها'],
+    ['Eva zu Beck', 'EvazuBeck', 3, 'رحّالة بين الصحارى والجبال'],
+    ['Simon Wilson', 'SimonWilsonTravel', 2, 'سفر عفوي وطعام الشوارع'],
+    ['Ruhi Çenet', 'RuhiCenet', 3, 'وثائقيات من أخطر أماكن الأرض'],
+    ['Fearless & Far', 'FearlessAndFar', 2, 'قبائل وثقافات بعيدة عن السياحة'],
+    ['Bald and Bankrupt', 'BaldandBankrupt', 2, 'رحلات بميزانية صغيرة وحكايات الناس'],
+    ['Kara and Nate', 'KaraandNate', 1, 'زوجان يسافران حول العالم'],
+  ] },
   { k: 'stories', n: 'قصص', c: [
     ['Storyline Online', 'StorylineOnline', 1, 'قصص أطفال'], ['Little Fox', 'LittleFoxKids', 1, 'قصص للتعلّم'], ['English Singsing', 'EnglishSingsing', 1, 'قصص للتعلّم'],
     ['Dream English Kids', 'DreamEnglishKids', 1, 'قصص أطفال'], ['Peppa Pig', 'PeppaPigOfficial', 1, 'كرتون'], ['Bluey', 'BlueyOfficialChannel', 1, 'كرتون'],

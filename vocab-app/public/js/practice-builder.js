@@ -10,6 +10,7 @@
 // Presets set the five filters in one tap; when nothing matches, the builder says which
 // filter to loosen and how many words that would give. The result is the exact list.
 import { esc, levelChip, usageDot } from './ui.js';
+import { filterBarHtml, filterBarClick, placeMenus, closeOnOutside, ytThumb } from './filter-bar.js';
 
 const DAY = 86400000;
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
@@ -115,7 +116,7 @@ export function videoList(all) {
   for (const w of all) {
     if (!w.source?.id) continue;
     const t = new Date(w.saved_at).getTime();
-    const v = m.get(w.source.id) || { id: w.source.id, title: w.source.title || '', last: 0, n: 0 };
+    const v = m.get(w.source.id) || { id: w.source.id, title: w.source.title || '', youtube_id: w.source.youtube_id, is_demo: w.source.is_demo, thumbnail_url: w.source.thumbnail_url, last: 0, n: 0 };
     v.last = Math.max(v.last, t);
     v.n += 1;
     m.set(w.source.id, v);
@@ -173,18 +174,25 @@ export function renderBuilder(stage, { words: all, groups = [], games = [], onGo
       due: chosen.filter((w) => sig.get(w.uv_id).due).length,
     };
     const lv = LEVELS.map((l) => [l, chosen.filter((w) => w.level === l).length]).filter(([, n]) => n);
-    // 4 simple drop-downs — one tap opens a short list, one tap picks
-    const DD = {
-      from: ['من', [['all', 'كل كلماتي'], ...(vids.length ? [['lastVideo', 'آخر مقطع'], ['last3', 'آخر ٣ مقاطع']] : []), ...groups.map((g) => [`g:${g.id}`, `📁 ${g.name}`])],
-        F.from === 'groups' && F.groups.length === 1 ? `g:${F.groups[0]}` : F.from],
-      when: ['متى', [['all', 'أي وقت'], ['today', 'اليوم'], ['yesterday', 'أمس'], ['week', 'آخر أسبوع'], ['month', 'آخر شهر']], F.when],
-      perf: ['الحالة', [['', 'الكل'], ['wrong', 'أخطائي'], ['never', 'جديدة'], ['due', 'للمراجعة'], ['weak', 'صعبة'], ['mastered', 'متقنة']], F.perf.length === 1 ? F.perf[0] : ''],
-      count: ['العدد', [['10', '10'], ['20', '20'], ['30', '30'], ['50', '50'], ['0', 'الكل']], String(Number(F.count) || 0)],
-    };
-    const label = (k) => (DD[k][1].find(([v]) => v === DD[k][2]) || DD[k][1][0])[1];
+    // 🧩 the shared filter bar (same as «كلماتي»): العدد · المستوى · الحالة · المقطع · الوقت
+    const n = (patch) => selectWords(all, { ...F, ...patch, count: 0 }).list.length;
+    const srcVal = F.from === 'groups' && F.groups.length === 1 ? `g:${F.groups[0]}` : F.from === 'videos' && F.sources.length === 1 ? `v:${F.sources[0]}` : F.from;
+    const defs = [
+      { k: 'count', t: 'العدد', value: String(Number(F.count) || 0), opts: [['10', '10'], ['20', '20'], ['30', '30'], ['50', '50'], ['0', 'الكل']] },
+      { k: 'levels', t: 'المستوى', multi: true, all: 'كل المستويات', value: F.levels.map(String),
+        opts: [['', 'كل المستويات', n({ levels: [] })], ...LEVELS.map((l) => [l, l, n({ levels: [l] })])] },
+      { k: 'perf', t: 'الحالة', value: F.perf.length === 1 ? F.perf[0] : '',
+        opts: [['', 'الكل'], ['never', 'جديدة'], ['due', 'تحتاج مراجعة'], ['weak', 'صعبة'], ['mastered', 'متقنة'], ['wrong', 'أخطائي']].map(([v, l]) => [v, l, n({ perf: v ? [v] : [] })]) },
+      { k: 'from', t: 'المقطع', video: true, value: srcVal,
+        opts: [['all', 'كل المقاطع', n({ from: 'all', sources: [], groups: [] })],
+          ...(vids.length ? [['lastVideo', 'آخر مقطع', null, ytThumb(vids[0])], ['last3', 'آخر ٣ مقاطع', null, '']] : []),
+          ...vids.map((v) => [`v:${v.id}`, v.title, v.n, ytThumb(v)]),
+          ...groups.map((g) => [`g:${g.id}`, `📁 ${g.name}`])] },
+      { k: 'when', t: 'الوقت', value: F.when === 'lastN' ? 'all' : F.when, opts: [['all', 'أي وقت'], ['today', 'اليوم'], ['yesterday', 'أمس'], ['week', 'آخر أسبوع'], ['month', 'آخر شهر']] },
+    ];
+    stage._defs = defs;
     stage.innerHTML = `<div class="card pb pb4">
-      <div class="dd-row">${Object.keys(DD).map((k) => `<div class="dd${open === k ? ' open' : ''}"><button type="button" class="dd-btn" data-dd="${k}"><span class="dd-t">${DD[k][0]}</span><span class="dd-v">${esc(label(k))} ▾</span></button>
-        ${open === k ? `<div class="dd-menu">${DD[k][1].map(([v, l]) => `<button type="button" class="dd-opt${v === DD[k][2] ? ' on' : ''}" data-ddv="${k}|${esc(v)}">${esc(l)}</button>`).join('')}</div>` : ''}</div>`).join('')}</div>
+      ${filterBarHtml(defs, open)}
       <div class="pb-result">
         <div class="pb-count"><b>${chosen.length}</b> كلمة جاهزة ${list.length ? `<button type="button" class="link-btn tiny" data-showlist>عرض ▾</button>` : ''}</div>
         ${!list.length ? '<div class="sopts"><button type="button" class="sopt" data-reset>↺ كل كلماتي</button></div>' : `<details class="pb-list"${stage._listOpen ? ' open' : ''}><summary class="hidden"></summary>
@@ -194,20 +202,24 @@ export function renderBuilder(stage, { words: all, groups = [], games = [], onGo
       </div></div>`;
     save();
     stage._chosen = chosen;
+    placeMenus(stage);
   }
 
   stage.onclick = (e) => {
     const t = e.target;
-    const ddb = t.closest('[data-dd]');
-    if (ddb) { open = open === ddb.dataset.dd ? '' : ddb.dataset.dd; return draw(); }
-    const ddv = t.closest('[data-ddv]');
-    if (ddv) {
-      const [k, v] = ddv.dataset.ddv.split('|');
-      if (k === 'from') { if (v.startsWith('g:')) { F.from = 'groups'; F.groups = [v.slice(2)]; } else { F.from = v; F.groups = []; } }
-      if (k === 'when') F.when = v;
-      if (k === 'perf') F.perf = v ? [v] : [];
-      if (k === 'count') F.count = Number(v);
-      open = '';
+    const fb = filterBarClick(e, stage._defs || [], open);
+    if (fb) {
+      if ('open' in fb) { open = fb.open; return draw(); }
+      const v = fb.value;
+      if (fb.k === 'from') {
+        F.groups = []; F.sources = [];
+        if (v.startsWith('g:')) { F.from = 'groups'; F.groups = [v.slice(2)]; } else if (v.startsWith('v:')) { F.from = 'videos'; F.sources = [v.slice(2)]; } else F.from = v;
+      }
+      if (fb.k === 'when') F.when = v;
+      if (fb.k === 'perf') F.perf = v ? [v] : [];
+      if (fb.k === 'levels') F.levels = v;
+      if (fb.k === 'count') F.count = Number(v);
+      if (fb.close) open = '';
       off.clear();
       return draw();
     }
@@ -247,6 +259,10 @@ export function renderBuilder(stage, { words: all, groups = [], games = [], onGo
     if (g) { const [m, type] = g.dataset.game.split(':'); return onGo(stage._chosen || [], m, type || undefined); }
     return undefined;
   };
+  if (!stage._outside) {
+    stage._outside = closeOnOutside(stage, () => open, () => { open = ''; draw(); });
+    window.addEventListener('hashchange', () => { stage._outside?.(); stage._outside = null; }, { once: true });
+  }
   stage.onchange = (e) => {
     const c = e.target.closest('[data-pv]');
     if (c) { const v = Number(c.dataset.pv); if (c.checked) off.delete(v); else off.add(v); const keep = stage.querySelector('.pb-list')?.open; draw(); if (keep) stage.querySelector('.pb-list').open = true; return; }

@@ -1417,3 +1417,64 @@ body.reader-focus .reader-grid[data-tab="words"] .reader-main { display: none !i
 .src-all svg { width: 24px; height: 24px; color: var(--accent); }
 .save-all-btn { display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 12px; padding: 7px 14px; font: inherit; font-weight: 800; font-size: 13.5px; background: var(--gold); color: #1B263A; cursor: pointer; box-shadow: 0 4px 14px color-mix(in srgb, var(--gold) 45%, transparent); }
 .save-all-btn svg { width: 17px; height: 17px; }
+
+/* 🧭 channel fields — accordion: one field open, its channels in two scrollable rows */
+.fd-acc { display: grid; gap: 6px; margin-bottom: 12px; }
+.fd-item { border: 1px solid var(--line); border-radius: 14px; background: var(--surface); overflow: hidden; }
+.fd-item.open { border-color: var(--accent); }
+.fd-head { width: 100%; display: flex; align-items: center; gap: 8px; padding: 10px 14px; border: 0; background: transparent; font: inherit; color: var(--ink); cursor: pointer; text-align: start; }
+.fd-head .ic { color: var(--accent); width: 18px; height: 18px; }
+.fd-head b { font-size: 15px; }
+.fd-head .fd-n { margin-inline-start: auto; }
+.fd-caret { transition: transform .2s var(--ease); color: var(--muted); }
+.fd-item.open .fd-head { background: var(--accent-soft); }
+.fd-item.open .fd-caret { transform: rotate(180deg); color: var(--accent); }
+.fd-body:empty { display: none; }
+.fd-body { padding: 0 10px 10px; }
+.fd-grid.fd-rows2 { grid-auto-flow: column; grid-template-columns: none; grid-template-rows: repeat(2, auto); grid-auto-columns: 128px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x proximity; }
+.fd-rows2 .fd-card { scroll-snap-align: start; align-content: start; }
+.fd-desc { font-size: 11px; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* 🧹 إدارة بياناتي */
+.mydata-entry { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); font: inherit; color: var(--ink); cursor: pointer; text-align: start; }
+.mydata-entry:hover { border-color: var(--accent); }
+.mydata-entry > span:nth-child(2) { display: grid; gap: 2px; flex: 1; }
+.mydata-entry .ic { font-size: 20px; }
+.mydata-list { display: grid; gap: 8px; }
+.mydata-opt { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); font: inherit; color: var(--ink); text-align: start; cursor: pointer; }
+.mydata-opt > span:last-child { display: grid; gap: 2px; }
+.mydata-opt .md-ic { font-size: 20px; line-height: 1.2; }
+.mydata-opt.on { border-color: var(--accent); background: var(--accent-soft); }
+.mydata-opt.danger.on { border-color: var(--bad); background: var(--bad-soft); }
+.linkish { border: 0; background: none; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; padding: 0; }
+
+/* 🧩 one filter bar («تدرّب» + «كلماتي») — teal */
+.fbar { display: grid; grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)); gap: 6px; margin-bottom: 12px; }
+.fbar .dd-menu { min-width: 180px; max-width: min(280px, 86vw); max-height: 52vh; overflow-y: auto; inset-inline: 0 auto; }
+.fbar .dd-btn .dd-t { color: var(--accent); font-weight: 700; }
+.fbar .dd-btn.set { background: var(--accent); border-color: var(--accent); color: #fff; }
+.fbar .dd-btn.set .dd-t { color: rgba(255,255,255,.82); }
+.fb-opt { display: flex; align-items: center; gap: 8px; }
+.fb-opt .fb-l { flex: 1; min-width: 0; }
+.fb-opt .fb-c { font-size: 12px; color: var(--muted); }
+.fb-opt.on .fb-c { color: inherit; }
+.fb-tick { width: 18px; height: 18px; flex: none; border: 1.5px solid var(--line); border-radius: 5px; display: inline-grid; place-items: center; font-size: 12px; font-weight: 900; }
+.fb-opt.on .fb-tick { background: var(--accent); border-color: var(--accent); color: #fff; }
+.fb-menu-vid { width: 260px; }
+.fb-vid img, .fb-vid .fb-noimg { width: 64px; height: 36px; flex: none; object-fit: cover; border-radius: 6px; background: var(--surface-2); display: inline-grid; place-items: center; }
+.fb-vid .fb-l { font-size: 12.5px; line-height: 1.3; }
+@media (max-width: 520px) { .fbar { grid-template-columns: repeat(3, 1fr); } }
+
+/* ✨ #5 clear contrast everywhere:
+   tappable = teal outline with a soft moving glow · chosen = filled teal, white text · the rest = grey */
+@keyframes tapGlow { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); } 50% { box-shadow: 0 0 10px 1px color-mix(in srgb, var(--accent) 35%, transparent); } }
+.dd-btn, .fb-btn { border: 1.5px solid var(--accent) !important; background: var(--surface) !important; color: var(--ink); animation: tapGlow 2.8s ease-in-out infinite; }
+.dd.open .dd-btn, .fbar .dd-btn.set { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; animation: none; }
+.dd.open .dd-btn .dd-t { color: rgba(255,255,255,.82); }
+.gchip, .sopt, .tab, .segmented button, .pop-opt, .lv { background: var(--surface-2); color: var(--ink-2); border-color: var(--line); }
+.gchip:hover, .sopt:hover, .tab:hover, .segmented button:hover { border-color: var(--accent); color: var(--accent); }
+.tab.active, .segmented button.active, .gchip.on, .sopt.active, .sopt[aria-pressed="true"], .lv.on, .pop-opt.on, .dd-opt.on, .fb-opt.on { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; }
+.dd-opt { color: var(--ink-2); }
+.fd-head { color: var(--ink-2); }
+.fd-item.open .fd-head { color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { .dd-btn, .fb-btn { animation: none; } }

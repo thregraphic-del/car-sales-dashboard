@@ -128,6 +128,8 @@ export const api = {
   changePassword: (current, password) => request('POST', '/api/auth/password', { current, password }),
 
   dataSummary: () => request('GET', '/api/data/summary'),
+  wipeData: (scope) => request('POST', '/api/data/wipe', { scope, confirm: 'تأكيد' }),
+  serverBackup: (id) => request('GET', `/api/data/backups/${id}`),
   backupUrl: () => '/api/data/backup',
   serverBackupUrl: (id) => `/api/data/backups/${id}`,
   importBegin: (profile) => request('POST', '/api/data/import/begin', { confirm: 'REPLACE', profile }),

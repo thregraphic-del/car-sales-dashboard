@@ -1,7 +1,7 @@
 import { api } from '../api.js';
 import { state } from '../state.js';
 import { speak } from '../audio.js';
-import { esc, icon, toast, num } from '../ui.js';
+import { esc, icon, toast, num, openModal, closeModal } from '../ui.js';
 import { refreshStats } from '../app.js';
 import { readDataFiles, importSnapshot, countsOf, TABLES } from '../data-transfer.js';
 import { feedbackCardHtml, bindFeedbackCard } from '../feedback.js';
@@ -63,6 +63,7 @@ export async function render(view) {
           <a class="btn" href="${api.backupUrl()}" download>${icon.download || '⬇'} تنزيل نسخة احتياطية كاملة (JSON)</a>
           <a class="btn ghost" href="#/words">تصدير الكلمات إلى Excel ←</a>
         </div>
+        <button type="button" class="mydata-entry" id="myData"><span class="ic">🧹</span><span><b>إدارة بياناتي</b><span class="tiny muted">مسح الكلمات أو المقاطع أو الإعدادات — مع نسخة احتياطية تلقائية</span></span><span aria-hidden="true">‹</span></button>
         <details class="adv"><summary class="small">⚙ خيارات متقدمة (نقل البيانات، المحرّكات)</summary><div class="stack" style="margin-top:10px">
         <b class="small">نقل بياناتك من النسخة المحلية</b>
         <p class="small ink-2">أغلق نافذة النسخة المحلية أولًا، ثم اختر من مجلدها <span class="en-inline">data</span> الملف <span class="en-inline">lexitube.db</span>
@@ -176,13 +177,34 @@ export async function render(view) {
       });
       $('#backupsBox').innerHTML = s.backups.length
         ? `<details class="small"><summary>نسخ احتياطية محفوظة على الخادم (${s.backups.length})</summary>
-            <ul style="margin:6px 0 0">${s.backups.map((b) => `<li><a href="${api.serverBackupUrl(b.id)}" download>${esc(b.created_at.slice(0, 16).replace('T', ' '))}</a> · ${b.reason === 'before-import' ? 'قبل الاستيراد' : 'يدوية'}</li>`).join('')}</ul></details>`
+            <ul style="margin:6px 0 0">${s.backups.map((b) => `<li><a href="${api.serverBackupUrl(b.id)}" download>${esc(b.created_at.slice(0, 16).replace('T', ' '))}</a> · ${REASONS[b.reason] || 'يدوية'} · <button type="button" class="linkish" data-restore="${b.id}">استرجاع</button></li>`).join('')}</ul></details>`
         : '';
     } catch (err) {
       $('#counts').textContent = err.message;
     }
   };
   loadSummary();
+
+  /* ---------------------------------------------------------- 🧹 إدارة بياناتي */
+  $('#myData').addEventListener('click', () => openMyData({ onDone: () => { refreshStats(); loadSummary(); } }));
+  view.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-restore]');
+    if (!b) return;
+    if (!confirm('نرجّع بياناتك كما كانت في هذه النسخة؟ (نحفظ نسخة من الحالية أولًا)')) return;
+    b.disabled = true;
+    b.innerHTML = '<span class="spinner"></span>';
+    try {
+      const snap = await api.serverBackup(b.dataset.restore);
+      await importSnapshot(snap);
+      toast('تم الاسترجاع ✓');
+      refreshStats();
+      loadSummary();
+    } catch (err) {
+      toast(err.message);
+      b.disabled = false;
+      b.textContent = 'استرجاع';
+    }
+  });
 
   $('#dataFile').addEventListener('change', async (e) => {
     const files = [...e.target.files];
@@ -227,6 +249,93 @@ export async function render(view) {
       } catch (err) {
         $('#impMsg').innerHTML = `<div class="alert"><b>${esc(err.message)}</b><span class="small">بياناتك السابقة محفوظة كنسخة احتياطية على الخادم — يمكنك تنزيلها من القائمة أدناه واستيرادها مجددًا.</span></div>`;
         loadSummary();
+      }
+    });
+  });
+}
+
+const REASONS = {
+  'before-import': 'قبل الاستيراد', 'before-wipe-words': 'قبل مسح الكلمات', 'before-wipe-videos': 'قبل مسح المقاطع', 'before-wipe-all': 'قبل البداية الجديدة',
+};
+
+// Site settings kept in this browser (not learning data, not caches).
+const SETTING_KEY = /^(theme$|reader\.|practice\.|listen\.|help\.|words\.|filters?\.|fields\.(level|last)$)/;
+const SETTINGS_BACKUP = 'settings.backup';
+const DEFAULT_PREFS = { daily_goal: 10, speech_rate: 1, speak_arabic: false };
+
+async function resetSettings() {
+  const saved = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (SETTING_KEY.test(k)) saved[k] = localStorage.getItem(k);
+    }
+    const u = state.user || {};
+    localStorage.setItem(SETTINGS_BACKUP, JSON.stringify({ at: new Date().toISOString(), local: saved, prefs: { daily_goal: u.daily_goal, speech_rate: u.speech_rate, speak_arabic: u.speak_arabic } }));
+    Object.keys(saved).forEach((k) => localStorage.removeItem(k));
+  } catch { /* storage unavailable */ }
+  document.documentElement.removeAttribute('data-theme');
+  state.user = await api.updateMe(DEFAULT_PREFS);
+}
+
+async function restoreSettings() {
+  let b = null;
+  try { b = JSON.parse(localStorage.getItem(SETTINGS_BACKUP) || 'null'); } catch { /* ignore */ }
+  if (!b) throw new Error('لا توجد نسخة محفوظة من إعداداتك.');
+  for (const [k, v] of Object.entries(b.local || {})) localStorage.setItem(k, v);
+  if (b.prefs?.daily_goal) state.user = await api.updateMe(b.prefs);
+  if (b.local?.theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+}
+
+const MY_DATA = [
+  { k: 'words', ic: '📚', t: 'مسح الكلمات', d: 'كلماتك المحفوظة وتقدّمك ومراجعاتك ومجموعاتك. المقاطع تبقى.' },
+  { k: 'videos', ic: '🎬', t: 'مسح المقاطع', d: 'المقاطع اللي أضفتها. كلماتك تبقى.' },
+  { k: 'settings', ic: '⚙️', t: 'استعادة الإعدادات الأصلية', d: 'إعدادات الموقع (المظهر، القارئ، الفلاتر، الهدف اليومي، الصوت) ترجع للأصل. بياناتك تبقى.' },
+  { k: 'all', ic: '✨', t: 'بداية جديدة', d: 'كل اللي فوق: الكلمات والمقاطع والإعدادات. حسابك يبقى.' },
+];
+
+function openMyData({ onDone }) {
+  let hasSettingsBackup = false;
+  try { hasSettingsBackup = Boolean(localStorage.getItem(SETTINGS_BACKUP)); } catch { /* ignore */ }
+  const box = openModal(`<div class="stack">
+    <h2 style="margin:0;padding-inline-start:40px">🧹 إدارة بياناتي</h2>
+    <p class="tiny muted" style="margin:0">قبل أي مسح نحفظ نسخة احتياطية تقدر ترجّعها من «بياناتك ← خيارات متقدمة».</p>
+    <div class="mydata-list">${MY_DATA.map((o) => `<button type="button" class="mydata-opt${o.k === 'all' ? ' danger' : ''}" data-md="${o.k}"><span class="md-ic">${o.ic}</span><span><b>${o.t}</b><span class="tiny muted">${o.d}</span></span></button>`).join('')}</div>
+    ${hasSettingsBackup ? '<button type="button" class="btn sm ghost" id="mdRestoreSettings" style="justify-self:start">↩ رجّع إعداداتي السابقة</button>' : ''}
+    <div id="mdConfirm"></div>
+  </div>`);
+  const q = (s) => box.querySelector(s);
+  box.querySelector('#mdRestoreSettings')?.addEventListener('click', async () => {
+    try { await restoreSettings(); toast('رجعت إعداداتك ✓'); closeModal(); onDone(); } catch (err) { toast(err.message); }
+  });
+  box.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-md]');
+    if (!b) return;
+    const o = MY_DATA.find((x) => x.k === b.dataset.md);
+    box.querySelectorAll('[data-md]').forEach((x) => x.classList.toggle('on', x === b));
+    q('#mdConfirm').innerHTML = `<div class="card soft stack">
+      <b class="small">${o.ic} ${o.t}</b>
+      <label class="field small">للمتابعة اكتب <b>تأكيد</b><input class="input" id="mdWord" autocomplete="off" placeholder="تأكيد"></label>
+      <button type="button" class="btn bad" id="mdGo" disabled>${o.t}</button></div>`;
+    const word = q('#mdWord');
+    const go = q('#mdGo');
+    word.focus();
+    word.addEventListener('input', () => { go.disabled = word.value.trim() !== 'تأكيد'; });
+    go.addEventListener('click', async () => {
+      go.disabled = true;
+      go.innerHTML = '<span class="spinner"></span> لحظة…';
+      try {
+        if (o.k === 'words' || o.k === 'videos') await api.wipeData(o.k);
+        if (o.k === 'all') await api.wipeData('all');
+        if (o.k === 'settings' || o.k === 'all') await resetSettings();
+        toast(`تم: ${o.t} ✓ — النسخة الاحتياطية محفوظة`);
+        closeModal();
+        onDone();
+        if (o.k === 'settings' || o.k === 'all') setTimeout(() => location.reload(), 600);
+      } catch (err) {
+        toast(err.message);
+        go.disabled = false;
+        go.textContent = o.t;
       }
     });
   });

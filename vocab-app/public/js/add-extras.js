@@ -475,7 +475,7 @@ export function bindChannels(view, { onPick }) {
 
 /* ------------------------------------------- 📚 channels by field (checked once on the server) */
 const LV = [['', 'كل المستويات'], ['1', 'سهل'], ['2', 'متوسط'], ['3', 'صعب']];
-const FIELD_IC = { stories: 'bookOpen', books: 'library', talk: 'chat', beginner: 'sprout', science: 'flask', neuro: 'brain', psych: 'heart', cartoon: 'palette', comedy: 'smile', vlogs: 'video', tech: 'cpu', cooking: 'chef', sport: 'ball', history: 'landmark', health: 'pulse', spirit: 'stars', speakers: 'mic', podcast: 'podcast', self: 'target', news: 'news', business: 'briefcase', kids: 'child', travel: 'plane' };
+const FIELD_IC = { stories: 'bookOpen', books: 'library', talk: 'chat', beginner: 'sprout', science: 'flask', neuro: 'brain', psych: 'heart', cartoon: 'palette', comedy: 'smile', vlogs: 'video', tech: 'cpu', cooking: 'chef', sport: 'ball', history: 'landmark', health: 'pulse', spirit: 'stars', speakers: 'mic', podcast: 'podcast', self: 'target', news: 'news', business: 'briefcase', kids: 'child', travel: 'plane', adventure: 'compass' };
 const fic = (k) => `<span class="ic">${icon[FIELD_IC[k]] || ''}</span>`;
 const CHK_KEY = 'ytch.v1';
 const chkCache = (() => { try { return JSON.parse(localStorage.getItem(CHK_KEY) || '{}'); } catch { return {}; } })();
@@ -484,20 +484,31 @@ const saveChk = () => { try { localStorage.setItem(CHK_KEY, JSON.stringify(chkCa
 export const fieldsHtml = () => `
   <div class="section-title row between" style="gap:8px"><h2>قنوات لتعلّم الإنجليزي</h2>
     <button type="button" class="fav-chip" id="favChip"><span class="ic">${icon.star}</span> المفضلة</button></div>
-  <div class="chip-row" id="fdChips">${CH_FIELDS.map((f) => `<button type="button" class="gchip ic-chip" data-fd="${f.k}">${fic(f.k)}${f.n}</button>`).join('')}</div>
-  <div id="fdBox"></div>`;
+  <div class="fd-acc" id="fdAcc">${CH_FIELDS.map((f) => `<section class="fd-item" data-fdi="${f.k}">
+    <button type="button" class="fd-head" data-fd="${f.k}" aria-expanded="false">${fic(f.k)}<b>${f.n}</b><span class="tiny muted fd-n">${f.c.length} قناة</span><span class="fd-caret" aria-hidden="true">▾</span></button>
+    <div class="fd-body"></div></section>`).join('')}</div>`;
 
 export function bindFields(view) {
-  const box = $('#fdBox', view);
-  if (!box) return;
+  const acc = $('#fdAcc', view);
+  if (!acc) return;
+  let box = null;
+  // one field is always open: the last one used, else «مغامرات»
   let field = null;
+  try { field = CH_FIELDS.find((x) => x.k === localStorage.getItem('fields.last')) || null; } catch { /* ignore */ }
+  field ??= CH_FIELDS.find((x) => x.k === 'adventure') || CH_FIELDS[0];
   let lv = '';
   try { lv = localStorage.getItem('fields.level') || ''; } catch { /* ignore */ }
   const fav = $('#favBox', view);
   const showFav = (on) => { fav?.classList.toggle('hidden', !on); $('#favChip', view)?.classList.toggle('on', on); };
   const draw = () => {
-    view.querySelectorAll('[data-fd]').forEach((b) => b.classList.toggle('on', b.dataset.fd === field?.k));
-    if (!field) { box.innerHTML = '<p class="tiny muted">اختر مجالًا لتظهر أشهر قنواته — أو ⭐ المفضلة لقنواتك.</p>'; return; }
+    acc.querySelectorAll('.fd-item').forEach((it) => {
+      const open = it.dataset.fdi === field?.k;
+      it.classList.toggle('open', open);
+      it.querySelector('.fd-head').setAttribute('aria-expanded', String(open));
+      if (!open) it.querySelector('.fd-body').innerHTML = '';
+    });
+    box = field ? acc.querySelector(`[data-fdi="${field.k}"] .fd-body`) : null;
+    if (!box) return;
     const extra = (moreOf[field.k] || []).filter((c) => !lv || String(c[2]) === lv);
     const list = [...field.c, ...extra].filter((c) => (!lv || String(c[2]) === lv) && chkCache[c[1]]?.ok !== false);
     const logo = (c) => {
@@ -505,7 +516,7 @@ export function bindFields(view) {
       return `<span class="ch-ava" aria-hidden="true">${k?.logo ? `<img src="${esc(k.logo)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<span>${esc(c[0].slice(0, 1).toUpperCase())}</span></span>`;
     };
     box.innerHTML = `<div class="sopts" style="margin:8px 0">${LV.map(([k, l]) => `<button type="button" class="sopt${k === lv ? ' active' : ''}" data-lv="${k}">${l}</button>`).join('')}</div>
-      <div class="fd-grid">${list.map((c) => `<a class="fd-card" href="${esc(chkCache[c[1]]?.url || `https://www.youtube.com/@${encodeURIComponent(c[1])}`)}" target="_blank" rel="noopener" title="${esc(c[0])}">${logo(c)}<b class="en">${esc(c[0])}</b><span class="tiny muted">${c[3] ? esc(c[3]) : LV[c[2]][1]}</span></a>`).join('') || '<p class="tiny muted">لا توجد قنوات بهذا المستوى هنا.</p>'}</div>
+      ${list.length ? `<div class="fd-grid fd-rows2">${list.map((c) => `<a class="fd-card" href="${esc(chkCache[c[1]]?.url || `https://www.youtube.com/@${encodeURIComponent(c[1])}`)}" target="_blank" rel="noopener" title="${esc(c[0])}">${logo(c)}<b class="en">${esc(c[0])}</b><span class="tiny muted fd-desc">${c[3] ? esc(c[3]) : LV[c[2]][1]}</span></a>`).join('')}</div>` : '<p class="tiny muted">لا توجد قنوات بهذا المستوى هنا.</p>'}
       <div class="more-row"><button type="button" class="btn sm" id="fdMore">${moreBusy ? '<span class="spinner"></span>' : '＋'} المزيد</button></div>`;
   };
   // ask the server only about channels this browser hasn't checked yet (each is checked once for everyone)
@@ -541,11 +552,19 @@ export function bindFields(view) {
   };
   view.addEventListener('click', (e) => {
     if (e.target.closest('#fdMore')) { more(); return; }
-    if (e.target.closest('#favChip')) { const on = fav?.classList.contains('hidden'); showFav(on); if (on) { field = null; draw(); } return; }
+    if (e.target.closest('#favChip')) { const on = fav?.classList.contains('hidden'); showFav(on); return; }
     const f = e.target.closest('[data-fd]');
-    if (f) { field = field?.k === f.dataset.fd ? null : CH_FIELDS.find((x) => x.k === f.dataset.fd); showFav(false); draw(); if (field) check(field); return; }
+    if (f && acc.contains(f)) {
+      // tapping the open field closes it; tapping another opens it and closes the previous
+      field = field?.k === f.dataset.fd ? null : CH_FIELDS.find((x) => x.k === f.dataset.fd);
+      if (field) { try { localStorage.setItem('fields.last', field.k); } catch { /* ignore */ } }
+      draw();
+      if (field) { check(field); f.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+      return;
+    }
     const l = e.target.closest('[data-lv]');
-    if (l && box.contains(l)) { lv = l.dataset.lv; try { localStorage.setItem('fields.level', lv); } catch { /* ignore */ } draw(); }
+    if (l && box?.contains(l)) { lv = l.dataset.lv; try { localStorage.setItem('fields.level', lv); } catch { /* ignore */ } draw(); }
   });
   draw();
+  check(field);
 }

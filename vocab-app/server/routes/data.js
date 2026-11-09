@@ -37,6 +37,12 @@ router.post('/import/rows', wrap(async (req) => {
 }));
 router.post('/import/finish', wrap(async (req) => ({ counts: await backup.finishImport(req.userId) })));
 
+/** 🧹 Delete words / videos / everything — only after typing «تأكيد»; a backup is stored first. */
+router.post('/wipe', wrap(async (req) => {
+  if (String(req.body?.confirm || '').trim() !== 'تأكيد') throw httpError(400, 'اكتب «تأكيد» للمتابعة.');
+  return backup.wipe(req.userId, String(req.body?.scope || ''));
+}));
+
 /** Demo data: only into an empty account (never over real data). */
 router.post('/demo', wrap(async (req) => {
   if (await hasLearningData(req.userId)) throw httpError(409, 'عندك بيانات بالفعل — لن نضيف بيانات تجريبية فوقها.');
