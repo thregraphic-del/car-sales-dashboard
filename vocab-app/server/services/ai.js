@@ -245,7 +245,7 @@ export async function jsonCall({ task, system, user, attachments = null, extra =
     }
   }
   if (!aiAvailable()) throw new AiError(unavailableMessage());
-  if (!withinBudget()) throw new AiError('خدمة الذكاء الاصطناعي مشغولة الآن — نستخدم القاموس المحلي. حاول بعد قليل.', 429);
+  if (!withinBudget()) throw new AiError('خدمة الذكاء الاصطناعي مشغولة الحين — نستخدم القاموس المحلي. حاول بعد شوي.', 429);
   await useQuota(task);
 
   // On serverless hosting the whole call (including format retries) must
@@ -293,7 +293,7 @@ export async function jsonCall({ task, system, user, attachments = null, extra =
     }
     if (lastStatus === 429) {
       pause(config.ai.pauseAfterRateLimitMs, 'rate limited');
-      throw new AiError('خدمة الذكاء الاصطناعي مشغولة الآن — نستخدم القاموس المحلي. حاول بعد قليل.');
+      throw new AiError('خدمة الذكاء الاصطناعي مشغولة الحين — نستخدم القاموس المحلي. حاول بعد شوي.');
     }
     if (lastStatus === 400 || lastStatus === 404) {
       lastError = `model "${aiModel()}" rejected the request (HTTP ${lastStatus})`;

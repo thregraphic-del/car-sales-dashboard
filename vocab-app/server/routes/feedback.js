@@ -17,7 +17,7 @@ router.post('/', wrap(async (req) => {
   const last = recent.get(req.userId) || [];
   const now = Date.now();
   const window = last.filter((t) => now - t < 3600000);
-  if (window.length >= 10) throw httpError(429, 'أرسلت اقتراحات كثيرة الآن — شكرًا لك! حاول بعد قليل.');
+  if (window.length >= 10) throw httpError(429, 'أرسلت اقتراحات كثيرة الحين — شكرًا لك! حاول بعد شوي.');
   recent.set(req.userId, [...window, now]);
   const id = await addFeedback(req.userId, { message, contact, page });
   await emailOwner({ message, contact, page, user: req.user });

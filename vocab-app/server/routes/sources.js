@@ -60,7 +60,7 @@ router.post('/:id/retranslate', wrap(async (req) => sources.retranslate(idParam(
 router.post('/:id/recap', wrap(async (req, res) => {
   const id = idParam(req);
   const src = await sources.getSource(id, req.userId);
-  if (!src) throw httpError(404, 'المصدر غير موجود.');
+  if (!src) throw httpError(404, 'المقطع غير موجود.');
   const from = Math.max(0, Number(req.body?.from) || 0);
   const to = Math.max(from + 30, Number(req.body?.to) || from + 300);
   const lines = (await sources.sourceLines(id)).filter((l) => l.start_seconds != null && l.start_seconds >= from - 1 && l.start_seconds < to);
@@ -81,7 +81,7 @@ router.post('/:id/align', wrap(async (req) => service.alignSource(idParam(req), 
 router.post('/:id/summary', wrap(async (req, res) => {
   const id = idParam(req);
   const src = await sources.getSource(id, req.userId);
-  if (!src) throw httpError(404, 'المصدر غير موجود.');
+  if (!src) throw httpError(404, 'المقطع غير موجود.');
   const lines = await sources.sourceLines(id);
   const { summaryWithAi } = await import('../services/extractor.js');
   const { AiError } = await import('../services/ai.js');
@@ -97,7 +97,7 @@ router.post('/:id/summary', wrap(async (req, res) => {
 router.post('/:id/dictionary-words', wrap(async (req) => {
   const id = idParam(req);
   const src = await sources.getSource(id, req.userId);
-  if (!src) throw httpError(404, 'المصدر غير موجود.');
+  if (!src) throw httpError(404, 'المقطع غير موجود.');
   if (req.body?.dry && Array.isArray(req.body.words)) {
     const { findVocabulary } = await import('../data/vocabulary.js');
     const out = {};
@@ -120,7 +120,7 @@ router.put('/:id/progress', wrap(async (req) => {
   const id = idParam(req);
   const seconds = Number(req.body?.seconds);
   if (!Number.isFinite(seconds) || seconds < 0 || seconds > 86400) throw httpError(400, 'وقت غير صالح.');
-  if (!(await sources.getSource(id, req.userId))) throw httpError(404, 'المصدر غير موجود.');
+  if (!(await sources.getSource(id, req.userId))) throw httpError(404, 'المقطع غير موجود.');
   await sources.setProgress(id, req.userId, Math.round(seconds * 10) / 10);
   return { ok: true };
 }));

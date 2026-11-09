@@ -35,7 +35,7 @@ export function filterBarHtml(defs, open = '') {
     const active = d.multi ? d.value.length > 0 : String(d.value) !== String(d.opts[0]?.[0] ?? '');
     return `<div class="dd fb${open === d.k ? ' open' : ''}">
       <button type="button" class="dd-btn fb-btn${active ? ' set' : ''}" data-fb="${d.k}" aria-expanded="${open === d.k}" title="${esc(d.t)}"><span class="fb-ic" aria-hidden="true">${ICONS[d.k] || '⚙'}</span><span class="fb-txt"><span class="dd-t">${esc(d.t)}</span><span class="dd-v">${esc(current(d))} ▾</span></span></button>
-      ${open === d.k ? `<div class="dd-menu fb-menu${d.video ? ' fb-menu-vid' : ''}" role="listbox"${d.multi ? ' aria-multiselectable="true"' : ''}>${d.opts.map((o) => optHtml(d, o)).join('') || '<span class="tiny muted" style="padding:10px">لا يوجد</span>'}</div>` : ''}
+      ${open === d.k ? `<div class="dd-menu fb-menu${d.video ? ' fb-menu-vid' : ''}" role="listbox"${d.multi ? ' aria-multiselectable="true"' : ''}>${d.opts.map((o) => optHtml(d, o)).join('') || '<span class="tiny muted" style="padding:10px">ما فيه</span>'}</div>` : ''}
     </div>`;
   }).join('')}</div>`;
 }

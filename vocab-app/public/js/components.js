@@ -72,7 +72,7 @@ function headHtml(w, { big = false } = {}) {
 function meaningHtml(w) {
   const general = w.arabic_general && w.arabic && w.arabic_general !== w.arabic ? `<div class="tiny muted" style="margin-top:2px">المعنى العام: ${esc(w.arabic_general)}</div>` : '';
   return `
-    <div class="wp-meaning">${w.arabic ? esc(w.arabic) : '<span class="muted" style="font-size:15px;font-weight:500">لا يوجد معنى محفوظ بعد</span>'}</div>
+    <div class="wp-meaning">${w.arabic ? esc(w.arabic) : '<span class="muted" style="font-size:15px;font-weight:500">ما فيه معنى محفوظ بعد</span>'}</div>
     ${general}
     ${w.simple_english ? `<p class="en ink-2 wp-simple">${esc(w.simple_english)}</p>` : ''}`;
 }
@@ -242,7 +242,7 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
         <div class="wp-term en">${esc(info.word)} ${listenRow(info.word)}</div>
         <p class="small ink-2" style="margin-top:8px">${info.tier === 'function' ? 'كلمة نحوية شائعة — لا تحتاج حفظًا.'
           : info.tier === 'basic' ? 'كلمة أساسية (A1–A2) — مهمة، احفظها إن لم تكن متأكدًا منها.'
-          : 'لا يوجد معنى لهذه الكلمة في القاموس المحلي.'}</p>
+          : 'ما فيه معنى لهذه الكلمة في القاموس المحلي.'}</p>
         ${baseHtml(forms, info.word)}
         ${info.ai_error ? `<p class="tiny muted">${esc(info.ai_error)}</p>` : ''}
         ${formsHtml(forms, savedForms)}
@@ -345,7 +345,7 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
       }
       if (act === 'known') {
         await api.dismissWord(info.vocabulary_id);
-        toast(`حسنًا — لن نقترح «${info.term}» عليك بعد الآن`);
+        toast(`حسنًا — لن نقترح «${info.term}» عليك بعد الحين`);
         onChange?.(info);
         closeWordPanel();
         return;
@@ -482,5 +482,5 @@ export function celebrateGoal(goal, practiceHref = '#/practice?session=today') {
   openModal(`<div class="celebrate"><div class="celebrate-emoji">🎉</div>
     <h2>مبروك! حققت هدف اليوم</h2>
     <p class="ink-2">مررت على <b class="en-inline">${goal.count}</b> كلمة اليوم (الهدف ${goal.goal}).</p>
-    <div class="btn-row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-close>▶ أكمل</button><a class="btn" href="${practiceHref}" data-close>🎯 تدرّب الآن</a></div></div>`);
+    <div class="btn-row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-close>▶ أكمل</button><a class="btn" href="${practiceHref}" data-close>🎯 تدرّب الحين</a></div></div>`);
 }

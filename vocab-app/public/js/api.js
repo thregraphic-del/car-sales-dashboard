@@ -13,7 +13,7 @@ async function request(method, url, body, retried = false) {
       await new Promise((r) => setTimeout(r, 1200));
       return request(method, url, body, true);
     }
-    throw Object.assign(new Error('تعذّر الاتصال بالخادم. تأكد أن التطبيق يعمل ثم حاول مرة أخرى.'), { status: 0 });
+    throw Object.assign(new Error('ما قدرنا نتصل بالخادم. تأكد أن التطبيق يعمل ثم حاول مرة ثانية.'), { status: 0 });
   }
   let data = null;
   try {
@@ -28,7 +28,7 @@ async function request(method, url, body, retried = false) {
   // 👤 a guest reached the free trial: the app shows a kind «سجّل» card
   if (res.status === 403 && data?.code === 'guest_limit') window.dispatchEvent(new CustomEvent('lexitube:guest-limit', { detail: data.error }));
   if (!res.ok) {
-    const err = new Error(data?.error || 'حدث خطأ. حاول مرة أخرى.');
+    const err = new Error(data?.error || 'صار خطأ. حاول مرة ثانية.');
     err.status = res.status;
     err.data = data;
     throw err;

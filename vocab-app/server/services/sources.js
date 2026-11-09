@@ -117,7 +117,7 @@ export async function analyzeYoutube({ url, transcript, force, origin }, userId)
   }
   const lines = toLines(segments);
   mark(`transcript (${transcriptSource}, ${lines.length} lines)`);
-  if (!lines.length) throw httpError(422, 'لم نجد نصًا في هذا الفيديو.');
+  if (!lines.length) throw httpError(422, 'ما لقينا نصًا في هذا الفيديو.');
   let items = [];
   let rest = [];
   let engine = 'dictionary';
@@ -176,7 +176,7 @@ export async function indexStep(sourceId, userId) {
 
 async function requireSource(id, userId) {
   const src = await sources.getSource(id, userId);
-  if (!src) throw httpError(404, 'لم نجد هذا المصدر.');
+  if (!src) throw httpError(404, 'ما لقينا هذا المقطع.');
   return src;
 }
 

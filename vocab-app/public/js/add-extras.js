@@ -26,7 +26,7 @@ async function imageDataUrl(file) {
 const fileDataUrl = (file) => new Promise((resolve, reject) => {
   const r = new FileReader();
   r.onload = () => resolve(r.result);
-  r.onerror = () => reject(new Error('تعذّرت قراءة الملف.'));
+  r.onerror = () => reject(new Error('ما قدرنا نقرأ الملف.'));
   r.readAsDataURL(file);
 });
 
@@ -65,7 +65,7 @@ export async function docxText(buffer) {
     }
     p += 46 + nameLen + extraLen + commentLen;
   }
-  throw new Error('لم نجد نصًا في ملف Word.');
+  throw new Error('ما لقينا نصًا في ملف Word.');
 }
 
 /**
@@ -96,7 +96,7 @@ export function bindAttach(view, { input, go, status }) {
         busy('نقرأ الكلمات من الصورة…');
         const r = await api.extractWords('image', await imageDataUrl(file), name);
         busy('');
-        if (!r.items.length) return fail('لم نجد كلمات إنجليزية في الصورة.');
+        if (!r.items.length) return fail('ما لقينا كلمات إنجليزية في الصورة.');
         return useText(r.items.map((i) => `${i.term} = ${i.arabic}`).join('\n'));
       }
       if (ext === 'pdf' || file.type === 'application/pdf') {
@@ -105,7 +105,7 @@ export function bindAttach(view, { input, go, status }) {
         busy('نقرأ الكلمات من ملف PDF…');
         const r = await api.extractWords('pdf', await fileDataUrl(file), name);
         busy('');
-        if (!r.items.length) return fail('لم نجد كلمات إنجليزية في الملف.');
+        if (!r.items.length) return fail('ما لقينا كلمات إنجليزية في الملف.');
         return useText(r.items.map((i) => `${i.term} = ${i.arabic}`).join('\n'));
       }
       if (ext === 'docx') {
@@ -119,7 +119,7 @@ export function bindAttach(view, { input, go, status }) {
       return text.trim() ? useText(text) : fail('الملف فارغ.');
     } catch (err) {
       busy('');
-      fail(err.message || 'تعذّرت قراءة الملف.');
+      fail(err.message || 'ما قدرنا نقرأ الملف.');
     }
   });
 }
@@ -254,7 +254,7 @@ export function bindSuggestions(view, { onPick }) {
               <div class="tiny muted">${esc(v.channel || '')}${v.minutes ? ` · ~${Math.round(v.minutes)} د` : ''}</div>
               ${v.why_ar ? `<div class="tiny ink-2 clamp2">${esc(v.why_ar)}</div>` : ''}
               <button class="btn sm primary" data-url="${esc(v.url)}" style="margin-top:6px">أضف وتعلّم</button></div></div>`).join('')}</div>`
-          : '<p class="tiny muted">لم نجد فيديوهات مؤكدة هذه المرة — جرّب البحث بالمواضيع أدناه.</p>'}
+          : '<p class="tiny muted">ما لقينا فيديوهات مؤكدة هذه المرة — جرّب البحث بالمواضيع أدناه.</p>'}
         ${r.videos.length > shown ? '<button class="link-btn" id="sugMoreV">المزيد ▾</button>' : ''}
         ${r.topics.length ? `<div class="tiny muted" style="margin:12px 0 6px">ابحث في يوتيوب عن مواضيع مشابهة (بنفس الطول):</div>
           <div class="row wrap" style="gap:6px">${r.topics.map((t) => `<a class="chip topic-chip" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.label_ar)} · <span class="en-inline">${esc(t.query)}</span></a>`).join('')}</div>` : ''}`;
@@ -321,11 +321,11 @@ export function bindSuggestWords(view) {
       const parts = Array.from({ length: Math.ceil(want / 10) }, (_, k) => Math.min(10, want - k * 10));
       const got = await Promise.allSettled(parts.map((n, k) => api.suggestWords({ ...body, count: Math.max(5, n), part: k, parts: parts.length })));
       const ok = got.filter((g) => g.status === 'fulfilled').map((g) => g.value.items).flat();
-      if (!ok.length) throw got.find((g) => g.status === 'rejected')?.reason || new Error('حاول مرة أخرى.');
+      if (!ok.length) throw got.find((g) => g.status === 'rejected')?.reason || new Error('حاول مرة ثانية.');
       const seenT = new Set();
       const items = ok.filter((it) => { const k = it.term.toLowerCase(); if (seenT.has(k)) return false; seenT.add(k); return true; }).slice(0, want);
       if (!items.length) {
-        box.innerHTML = '<p class="tiny muted" style="margin-top:10px">لم نجد كلمات جديدة — جرّب مجالًا آخر.</p>';
+        box.innerHTML = '<p class="tiny muted" style="margin-top:10px">ما لقينا كلمات جديدة — جرّب مجالًا آخر.</p>';
         return;
       }
       box.innerHTML = `
@@ -425,7 +425,7 @@ export function bindChannels(view, { onPick }) {
         <div class="video-mini sug-card"><img class="sug-thumb" src="${esc(v.thumbnail)}" alt="" loading="lazy">
           <div style="min-width:0"><div class="en small clamp2" style="font-weight:600">${esc(v.title)}</div>
           <button class="btn sm primary" data-url="${esc(v.url)}" style="margin-top:6px">أضف وتعلّم</button></div></div>`).join('')}</div>`
-        : `<p class="tiny muted">لم نجد فيديوهات مؤكدة — افتح القناة في يوتيوب وانسخ رابط أي فيديو والصقه فوق.</p>`;
+        : `<p class="tiny muted">ما لقينا فيديوهات مؤكدة — افتح القناة في يوتيوب وانسخ رابط أي فيديو والصقه فوق.</p>`;
       extra.querySelectorAll('[data-url]').forEach((b) => b.addEventListener('click', () => onPick(b.dataset.url)));
     } catch (err) {
       $('#chVids', extra).innerHTML = `<p class="tiny muted">${esc(err.message)}</p>`;
@@ -516,7 +516,7 @@ export function bindFields(view) {
       return `<span class="ch-ava" aria-hidden="true">${k?.logo ? `<img src="${esc(k.logo)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<span>${esc(c[0].slice(0, 1).toUpperCase())}</span></span>`;
     };
     box.innerHTML = `<div class="sopts" style="margin:8px 0">${LV.map(([k, l]) => `<button type="button" class="sopt${k === lv ? ' active' : ''}" data-lv="${k}">${l}</button>`).join('')}</div>
-      ${list.length ? `<div class="fd-grid fd-rows2">${list.map((c) => `<a class="fd-card" href="${esc(chkCache[c[1]]?.url || `https://www.youtube.com/@${encodeURIComponent(c[1])}`)}" target="_blank" rel="noopener" title="${esc(c[0])}">${logo(c)}<b class="en">${esc(c[0])}</b><span class="tiny muted fd-desc">${c[3] ? esc(c[3]) : LV[c[2]][1]}</span></a>`).join('')}</div>` : '<p class="tiny muted">لا توجد قنوات بهذا المستوى هنا.</p>'}
+      ${list.length ? `<div class="fd-grid fd-rows2">${list.map((c) => `<a class="fd-card" href="${esc(chkCache[c[1]]?.url || `https://www.youtube.com/@${encodeURIComponent(c[1])}`)}" target="_blank" rel="noopener" title="${esc(c[0])}">${logo(c)}<b class="en">${esc(c[0])}</b><span class="tiny muted fd-desc">${c[3] ? esc(c[3]) : LV[c[2]][1]}</span></a>`).join('')}</div>` : '<p class="tiny muted">ما فيه قنوات بهذا المستوى هنا.</p>'}
       <div class="more-row"><button type="button" class="btn sm" id="fdMore">${moreBusy ? '<span class="spinner"></span>' : '＋'} المزيد</button></div>`;
   };
   // ask the server only about channels this browser hasn't checked yet (each is checked once for everyone)

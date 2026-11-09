@@ -156,7 +156,7 @@ export function createApp() {
   app.use((err, _req, res, _next) => {
     const status = err.status || err.statusCode || 500;
     if (status >= 500) console.error('[api]', err.message);
-    let message = err.expose || status < 500 ? err.message : 'حدث خطأ غير متوقع في الخادم. حاول مرة أخرى.';
+    let message = err.expose || status < 500 ? err.message : 'صار خطأ غير متوقع في الخادم. حاول مرة ثانية.';
     if (err.type === 'entity.too.large') message = 'البيانات المرسلة كبيرة جدًا.';
     else if (err.type === 'entity.parse.failed') message = 'بيانات غير صالحة.';
     else if (status < 500 && !/[؀-ۿ]/.test(message || '')) message = err.status ? message : 'طلب غير صالح.';

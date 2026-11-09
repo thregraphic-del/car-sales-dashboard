@@ -251,7 +251,7 @@ export async function render(view, { segments, params }) {
   try {
     data = await api.source(id);
   } catch (err) {
-    view.innerHTML = emptyState('🔎', 'لم نجد هذا المصدر', err.message, '<a class="btn" href="#/add">أضف مصدرًا</a>');
+    view.innerHTML = emptyState('🔎', 'ما لقينا هذا المقطع', err.message, '<a class="btn" href="#/add">أضف مصدرًا</a>');
     return;
   }
   const { source } = data;
@@ -631,7 +631,7 @@ export async function render(view, { segments, params }) {
       const list = pick();
       const chosen = list.filter((it) => !off.has(it.vocabulary_id)).slice(0, 600);
       box.querySelector('#pfCount').textContent = `${chosen.length} كلمة`;
-      box.querySelector('#pfList').innerHTML = list.map((it) => `<label class="pf-item"><input type="checkbox" class="check" data-pv="${it.vocabulary_id}" ${off.has(it.vocabulary_id) ? '' : 'checked'}> ${usageDot(it.usage)}<b class="en">${esc(it.term)}</b> <span class="tiny ink-2">${esc(it.arabic || '')}</span> <span class="tiny muted en-inline">${fmtTime(Number(it.timestamp_seconds) || 0)}</span></label>`).join('') || '<p class="small muted">لا توجد كلمات بهذه الفلاتر.</p>';
+      box.querySelector('#pfList').innerHTML = list.map((it) => `<label class="pf-item"><input type="checkbox" class="check" data-pv="${it.vocabulary_id}" ${off.has(it.vocabulary_id) ? '' : 'checked'}> ${usageDot(it.usage)}<b class="en">${esc(it.term)}</b> <span class="tiny ink-2">${esc(it.arabic || '')}</span> <span class="tiny muted en-inline">${fmtTime(Number(it.timestamp_seconds) || 0)}</span></label>`).join('') || '<p class="small muted">ما فيه كلمات بهذه الفلاتر.</p>';
       const go = box.querySelector('#pfGo');
       go.href = `#/practice?${new URLSearchParams({ source: id, title: source.title.slice(0, 40), mode: F.mode, vids: chosen.map((it) => it.vocabulary_id).join(','), n: Date.now() })}`;
       go.classList.toggle('disabled', !chosen.length);
@@ -891,7 +891,7 @@ export async function render(view, { segments, params }) {
 
   const drawLines = () => {
     const keep = linesEl.scrollTop;
-    linesEl.innerHTML = data.lines.map((l) => lineHtml(l, data.marks)).join('') || '<p class="muted">لا يوجد نص.</p>';
+    linesEl.innerHTML = data.lines.map((l) => lineHtml(l, data.marks)).join('') || '<p class="muted">ما فيه نص.</p>';
     linesEl.scrollTop = keep;
     if (currentId) linesEl.querySelector(`.line[data-id="${currentId}"]`)?.classList.add('current');
     currentWord = -1; // re-applied on the next tick
@@ -1001,7 +1001,7 @@ export async function render(view, { segments, params }) {
           <div style="min-width:0"><div class="row" style="gap:6px">${usageDot(it.usage)}<b class="en u-t-${esc(it.usage || '')}">${esc(it.term)}</b>${levelChip(it.level)}</div>
             <div class="small ink-2 clamp1">${esc(it.arabic || '')}</div></div>
           ${it.user_state === 'saved' ? '<span class="saved-tick" title="محفوظة">✓</span>' : `<button class="btn sm" data-save="${it.vocabulary_id}" data-occ="${it.occurrence_id}">حفظ</button>`}
-        </div>`).join('') || '<p class="small muted">لا توجد كلمات هنا. غيّر الفلتر، أو اضغط أي كلمة في النص لتفهمها وتحفظها.</p>'}
+        </div>`).join('') || '<p class="small muted">ما فيه كلمات هنا. غيّر الفلتر، أو اضغط أي كلمة في النص لتفهمها وتحفظها.</p>'}
         ${shown.length > sideLimit ? `<button class="btn sm ghost" id="sideMore" style="width:100%;margin-top:8px">عرض ${Math.min(150, shown.length - sideLimit)} أخرى (${shown.length - sideLimit} متبقية)</button>` : ''}</div>`;
   };
   const saveSideF = () => setPref(sideKey, JSON.stringify(sideF));
@@ -1147,14 +1147,14 @@ export async function render(view, { segments, params }) {
           }
         }
         if (r.complete) {
-          if (r.ai_error && missingAr()) setTrNote(`تعذّرت الترجمة: ${esc(r.ai_error)} <button class="link-btn" id="retryTr">أعد المحاولة</button>`);
+          if (r.ai_error && missingAr()) setTrNote(`ما قدرنا نترجم: ${esc(r.ai_error)} <button class="link-btn" id="retryTr">أعد المحاولة</button>`);
           else setTrNote('');
           break;
         }
         await sleep(APP_CONFIG.aiStepPauseMs);
       }
     } catch {
-      setTrNote('تعذّرت الترجمة الآن. <button class="link-btn" id="retryTr">أعد المحاولة</button>');
+      setTrNote('ما قدرنا نترجم الحين. <button class="link-btn" id="retryTr">أعد المحاولة</button>');
     } finally {
       translating = false;
       if (!alive) return;
@@ -1299,7 +1299,7 @@ export async function render(view, { segments, params }) {
         player.setRate?.(rate);
         showVidPos();
       }).catch(() => {
-        $('.player-box', view).innerHTML = `<div class="alert info">تعذّر تحميل مشغّل يوتيوب. يمكنك القراءة هنا، أو <a href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">فتح الفيديو في يوتيوب</a>.</div>`;
+        $('.player-box', view).innerHTML = `<div class="alert info">ما قدرنا نحمّل مشغّل يوتيوب. يمكنك القراءة هنا، أو <a href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">فتح الفيديو في يوتيوب</a>.</div>`;
       });
     }
   }
@@ -1422,7 +1422,7 @@ export async function render(view, { segments, params }) {
     const until = Date.now() + ms;
     const show = () => {
       const left = Math.max(0, Math.ceil((until - Date.now()) / 1000));
-      modeNote(playMode === 'shadow' ? `🗣 ردّد الفقرة الآن… ${left}` : '⏸ …');
+      modeNote(playMode === 'shadow' ? `🗣 ردّد الفقرة الحين… ${left}` : '⏸ …');
     };
     show();
     gapTick = setInterval(show, 250);
@@ -1866,7 +1866,7 @@ export async function render(view, { segments, params }) {
         try {
           const w = words[Number(b.dataset.aiSave)];
           const info = await api.lookup({ word: w.term, line_id: lineId });
-          if (!info.found) throw new Error('تعذّر حفظ هذه الكلمة.');
+          if (!info.found) throw new Error('ما قدرنا نحفظ هذي الكلمة.');
           await api.saveWord(info.vocabulary_id, info.occurrence_id || undefined);
           b.textContent = '✓ محفوظة';
           refresh();

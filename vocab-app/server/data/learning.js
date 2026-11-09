@@ -13,7 +13,7 @@ import { listWords } from './words.js';
 export async function recordReview(userId, uvId, grade, source = 'flashcard') {
   return tx(async () => {
     const uv = await get('SELECT * FROM user_vocabulary WHERE id = ? AND user_id = ?', uvId, userId);
-    if (!uv) throw httpError(404, 'لم نجد هذه الكلمة.');
+    if (!uv) throw httpError(404, 'ما لقينا هذه الكلمة.');
     // Game answers on words that are not due only update the learning signals.
     const isGame = source.startsWith('game:') || source === 'quiz';
     const scheduling = !isGame || uv.review_count === 0 || isDue(uv);

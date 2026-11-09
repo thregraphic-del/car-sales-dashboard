@@ -162,7 +162,7 @@ router.post('/more', wrap(async (req, res) => {
     const checked = await Promise.all(list.map(async (c) => ({ c, v: await checkHandle(c.handle) })));
     return { channels: checked.filter(({ v }) => v?.ok !== false).map(({ c, v }) => ({ name: c.name, handle: c.handle, type: c.field, url: v?.url || `https://www.youtube.com/@${c.handle}`, logo: v?.logo || '' })) };
   } catch (err) {
-    if (err instanceof AiError) return res.status(503).json({ error: 'الاقتراحات غير متاحة الآن.' });
+    if (err instanceof AiError) return res.status(503).json({ error: 'الاقتراحات غير متاحة الحين.' });
     throw err;
   }
 }));
@@ -184,7 +184,7 @@ router.post('/similar', wrap(async (req, res) => {
 /** Video ideas from one channel (only videos that exist and belong to it). */
 router.post('/videos', wrap(async (req, res) => {
   const name = clean(req.body?.name);
-  if (!name) throw httpError(400, 'لا توجد قناة.');
+  if (!name) throw httpError(400, 'ما فيه قناة.');
   try {
     const r = await suggestVideosWithAi({ titles: [], duration: 'medium', day: new Date().toISOString().slice(0, 10), channel: name, fresh: Boolean(req.body?.fresh) });
     const ids = [...new Set(r.videos.map((v) => v.youtube_id).filter((x) => /^[A-Za-z0-9_-]{11}$/.test(x)))].slice(0, 10);

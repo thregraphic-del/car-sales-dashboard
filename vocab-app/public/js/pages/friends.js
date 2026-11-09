@@ -50,7 +50,7 @@ export async function render(view, { params }) {
           const win = done ? (a.score === b.score ? 'تعادل 🤝' : `${esc((a.score > b.score ? a : b).me ? 'فزت 🎉' : `فاز ${(a.score > b.score ? a : b).name}`)}`) : '';
           return `<div class="ch-row"><span>${c.players.map((p) => `${esc(p.me ? 'أنت' : p.name)} <b class="en-inline">${p.score ?? '…'}</b>`).join(' ⚔️ ')} <span class="tiny muted">/ ${c.count}</span></span>
             ${c.played ? `<span class="small">${win || 'بانتظار صديقك'}</span>` : `<a class="btn sm primary" href="#/friends?play=${c.id}">العب</a>`}</div>`;
-        }).join('') : '<p class="tiny muted">لا توجد تحدّيات بعد.</p>'}
+        }).join('') : '<p class="tiny muted">ما فيه تحدّيات بعد.</p>'}
       </div>`;
   };
   let pickBg = null;

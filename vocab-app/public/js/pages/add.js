@@ -59,7 +59,7 @@ export async function render(view, { params }) {
     go.disabled = !v;
     $('#goLabel', view).textContent = isYoutube(v) ? 'افتح الفيديو' : 'تحليل';
     $('#hint', view).textContent = isYoutube(v)
-      ? 'سنقرأ نص الفيديو كاملًا ونجهّز الترجمة والكلمات المفيدة.'
+      ? 'بنقرأ نص المقطع كامل ونجهّز الترجمة والكلمات المفيدة.'
       : 'لا تحتاج تنسيقًا معيّنًا — سنفهم الكلمات والمعاني والأمثلة تلقائيًا.';
     if (!isYoutube(v)) manual.classList.add('hidden');
   };
@@ -186,7 +186,7 @@ export async function render(view, { params }) {
           <ul class="small ink-2" style="margin:6px 0 0">${p.unclear.map((l) => `<li dir="auto">${esc(l)}</li>`).join('')}</ul></div>` : ''}
         ${enriching ? `<p class="tiny muted" style="margin-top:8px"><span class="spinner"></span> ✨ نكمل المعاني والمستويات بالذكاء الاصطناعي… ${enriched}/${pending.length}</p>` : ''}
         ${p.ai_error ? `<p class="tiny muted" style="margin-top:8px">تعذّر إكمال بعض التفاصيل بالذكاء الاصطناعي: ${esc(p.ai_error)}</p>` : ''}
-        ${!items.length && !p.source ? '<div class="card empty"><h3>لم نجد كلمات أو نصًا إنجليزيًا</h3><p>جرّب كلمات إنجليزية، أو "word = معنى"، أو فقرة إنجليزية.</p></div>' : ''}`;
+        ${!items.length && !p.source ? '<div class="card empty"><h3>ما لقينا كلمات أو نصًا إنجليزيًا</h3><p>جرّب كلمات إنجليزية، أو "word = معنى"، أو فقرة إنجليزية.</p></div>' : ''}`;
     };
     const rowHtml = (it, i) => {
       const badge = it.status === 'saved'

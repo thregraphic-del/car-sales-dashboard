@@ -90,7 +90,7 @@ export async function render(view, { params }) {
   if (!label && mode !== 'story' && !params.focus && !params.type) {
     const all = await api.words();
     if (!all.length) {
-      stage.innerHTML = emptyState('📚', 'لم تحفظ كلمات بعد', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`);
+      stage.innerHTML = emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`);
       return;
     }
     // one page: the smart filter on top, every way to practise right under it
@@ -110,7 +110,7 @@ export async function render(view, { params }) {
   }
 
   if (!words.length) {
-    stage.innerHTML = emptyState('✨', focus === 'due' ? 'لا شيء للمراجعة الآن' : 'لا توجد كلمات هنا', 'جرّب الاختيار الذكي، أو أضف كلمات جديدة.',
+    stage.innerHTML = emptyState('✨', focus === 'due' ? 'لا شيء للمراجعة الحين' : 'ما فيه كلمات هنا', 'جرّب الاختيار الذكي، أو أضف كلمات جديدة.',
       `<div class="btn-row" style="justify-content:center"><a class="btn primary" href="${href({ mode })}">اختيار ذكي</a><a class="btn" href="#/add">${icon.plus} أضف كلمات</a></div>`);
     return;
   }
@@ -131,7 +131,7 @@ export async function render(view, { params }) {
         return `<a class="card game-card ${playable ? '' : 'off'}" href="${playable ? href({ ...base, mode: 'games', type: k }) : '#'}" style="text-decoration:none">
           <div class="row between"><div class="game-icon">${icon[TYPES[k].icon]}</div><span class="tiny muted en-inline">${TYPES[k].en}</span></div>
           <h3 style="font-size:16.5px">${TYPES[k].name}</h3><p class="small muted">${TYPES[k].description}</p>
-          ${playable ? '' : '<span class="tiny muted">لا توجد كلمات مناسبة هنا</span>'}</a>`;
+          ${playable ? '' : '<span class="tiny muted">ما فيه كلمات مناسبة هنا</span>'}</a>`;
       }).join('')}</div>`;
     return;
   }
@@ -191,7 +191,7 @@ export async function render(view, { params }) {
           <div class="replay-box">
             <b>فاتتك ${missed.length} ${missed.length === 1 ? 'كلمة' : 'كلمات'}</b>
             <div class="missed-list">${missed.map((m) => `<span><b class="en-inline">${esc(m.term)}</b> <span class="small ink-2">${esc(m.arabic || '')}</span></span>`).join('')}</div>
-            <a class="btn primary lg" href="${href({ mode: 'quiz', ids: missed.map((m) => m.uv_id).join(','), replay: 1 })}">${icon.repeat} تدرّب عليها الآن</a>
+            <a class="btn primary lg" href="${href({ mode: 'quiz', ids: missed.map((m) => m.uv_id).join(','), replay: 1 })}">${icon.repeat} تدرّب عليها الحين</a>
             <p class="tiny muted" style="margin-top:8px">ستعود هذه الكلمات أيضًا في خطتك خلال الأيام القادمة.</p>
           </div>`
           : `<p class="ink-2">${replay ? 'ممتاز — أجبت عن كل الكلمات التي أخطأت فيها.' : 'ممتاز! ستتباعد مراجعة هذه الكلمات.'}</p>`}

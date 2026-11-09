@@ -75,7 +75,7 @@ export async function userFromToken(token) {
 const failures = new Map();
 function checkRate(k, max = 5) {
   const f = failures.get(k);
-  if (f && f.count >= max && Date.now() - f.at < 15 * 60000) throw httpError(429, 'محاولات كثيرة. انتظر ربع ساعة ثم حاول مرة أخرى.');
+  if (f && f.count >= max && Date.now() - f.at < 15 * 60000) throw httpError(429, 'محاولات كثيرة. انتظر ربع ساعة ثم حاول مرة ثانية.');
 }
 function noteFailure(k) {
   const f = failures.get(k) || { count: 0, at: 0 };

@@ -3,7 +3,7 @@ import { api } from './api.js';
 import { state, loadGroups } from './state.js';
 import { stop as stopAudio, speak } from './audio.js';
 import { closeWordPanel } from './components.js';
-import { icon, $, closeModal, esc, openModal, toast } from './ui.js';
+import { icon, $, closeModal, esc, openModal, toast, applyTheme } from './ui.js';
 import { openFeedback } from './feedback.js';
 
 const NAV = [
@@ -50,7 +50,7 @@ function renderNav(active) {
   const links = NAV.map((n) => `<a class="nav-link ${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? `<span class="badge">${left}</span>` : ''}</a>`).join('');
   $('#nav').innerHTML = `${links}<div class="nav-sep"></div><a class="nav-link ${active === '/friends' ? 'active' : ''}" href="#/friends">${icon.users}<span>أصدقائي</span></a><a class="nav-link ${active === '/settings' ? 'active' : ''}" href="#/settings">${icon.settings}<span>الإعدادات</span></a>`;
   $('#tabbar').innerHTML = NAV.map((n) => `<a class="${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? '<i class="dot"></i>' : ''}</a>`).join('');
-  const guestChip = state.user?.guest ? '<a class="guest-chip" href="/register">👤 تستخدم الموقع كضيف — <b>سجّل حسابك المجاني</b> وتنحفظ كلماتك في حسابك</a>' : '';
+  const guestChip = state.user?.guest ? '<div class="guest-chip">👤 أنت ضيف — <a href="/register"><b>سجّل حسابك المجاني</b></a> وتنحفظ كلماتك. عندك حساب؟ <a href="/login"><b>ادخل</b></a></div>' : '';
   $('#sidebarFoot').innerHTML = s
     ? `${guestChip}<div class="row between"><span>🔥 أيام متتالية</span><b class="en-inline">${s.streak.current}</b></div>
        <div class="tiny muted" style="margin-top:6px">${state.config?.ai?.configured ? '✨ الذكاء الاصطناعي مفعّل' : '📘 القاموس المحلي'}</div>
@@ -91,7 +91,7 @@ function openCredits() {
     <p class="small ink-2">منذ ${esc(c.since.slice(0, 10))}: ${c.deploys} رفعة × ${c.deploy_cost} = ${c.deploys * c.deploy_cost} رصيد. باقي يكفي تقريبًا <b>${Math.floor(c.left / c.deploy_cost)}</b> رفعة.</p>
     <p class="tiny muted">رقم تقديري من الرفعات (أكبر استهلاك). للرقم الدقيق: <a href="https://app.netlify.com/teams/thregraphic/usage" target="_blank" rel="noopener">صفحة الاستهلاك في Netlify ↗</a> — واكتب الباقي هنا مرة، ونحسب منه.</p>
     <div class="srow"><span class="slabel">رصيد الخطة</span><div class="sopts"><input class="input sopt-num" id="crPlan" type="number" min="1" value="${c.plan}"> <span class="tiny">بالشهر</span></div></div>
-    <div class="srow"><span class="slabel">الباقي الآن</span><div class="sopts"><input class="input sopt-num" id="crLeft" type="number" min="0" placeholder="من Netlify"> <span class="tiny">اختياري</span></div></div>
+    <div class="srow"><span class="slabel">الباقي الحين</span><div class="sopts"><input class="input sopt-num" id="crLeft" type="number" min="0" placeholder="من Netlify"> <span class="tiny">اختياري</span></div></div>
     <div class="srow"><span class="slabel">يتجدد يوم</span><div class="sopts"><input class="input sopt-num" id="crDay" type="number" min="1" max="28" value="${c.cycle_day}"> <span class="tiny">من الشهر</span></div></div>
     <div class="btn-row" style="margin-top:10px"><button class="btn primary" id="crSave">حفظ</button><button class="btn ghost" data-close>إغلاق</button></div></div>`);
   box.querySelector('#crSave').addEventListener('click', async () => {
@@ -133,6 +133,12 @@ async function route() {
     const { renderPublic } = await import('./pages/friends.js');
     return renderPublic($('#view'), segments[1].replace(/[^a-f0-9]/g, ''));
   }
+  if (base !== '/' && !ROUTES[base]) {
+    renderNav('');
+    $('#view').className = 'view';
+    $('#view').innerHTML = '<div class="card empty"><div class="icon">🧭</div><h3>الصفحة غير موجودة</h3><p>الرابط غلط أو الصفحة انحذفت.</p><div style="margin-top:16px"><a class="btn primary" href="#/">الرجوع للرئيسية</a></div></div>';
+    return;
+  }
   const page = ROUTES[base] || 'today';
   const my = ++token;
   cleanup?.();
@@ -162,7 +168,8 @@ async function route() {
   } catch (err) {
     if (err.status === 401) return; // the login screen takes over
     console.error(err);
-    view.innerHTML = `<div class="card empty"><div class="icon">⚠️</div><h3>تعذّر تحميل الصفحة</h3><p>${esc(err.message)}</p></div>`;
+    view.innerHTML = `<div class="card empty"><div class="icon">⚠️</div><h3>ما قدرنا نحمّل الصفحة</h3><p>${esc(err.message)}</p><div style="margin-top:16px"><button type="button" class="btn primary" id="retryPage">حاول مرة ثانية</button></div></div>`;
+    $('#retryPage')?.addEventListener('click', route);
   }
   refreshStats({ lazy: true });
 }
@@ -176,7 +183,7 @@ function askToRegister(text) {
     <h2>احفظ تقدّمك في حسابك</h2>
     <p>${esc(text || 'أنت تستخدم الموقع كضيف. سجّل حسابك المجاني عشان تنحفظ كلماتك ومقاطعك وتقدّمك، وتوصل لها من أي جهاز.')}</p>
     <ul class="guest-list"><li>✓ مجاني ويأخذ دقيقة</li><li>✓ كل اللي سويته الحين ينتقل لحسابك</li><li>✓ تدخل بالإيميل أو الجوال أو اسم المستخدم</li></ul>
-    <div class="btn-row" style="justify-content:center"><a class="btn primary" href="/register">سجّل حسابي</a><button type="button" class="btn ghost" data-close>لاحقًا</button></div></div>`);
+    <div class="btn-row" style="justify-content:center"><a class="btn primary" href="/register">سجّل حسابي</a><button type="button" class="btn ghost" data-close>بعدين</button></div></div>`);
   return box;
 }
 
@@ -199,10 +206,11 @@ function guestReminder(base) {
 }
 
 /** Login / registration, shown instead of the app when needed (also at /login and /register). */
-async function showAuth() {
+async function showAuth(status) {
   document.body.classList.add('auth-mode');
   const { render } = await import('./pages/login.js');
   await render($('#view'), {
+    status,
     mode: /^\/register\/?$/.test(location.pathname) ? 'register' : 'login',
     onDone: () => {
       document.body.classList.remove('auth-mode');
@@ -235,8 +243,9 @@ let lastSay = { text: '', at: 0, slow: false };
 
 async function init() {
   try {
-    const t = localStorage.getItem('theme');
-    if (t === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    const t = localStorage.getItem('theme') || 'light';
+    applyTheme(t);
+    window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', () => { if ((localStorage.getItem('theme') || 'light') === 'auto') applyTheme('auto'); });
   } catch {
     /* storage unavailable */
   }
@@ -261,6 +270,8 @@ async function init() {
   });
   // 👤 a guest went past the free trial → one kind card: create the free account (everything moves with them)
   window.addEventListener('lexitube:guest-limit', (e) => askToRegister(e.detail));
+  window.addEventListener('offline', () => toast('انقطع الإنترنت — بنكمل أول ما يرجع'));
+  window.addEventListener('online', () => toast('رجع الإنترنت ✓'));
   window.addEventListener('lexitube:auth', () => {
     if (!document.body.classList.contains('auth-mode')) showAuth();
   });
@@ -291,8 +302,8 @@ async function init() {
       auth.logged_in = true;
     } catch { /* too many guests from this address, or sign-ups closed: the login page */ }
   }
-  if (!auth.logged_in) await showAuth();
-  else if (/^\/register\/?$/.test(location.pathname) && auth.guest) await showAuth();
+  if (!auth.logged_in) await showAuth(auth);
+  else if (/^\/(login|register)\/?$/.test(location.pathname) && auth.guest) await showAuth(auth);
   else {
     if (/^\/(login|register)\/?$/.test(location.pathname)) history.replaceState(null, '', `/${location.hash}`);
     await start();

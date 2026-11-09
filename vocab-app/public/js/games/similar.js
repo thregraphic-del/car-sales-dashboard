@@ -11,7 +11,7 @@ const CLASSIC = [
   ['quiet=هادئ', 'quite=إلى حد ما', 'quit=يترك'], ['lose=يخسر/يفقد', 'loose=فضفاض/مرتخٍ'], ['desert=صحراء', 'dessert=حلوى'],
   ['principal=مدير مدرسة/رئيسي', 'principle=مبدأ'], ['weather=طقس', 'whether=ما إذا'], ['then=ثم', 'than=من (للمقارنة)'],
   ['breath=نَفَس', 'breathe=يتنفس'], ['cloth=قماش', 'clothes=ملابس'], ['complement=يكمّل', 'compliment=مجاملة/مديح'],
-  ['adapt=يتكيف', 'adopt=يتبنى'], ['personal=شخصي', 'personnel=الموظفون'], ['later=لاحقًا', 'latter=الأخير (من اثنين)'],
+  ['adapt=يتكيف', 'adopt=يتبنى'], ['personal=شخصي', 'personnel=الموظفون'], ['later=بعدين', 'latter=الأخير (من اثنين)'],
   ['through=عبر/خلال', 'though=رغم أن', 'thorough=شامل/دقيق', 'thought=فكرة'], ['diary=مذكرات', 'dairy=ألبان'],
 ];
 

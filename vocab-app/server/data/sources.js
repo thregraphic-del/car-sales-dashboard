@@ -326,7 +326,7 @@ export function sourceRef(s) {
 /** Everything the reader needs: lines, word marks and the suggested list. */
 export async function sourceView(sourceId, userId) {
   const source = await getSource(sourceId, userId);
-  if (!source) throw httpError(404, 'لم نجد هذا المصدر.');
+  if (!source) throw httpError(404, 'ما لقينا هذا المقطع.');
   const lines = await sourceLines(sourceId);
   const occ = await all(
     `SELECT o.*, v.term, v.item_type, v.part_of_speech, v.level, v.band, v.pronunciation, v.arabic AS arabic_general, v.simple_english,
@@ -363,7 +363,7 @@ export async function sourceView(sourceId, userId) {
 
 export async function deleteSource(id, userId) {
   const r = await run('DELETE FROM sources WHERE id = ? AND user_id = ?', id, userId);
-  if (!r.changes) throw httpError(404, 'لم نجد هذا المصدر.');
+  if (!r.changes) throw httpError(404, 'ما لقينا هذا المقطع.');
 }
 
 /** Get or create the occurrence of a vocabulary item on a line of the learner's source. */

@@ -24,13 +24,13 @@ export const DEFAULTS = {
 };
 
 const PRESETS = [
-  ['smart', '⚡ جلسة ذكية', 'أهم ٢٠ كلمة الآن: الأخطاء الحديثة ثم المستحقة ثم الضعيفة', { order: 'smart', count: 20 }],
+  ['smart', '⚡ جلسة ذكية', 'أهم ٢٠ كلمة الحين: الأخطاء الحديثة ثم المستحقة ثم الضعيفة', { order: 'smart', count: 20 }],
   ['mistakes', '🔥 أخطائي', 'كل كلمة أخطأت فيها في آخر ٧ أيام', { perf: ['wrong'], count: 0, order: 'smart' }],
   ['lastVideo', '🎬 آخر مقطع', 'كلمات آخر مقطع حفظت منه', { from: 'lastVideo', count: 0, order: 'old' }],
   ['lastN', '🆕 آخر ١٠ كلمات', 'آخر ١٠ كلمات حفظتها', { when: 'lastN', lastN: 10, count: 0, order: 'new', notToday: false }],
   ['fresh', '🌱 لم أتدرب عليها', 'كلمات حفظتها ولم تتدرّب عليها أبدًا', { perf: ['never'], count: 20, order: 'new' }],
   ['fading', '🌫 مهدّدة بالنسيان', 'كلمات لم ترها منذ أسبوعين ولم تتقنها بعد', { perf: ['fading'], count: 20, order: 'smart' }],
-  ['due', '⏰ مستحقة الآن', 'ما حان وقت مراجعته حسب جدول التكرار المتباعد', { perf: ['due'], count: 30, order: 'smart' }],
+  ['due', '⏰ مستحقة الحين', 'ما حان وقت مراجعته حسب جدول التكرار المتباعد', { perf: ['due'], count: 30, order: 'smart' }],
 ];
 
 /** Learning signals of one word, from its review history. */

@@ -34,7 +34,7 @@ export async function deleteGroup(userId, id) {
 
 async function ownGroup(userId, groupId) {
   const g = await get('SELECT * FROM word_groups WHERE id = ? AND user_id = ?', groupId, userId);
-  if (!g) throw httpError(404, 'لم نجد هذه المجموعة.');
+  if (!g) throw httpError(404, 'ما لقينا هذه المجموعة.');
   return g;
 }
 
@@ -59,7 +59,7 @@ export async function groupIdsFor(uvId) {
 
 /** Replace a word's group membership with exactly groupIds. */
 export async function setWordGroups(userId, uvId, groupIds) {
-  if (!await get('SELECT 1 AS x FROM user_vocabulary WHERE id = ? AND user_id = ?', uvId, userId)) throw httpError(404, 'لم نجد هذه الكلمة.');
+  if (!await get('SELECT 1 AS x FROM user_vocabulary WHERE id = ? AND user_id = ?', uvId, userId)) throw httpError(404, 'ما لقينا هذه الكلمة.');
   await tx(async () => {
     const want = new Set(groupIds.map(Number));
     for (const g of want) await ownGroup(userId, g);

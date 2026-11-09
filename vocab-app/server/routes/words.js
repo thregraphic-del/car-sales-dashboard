@@ -19,7 +19,7 @@ router.get('/lookup', wrap(async (req) => {
   const word = str(req.query.word, 80);
   const lineId = num(req.query.line_id);
   const vocabularyId = num(req.query.vocabulary_id);
-  if (!word && !vocabularyId) throw httpError(400, 'لا توجد كلمة.');
+  if (!word && !vocabularyId) throw httpError(400, 'ما فيه كلمة.');
   const r = await lookup({ line_id: lineId, word, vocabulary_id: vocabularyId, context: req.query.context === '1' }, req.userId);
   // A word opened while watching or reading counts toward today's goal.
   if (r.found && lineId && r.vocabulary_id) r.goal = await recordView(req.userId, r.vocabulary_id);
@@ -30,7 +30,7 @@ router.get('/lookup', wrap(async (req) => {
 router.post('/words', wrap(async (req) => {
   const b = req.body || {};
   const vocabularyId = num(b.vocabulary_id);
-  if (!vocabularyId) throw httpError(400, 'لا توجد كلمة للحفظ.');
+  if (!vocabularyId) throw httpError(400, 'ما فيه كلمة للحفظ.');
   await guardGuest(req.user, 'words');
   const out = await words.saveWord(req.userId, vocabularyId, { occurrenceId: num(b.occurrence_id) ?? null, groupIds: idList(b.group_ids, 50) });
   // Saving one word counts toward today's goal; "save all" (bulk) does not.
@@ -52,13 +52,13 @@ router.post('/words/bulk', wrap(async (req) => {
 }));
 router.post('/words/dismiss', wrap(async (req) => {
   const id = num(req.body?.vocabulary_id);
-  if (!id) throw httpError(400, 'لا توجد كلمة.');
+  if (!id) throw httpError(400, 'ما فيه كلمة.');
   await words.dismissWord(req.userId, id);
   return { ok: true };
 }));
 router.post('/words/reset', wrap(async (req) => {
   const id = num(req.body?.vocabulary_id);
-  if (!id) throw httpError(400, 'لا توجد كلمة.');
+  if (!id) throw httpError(400, 'ما فيه كلمة.');
   await words.resetVocabularyState(req.userId, id);
   return { ok: true };
 }));

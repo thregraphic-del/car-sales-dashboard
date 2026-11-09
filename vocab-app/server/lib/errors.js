@@ -6,4 +6,4 @@ export function httpError(status, message) {
   return err;
 }
 
-export const notFound = (what = 'هذا العنصر') => httpError(404, `لم نجد ${what}.`);
+export const notFound = (what = 'هذا العنصر') => httpError(404, `ما لقينا ${what}.`);

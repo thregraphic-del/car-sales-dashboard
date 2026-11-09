@@ -5,8 +5,8 @@
 import { api } from '../api.js';
 import { esc } from '../ui.js';
 
-export async function render(view, { onDone, mode: initial }) {
-  const status = await api.authStatus();
+export async function render(view, { onDone, mode: initial, status: given }) {
+  const status = given || await api.authStatus();
   const first = !status.owner_exists;
   let mode = first ? 'register' : initial === 'register' && status.registration !== 'closed' ? 'register' : 'login';
 
@@ -29,14 +29,14 @@ export async function render(view, { onDone, mode: initial }) {
              ${needCode ? '<p class="tiny muted">تجد رمز الإعداد في حسابك على Netlify: المشروع ← Project configuration ← Environment variables ← <span class="en-inline">SETUP_CODE</span>.</p>' : ''}`
           : reg
             ? '<p class="small ink-2">لكل حساب كلماته ومجموعاته وتقدّمه الخاص — لا يراها غيرك.</p>'
-            : '<p class="small ink-2">ادخل لمتابعة التعلّم من حيث توقفت.</p>'}
+            : '<p class="small ink-2">ادخل وكمّل من وين ما وقفت.</p>'}
         <form id="authForm" autocomplete="on">
           ${reg && needCode ? `<label class="field">${first ? 'رمز الإعداد' : 'رمز الدعوة'}<input class="input en" id="code" autocomplete="one-time-code" required></label>` : ''}
           ${reg ? '<label class="field">اسمك <span class="tiny muted">(اختياري)</span><input class="input" id="name" autocomplete="name" maxlength="60"></label>' : ''}
-          ${reg ? '<label class="field">الإيميل <span class="tiny muted">(تدخل فيه، وتسترجع حسابك إذا نسيت كلمة المرور)</span><input class="input en" id="email" type="email" autocomplete="email" maxlength="200"></label>' : ''}
+          ${reg ? '<label class="field">الإيميل <span class="tiny muted">(مهم: بدونه ما تقدر تسترجع حسابك إذا نسيت كلمة المرور)</span><input class="input en" id="email" type="email" autocomplete="email" maxlength="200"></label>' : ''}
           ${reg ? '<label class="field">رقم الجوال <span class="tiny muted">(اختياري — تقدر تدخل فيه)</span><input class="input en" id="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="05xxxxxxxx"></label>' : ''}
           <label class="field">${reg ? 'اسم المستخدم' : 'اسم المستخدم أو الإيميل أو الجوال'}<input class="input en" id="user" autocomplete="username" required ${reg ? 'minlength="3" ' : ''}maxlength="${reg ? 40 : 200}"></label>
-          <label class="field">كلمة المرور<input class="input en" id="pass" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}" required></label>
+          <label class="field">كلمة المرور<span class="pw-wrap"><input class="input en" id="pass" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}" required><button type="button" class="pw-eye" id="pwEye" aria-label="إظهار كلمة المرور">👁</button></span></label>
           <div class="alert bad hidden" id="err" role="alert"></div>
           <button class="btn primary" type="submit" id="go">${reg ? 'إنشاء الحساب والدخول' : 'دخول'}</button>
         </form>
@@ -47,6 +47,7 @@ export async function render(view, { onDone, mode: initial }) {
     </div>`;
     const $ = (s) => view.querySelector(s);
     $('#user').focus();
+    $('#pwEye')?.addEventListener('click', () => { const p = $('#pass'); p.type = p.type === 'password' ? 'text' : 'password'; });
     view.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => {
       mode = b.dataset.mode;
       history.replaceState(null, '', `/${mode === 'register' ? 'register' : 'login'}${location.hash}`);
@@ -78,7 +79,7 @@ export async function render(view, { onDone, mode: initial }) {
         <p class="small ink-2">اكتب اسم المستخدم أو الإيميل أو الجوال، ويوصلك كود من ٦ أرقام على إيميلك.</p>
         <form id="f1"><label class="field">اسم المستخدم أو الإيميل أو الجوال<input class="input en" id="login" value="${esc(login0)}" required></label>
           <button class="btn primary" id="send">أرسل الكود</button></form>
-        <form id="f2" class="hidden"><p class="small">✉️ إذا كان للحساب إيميل، وصلك كود (شوف السبام كمان).</p>
+        <form id="f2" class="hidden"><p class="small">✉️ إذا كان للحساب إيميل، وصلك كود (شيّك على السبام بعد).</p>
           <label class="field">الكود<input class="input en" id="rcode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required></label>
           <label class="field">كلمة المرور الجديدة<input class="input en" id="npass" type="password" autocomplete="new-password" required></label>
           <button class="btn primary" id="reset">غيّر كلمة المرور وادخل</button></form>

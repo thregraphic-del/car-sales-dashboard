@@ -101,7 +101,7 @@ export async function listBackups(userId) {
 
 export async function getBackup(id, userId) {
   const row = await get('SELECT payload FROM backups WHERE id = ? AND user_id = ?', id, userId);
-  if (!row) throw httpError(404, 'لم نجد هذه النسخة الاحتياطية.');
+  if (!row) throw httpError(404, 'ما لقينا هذه النسخة الاحتياطية.');
   return row.payload;
 }
 

@@ -50,7 +50,7 @@ router.post('/review', wrap(async (req) => {
   const { uv_id: uvId, grade, source } = req.body || {};
   if (!GRADES.includes(grade)) throw httpError(400, 'grade must be hard, good or easy');
   const id = num(uvId);
-  if (!id) throw httpError(400, 'لا توجد كلمة.');
+  if (!id) throw httpError(400, 'ما فيه كلمة.');
   return learning.recordReview(req.userId, id, grade, typeof source === 'string' && REVIEW_SOURCE.test(source) ? source : 'flashcard');
 }));
 

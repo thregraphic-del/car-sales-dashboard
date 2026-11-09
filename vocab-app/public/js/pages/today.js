@@ -10,7 +10,7 @@ export async function render(view) {
   state.stats = stats;
   const left = plan.items.filter((i) => !i.completed);
   const hour = new Date().getHours();
-  const greet = hour < 12 ? 'صباح الخير' : 'مساء الخير';
+  const greet = hour >= 4 && hour < 12 ? 'صباح الخير' : hour >= 12 && hour < 17 ? 'هلا' : 'مساء الخير';
   const name = state.user?.name && state.user.name !== 'Learner' ? `، ${esc(state.user.name)}` : '';
   const last = sources.find((x) => x.kind === 'youtube' && Number(x.progress_seconds) > 5) || sources.find((x) => x.kind === 'youtube');
   const parts = [

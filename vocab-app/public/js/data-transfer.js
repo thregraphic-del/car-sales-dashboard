@@ -18,7 +18,7 @@ function loadSqlJs() {
     const s = document.createElement('script');
     s.src = `${APP_CONFIG.sqlJsBase}sql-wasm.js`;
     s.onload = () => window.initSqlJs({ locateFile: (f) => `${APP_CONFIG.sqlJsBase}${f}` }).then(resolve, reject);
-    s.onerror = () => reject(new Error('تعذّر تحميل قارئ قواعد البيانات. تحقق من الاتصال وحاول مرة أخرى.'));
+    s.onerror = () => reject(new Error('ما قدرنا نحمّل قارئ قواعد البيانات. تحقق من الاتصال وحاول مرة ثانية.'));
     document.head.append(s);
   });
   return sqlJs;

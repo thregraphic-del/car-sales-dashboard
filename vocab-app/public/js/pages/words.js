@@ -60,7 +60,7 @@ export async function render(view, { params }) {
   function draw() {
     const mastered = all.filter((w) => w.state === 'mastered').length;
     const practice = all.filter((w) => w.state === 'review' || w.state === 'hard').length;
-    $('#summary').textContent = all.length ? `${num(all.length)} كلمة · ${num(mastered)} متقنة · ${num(practice)} تحتاج مراجعة` : 'لم تحفظ كلمات بعد.';
+    $('#summary').textContent = all.length ? `${num(all.length)} كلمة · ${num(mastered)} متقنة · ${num(practice)} تحتاج مراجعة` : 'ما حفظت كلمات للحين.';
     $('#filters').innerHTML = filterBarHtml(barDefs(), fbOpen);
     placeMenus($('#filters'));
     // 📁 groups: one closed button; tapping it shows every group + «مجموعة جديدة» + «إدارة المجموعات»
@@ -91,8 +91,8 @@ export async function render(view, { params }) {
       ? `<div class="row between" style="margin:4px 0 10px"><span class="small muted">${shown.length} كلمة</span><span class="btn-row">${select ? '' : `<button class="btn sm" id="selectAllQuick">☑ تحديد الكل</button>`}<button class="btn sm ${select ? 'primary' : ''}" id="selectToggle">${icon.check} ${select ? 'إنهاء التحديد' : 'تحديد'}</button></span></div>
          <div class="word-list">${shown.map((w) => wordRowHtml(w, { selectable: select, selected: selected.has(w.uv_id) })).join('')}</div>`
       : all.length
-        ? emptyState('🔍', 'لا توجد كلمات هنا', f.group ? 'أضف كلمات إلى هذه المجموعة من بطاقة أي كلمة.' : 'جرّب بحثًا أو فلترًا آخر.')
-        : emptyState('📚', 'لم تحفظ كلمات بعد', 'أضف فيديو أو كلمات وسنساعدك على اختيار ما يستحق.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`);
+        ? emptyState('🔍', 'ما فيه كلمات هنا', f.group ? 'أضف كلمات إلى هذه المجموعة من بطاقة أي كلمة.' : 'جرّب بحثًا أو فلترًا آخر.')
+        : emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات وبنساعدك تختار اللي يستاهل.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`);
     const allShownSelected = shown.length > 0 && shown.every((w) => selected.has(w.uv_id));
     const inGroup = state.groups.find((x) => x.id === f.group);
     const none = selected.size ? '' : 'disabled';
@@ -135,7 +135,7 @@ export async function render(view, { params }) {
         <b class="en" dir="ltr">${esc(c.head.term)}</b>
         <span class="small ink-2 clear-ar">${esc(c.head.arabic || '')}</span>
         ${c.members.length > 1 ? `<span class="clear-more">+${c.members.length - 1} <span class="tiny">${c.members.filter((m) => m.uv_id !== c.head.uv_id).map((m) => esc(m.term)).slice(0, 3).join('، ')}</span></span>` : ''}
-      </button>`).join('')}</div>` : emptyState('🔍', 'لا توجد كلمات هنا', 'جرّب بحثًا أو فلترًا آخر.');
+      </button>`).join('')}</div>` : emptyState('🔍', 'ما فيه كلمات هنا', 'جرّب بحثًا أو فلترًا آخر.');
   }
 
   function openLadder(c) {

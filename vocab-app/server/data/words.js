@@ -18,7 +18,7 @@ import { usageOf } from '../lib/usage.js';
 export async function saveWord(userId, vocabularyId, { occurrenceId = null, sourceId = null, userArabic = null, groupIds = [] } = {}) {
   return tx(async () => {
     const asked = await get('SELECT * FROM vocabulary WHERE id = ?', vocabularyId);
-    if (!asked) throw httpError(404, 'لم نجد هذه الكلمة.');
+    if (!asked) throw httpError(404, 'ما لقينا هذه الكلمة.');
     // always saved in its simplest form (struggling → struggle, decision → decide)
     const contextId = vocabularyId;
     vocabularyId = await baseVocabId(asked).catch(() => vocabularyId);
@@ -82,7 +82,7 @@ export async function resetVocabularyState(userId, vocabularyId) {
 
 export async function updateWord(userId, uvId, patch) {
   const uv = await get('SELECT * FROM user_vocabulary WHERE id = ? AND user_id = ?', uvId, userId);
-  if (!uv) throw httpError(404, 'لم نجد هذه الكلمة.');
+  if (!uv) throw httpError(404, 'ما لقينا هذه الكلمة.');
   if (patch.user_arabic !== undefined) await run('UPDATE user_vocabulary SET user_arabic = ? WHERE id = ?', patch.user_arabic?.trim() || null, uvId);
   if (patch.example) await addExample(uv.vocabulary_id, patch.example, patch.example_arabic, 'user', userId);
   return getWord(userId, uvId);
@@ -181,7 +181,7 @@ async function hydrate(rows, userId) {
 
 export async function getWord(userId, uvId) {
   const rows = await all(`${WORD_SELECT} AND uv.id = ?`, userId, uvId);
-  if (!rows.length) throw httpError(404, 'لم نجد هذه الكلمة.');
+  if (!rows.length) throw httpError(404, 'ما لقينا هذه الكلمة.');
   const [w] = await hydrate(rows, userId);
   w.history = (await all('SELECT source, grade, correct, created_at FROM review_logs WHERE user_vocabulary_id = ? ORDER BY id DESC LIMIT 20', uvId))
     .map((h) => ({ ...h, correct: !!h.correct }));

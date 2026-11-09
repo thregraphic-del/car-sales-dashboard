@@ -1,7 +1,7 @@
 import { api } from '../api.js';
 import { state } from '../state.js';
 import { speak } from '../audio.js';
-import { esc, icon, toast, num, openModal, closeModal } from '../ui.js';
+import { esc, icon, toast, num, openModal, closeModal, applyTheme } from '../ui.js';
 import { refreshStats } from '../app.js';
 import { readDataFiles, importSnapshot, countsOf, TABLES } from '../data-transfer.js';
 import { feedbackCardHtml, bindFeedbackCard } from '../feedback.js';
@@ -20,7 +20,7 @@ export async function render(view) {
   const u = cfg.user;
   let theme = 'system';
   try {
-    theme = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+    theme = ['dark', 'auto'].includes(localStorage.getItem('theme')) ? localStorage.getItem('theme') : 'light';
   } catch {
     /* storage unavailable */
   }
@@ -39,7 +39,7 @@ export async function render(view) {
           <input type="range" id="rate" min="0.6" max="1.3" step="0.05" value="${u.speech_rate}" style="accent-color:var(--accent)"></label>
         <div class="row" style="gap:10px;flex-wrap:wrap"><label class="row small" style="gap:8px"><input type="checkbox" class="check" id="ar" ${u.speak_arabic ? 'checked' : ''}> انطق العربي أيضًا</label>
           <button class="btn sm ghost" id="test">${icon.speaker} جرّب الصوت</button></div>
-        <div class="field">المظهر<div class="segmented" id="theme">${[['light', 'فاتح'], ['dark', 'داكن']].map(([k, l]) => `<button data-t="${k}" class="${k === theme ? 'active' : ''}">${l}</button>`).join('')}</div></div>
+        <div class="field">المظهر<div class="segmented" id="theme">${[['light', 'فاتح'], ['dark', 'داكن'], ['auto', 'تلقائي']].map(([k, l]) => `<button data-t="${k}" class="${k === theme ? 'active' : ''}">${l}</button>`).join('')}</div></div>
       </div>
       ${feedbackCardHtml()}
       ${cfg.auth?.required && u.guest ? `<div class="card stack guest-settings">
@@ -123,8 +123,7 @@ export async function render(view) {
     } catch {
       /* ignore */
     }
-    if (t !== 'dark') document.documentElement.removeAttribute('data-theme');
-    else document.documentElement.setAttribute('data-theme', t);
+    applyTheme(t);
     view.querySelectorAll('#theme button').forEach((x) => x.classList.toggle('active', x === b));
   });
   $('#reset')?.addEventListener('click', async () => {
@@ -239,7 +238,7 @@ export async function render(view) {
     const hasCurrent = Object.values(current).some((n) => n > 0);
     box.innerHTML = `<div class="card soft stack">
         <b class="small">في الملف <span class="en-inline">${esc(file.name)}</span>:</b>${countsHtml(incoming)}
-        ${hasCurrent ? `<div class="alert warn"><span>سيحلّ محتوى الملف <b>محل</b> بياناتك الحالية على الموقع (${current.user_vocabulary || 0} كلمة). سنحفظ نسخة احتياطية منها أولًا على الخادم، ويمكنك أيضًا تنزيلها الآن.</span></div>` : ''}
+        ${hasCurrent ? `<div class="alert warn"><span>سيحلّ محتوى الملف <b>محل</b> بياناتك الحالية على الموقع (${current.user_vocabulary || 0} كلمة). سنحفظ نسخة احتياطية منها أولًا على الخادم، ويمكنك أيضًا تنزيلها الحين.</span></div>` : ''}
         <div class="btn-row">${hasCurrent ? `<a class="btn sm" href="${api.backupUrl()}" download>تنزيل بياناتي الحالية أولًا</a>` : ''}
           <button class="btn primary" id="doImport">${hasCurrent ? 'استبدال ونقل البيانات' : 'نقل البيانات'}</button></div>
         <div class="progress-line hidden" id="impProg"><i></i></div><div id="impMsg" class="small"></div>
@@ -297,7 +296,7 @@ async function resetSettings() {
 async function restoreSettings() {
   let b = null;
   try { b = JSON.parse(localStorage.getItem(SETTINGS_BACKUP) || 'null'); } catch { /* ignore */ }
-  if (!b) throw new Error('لا توجد نسخة محفوظة من إعداداتك.');
+  if (!b) throw new Error('ما فيه نسخة محفوظة من إعداداتك.');
   for (const [k, v] of Object.entries(b.local || {})) localStorage.setItem(k, v);
   if (b.prefs?.daily_goal) state.user = await api.updateMe(b.prefs);
   if (b.local?.theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');

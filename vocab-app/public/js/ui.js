@@ -141,7 +141,17 @@ export function highlight(sentence, term) {
 }
 
 /* ------------------------------------------------------------ toast */
-export function toast(msg, ms = 2600) {
+/** light / dark / auto (follows the device). Also colours the browser bar. */
+export function applyTheme(t) {
+  const dark = t === 'dark' || (t === 'auto' && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+  if (dark) document.documentElement.setAttribute('data-theme', 'dark');
+  else document.documentElement.removeAttribute('data-theme');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0E1522' : '#F5F3EF');
+}
+
+export function toast(msg, ms = 0) {
+  // stays long enough to read: short notes ~2.6 s, long ones up to 8 s
+  if (!ms) ms = Math.max(2600, Math.min(8000, String(msg).split(/\s+/).length * 380 + 1200));
   const root = $('#toastRoot');
   const el = document.createElement('div');
   el.className = 'toast';

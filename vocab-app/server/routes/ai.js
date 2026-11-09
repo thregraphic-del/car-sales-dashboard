@@ -123,7 +123,7 @@ router.post('/extract', wrap(async (req, res) => {
   const { kind, data, name } = req.body || {};
   if (!DATA_URL[kind]) throw httpError(400, 'نوع الملف غير مدعوم. أرفق صورة أو PDF.');
   if (typeof data !== 'string' || data.length > 5_500_000) throw httpError(413, 'الملف كبير جدًا (الحد 4 ميغابايت).');
-  if (!DATA_URL[kind].test(data)) throw httpError(400, 'تعذّرت قراءة الملف.');
+  if (!DATA_URL[kind].test(data)) throw httpError(400, 'ما قدرنا نقرأ الملف.');
   return withAi(res, async () => {
     const items = await extractFromFileWithAi({ kind, data, name: String(name || (kind === 'pdf' ? 'file.pdf' : 'photo')).slice(0, 80) });
     return { ok: true, items };
@@ -175,7 +175,7 @@ router.post('/suggest-words', wrap(async (req, res) => {
 router.post('/ladder', wrap(async (req, res) => {
   const term = String(req.body?.term || '').trim().slice(0, 60);
   const arabic = String(req.body?.arabic || '').trim().slice(0, 80);
-  if (!term) return { ok: false, error: 'لا توجد كلمة.' };
+  if (!term) return { ok: false, error: 'ما فيه كلمة.' };
   const mine = new Set((await listWords(req.userId)).map((w) => matchKey(w.term)));
   return withAi(res, async () => {
     const r = await ladderWithAi({ term, arabic });
