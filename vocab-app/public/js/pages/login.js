@@ -32,8 +32,9 @@ export async function render(view, { onDone, mode: initial }) {
         <form id="authForm" autocomplete="on">
           ${reg && needCode ? `<label class="field">${first ? 'رمز الإعداد' : 'رمز الدعوة'}<input class="input en" id="code" autocomplete="one-time-code" required></label>` : ''}
           ${reg ? '<label class="field">اسمك <span class="tiny muted">(اختياري)</span><input class="input" id="name" autocomplete="name" maxlength="60"></label>' : ''}
-          ${reg ? '<label class="field">الإيميل <span class="tiny muted">(لاسترجاع حسابك إذا نسيت كلمة المرور)</span><input class="input en" id="email" type="email" autocomplete="email" maxlength="200"></label>' : ''}
-          <label class="field">اسم المستخدم<input class="input en" id="user" autocomplete="username" required minlength="3" maxlength="40"></label>
+          ${reg ? '<label class="field">الإيميل <span class="tiny muted">(تدخل فيه، وتسترجع حسابك إذا نسيت كلمة المرور)</span><input class="input en" id="email" type="email" autocomplete="email" maxlength="200"></label>' : ''}
+          ${reg ? '<label class="field">رقم الجوال <span class="tiny muted">(اختياري — تقدر تدخل فيه)</span><input class="input en" id="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="05xxxxxxxx"></label>' : ''}
+          <label class="field">${reg ? 'اسم المستخدم' : 'اسم المستخدم أو الإيميل أو الجوال'}<input class="input en" id="user" autocomplete="username" required ${reg ? 'minlength="3" ' : ''}maxlength="${reg ? 40 : 200}"></label>
           <label class="field">كلمة المرور<input class="input en" id="pass" type="password" autocomplete="${reg ? 'new-password' : 'current-password'}" required></label>
           <div class="alert bad hidden" id="err" role="alert"></div>
           <button class="btn primary" type="submit" id="go">${reg ? 'إنشاء الحساب والدخول' : 'دخول'}</button>
@@ -55,7 +56,7 @@ export async function render(view, { onDone, mode: initial }) {
       btn.disabled = true;
       $('#err').classList.add('hidden');
       try {
-        if (reg) await api.register({ username: $('#user').value.trim(), password: $('#pass').value, name: $('#name')?.value.trim(), code: $('#code')?.value.trim(), email: $('#email')?.value.trim() });
+        if (reg) await api.register({ username: $('#user').value.trim(), password: $('#pass').value, name: $('#name')?.value.trim(), code: $('#code')?.value.trim(), email: $('#email')?.value.trim(), phone: $('#phone')?.value.trim() });
         else await api.login($('#user').value.trim(), $('#pass').value);
         if (/^\/(login|register)\/?$/.test(location.pathname)) history.replaceState(null, '', `/${location.hash}`);
         view.innerHTML = '';
@@ -71,8 +72,8 @@ export async function render(view, { onDone, mode: initial }) {
   const forgot = (login0 = '') => {
     view.innerHTML = `<div class="auth-wrap"><div class="brand"><img class="brand-logo" src="/img/3goal-mark-64.png" alt="" width="44" height="44"><div><div class="brand-name">3Goal</div></div></div>
       <div class="card stack"><h2 style="margin:0">استرجاع الحساب</h2>
-        <p class="small ink-2">اكتب اسم المستخدم أو الإيميل، ويوصلك كود من ٦ أرقام على إيميلك.</p>
-        <form id="f1"><label class="field">اسم المستخدم أو الإيميل<input class="input en" id="login" value="${esc(login0)}" required></label>
+        <p class="small ink-2">اكتب اسم المستخدم أو الإيميل أو الجوال، ويوصلك كود من ٦ أرقام على إيميلك.</p>
+        <form id="f1"><label class="field">اسم المستخدم أو الإيميل أو الجوال<input class="input en" id="login" value="${esc(login0)}" required></label>
           <button class="btn primary" id="send">أرسل الكود</button></form>
         <form id="f2" class="hidden"><p class="small">✉️ إذا كان للحساب إيميل، وصلك كود (شوف السبام كمان).</p>
           <label class="field">الكود<input class="input en" id="rcode" inputmode="numeric" maxlength="6" autocomplete="one-time-code" required></label>

@@ -3,7 +3,7 @@
 import crypto from 'node:crypto';
 import { get, run } from '../db/index.js';
 import { httpError } from '../lib/errors.js';
-import { findByUsername, getUser, setCredentials } from '../data/users.js';
+import { findByLogin, getUser, setCredentials, normPhone } from '../data/users.js';
 import { hashPassword } from './auth.js';
 import { sendMail, mailConfigured } from './mail.js';
 
@@ -15,6 +15,26 @@ const validEmail = (e) => /^[^\s@]{1,64}@[^\s@]{1,190}\.[a-z]{2,}$/i.test(e);
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
 
 export const emailOf = (userId) => val(`email:${userId}`);
+export const phoneOf = (userId) => val(`phone:${userId}`);
+
+/** 📱 The account's phone number — another way to sign in (stored like the email, no new table). */
+export async function setPhone(userId, phone) {
+  const raw = String(phone || '').trim();
+  const old = await phoneOf(userId);
+  if (!raw) {
+    if (old) await del(`phone-user:${old}`);
+    await del(`phone:${userId}`);
+    return null;
+  }
+  const p = normPhone(raw);
+  if (!p) throw httpError(400, 'رقم الجوال غير صحيح.');
+  const owner = await val(`phone-user:${p}`);
+  if (owner && Number(owner) !== userId) throw httpError(409, 'هذا الرقم مستخدم في حساب آخر.');
+  if (old && old !== p) await del(`phone-user:${old}`);
+  await set(`phone:${userId}`, p);
+  await set(`phone-user:${p}`, String(userId));
+  return p;
+}
 
 export async function setEmail(userId, email) {
   const e = norm(email);
@@ -34,15 +54,7 @@ export async function setEmail(userId, email) {
   return e;
 }
 
-async function userFor(login) {
-  const l = norm(login).replace(/^@/, '');
-  if (!l) return null;
-  if (l.includes('@')) {
-    const id = await val(`email-user:${l}`);
-    if (id) return getUser(Number(id));
-  }
-  return findByUsername(l);
-}
+const userFor = (login) => findByLogin(login);
 
 export async function sendResetCode(login) {
   if (!mailConfigured()) throw httpError(503, 'إرسال الإيميل غير مفعّل بعد.');

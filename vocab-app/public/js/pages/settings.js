@@ -48,6 +48,8 @@ export async function render(view) {
         <div class="row between small"><span>نوع الحساب</span><span class="chip ar-chip">${u.role === 'admin' ? 'المسؤول' : 'متعلّم'}</span></div>
         <p class="tiny muted">كلماتك ومجموعاتك وتقدّمك وفيديوهاتك خاصة بحسابك — لا يراها أي حساب آخر.</p>
         <form id="emForm" class="row wrap" style="gap:8px;align-items:flex-end"><label class="field" style="flex:1;min-width:200px">✉️ الإيميل <span class="tiny muted">(يوصلك عليه كود إذا نسيت كلمة المرور)</span><input class="input en" type="email" id="emIn" autocomplete="email" placeholder="you@gmail.com"></label><button class="btn" type="submit">حفظ الإيميل</button></form>
+        <form id="phForm" class="row wrap" style="gap:8px;align-items:flex-end"><label class="field" style="flex:1;min-width:200px">📱 رقم الجوال <span class="tiny muted">(تقدر تدخل فيه بدل اسم المستخدم)</span><input class="input en" type="tel" inputmode="tel" id="phIn" autocomplete="tel" placeholder="05xxxxxxxx"></label><button class="btn" type="submit">حفظ الرقم</button></form>
+        <p class="tiny muted">تقدر تسجّل دخولك باسم المستخدم أو الإيميل أو رقم الجوال.</p>
         <form id="pwForm" class="stack" autocomplete="on">
           <input class="hidden" autocomplete="username" value="${esc(u.username || '')}" readonly>
           <label class="field">كلمة المرور الحالية<input class="input en" type="password" id="pwOld" autocomplete="current-password" required></label>
@@ -131,6 +133,13 @@ export async function render(view) {
     $('#emForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       try { await api.saveEmail($('#emIn').value.trim()); toast('تم حفظ الإيميل ✓'); } catch (err) { toast(err.message); }
+    });
+  }
+  if ($('#phForm')) {
+    api.myPhone().then((r) => { if (r.phone) $('#phIn').value = /^9665\d{8}$/.test(r.phone) ? `0${r.phone.slice(3)}` : r.phone; }).catch(() => {});
+    $('#phForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      try { await api.savePhone($('#phIn').value.trim()); toast('تم حفظ رقم الجوال ✓'); } catch (err) { toast(err.message); }
     });
   }
   $('#pwForm')?.addEventListener('submit', async (e) => {

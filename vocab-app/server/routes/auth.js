@@ -4,7 +4,7 @@ import { config } from '../config.js';
 import { wrap } from '../http.js';
 import * as auth from '../services/auth.js';
 import { publicUser } from '../data/users.js';
-import { setEmail, emailOf, sendResetCode, resetWithCode } from '../services/recovery.js';
+import { setEmail, emailOf, setPhone, phoneOf, sendResetCode, resetWithCode } from '../services/recovery.js';
 
 const router = Router();
 
@@ -26,6 +26,7 @@ router.post('/setup', wrap(async (req, res) => {
 router.post('/register', wrap(async (req, res) => {
   const user = await auth.register(req.body || {}, req.ip);
   if (req.body?.email) await setEmail(user.id, req.body.email).catch(() => {});
+  if (req.body?.phone) await setPhone(user.id, req.body.phone).catch(() => {});
   await startSession(res, user);
   return { ok: true, user: publicUser(user) };
 }));
@@ -41,6 +42,12 @@ router.get('/email', wrap(async (req, res) => (req.user ? { email: await emailOf
 router.post('/email', wrap(async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'سجّل الدخول أولًا.', code: 'auth' });
   return { ok: true, email: await setEmail(req.user.id, req.body?.email) };
+}));
+// 📱 the account's phone number (another way to sign in)
+router.get('/phone', wrap(async (req, res) => (req.user ? { phone: await phoneOf(req.user.id) } : res.status(401).json({ error: 'سجّل الدخول أولًا.', code: 'auth' }))));
+router.post('/phone', wrap(async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'سجّل الدخول أولًا.', code: 'auth' });
+  return { ok: true, phone: await setPhone(req.user.id, req.body?.phone) };
 }));
 // «نسيت كلمة المرور»: a code by email, then a new password
 router.post('/forgot', wrap(async (req) => sendResetCode(req.body?.login)));

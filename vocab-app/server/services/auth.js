@@ -11,7 +11,7 @@ import crypto from 'node:crypto';
 import { promisify } from 'node:util';
 import { config } from '../config.js';
 import { httpError } from '../lib/errors.js';
-import { getUser, findByUsername, setCredentials, ownerExists, createAccount } from '../data/users.js';
+import { getUser, findByUsername, findByLogin, setCredentials, ownerExists, createAccount } from '../data/users.js';
 import { getOrCreateSetting } from '../data/settings.js';
 
 const scrypt = promisify(crypto.scrypt);
@@ -143,11 +143,11 @@ export const setup = (body, ip) => register({ ...body, code: body.setup_code }, 
 export async function login({ username, password }, ip) {
   const k = `login:${ip}:${String(username || '').toLowerCase()}`;
   checkRate(k);
-  const user = username ? await findByUsername(String(username).trim()) : null;
+  const user = username ? await findByLogin(String(username).trim()) : null;
   const ok = user?.password_hash ? await verifyPassword(String(password || ''), user.password_hash) : (await hashPassword('x'), false);
   if (!ok) {
     noteFailure(k);
-    throw httpError(401, 'اسم المستخدم أو كلمة المرور غير صحيحة.');
+    throw httpError(401, 'بيانات الدخول أو كلمة المرور غير صحيحة.');
   }
   failures.delete(k);
   return user;

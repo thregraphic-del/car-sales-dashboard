@@ -10,6 +10,7 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 | 3 | 🧩 Filter bar on «كلماتي» and «تدرّب»: one horizontal row of rounded pills (icon + name + choice: 🔢 العدد · 🎚 المستوى · 🏷 الحالة · 🎬 المقطع · 🕒 الوقت · ↕ الترتيب) instead of a column of boxes on iPad; «كل …» shows as a short «الكل»; 3 per row on phones | built — on the free preview | in the batch | 0 |
 | 4 | 📝 «السالفة باختصار» every 3 / 5 / 10 minutes counts minutes OF THE VIDEO (fixed parts 0–5, 5–10…), not clock time — right with any speed, pauses or seeking back; the same part gives the same text so the AI answer is cached; it hides by itself after the time needed to read it (5–12 s) | built — on the free preview | in the batch | fewer AI calls |
 | 5 | 📁 «كلماتي» groups: one closed «📁 المجموعات» button (shows the chosen group's name); the groups, «+ مجموعة جديدة» and «⚙ إدارة المجموعات» appear only when it is opened | built — on the free preview | in the batch | 0 |
+| 6 | 🔑 Sign in with the username OR the email OR the phone number (05…, +966…, Arabic digits all work); a phone field on «حساب جديد» and in the settings (stored like the email, no new table); «نسيت كلمة المرور» accepts any of the three | built — on the free preview | in the batch | 0 |
 
 (Batch 6 deployed on 2026-11-09 — commit adc23df on `lexitube-live`: one teal filter bar for «تدرّب» + «كلماتي» (العدد · المستوى · الحالة · المقطع · الوقت · الترتيب),
 clear button contrast, «إدارة بياناتي» (wipe words / videos / settings with «تأكيد» + automatic backup + restore), «مغامرات» channels field

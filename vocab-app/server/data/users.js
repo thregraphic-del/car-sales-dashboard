@@ -28,6 +28,34 @@ export async function findByUsername(username) {
   return (await get('SELECT * FROM users WHERE lower(username) = lower(?)', username)) || null;
 }
 
+/** Saudi-friendly phone key: Arabic digits → Latin, only digits, 05xxxxxxxx / 5xxxxxxxx / +966… → 9665xxxxxxxx. */
+export function normPhone(v) {
+  let d = String(v || '').replace(/[٠-٩]/g, (c) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))).replace(/[۰-۹]/g, (c) => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(c))).replace(/\D/g, '');
+  if (d.startsWith('00')) d = d.slice(2);
+  if (/^05\d{8}$/.test(d)) d = `966${d.slice(1)}`;
+  else if (/^5\d{8}$/.test(d)) d = `966${d}`;
+  return d.length >= 8 && d.length <= 15 ? d : '';
+}
+
+/**
+ * The account for what a learner typed in «اسم المستخدم أو الإيميل أو الجوال»:
+ * an email (has @), a phone number (only digits / + / spaces), else a username.
+ */
+export async function findByLogin(login) {
+  const l = String(login || '').trim().replace(/^@/, '');
+  if (!l) return null;
+  const val = async (k) => (await get('SELECT value FROM app_settings WHERE key = ?', k))?.value ?? null;
+  if (l.includes('@')) {
+    const id = await val(`email-user:${l.toLowerCase()}`);
+    if (id) return getUser(Number(id));
+  } else if (/^[+\d\s\-()٠-٩۰-۹]{8,}$/.test(l)) {
+    const ph = normPhone(l);
+    const id = ph ? await val(`phone-user:${ph}`) : null;
+    if (id) return getUser(Number(id));
+  }
+  return findByUsername(l);
+}
+
 export async function setCredentials(id, username, passwordHash) {
   await run('UPDATE users SET username = ?, password_hash = ? WHERE id = ?', username, passwordHash, id);
 }
