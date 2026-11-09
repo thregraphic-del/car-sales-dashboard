@@ -667,7 +667,7 @@ export async function render(view, { segments, params }) {
   const recapBox = $('#recapOn', view);
   if (recapBox) {
     recapBox.checked = recapOn;
-    recapBox.addEventListener('change', () => { recapOn = recapBox.checked; setPref('reader.recap2', recapOn ? '1' : '0'); });
+    recapBox.addEventListener('change', () => { recapOn = recapBox.checked; setPref('reader.recap2', recapOn ? '1' : '0'); resetRecap(); });
   }
   // ⏱ every N minutes (3 / 5 / 10 / any number) · «قبل» = what the next part is about, «بعد» = what was just said
   let recapMin = Math.max(1, Math.min(60, Number(pref('reader.recapMin', '5')) || 5));
@@ -678,33 +678,41 @@ export async function render(view, { segments, params }) {
     view.querySelectorAll('[data-rwhen]').forEach((b) => b.classList.toggle('active', b.dataset.rwhen === recapWhen));
   };
   showRecap();
-  view.querySelectorAll('[data-rmin]').forEach((b) => b.addEventListener('click', () => { recapMin = Number(b.dataset.rmin); setPref('reader.recapMin', String(recapMin)); const n = $('#recapMinN', view); if (n) n.value = ''; showRecap(); }));
-  $('#recapMinN', view)?.addEventListener('change', (e) => { recapMin = Math.max(1, Math.min(60, Number(e.target.value) || 5)); setPref('reader.recapMin', String(recapMin)); showRecap(); });
-  view.querySelectorAll('[data-rwhen]').forEach((b) => b.addEventListener('click', () => { recapWhen = b.dataset.rwhen; setPref('reader.recapWhen', recapWhen); watched = 0; recapFrom = null; showRecap(); }));
-  let watched = 0;
-  let recapFrom = null;
+  view.querySelectorAll('[data-rmin]').forEach((b) => b.addEventListener('click', () => { recapMin = Number(b.dataset.rmin); setPref('reader.recapMin', String(recapMin)); const n = $('#recapMinN', view); if (n) n.value = ''; resetRecap(); showRecap(); }));
+  $('#recapMinN', view)?.addEventListener('change', (e) => { recapMin = Math.max(1, Math.min(60, Number(e.target.value) || 5)); setPref('reader.recapMin', String(recapMin)); resetRecap(); showRecap(); });
+  view.querySelectorAll('[data-rwhen]').forEach((b) => b.addEventListener('click', () => { recapWhen = b.dataset.rwhen; setPref('reader.recapWhen', recapWhen); resetRecap(); showRecap(); }));
+  // 📝 «السالفة باختصار» every N minutes OF THE VIDEO (not of the clock): the video is cut into
+  // fixed parts (0–5, 5–10, …). Entering a new part shows the part just watched («بعد») or the
+  // part about to start («قبل»). Fixed parts = the same text each time, so the AI answer is cached
+  // and reused (never asked twice). Speed, pauses and seeking back don't trigger it.
+  let lastPart = null;
+  let recapBusy = false;
+  const readMs = (text) => Math.max(5000, Math.min(12000, String(text).split(/\s+/).length * 330 + 1500));
   const showRecapNote = (from, to, title) => {
-    if (!state.config.ai.available) return;
+    if (!state.config.ai.available || recapBusy) return;
+    recapBusy = true;
     api.recap(id, from, to).then((r) => {
       if (!alive || !r.ok || !r.text) return;
-      popNote(`<div class="lt-title">${title}</div><p class="lt-text">${esc(r.text)}</p>`, { ms: 20000, cls: 'lt-recap' });
-    }).catch(() => {});
+      // stays up as long as it takes to read it (5–12 s), then hides by itself
+      popNote(`<div class="lt-title">${title}</div><p class="lt-text">${esc(r.text)}</p>`, { ms: readMs(r.text), cls: 'lt-recap' });
+    }).catch(() => {}).finally(() => { recapBusy = false; });
   };
+  // a new choice (minutes / before-after): start counting from where the video is now
+  const resetRecap = () => { lastPart = null; };
   const recapTimer = setInterval(() => {
     if (!playing || !player || !recapOn) return;
     const t = player.time?.() || 0;
     const span = recapMin * 60;
-    if (recapFrom == null) {
-      recapFrom = t;
-      if (recapWhen === 'before') showRecapNote(t, t + span, 'الجاي باختصار');
+    const part = Math.floor(t / span);
+    if (lastPart == null) {
+      lastPart = part;
+      if (recapWhen === 'before') showRecapNote(part * span, (part + 1) * span, 'الجاي باختصار');
+      return;
     }
-    watched += 1;
-    if (watched < span) return;
-    watched = 0;
-    if (recapWhen === 'before') { recapFrom = t; showRecapNote(t, t + span, 'الجاي باختصار'); return; }
-    const from = Math.max(0, Math.min(recapFrom, t - span));
-    recapFrom = t;
-    showRecapNote(from, t, 'السالفة باختصار');
+    if (part <= lastPart) { lastPart = part; return; } // same part, or the learner went back
+    lastPart = part;
+    if (recapWhen === 'before') showRecapNote(part * span, (part + 1) * span, 'الجاي باختصار');
+    else showRecapNote((part - 1) * span, part * span, 'السالفة باختصار');
   }, 1000);
   // Arabic beside the English (same row) or under it — the learner chooses.
   const showLayout = () => {

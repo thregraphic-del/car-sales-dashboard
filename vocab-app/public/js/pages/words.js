@@ -19,6 +19,7 @@ export async function render(view, { params }) {
   await loadGroups();
   const f = { filter: params.filter || 'all', group: params.group ? Number(params.group) : null, q: '', levels: [], when: params.when || '', source: params.source ? Number(params.source) : null, sort: 'new', count: 0, view: 'list' };
   let fbOpen = '';
+  let groupsOpen = false;
   let clusters = null; // «الأوضح»: words with one meaning under the simplest one
   const DAY = 86400000;
   const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
@@ -62,7 +63,11 @@ export async function render(view, { params }) {
     $('#summary').textContent = all.length ? `${num(all.length)} كلمة · ${num(mastered)} متقنة · ${num(practice)} تحتاج مراجعة` : 'لم تحفظ كلمات بعد.';
     $('#filters').innerHTML = filterBarHtml(barDefs(), fbOpen);
     placeMenus($('#filters'));
-    $('#groups').innerHTML = `<span class="tiny muted">المجموعات:</span>${state.groups.map((g) => `<button class="gchip ${f.group === g.id ? 'on' : ''}" data-g="${g.id}">${esc(g.name)} <span class="en-inline tiny">${g.count}</span></button>`).join('')}<button class="gchip new" id="newGroup">+ مجموعة</button>${state.groups.length > 1 ? '<button class="gchip new" id="manageGroups">⚙ إدارة المجموعات</button>' : ''}`;
+    // 📁 groups: one closed button; tapping it shows every group + «مجموعة جديدة» + «إدارة المجموعات»
+    const gSel = state.groups.find((x) => x.id === f.group);
+    $('#groups').innerHTML = `<button type="button" class="grp-toggle${groupsOpen ? ' open' : ''}${gSel ? ' set' : ''}" id="grpToggle" aria-expanded="${groupsOpen}">📁 <span>${gSel ? esc(gSel.name) : 'المجموعات'}</span> <span class="tiny en-inline">${gSel ? gSel.count : state.groups.length}</span> ▾</button>
+      ${groupsOpen ? `<div class="grp-panel">${state.groups.map((g) => `<button class="gchip ${f.group === g.id ? 'on' : ''}" data-g="${g.id}">${esc(g.name)} <span class="en-inline tiny">${g.count}</span></button>`).join('') || '<span class="tiny muted">ما عندك مجموعات بعد.</span>'}
+        <div class="grp-actions"><button class="gchip new" id="newGroup">+ مجموعة جديدة</button>${state.groups.length > 1 ? '<button class="gchip new" id="manageGroups">⚙ إدارة المجموعات</button>' : ''}</div></div>` : ''}`;
     const g = state.groups.find((x) => x.id === f.group);
     $('#groupHead').innerHTML = g ? `
       <div class="card group-head">
@@ -267,9 +272,11 @@ export async function render(view, { params }) {
     }
     const cl = e.target.closest('[data-cl]');
     if (cl) return openLadder(clusters[Number(cl.dataset.cl)]);
+    if (e.target.closest('#grpToggle')) { groupsOpen = !groupsOpen; return draw(); }
     const gb = e.target.closest('[data-g]');
     if (gb) {
       f.group = f.group === Number(gb.dataset.g) ? null : Number(gb.dataset.g);
+      groupsOpen = false;
       return draw();
     }
     if (e.target.closest('#newGroup')) {
