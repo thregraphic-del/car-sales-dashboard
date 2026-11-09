@@ -50,8 +50,9 @@ function renderNav(active) {
   const links = NAV.map((n) => `<a class="nav-link ${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? `<span class="badge">${left}</span>` : ''}</a>`).join('');
   $('#nav').innerHTML = `${links}<div class="nav-sep"></div><a class="nav-link ${active === '/friends' ? 'active' : ''}" href="#/friends">${icon.users}<span>أصدقائي</span></a><a class="nav-link ${active === '/settings' ? 'active' : ''}" href="#/settings">${icon.settings}<span>الإعدادات</span></a>`;
   $('#tabbar').innerHTML = NAV.map((n) => `<a class="${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? '<i class="dot"></i>' : ''}</a>`).join('');
+  const guestChip = state.user?.guest ? '<a class="guest-chip" href="/register">👤 تستخدم الموقع كضيف — <b>سجّل حسابك المجاني</b> وتنحفظ كلماتك في حسابك</a>' : '';
   $('#sidebarFoot').innerHTML = s
-    ? `<div class="row between"><span>🔥 أيام متتالية</span><b class="en-inline">${s.streak.current}</b></div>
+    ? `${guestChip}<div class="row between"><span>🔥 أيام متتالية</span><b class="en-inline">${s.streak.current}</b></div>
        <div class="tiny muted" style="margin-top:6px">${state.config?.ai?.configured ? '✨ الذكاء الاصطناعي مفعّل' : '📘 القاموس المحلي'}</div>
        ${creditsBell()}
        <button type="button" class="link-btn small" id="feedbackLink" style="display:block;margin-top:8px">💡 اقتراحاتكم — ساعدنا نطوّر الموقع</button>
@@ -156,6 +157,7 @@ async function route() {
       return;
     }
     if (typeof out === 'function') cleanup = out;
+    guestReminder(base);
     if (!params.t && !params.line) window.scrollTo({ top: 0 });
   } catch (err) {
     if (err.status === 401) return; // the login screen takes over
@@ -166,6 +168,35 @@ async function route() {
 }
 
 let started = false;
+
+/** 👤 Kind invitation for guests: register (same data, nothing lost) or later. */
+function askToRegister(text) {
+  const box = openModal(`<div class="guest-card">
+    <div class="guest-ic">✨</div>
+    <h2>احفظ تقدّمك في حسابك</h2>
+    <p>${esc(text || 'أنت تستخدم الموقع كضيف. سجّل حسابك المجاني عشان تنحفظ كلماتك ومقاطعك وتقدّمك، وتوصل لها من أي جهاز.')}</p>
+    <ul class="guest-list"><li>✓ مجاني ويأخذ دقيقة</li><li>✓ كل اللي سويته الحين ينتقل لحسابك</li><li>✓ تدخل بالإيميل أو الجوال أو اسم المستخدم</li></ul>
+    <div class="btn-row" style="justify-content:center"><a class="btn primary" href="/register">سجّل حسابي</a><button type="button" class="btn ghost" data-close>لاحقًا</button></div></div>`);
+  return box;
+}
+
+/** A gentle reminder for guests, at most once per visit, after they have used the site a bit. */
+function guestReminder(base) {
+  if (!state.user?.guest || !['/words', '/practice', '/source'].includes(base)) return;
+  try {
+    if (sessionStorage.getItem('guest.reminded')) return;
+    sessionStorage.setItem('guest.reminded', '1');
+  } catch { return; }
+  setTimeout(() => {
+    if (!state.user?.guest || document.querySelector('.modal')) return;
+    const n = document.createElement('div');
+    n.className = 'guest-toast';
+    n.innerHTML = '<span>💾 كلماتك محفوظة على هالجهاز بس. <a href="/register">سجّل حسابك المجاني</a> عشان تنحفظ في حسابك.</span><button type="button" aria-label="إغلاق">✕</button>';
+    document.body.appendChild(n);
+    n.querySelector('button').addEventListener('click', () => n.remove());
+    setTimeout(() => n.remove(), 12000);
+  }, 20000);
+}
 
 /** Login / registration, shown instead of the app when needed (also at /login and /register). */
 async function showAuth() {
@@ -228,6 +259,8 @@ async function init() {
     document.body.classList.remove('nav-open');
     openFeedback();
   });
+  // 👤 a guest went past the free trial → one kind card: create the free account (everything moves with them)
+  window.addEventListener('lexitube:guest-limit', (e) => askToRegister(e.detail));
   window.addEventListener('lexitube:auth', () => {
     if (!document.body.classList.contains('auth-mode')) showAuth();
   });
@@ -251,7 +284,15 @@ async function init() {
     $('#view').innerHTML = `<div class="card empty"><div class="icon">⚠️</div><h3>الخادم غير متاح</h3><p>${esc(err.message)}</p></div>`;
     return;
   }
+  // 👤 no account yet: try the site as a guest (the login page stays at /login and /register)
+  if (!auth.logged_in && auth.guest_allowed && !/^\/(login|register)\/?$/.test(location.pathname)) {
+    try {
+      await api.guest();
+      auth.logged_in = true;
+    } catch { /* too many guests from this address, or sign-ups closed: the login page */ }
+  }
   if (!auth.logged_in) await showAuth();
+  else if (/^\/register\/?$/.test(location.pathname) && auth.guest) await showAuth();
   else {
     if (/^\/(login|register)\/?$/.test(location.pathname)) history.replaceState(null, '', `/${location.hash}`);
     await start();

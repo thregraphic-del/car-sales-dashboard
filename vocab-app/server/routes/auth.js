@@ -17,6 +17,13 @@ const startSession = async (res, user) => setCookie(res, await auth.createSessio
 
 router.get('/status', wrap(async (req) => ({ ...await auth.status(req.user), user: publicUser(req.user) })));
 
+router.post('/guest', wrap(async (req, res) => {
+  if (req.user) return { ok: true, user: publicUser(req.user) };
+  const user = await auth.startGuest(req.ip);
+  await startSession(res, user);
+  return { ok: true, user: publicUser(user) };
+}));
+
 router.post('/setup', wrap(async (req, res) => {
   const user = await auth.setup(req.body || {}, req.ip);
   await startSession(res, user);
@@ -24,7 +31,7 @@ router.post('/setup', wrap(async (req, res) => {
 }));
 
 router.post('/register', wrap(async (req, res) => {
-  const user = await auth.register(req.body || {}, req.ip);
+  const user = await auth.register(req.body || {}, req.ip, req.user);
   if (req.body?.email) await setEmail(user.id, req.body.email).catch(() => {});
   if (req.body?.phone) await setPhone(user.id, req.body.phone).catch(() => {});
   await startSession(res, user);

@@ -21,7 +21,7 @@ import feedbackRoutes from './routes/feedback.js';
 import channelRoutes from './routes/channels.js';
 import aiRoutes from './routes/ai.js';
 
-const PUBLIC_PATHS = new Set(['/api/version', '/api/auth/status', '/api/auth/login', '/api/auth/setup', '/api/auth/register', '/api/auth/logout', '/api/auth/forgot', '/api/auth/reset']);
+const PUBLIC_PATHS = new Set(['/api/version', '/api/auth/status', '/api/auth/login', '/api/auth/setup', '/api/auth/register', '/api/auth/logout', '/api/auth/forgot', '/api/auth/reset', '/api/auth/guest']);
 
 function readCookie(req, name) {
   const header = req.headers.cookie || '';
@@ -160,7 +160,7 @@ export function createApp() {
     if (err.type === 'entity.too.large') message = 'البيانات المرسلة كبيرة جدًا.';
     else if (err.type === 'entity.parse.failed') message = 'بيانات غير صالحة.';
     else if (status < 500 && !/[؀-ۿ]/.test(message || '')) message = err.status ? message : 'طلب غير صالح.';
-    res.status(status).json({ error: message });
+    res.status(status).json(err.code && err.expose ? { error: message, code: err.code } : { error: message });
   });
   return app;
 }

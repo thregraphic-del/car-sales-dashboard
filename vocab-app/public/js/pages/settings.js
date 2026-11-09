@@ -42,7 +42,14 @@ export async function render(view) {
         <div class="field">المظهر<div class="segmented" id="theme">${[['light', 'فاتح'], ['dark', 'داكن']].map(([k, l]) => `<button data-t="${k}" class="${k === theme ? 'active' : ''}">${l}</button>`).join('')}</div></div>
       </div>
       ${feedbackCardHtml()}
-      ${cfg.auth?.required ? `<div class="card stack">
+      ${cfg.auth?.required && u.guest ? `<div class="card stack guest-settings">
+        <b>الحساب</b>
+        <p class="small ink-2">👤 تستخدم الموقع كضيف — كلماتك وتقدّمك محفوظة على هالجهاز بس.</p>
+        <a class="btn primary" href="/register" style="justify-self:start">سجّل حسابك المجاني</a>
+        <p class="tiny muted">كل اللي سويته ينتقل لحسابك، وتدخل بالإيميل أو الجوال أو اسم المستخدم من أي جهاز.</p>
+        <a class="link-btn small" href="/login" style="justify-self:start">عندي حساب — تسجيل الدخول</a>
+      </div>` : ''}
+      ${cfg.auth?.required && !u.guest ? `<div class="card stack">
         <b>الحساب</b>
         <div class="row between small"><span>اسم المستخدم</span><span class="chip en-inline">${esc(u.username || '')}</span></div>
         <div class="row between small"><span>نوع الحساب</span><span class="chip ar-chip">${u.role === 'admin' ? 'المسؤول' : 'متعلّم'}</span></div>

@@ -25,6 +25,8 @@ async function request(method, url, body, retried = false) {
     // Session expired or signed out elsewhere: show the login screen.
     window.dispatchEvent(new CustomEvent('lexitube:auth'));
   }
+  // 👤 a guest reached the free trial: the app shows a kind «سجّل» card
+  if (res.status === 403 && data?.code === 'guest_limit') window.dispatchEvent(new CustomEvent('lexitube:guest-limit', { detail: data.error }));
   if (!res.ok) {
     const err = new Error(data?.error || 'حدث خطأ. حاول مرة أخرى.');
     err.status = res.status;
@@ -95,6 +97,7 @@ export const api = {
   exportUrl: (params) => `/api/export${qs(params)}`,
 
   authStatus: () => request('GET', '/api/auth/status'),
+  guest: () => request('POST', '/api/auth/guest'),
   login: (username, password) => request('POST', '/api/auth/login', { username, password }),
   setup: (setup_code, username, password) => request('POST', '/api/auth/setup', { setup_code, username, password }),
   register: (body) => request('POST', '/api/auth/register', body),

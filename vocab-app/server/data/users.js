@@ -85,6 +85,18 @@ export async function createAccount({ username, passwordHash, name }) {
   return getUser(id);
 }
 
+/** 👤 A guest learner (no login yet). */
+export async function createGuest() {
+  const id = await insert("INSERT INTO users (name, role) VALUES (?, 'guest')", 'ضيف');
+  return getUser(id);
+}
+
+/** The guest becomes a real account: same row, so every word / video / progress stays. */
+export async function upgradeGuest(id, { username, passwordHash, name }) {
+  await run("UPDATE users SET username = ?, password_hash = ?, role = 'user', name = ? WHERE id = ? AND role = 'guest'", username, passwordHash, name || username, id);
+  return getUser(id);
+}
+
 /** What the browser may see — never the password hash. */
 export function publicUser(u) {
   if (!u) return null;
@@ -96,6 +108,7 @@ export function publicUser(u) {
     speech_rate: u.speech_rate,
     username: u.username || null,
     role: u.role || 'user',
+    guest: u.role === 'guest',
     created_at: u.created_at,
   };
 }

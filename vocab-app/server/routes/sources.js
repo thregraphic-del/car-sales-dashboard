@@ -7,6 +7,7 @@ import { httpError } from '../lib/errors.js';
 import { TranscriptError } from '../lib/youtube.js';
 import * as service from '../services/sources.js';
 import * as sources from '../data/sources.js';
+import { guardGuest } from '../lib/guest.js';
 
 const router = Router();
 const MAX_TRANSCRIPT = config.limits.importTextChars;
@@ -15,6 +16,7 @@ router.post('/youtube', wrap(async (req, res) => {
   const b = req.body || {};
   if (typeof b.url !== 'string' || !b.url.trim()) throw httpError(400, 'الصق رابط فيديو يوتيوب.');
   if (b.transcript && String(b.transcript).length > MAX_TRANSCRIPT) throw httpError(413, 'النص طويل جدًا. قسّمه إلى أجزاء أصغر.');
+  await guardGuest(req.user, 'sources');
   try {
     const origin = `${req.protocol}://${req.get('x-forwarded-host') || req.get('host')}`;
     return await service.analyzeYoutube({ url: str(b.url, 500), transcript: b.transcript ? String(b.transcript) : '', force: Boolean(b.force), origin }, req.userId);
@@ -37,6 +39,7 @@ router.post('/text', wrap(async (req) => {
   const text = String(req.body?.text || '');
   if (!text.trim()) throw httpError(400, 'الصق نصًا أولًا.');
   if (text.length > MAX_TRANSCRIPT) throw httpError(413, 'النص طويل جدًا. قسّمه إلى أجزاء أصغر.');
+  await guardGuest(req.user, 'sources');
   return service.analyzeText(text, req.userId, str(req.body?.title, 200));
 }));
 

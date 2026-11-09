@@ -10,6 +10,7 @@ import { groupIdsFor, setWordGroups } from '../data/groups.js';
 import { exportRows, toCsv, XLSX_COLUMNS } from '../data/export.js';
 import { recordView } from '../data/goal.js';
 import { toXlsx } from '../lib/xlsx.js';
+import { guardGuest } from '../lib/guest.js';
 
 const router = Router();
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
@@ -30,6 +31,7 @@ router.post('/words', wrap(async (req) => {
   const b = req.body || {};
   const vocabularyId = num(b.vocabulary_id);
   if (!vocabularyId) throw httpError(400, 'لا توجد كلمة للحفظ.');
+  await guardGuest(req.user, 'words');
   const out = await words.saveWord(req.userId, vocabularyId, { occurrenceId: num(b.occurrence_id) ?? null, groupIds: idList(b.group_ids, 50) });
   // Saving one word counts toward today's goal; "save all" (bulk) does not.
   const goal = b.bulk ? undefined : await recordView(req.userId, vocabularyId);
@@ -38,6 +40,7 @@ router.post('/words', wrap(async (req) => {
 /** Save many words at once (the reader's "save all"); does not count toward the daily goal. */
 router.post('/words/bulk', wrap(async (req) => {
   const items = Array.isArray(req.body?.items) ? req.body.items.slice(0, 800) : [];
+  await guardGuest(req.user, 'words', items.length);
   let saved = 0;
   for (const it of items) {
     const vid = num(it?.vocabulary_id);

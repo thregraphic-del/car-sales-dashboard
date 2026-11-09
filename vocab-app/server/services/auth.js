@@ -11,7 +11,7 @@ import crypto from 'node:crypto';
 import { promisify } from 'node:util';
 import { config } from '../config.js';
 import { httpError } from '../lib/errors.js';
-import { getUser, findByUsername, findByLogin, setCredentials, ownerExists, createAccount } from '../data/users.js';
+import { getUser, findByUsername, findByLogin, setCredentials, ownerExists, createAccount, createGuest, upgradeGuest } from '../data/users.js';
 import { getOrCreateSetting } from '../data/settings.js';
 
 const scrypt = promisify(crypto.scrypt);
@@ -47,7 +47,7 @@ const sign = async (data) => crypto.createHmac('sha256', await key()).update(dat
 const fingerprint = (hash) => crypto.createHash('sha256').update(String(hash)).digest('base64url').slice(0, 12);
 
 export async function createSessionToken(user) {
-  const payload = b64(JSON.stringify({ uid: user.id, fp: fingerprint(user.password_hash), exp: Date.now() + config.auth.sessionDays * 86400000 }));
+  const payload = b64(JSON.stringify({ uid: user.id, fp: fingerprint(user.password_hash ?? `guest:${user.id}`), exp: Date.now() + config.auth.sessionDays * 86400000 }));
   return `${payload}.${await sign(payload)}`;
 }
 
@@ -66,7 +66,8 @@ export async function userFromToken(token) {
   }
   if (!Number.isInteger(data.uid) || !(data.exp > Date.now())) return null;
   const user = await getUser(data.uid);
-  if (!user?.password_hash || fingerprint(user.password_hash) !== data.fp) return null;
+  if (!user || (!user.password_hash && user.role !== 'guest')) return null;
+  if (fingerprint(user.password_hash ?? `guest:${user.id}`) !== data.fp) return null;
   return user;
 }
 
@@ -102,6 +103,9 @@ export async function status(user) {
     setup_code_required: config.auth.required && !hasAccounts && Boolean(config.auth.setupCode),
     registration: config.auth.required ? (hasAccounts ? reg : 'open') : 'closed',
     registration_code_required: config.auth.required && hasAccounts && reg === 'code',
+    // 👤 visitors can try the site as a guest (sign-ups open, administrator exists)
+    guest_allowed: config.auth.required && hasAccounts && reg === 'open',
+    guest: user?.role === 'guest',
   };
 }
 
@@ -109,7 +113,7 @@ export async function status(user) {
  * Create an account. The first one is the administrator (SETUP_CODE when set);
  * after that REGISTRATION decides who may sign up.
  */
-export async function register({ username, password, name, code, setup_code: setupCode }, ip) {
+export async function register({ username, password, name, code, setup_code: setupCode }, ip, current = null) {
   if (!config.auth.required) throw httpError(400, 'تسجيل الدخول غير مطلوب في النسخة المحلية.');
   const k = `register:${ip}`;
   checkRate(k, 10);
@@ -130,11 +134,22 @@ export async function register({ username, password, name, code, setup_code: set
   if (await findByUsername(u)) throw httpError(409, 'اسم المستخدم مستخدم بالفعل. اختر اسمًا آخر.');
   const displayName = String(name || '').trim().slice(0, 60) || u;
   try {
+    // a guest who signs up keeps everything: the same row becomes the account
+    if (current?.role === 'guest') return await upgradeGuest(current.id, { username: u, passwordHash: await hashPassword(p), name: displayName });
     return await createAccount({ username: u, passwordHash: await hashPassword(p), name: displayName });
   } catch (err) {
     if (/unique|duplicate/i.test(err.message)) throw httpError(409, 'اسم المستخدم مستخدم بالفعل. اختر اسمًا آخر.');
     throw err;
   }
+}
+
+/** 👤 Try the site without an account (only once the site has its administrator, and not when sign-ups are closed). */
+export async function startGuest(ip) {
+  if (!config.auth.required) throw httpError(400, 'تسجيل الدخول غير مطلوب في النسخة المحلية.');
+  if (!(await ownerExists()) || config.auth.registration !== 'open') throw httpError(403, 'سجّل الدخول أولًا.');
+  checkRate(`guest:${ip}`, 5); // a few guest sessions per address and hour
+  noteFailure(`guest:${ip}`);
+  return createGuest();
 }
 
 /** Kept for the first-account screen of older clients. */

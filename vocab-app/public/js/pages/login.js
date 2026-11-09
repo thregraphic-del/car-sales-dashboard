@@ -23,6 +23,7 @@ export async function render(view, { onDone, mode: initial }) {
           ${status.registration !== 'closed' ? `<button type="button" data-mode="register" class="${reg ? 'active' : ''}" role="tab" aria-selected="${reg}">حساب جديد</button>` : ''}
         </div>`}
         <h2 style="margin:0">${first ? 'إنشاء أول حساب' : reg ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}</h2>
+        ${status.guest && reg ? '<div class="alert info"><span>✨ كل اللي سويته كضيف — كلماتك ومقاطعك وتقدّمك — ينتقل لحسابك الجديد.</span></div>' : ''}
         ${first
           ? `<p class="small ink-2">هذا أول حساب في الموقع، وسيكون حساب <b>المسؤول</b>. بعده يستطيع كل شخص إنشاء حسابه الخاص، ولكل حساب كلماته وتقدّمه المنفصل تمامًا.</p>
              ${needCode ? '<p class="tiny muted">تجد رمز الإعداد في حسابك على Netlify: المشروع ← Project configuration ← Environment variables ← <span class="en-inline">SETUP_CODE</span>.</p>' : ''}`
@@ -40,6 +41,8 @@ export async function render(view, { onDone, mode: initial }) {
           <button class="btn primary" type="submit" id="go">${reg ? 'إنشاء الحساب والدخول' : 'دخول'}</button>
         </form>
         ${reg ? '' : '<button type="button" class="link-btn" id="forgot" style="justify-self:start">نسيت كلمة المرور؟</button>'}
+        ${status.guest_allowed && !status.guest ? '<a class="link-btn" href="/" style="justify-self:start">أو جرّب الموقع بدون تسجيل ←</a>' : ''}
+        ${status.guest ? '<a class="link-btn" href="/" style="justify-self:start">← رجوع للموقع (كضيف)</a>' : ''}
       </div>
     </div>`;
     const $ = (s) => view.querySelector(s);
