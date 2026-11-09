@@ -391,7 +391,7 @@ export async function openWordCard(uvId, { onChange } = {}) {
     ${contexts.length ? `<div class="wd-section"><div class="wd-label">وجدتها في</div>
       ${contexts.slice(0, 4).map((c) => `<div class="ctx">
         ${sentenceHtml(c.sentence, c.sentence_ar, w.term, { time: c.kind === 'youtube' ? c.timestamp_seconds : undefined, sourceId: c.source_id })}
-        <a class="tiny muted ctx-src" href="#/source/${c.source_id}${c.line_id ? `?line=${c.line_id}` : ''}" data-close>${c.kind === 'text' ? '📄' : '▶'} ${esc(c.title)}</a></div>`).join('')}
+        <a class="tiny muted ctx-src" href="#/source/${c.source_id}?${c.line_id ? `line=${c.line_id}&` : ''}${c.kind === 'youtube' && c.timestamp_seconds != null ? `t=${Math.max(0, Math.floor(c.timestamp_seconds) - 2)}&` : ''}jump=1" data-close>${c.kind === 'text' ? '📄' : '▶'} ${esc(c.title)}</a></div>`).join('')}
       ${contexts.length > 4 ? `<p class="tiny muted">و${contexts.length - 4} سياقات أخرى</p>` : ''}</div>` : ''}
 
     ${easy || otherExamples.length ? `<div class="wd-section"><div class="wd-label">أمثلة</div>

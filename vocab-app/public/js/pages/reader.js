@@ -484,7 +484,7 @@ export async function render(view, { segments, params }) {
   // 🔔 Every N new words of the video: a list with meanings — before they come, or after they went by.
   // A word shown once in this video is never listed again (so new words always take the place).
   let wbN = Math.max(3, Math.min(300, Number(pref('reader.wbN', pref('reader.wordBatch', '20'))) || 20));
-  let wbOn = pref('reader.wbOn', pref('reader.wordBatch', '20') === '0' ? '0' : '1') === '1';
+  let wbOn = pref('reader.wbOn2', '0') === '1' && !params.jump;
   let wbWhen = pref('reader.wbWhen', 'after') === 'before' ? 'before' : 'after';
   const shownKey = `reader.shown.${id}`;
   const shown = new Set((() => { try { return JSON.parse(localStorage.getItem(shownKey) || '[]'); } catch { return []; } })());
@@ -495,7 +495,7 @@ export async function render(view, { segments, params }) {
     const n = $('#wbN', view); if (n) n.value = String(wbN);
     view.querySelectorAll('#wbWhen [data-when]').forEach((b) => b.classList.toggle('active', b.dataset.when === wbWhen));
   };
-  $('#wbOn', view)?.addEventListener('change', (e) => { wbOn = e.target.checked; setPref('reader.wbOn', wbOn ? '1' : '0'); passed.clear(); });
+  $('#wbOn', view)?.addEventListener('change', (e) => { wbOn = e.target.checked; setPref('reader.wbOn2', wbOn ? '1' : '0'); passed.clear(); });
   $('#wbN', view)?.addEventListener('change', (e) => { wbN = Math.max(3, Math.min(300, Number(e.target.value) || 20)); setPref('reader.wbN', String(wbN)); showWb(); });
   view.querySelectorAll('#wbWhen [data-when]').forEach((b) => b.addEventListener('click', () => { wbWhen = b.dataset.when; setPref('reader.wbWhen', wbWhen); passed.clear(); showWb(); }));
   showWb();
@@ -663,11 +663,11 @@ export async function render(view, { segments, params }) {
   view.addEventListener('click', (e) => { if (e.target.closest('#pfOpen')) openPracticeFilter(); });
 
   // 📝 What it is about, in a few words of everyday Saudi Arabic — when and how often the learner chooses.
-  let recapOn = pref('reader.recap', '1') === '1';
+  let recapOn = pref('reader.recap2', '0') === '1' && !params.jump;
   const recapBox = $('#recapOn', view);
   if (recapBox) {
     recapBox.checked = recapOn;
-    recapBox.addEventListener('change', () => { recapOn = recapBox.checked; setPref('reader.recap', recapOn ? '1' : '0'); });
+    recapBox.addEventListener('change', () => { recapOn = recapBox.checked; setPref('reader.recap2', recapOn ? '1' : '0'); });
   }
   // ⏱ every N minutes (3 / 5 / 10 / any number) · «قبل» = what the next part is about, «بعد» = what was just said
   let recapMin = Math.max(1, Math.min(60, Number(pref('reader.recapMin', '5')) || 5));
@@ -938,7 +938,8 @@ export async function render(view, { segments, params }) {
         <div class="row between"><b>الكلمات الجديدة <span class="tiny muted en-inline">${shown.length}${shown.length !== fresh.length ? `/${fresh.length}` : ''}</span></b>
           <span class="row" style="gap:8px"><span class="u-dots" title="شائعة · أقل · نادرة"><i class="u-d common"></i><i class="u-d medium"></i><i class="u-d rare"></i></span><button type="button" class="pop-x side-close" id="sideClose" aria-label="إغلاق">✕</button></span></div>
         <div class="glow-row">
-          ${fresh.some((i) => !i.user_state) ? `<button class="glow-ic ${sideF.show && sideF.show !== 'all' ? 'on' : ''}" data-pop="save" title="حفظ">${icon.save}<span>حفظ</span></button>` : ''}
+          ${unsavedShown.length ? `<button class="save-all-btn" id="saveAll" title="احفظ كل الكلمات الجديدة">${icon.bookmark}<span>حفظ الكل</span></button>` : ''}
+          ${fresh.some((i) => i.user_state === 'saved') ? `<button class="glow-ic ${sideF.show === 'saved' ? 'on' : ''}" id="savedOnly" title="اعرض المحفوظة فقط">${icon.check}<span>المحفوظة</span>${sideF.show === 'saved' ? '<b class="x">✕</b>' : ''}</button>` : ''}
           ${data.items.length >= 4 ? `<button class="glow-ic" data-pop="prac" title="تدرّب">${icon.game}<span>تدرّب</span></button>` : ''}
           ${levels.length > 1 ? `<button class="glow-ic ${sideF.level ? 'on' : ''}" data-pop="lv" title="المستوى">${icon.sliders}<span>${sideF.level || 'المستوى'}</span></button>` : ''}
           <button class="glow-ic ${sideF.q ? 'on' : ''}" data-pop="q" title="بحث">${icon.search}</button>
@@ -964,6 +965,7 @@ export async function render(view, { segments, params }) {
     if (pop) { sidePop = sidePop === pop.dataset.pop ? '' : pop.dataset.pop; drawSide(); if (sidePop === 'q') $('#sideQ', view)?.focus(); return; }
     if (e.target.closest('[data-clearq]')) { sideF.q = ''; sidePop = ''; saveSideF(); drawSide(); return; }
     if (e.target.closest('#sideClose')) { switchTab('text'); return; }
+    if (e.target.closest('#savedOnly')) { sideF.show = sideF.show === 'saved' ? 'all' : 'saved'; saveSideF(); drawSide(); return; }
     const sh = e.target.closest('[data-show]');
     if (sh) { sideF.show = sh.dataset.show; sidePop = ''; saveSideF(); drawSide(); return; }
     const lv = e.target.closest('[data-lv]');

@@ -1415,3 +1415,5 @@ body.reader-focus .reader-grid[data-tab="words"] .reader-main { display: none !i
 .src-row img { width: 96px; height: 54px; object-fit: cover; border-radius: 8px; }
 .src-all { width: 96px; height: 54px; border-radius: 8px; background: var(--surface-2); display: grid; place-items: center; }
 .src-all svg { width: 24px; height: 24px; color: var(--accent); }
+.save-all-btn { display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 12px; padding: 7px 14px; font: inherit; font-weight: 800; font-size: 13.5px; background: var(--gold); color: #1B263A; cursor: pointer; box-shadow: 0 4px 14px color-mix(in srgb, var(--gold) 45%, transparent); }
+.save-all-btn svg { width: 17px; height: 17px; }
