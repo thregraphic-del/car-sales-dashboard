@@ -718,6 +718,40 @@ export async function render(view, { segments, params }) {
     showLayout();
     recenter();
   }));
+  // ⚙ Settings as ONE row of small icons: each group is closed until its icon is tapped
+  // (tap again to close) — the full sheet took most of the screen.
+  (() => {
+    const rset = $('#rset', view);
+    if (!rset) return;
+    const IC = { 'السرعة': '⏩', 'التوقف': '⏸', 'التدريب': '🗣', 'قائمة الكلمات': '📋', 'الملخص': '📝', 'الترجمة': '🌐', 'النص': '🔤', 'الفيديو': '🎬', 'بحث': '🔍', 'شرح': '❓', 'أدوات': '🧰' };
+    const rows = [...rset.querySelectorAll('.srow')];
+    if (!rows.length) return;
+    const bar = document.createElement('div');
+    bar.className = 'rset-icons';
+    bar.setAttribute('role', 'tablist');
+    rows.forEach((r, i) => {
+      const name = r.querySelector('.slabel')?.textContent.trim() || '';
+      r.dataset.sk = String(i);
+      r.classList.add('rs-closed');
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'rs-ic';
+      b.dataset.sk = String(i);
+      b.setAttribute('aria-expanded', 'false');
+      b.title = name;
+      b.innerHTML = `<span aria-hidden="true">${IC[name] || '•'}</span><small>${name}</small>`;
+      bar.appendChild(b);
+    });
+    rset.classList.add('rs-compact');
+    rset.insertBefore(bar, rset.querySelector('.rset-title')?.nextSibling || rset.firstChild);
+    bar.addEventListener('click', (e) => {
+      const b = e.target.closest('.rs-ic');
+      if (!b) return;
+      const open = b.getAttribute('aria-expanded') !== 'true';
+      bar.querySelectorAll('.rs-ic').forEach((x) => x.setAttribute('aria-expanded', String(open && x === b)));
+      rows.forEach((r) => r.classList.toggle('rs-closed', !(open && r.dataset.sk === b.dataset.sk)));
+    });
+  })();
   // Font size of the transcript (remembered). Phones start at 13 until the learner changes it.
   const defFont = window.matchMedia?.('(max-width: 760px)').matches ? '13' : '16';
   let fontPx = Number(pref('reader.font', defFont)) || Number(defFont);

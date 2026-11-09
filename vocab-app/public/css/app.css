@@ -1478,3 +1478,16 @@ body.reader-focus .reader-grid[data-tab="words"] .reader-main { display: none !i
 .fd-head { color: var(--ink-2); }
 .fd-item.open .fd-head { color: var(--accent); }
 @media (prefers-reduced-motion: reduce) { .dd-btn, .fb-btn { animation: none; } }
+
+/* ⚙ reader settings: one row of icons; a group opens only when its icon is tapped */
+.rset.rs-compact { gap: 8px; }
+.rset.rs-compact .sgroup, .rset.rs-compact .rs-closed { display: none !important; }
+.rset-icons { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
+.rset-icons::-webkit-scrollbar { display: none; }
+.rs-ic { flex: none; display: grid; justify-items: center; gap: 1px; min-width: 54px; padding: 6px 6px 4px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--surface-2); color: var(--ink-2); font: inherit; cursor: pointer; }
+.rs-ic span { font-size: 18px; line-height: 1.1; }
+.rs-ic small { font-size: 10.5px; white-space: nowrap; }
+.rs-ic:hover { border-color: var(--accent); }
+.rs-ic[aria-expanded="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+.rset.rs-compact .srow:not(.rs-closed) { display: grid !important; grid-template-columns: 1fr; border: 1px solid var(--accent); border-radius: 12px; padding: 10px; }
+.rset.rs-compact .srow:not(.rs-closed) .slabel { display: none; }
