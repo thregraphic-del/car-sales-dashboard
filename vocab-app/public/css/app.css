@@ -1546,3 +1546,29 @@ body:not(.reader-focus) .rs-ic small { font-size: 11.5px; }
 .pw-eye { position: absolute; inset-inline-end: 6px; top: 50%; transform: translateY(-50%); border: 0; background: none; font-size: 18px; cursor: pointer; padding: 6px; }
 .guest-chip a { color: var(--accent); }
 @media (max-height: 520px) and (orientation: landscape) { .auth-wrap .brand { display: none; } .auth-wrap { padding-top: 8px; } }
+
+/* ---- batch 8: today, nav, thumb bar ---- */
+.week-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 0 0 12px; }
+.ws-d { display: grid; justify-items: center; gap: 3px; padding: 6px 0; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font: inherit; font-size: 11.5px; color: var(--ink-2); cursor: pointer; }
+.ws-d i { font-style: normal; width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; background: var(--surface-2); font-size: 11px; font-family: var(--font-en); }
+.ws-d.l1 i { background: var(--accent-soft); color: var(--accent); }
+.ws-d.l2 i { background: var(--accent); color: #fff; }
+.ws-d.today { border-color: var(--accent); font-weight: 700; }
+.quick-session { display: block; text-align: center; margin: -4px 0 12px; padding: 9px; border-radius: 12px; border: 1px dashed var(--accent); color: var(--accent); font-weight: 700; font-size: 13.5px; text-decoration: none; }
+.next-steps { display: grid; gap: 6px; margin: 0 0 12px; }
+.next-steps .ns { padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); text-decoration: none; font-size: 14px; }
+.next-steps .ns:hover { border-color: var(--accent); }
+@media (max-width: 900px) { .tabbar { grid-template-columns: repeat(5, 1fr) !important; } }
+.top-streak { min-width: 38px; text-align: center; text-decoration: none; color: var(--ink); font-size: 14px; }
+.more-list { display: grid; gap: 8px; }
+.more-item { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 14px; text-decoration: none; color: var(--ink); font-weight: 700; }
+.more-item svg { width: 22px; height: 22px; color: var(--accent); }
+.thumb-bar { position: fixed; z-index: 45; inset-inline: 0; bottom: calc(var(--tabbar-h, 64px) + env(safe-area-inset-bottom)); display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 6px 10px; background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(12px); border-top: 1px solid var(--line); }
+.thumb-bar button { height: 46px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font-size: 20px; display: grid; place-items: center; cursor: pointer; }
+.thumb-bar button svg { width: 22px; height: 22px; }
+.thumb-bar .tb-play { background: var(--accent); border-color: var(--accent); color: #fff; }
+body.reader-focus .thumb-bar { bottom: 0; padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
+body.has-thumb-bar .page-reader { padding-bottom: 64px; }
+.ck { display: grid; gap: 8px; font-size: 14px; }
+.ck-line { display: inline-block; width: 40px; height: 14px; border-radius: 4px; background: var(--yellow, var(--gold)); vertical-align: middle; }
+body.has-thumb-bar .help-fab:not(.mini) { bottom: 170px; }

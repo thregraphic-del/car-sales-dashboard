@@ -81,13 +81,13 @@ export async function createAccount({ username, passwordHash, name }) {
     await run('UPDATE users SET username = ?, password_hash = ?, role = ?, name = COALESCE(?, name) WHERE id = ?', username, passwordHash, role, name || null, legacy.id);
     return getUser(legacy.id);
   }
-  const id = await insert('INSERT INTO users (name, username, password_hash, role) VALUES (?,?,?,?)', name || username, username, passwordHash, role);
+  const id = await insert('INSERT INTO users (name, username, password_hash, role, daily_goal) VALUES (?,?,?,?,?)', name || username, username, passwordHash, role, 5); // a small goal first: early wins build the habit
   return getUser(id);
 }
 
 /** 👤 A guest learner (no login yet). */
 export async function createGuest() {
-  const id = await insert("INSERT INTO users (name, role) VALUES (?, 'guest')", 'ضيف');
+  const id = await insert("INSERT INTO users (name, role, daily_goal) VALUES (?, 'guest', 5)", 'ضيف');
   return getUser(id);
 }
 

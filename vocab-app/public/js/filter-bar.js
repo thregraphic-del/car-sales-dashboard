@@ -27,7 +27,7 @@ const optHtml = (d, [v, label, count, thumb]) => {
   const pic = d.video && thumb !== undefined ? (thumb ? `<img src="${esc(thumb)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">` : '<span class="fb-noimg">🎬</span>') : '';
   const tick = d.multi && v !== '' ? `<span class="fb-tick" aria-hidden="true">${on ? '✓' : ''}</span>` : '';
   return `<button type="button" class="dd-opt fb-opt${on ? ' on' : ''}${d.video ? ' fb-vid' : ''}" data-fbv="${d.k}|${esc(String(v))}" role="option" aria-selected="${on}">
-    ${tick}${pic}<span class="fb-l${d.video ? ' en clamp2' : ''}">${esc(label)}</span>${count != null ? `<span class="fb-c en-inline">${count}</span>` : ''}</button>`;
+    ${tick}${pic}<span class="fb-l${d.video ? ' en clamp2' : ''}">${esc(label)}${d.k === 'levels' && LEVEL_AR[v] ? ` <span class="tiny muted">${LEVEL_AR[v]}</span>` : ''}</span>${count != null ? `<span class="fb-c en-inline">${count}</span>` : ''}</button>`;
 };
 
 export function filterBarHtml(defs, open = '') {
@@ -81,4 +81,6 @@ export function closeOnOutside(root, isOpen, close) {
 
 export const ytThumb = (s) => (s?.youtube_id && !s.is_demo ? `https://i.ytimg.com/vi/${s.youtube_id}/default.jpg` : s?.thumbnail_url || '');
 export const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+/** plain words beside the codes */
+export const LEVEL_AR = { A1: 'مبتدئ', A2: 'أساسي', B1: 'متوسط', B2: 'فوق المتوسط', C1: 'متقدم', C2: 'متمكن' };
 export const WHEN_OPTS = [['', 'كل الأوقات'], ['today', 'اليوم'], ['yesterday', 'أمس'], ['week', 'آخر أسبوع'], ['month', 'آخر شهر']];

@@ -49,7 +49,10 @@ function renderNav(active) {
   const left = s ? Math.max(0, s.plan.total - s.plan.completed) : 0;
   const links = NAV.map((n) => `<a class="nav-link ${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? `<span class="badge">${left}</span>` : ''}</a>`).join('');
   $('#nav').innerHTML = `${links}<div class="nav-sep"></div><a class="nav-link ${active === '/friends' ? 'active' : ''}" href="#/friends">${icon.users}<span>أصدقائي</span></a><a class="nav-link ${active === '/settings' ? 'active' : ''}" href="#/settings">${icon.settings}<span>الإعدادات</span></a>`;
-  $('#tabbar').innerHTML = NAV.map((n) => `<a class="${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? '<i class="dot"></i>' : ''}</a>`).join('');
+  $('#tabbar').innerHTML = NAV.map((n) => `<a class="${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? '<i class="dot"></i>' : ''}</a>`).join('')
+    + `<a class="${['/settings', '/friends'].includes(active) ? 'active' : ''}" href="#/settings" id="moreTab">${icon.settings}<span>المزيد</span></a>`;
+  const top = $('#topStreak');
+  if (top && s) top.innerHTML = `🔥 <b class="en-inline">${s.streak.current}</b>`;
   const guestChip = state.user?.guest ? '<div class="guest-chip">👤 أنت ضيف — <a href="/register"><b>سجّل حسابك المجاني</b></a> وتنحفظ كلماتك. عندك حساب؟ <a href="/login"><b>ادخل</b></a></div>' : '';
   $('#sidebarFoot').innerHTML = s
     ? `${guestChip}<div class="row between"><span>🔥 أيام متتالية</span><b class="en-inline">${s.streak.current}</b></div>
@@ -124,6 +127,7 @@ let cleanup = null;
 let token = 0;
 
 async function route() {
+  window.__navCount = (window.__navCount || 0) + 1; // pages opened inside the app (for «رجوع»)
   const { base, segments, params } = parseHash();
   if (LEGACY[base]) {
     location.replace(`#${LEGACY[base]}`);
@@ -259,6 +263,15 @@ async function init() {
     const again = lastSay.text === b.dataset.say && Date.now() - lastSay.at < 4000 && !lastSay.slow;
     lastSay = { text: b.dataset.say, at: Date.now(), slow: again };
     speak(b.dataset.say, { rate: again ? 0.6 : Number(b.dataset.rate) || 1, lang: b.dataset.lang || 'en' }).catch(() => {});
+  });
+  // «المزيد»: friends + settings, one tap away on phones
+  $('#tabbar').addEventListener('click', (e) => {
+    if (!e.target.closest('#moreTab')) return;
+    e.preventDefault();
+    openModal(`<h2 style="margin:0 0 10px">المزيد</h2><div class="more-list">
+      <a class="more-item" href="#/friends" data-close>${icon.users}<span>أصدقائي</span></a>
+      <a class="more-item" href="#/settings" data-close>${icon.settings}<span>الإعدادات</span></a>
+      ${state.user?.guest ? '<a class="more-item" href="/register">✨<span>سجّل حسابك المجاني</span></a>' : ''}</div>`);
   });
   $('#menuBtn').addEventListener('click', () => document.body.classList.add('nav-open'));
   $('#scrim').addEventListener('click', () => document.body.classList.remove('nav-open'));

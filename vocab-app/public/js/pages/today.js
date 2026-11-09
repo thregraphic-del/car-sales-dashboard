@@ -22,14 +22,19 @@ export async function render(view) {
   const main = !stats.total
     ? `<a class="card today-main" href="#/add"><span class="tm-ic">${icon.plus}</span><b>ابدأ بأول كلماتك</b><span class="small ink-2">الصق رابط يوتيوب أو كلمات</span></a>`
     : left.length
-      ? `<a class="card today-main" href="#/practice?session=today"><span class="tm-ic">${icon.play}</span><b>ابدأ تدريب اليوم (${left.length})</b><span class="small ink-2">${parts}</span></a>`
-      : `<div class="card today-main done"><span class="tm-ic">${icon.check}</span><b>أنهيت جلسة اليوم 🎉</b><button class="btn sm" id="more">${icon.plus} 5 كلمات إضافية</button></div>`;
+      ? `<a class="card today-main" href="#/practice?session=today"><span class="tm-ic">${icon.play}</span><b>ابدأ تدريب اليوم (${left.length})</b><span class="small ink-2">${parts}</span></a>
+         ${left.length > 5 ? `<a class="quick-session" href="#/practice?mode=cards&ids=${left.slice(0, 5).map((i) => i.uv_id).join(',')}&exact=1&n=2">⏱ مستعجل؟ جلسة دقيقتين — ٥ كلمات بس</a>` : ''}`
+      : `<div class="card today-main done"><span class="tm-ic">${icon.check}</span><b>أنهيت جلسة اليوم 🎉</b><button class="btn sm" id="more">${icon.plus} 5 كلمات إضافية</button></div>
+         <div class="next-steps"><b class="small">وش بعد؟</b>
+           ${last ? `<a class="ns" href="#/source/${last.id}">▶ كمّل «${esc(last.title.slice(0, 34))}»</a><a class="ns" href="#/practice?mode=quiz&source=${last.id}&size=5&n=3">🎯 اختبار سريع على كلمات آخر مقطع</a>` : ''}
+           <a class="ns" href="#/add">＋ أضف مقطع جديد</a></div>`;
 
   view.innerHTML = `
     <button type="button" class="today-head" id="calBtn" title="تقويم أدائك">
       <span class="th-greet">${greet}${name}</span>
       <span class="streak-chip">🔥 ${stats.streak.current} ${stats.streak.current === 1 ? 'يوم' : 'أيام'} ${icon.today}</span>
     </button>
+    <div class="week-strip" id="weekStrip" aria-label="آخر ٧ أيام"></div>
     ${main}
     <div class="today-two">
       ${yesterday.length ? `<a class="card t2" href="#/practice?mode=cards&ids=${yesterday.slice(0, 60).map((w) => w.uv_id).join(',')}&yesterday=1&exact=1&n=1"><span class="t2-ic">${icon.sun}</span><b>كلمات أمس</b><span class="tiny muted">${yesterday.length}</span></a>` : `<a class="card t2" href="#/words"><span class="t2-ic">${icon.book}</span><b>كلماتي</b><span class="tiny muted">${stats.total}</span></a>`}
@@ -37,6 +42,22 @@ export async function render(view) {
     </div>`;
 
   view.querySelector('#calBtn').addEventListener('click', openCalendar);
+  // 📅 the last 7 days, right on the page (tap = the full calendar)
+  api.calendar().then((r) => {
+    const strip = view.querySelector('#weekStrip');
+    if (!strip) return;
+    const goal = r.goal || 10;
+    const D = ['أحد', 'إثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت'];
+    const out = [];
+    for (let i = 6; i >= 0; i -= 1) {
+      const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - i);
+      const x = (r.days || {})[d.toISOString().slice(0, 10)];
+      const n = x ? x.answers + x.saved + x.seen : 0;
+      out.push(`<button type="button" class="ws-d l${n >= goal ? 2 : n ? 1 : 0}${i === 0 ? ' today' : ''}" title="${n} نشاط"><span>${D[d.getDay()]}</span><i>${n >= goal ? '✓' : n || ''}</i></button>`);
+    }
+    strip.innerHTML = out.join('');
+    strip.addEventListener('click', openCalendar);
+  }).catch(() => {});
   view.querySelector('#more')?.addEventListener('click', async () => { await api.extendToday(5); render(view); });
   maybeTour('home');
 }

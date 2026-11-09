@@ -274,7 +274,7 @@ export async function render(view, { segments, params }) {
 
   view.innerHTML = `
     <div class="reader-head slim one-row">
-      <a class="btn icon sm ghost" href="#/add" aria-label="رجوع">${icon.prev}</a>
+      <a class="btn icon sm ghost" href="#/add" id="backLink" aria-label="رجوع">${icon.prev}</a>
       <div class="reader-title-sm en" dir="auto" title="${esc(source.title)}">${esc(source.title)}</div>
       ${isVideo ? `<button type="button" class="rb-btn rb-ic play-btn" id="playBtn" title="تشغيل / إيقاف (مسافة)" aria-label="تشغيل أو إيقاف">${icon.play}</button>` : ''}
       ${isVideo && hasTimes ? `<button type="button" class="rb-btn rb-ic" id="againBtn" aria-pressed="false" title="كل جملة تُعاد مرتين تلقائيًا">${icon.repeat}<span class="rb-x">×2</span></button><button type="button" class="rb-btn rb-ic" id="shadowBtn" aria-pressed="false" title="ردّد معي: يقف بعد كل جملة لتعيدها">${icon.mic}<span>ردّد</span></button>` : ''}
@@ -308,7 +308,7 @@ export async function render(view, { segments, params }) {
           ${isVideo ? `<div class="srow"><span class="slabel">الفيديو</span><div class="sopts" id="vidPos"><button type="button" class="sopt" data-vpos="top">فوق</button><button type="button" class="sopt" data-vpos="bottom">تحت</button><button type="button" class="sopt" data-vpos="float">عائم</button></div></div>` : ''}
           <div class="srow"><span class="slabel">بحث</span><div class="sopts tr-search"><input class="input sm" id="trQ" type="search" placeholder="ابحث في النص" aria-label="ابحث في النص"><span class="tiny muted" id="trQn"></span></div></div>
           <div class="sgroup">أدوات</div>
-          <div class="srow"><span class="slabel">شرح</span><div class="sopts"><button class="sopt" id="tourR">شرح الأزرار</button></div></div>
+          <div class="srow"><span class="slabel">شرح</span><div class="sopts"><button class="sopt" id="tourR">شرح الأزرار</button><button class="sopt" id="colorKey">🎨 مفتاح الألوان</button><button class="sopt" id="resetR">↺ رجّع إعدادات المقطع الأصلية</button></div></div>
           <div class="srow"><span class="slabel">أدوات</span><div class="sopts">
             <button class="sopt" id="retrBtn">ترجمة أدق</button><button class="sopt" id="summaryBtn">📝 الملخص</button><button class="sopt" id="listenBtn">🎧 استماع</button>
             ${source.youtube_id && !source.is_demo ? `<a class="sopt" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">يوتيوب ↗</a>` : ''}
@@ -1503,6 +1503,22 @@ export async function render(view, { segments, params }) {
   $('#loopBtn', view)?.addEventListener('click', toggleLoop);
   $('#againBtn', view)?.addEventListener('click', toggleLoop);
   $('#tourR', view)?.addEventListener('click', () => { toggleSet(false); startTour('reader'); });
+  // back = where the learner came from (today, words…), not always «أضف»
+  $('#backLink', view)?.addEventListener('click', (e) => { if (window.__navCount > 1) { e.preventDefault(); window.history.back(); } });
+  $('#colorKey', view)?.addEventListener('click', () => {
+    toggleSet(false);
+    popNote(`<div class="lt-title">🎨 مفتاح الألوان</div><div class="ck">
+      <div><span class="mark s-suggested u-common">كلمة</span> جديدة وشائعة — تستاهل تحفظها</div>
+      <div><span class="mark s-suggested u-medium">كلمة</span> جديدة وأقل شيوع</div>
+      <div><span class="mark s-suggested u-rare">كلمة</span> جديدة ونادرة</div>
+      <div><span class="mark s-saved">كلمة</span> محفوظة في كلماتك</div>
+      <div><span class="ck-line"></span> السطر اللي ينقال الحين</div></div>`, { cls: 'lt-contrast' });
+  });
+  $('#resetR', view)?.addEventListener('click', () => {
+    try { Object.keys(localStorage).filter((k) => k.startsWith('reader.') && !k.startsWith('reader.saveall')).forEach((k) => localStorage.removeItem(k)); } catch { /* ignore */ }
+    toast('رجعت إعدادات المقطع للأصل ✓');
+    setTimeout(() => location.reload(), 700);
+  });
   maybeTour('reader');
 
   // 🙈 Hide the Arabic until it is touched (try to understand first)
@@ -1563,6 +1579,19 @@ export async function render(view, { segments, params }) {
     showPlayBtn();
   }
   $('#playBtn', view)?.addEventListener('click', togglePlay);
+  // 👍 phones: the main controls under the thumb (previous · play · again · next)
+  let thumbBar = null;
+  if (isVideo && hasTimes && window.matchMedia?.('(pointer: coarse) and (max-width: 760px)').matches) {
+    thumbBar = document.createElement('div');
+    thumbBar.className = 'thumb-bar';
+    thumbBar.innerHTML = `<button type="button" data-tb="prev" aria-label="الجملة السابقة">${icon.next}</button><button type="button" data-tb="play" class="tb-play" aria-label="تشغيل أو إيقاف">${icon.play}</button><button type="button" data-tb="again" aria-label="أعد الجملة">↻</button><button type="button" data-tb="next" aria-label="الجملة التالية">${icon.prev}</button>`;
+    document.body.appendChild(thumbBar);
+    document.body.classList.add('has-thumb-bar');
+    thumbBar.addEventListener('click', (e) => {
+      const k = e.target.closest('[data-tb]')?.dataset.tb;
+      if (k === 'play') togglePlay(); else if (k === 'again') againLine(); else if (k === 'prev') stepLine(-1); else if (k === 'next') stepLine(1);
+    });
+  }
   // 🔁 one press: the current sentence again (and the video plays even if it was stopped)
   function againLine() {
     const cur = timeline.find((x) => x.id === currentId) || timeline[0];
@@ -2043,6 +2072,8 @@ export async function render(view, { segments, params }) {
     stopListening();
     clearInterval(backTimer);
     clearInterval(recapTimer);
+    thumbBar?.remove();
+    document.body.classList.remove('has-thumb-bar');
     window.removeEventListener('resize', placeFloat);
     document.querySelectorAll('.lt-note').forEach((n) => n.remove());
     window.removeEventListener('lexitube:goal', onGoal);
