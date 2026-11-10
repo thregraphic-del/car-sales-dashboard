@@ -1572,3 +1572,10 @@ body.has-thumb-bar .page-reader { padding-bottom: 64px; }
 .ck { display: grid; gap: 8px; font-size: 14px; }
 .ck-line { display: inline-block; width: 40px; height: 14px; border-radius: 4px; background: var(--yellow, var(--gold)); vertical-align: middle; }
 body.has-thumb-bar .help-fab:not(.mini) { bottom: 170px; }
+
+/* filter icons: line icons in the site's teal (white when the filter is set) */
+.fb-ic { display: inline-grid; place-items: center; color: var(--accent); }
+.fb-ic svg { width: 20px; height: 20px; }
+.fbar .dd-btn.set .fb-ic, .dd.open .fb-ic { color: #fff; }
+@media (max-width: 520px) { .fb-ic svg { width: 17px; height: 17px; } }
+.grp-toggle.open .fb-ic, .grp-toggle.set .fb-ic { color: #fff; }

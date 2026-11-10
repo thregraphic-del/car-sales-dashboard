@@ -65,7 +65,7 @@ export async function render(view, { params }) {
     placeMenus($('#filters'));
     // 📁 groups: one closed button; tapping it shows every group + «مجموعة جديدة» + «إدارة المجموعات»
     const gSel = state.groups.find((x) => x.id === f.group);
-    $('#groups').innerHTML = `<button type="button" class="grp-toggle${groupsOpen ? ' open' : ''}${gSel ? ' set' : ''}" id="grpToggle" aria-expanded="${groupsOpen}">📁 <span>${gSel ? esc(gSel.name) : 'المجموعات'}</span> <span class="tiny en-inline">${gSel ? gSel.count : state.groups.length}</span> ▾</button>
+    $('#groups').innerHTML = `<button type="button" class="grp-toggle${groupsOpen ? ' open' : ''}${gSel ? ' set' : ''}" id="grpToggle" aria-expanded="${groupsOpen}"><span class="fb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span> <span>${gSel ? esc(gSel.name) : 'المجموعات'}</span> <span class="tiny en-inline">${gSel ? gSel.count : state.groups.length}</span> ▾</button>
       ${groupsOpen ? `<div class="grp-panel">${state.groups.map((g) => `<button class="gchip ${f.group === g.id ? 'on' : ''}" data-g="${g.id}">${esc(g.name)} <span class="en-inline tiny">${g.count}</span></button>`).join('') || '<span class="tiny muted">ما عندك مجموعات بعد.</span>'}
         <div class="grp-actions"><button class="gchip new" id="newGroup">+ مجموعة جديدة</button>${state.groups.length > 1 ? '<button class="gchip new" id="manageGroups">⚙ إدارة المجموعات</button>' : ''}</div></div>` : ''}`;
     const g = state.groups.find((x) => x.id === f.group);

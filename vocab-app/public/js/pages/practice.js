@@ -71,7 +71,7 @@ export async function render(view, { params }) {
     <div class="page-head compact"><div><h1>تدرّب</h1></div>
       <a class="btn sm ghost" href="#/practice">${icon.prev} عد إلى الألعاب</a>
     </div>
-    ${label ? `<div class="chip-row"><span class="gchip on">${esc(label)}</span>${params.source ? `<a class="link-btn" href="#/source/${esc(params.source)}">↩ رجوع للمقطع</a>` : `<a class="link-btn" href="${href({ mode })}">↩ غيّر الاختيار</a>`}</div>`
+    ${label ? (params.source ? `<div class="chip-row"><span class="gchip on">${esc(label)}</span><a class="link-btn" href="#/source/${esc(params.source)}">↩ رجوع للمقطع</a></div>` : '')
       : `<div class="chip-row">${mode === 'story' ? `<a class="tab active" href="${href({ mode })}">كلماتي الأخيرة</a>` : params.focus ? FOCUS.map(([k, l]) => `<a class="tab ${k === focus ? 'active' : ''}" href="${href({ ...base, focus: k })}">${l}</a>`).join('') : ''}
         ${!params.focus && mode !== 'story' ? '' : state.groups.length > 6 ? `<select class="input sm group-select" id="groupSelect" aria-label="مجموعة"><option value="">أو اختر مجموعة…</option>${state.groups.map((g) => `<option value="${g.id}">${esc(g.name)}</option>`).join('')}</select>`
     : state.groups.length ? `<span class="tiny muted" style="margin-inline-start:6px">أو مجموعة:</span>${state.groups.map((g) => `<a class="gchip" href="${href({ mode, group: g.id })}">${esc(g.name)}</a>`).join('')}` : ''}</div>`}

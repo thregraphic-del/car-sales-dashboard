@@ -8,7 +8,7 @@
 import { esc } from './ui.js';
 
 // one small icon per filter (same keys on «كلماتي» and «تدرّب»)
-const ICONS = { count: '🔢', levels: '🎚', filter: '🏷', perf: '🏷', source: '🎬', from: '🎬', when: '🕒', sort: '↕' };
+const ICONS = {"count": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 9h14M5 15h14M10 4 8 20M16 4l-2 16\"/></svg>", "levels": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 20v-4M12 20v-9M19 20V5\"/></svg>", "filter": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"m8.5 12 2.5 2.5 4.5-5\"/></svg>", "source": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"3\"/><path d=\"m10 9 5 3-5 3z\"/></svg>", "when": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 7v5l3 2\"/></svg>", "sort": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M8 4v16M8 4 4 8M8 4l4 4M16 20V4M16 20l-4-4M16 20l4-4\"/></svg>", "perf": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"m8.5 12 2.5 2.5 4.5-5\"/></svg>", "from": "<svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"3\"/><path d=\"m10 9 5 3-5 3z\"/></svg>"};
 
 const isOn = (d, v) => (d.multi ? (v === '' ? !d.value.length : d.value.includes(v)) : String(d.value) === v);
 
@@ -34,7 +34,7 @@ export function filterBarHtml(defs, open = '') {
   return `<div class="fbar" role="toolbar" aria-label="الفلاتر">${defs.map((d) => {
     const active = d.multi ? d.value.length > 0 : String(d.value) !== String(d.opts[0]?.[0] ?? '');
     return `<div class="dd fb${open === d.k ? ' open' : ''}">
-      <button type="button" class="dd-btn fb-btn${active ? ' set' : ''}" data-fb="${d.k}" aria-expanded="${open === d.k}" title="${esc(d.t)}"><span class="fb-ic" aria-hidden="true">${ICONS[d.k] || '⚙'}</span><span class="fb-txt"><span class="dd-t">${esc(d.t)}</span><span class="dd-v">${esc(current(d))} ▾</span></span></button>
+      <button type="button" class="dd-btn fb-btn${active ? ' set' : ''}" data-fb="${d.k}" aria-expanded="${open === d.k}" title="${esc(d.t)}"><span class="fb-ic" aria-hidden="true">${ICONS[d.k] || ''}</span><span class="fb-txt"><span class="dd-t">${esc(d.t)}</span><span class="dd-v">${esc(current(d))} ▾</span></span></button>
       ${open === d.k ? `<div class="dd-menu fb-menu${d.video ? ' fb-menu-vid' : ''}" role="listbox"${d.multi ? ' aria-multiselectable="true"' : ''}>${d.opts.map((o) => optHtml(d, o)).join('') || '<span class="tiny muted" style="padding:10px">ما فيه</span>'}</div>` : ''}
     </div>`;
   }).join('')}</div>`;
