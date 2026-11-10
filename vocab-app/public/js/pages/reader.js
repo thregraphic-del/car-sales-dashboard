@@ -852,7 +852,13 @@ export async function render(view, { segments, params }) {
       document.exitFullscreen().catch(() => {});
     }
   };
-  $('#focusBtn', view)?.addEventListener('click', () => setFocus(!document.body.classList.contains('reader-focus')));
+  $('#focusBtn', view)?.addEventListener('click', () => {
+    const on = !document.body.classList.contains('reader-focus');
+    setPref('reader.focus', on ? '1' : '0'); // remembered: the page opens the way it was left
+    setFocus(on);
+  });
+  // a video opens wide by itself (no site bars) unless the learner shrank it last time
+  if (isVideo && pref('reader.focus', '1') === '1') setFocus(true);
   // The browser may leave full screen by itself (on iPad: scrolling up to read earlier lines).
   // Focus mode stays on — only the ✕ / shrink button takes the learner back.
   const onFsChange = () => { if (focusFs && !document.fullscreenElement) focusFs = false; };
@@ -1564,6 +1570,8 @@ export async function render(view, { segments, params }) {
     const on = (playing || Boolean(gapTimer)) && !held;
     b.innerHTML = on ? icon.pause : icon.play;
     b.classList.toggle('primary', on);
+    const tb = document.querySelector('.thumb-bar .tb-play');
+    if (tb) tb.innerHTML = on ? icon.pause : icon.play;
   }
   function togglePlay() {
     if (!player) return;
