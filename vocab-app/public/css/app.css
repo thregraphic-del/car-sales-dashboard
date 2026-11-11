@@ -1579,3 +1579,6 @@ body.has-thumb-bar .help-fab:not(.mini) { bottom: 170px; }
 .fbar .dd-btn.set .fb-ic, .dd.open .fb-ic { color: #fff; }
 @media (max-width: 520px) { .fb-ic svg { width: 17px; height: 17px; } }
 .grp-toggle.open .fb-ic, .grp-toggle.set .fb-ic { color: #fff; }
+
+/* this video's new words: teal even once saved (purple = saved before this video) */
+.transcript .mark.s-saved.s-newhere, .lt-note .mark.s-saved.s-newhere { background: color-mix(in srgb, var(--accent) 22%, transparent); box-shadow: none; border-radius: 5px; }

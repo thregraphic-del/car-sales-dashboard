@@ -973,6 +973,25 @@ export async function render(view, { segments, params }) {
   let autoSaveAll = (() => { try { return localStorage.getItem(`reader.saveall.${id}`) === '1'; } catch { return false; } })(); // «احفظ الكل» once = the later ones too
   noteKnown();
   const isNew = (it) => !knownBefore.has(it.vocabulary_id);
+  // 🟦 this video's NEW words stay teal in the text even after they are saved — a clear record of
+  // what this video added; purple is only for words that were in «كلماتي» before it.
+  // any word seen NOT saved in this video's text is «new here» from then on (kept on this device)
+  const hereKey = `reader.newhere.${id}`;
+  const hereSet = (() => { try { return new Set(JSON.parse(localStorage.getItem(hereKey) || '[]')); } catch { return new Set(); } })();
+  newSet.forEach((v) => hereSet.add(v));
+  const paintNew = () => {
+    let grew = false;
+    linesEl.querySelectorAll('.mark[data-vid]').forEach((m) => {
+      const v = Number(m.dataset.vid);
+      if (!m.classList.contains('s-saved') && !hereSet.has(v)) { hereSet.add(v); grew = true; }
+      const on = hereSet.has(v);
+      if (on !== m.classList.contains('s-newhere')) m.classList.toggle('s-newhere', on);
+    });
+    if (grew) { try { localStorage.setItem(hereKey, JSON.stringify([...hereSet].slice(-4000))); } catch { /* ignore */ } }
+  };
+  paintNew();
+  const newObs = new MutationObserver(paintNew);
+  newObs.observe(linesEl, { childList: true, subtree: true });
   const sideShown = () => data.items.filter(isNew).filter((it) => (!sideF.level || it.level === sideF.level)
     && (!sideF.show || sideF.show === 'all' || (sideF.show === 'unsaved' ? !it.user_state : it.user_state === 'saved'))
     && (!sideF.q || `${it.term} ${it.arabic || ''}`.toLowerCase().includes(sideF.q.toLowerCase())));
@@ -1517,7 +1536,8 @@ export async function render(view, { segments, params }) {
       <div><span class="mark s-suggested u-common">كلمة</span> جديدة وشائعة — تستاهل تحفظها</div>
       <div><span class="mark s-suggested u-medium">كلمة</span> جديدة وأقل شيوع</div>
       <div><span class="mark s-suggested u-rare">كلمة</span> جديدة ونادرة</div>
-      <div><span class="mark s-saved">كلمة</span> محفوظة في كلماتك</div>
+      <div><span class="mark s-saved s-newhere">كلمة</span> جديدة من هذا المقطع وحفظتها — تبقى تيفاني</div>
+      <div><span class="mark s-saved">كلمة</span> كانت في كلماتك قبل هذا المقطع</div>
       <div><span class="ck-line"></span> السطر اللي ينقال الحين</div></div>`, { cls: 'lt-contrast' });
   });
   $('#resetR', view)?.addEventListener('click', () => {
@@ -2080,6 +2100,7 @@ export async function render(view, { segments, params }) {
     stopListening();
     clearInterval(backTimer);
     clearInterval(recapTimer);
+    newObs.disconnect();
     thumbBar?.remove();
     document.body.classList.remove('has-thumb-bar');
     window.removeEventListener('resize', placeFloat);
