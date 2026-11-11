@@ -59,6 +59,7 @@ export const FIELDS = [
     ['Neuro Transmissions', 'NeuroTransmissions', 3], ['Dr Tracey Marks', 'DrTraceyMarks', 3], ['Big Think', 'bigthink', 3], ['Stanford', 'stanford', 3],
   ] },
   { k: 'psych', n: 'علم النفس', c: [
+    ['Deep Primate', 'DeepPrimate', 2, 'أفكار نفسية برسوم هادية'], ['Croc Universe', 'CrocUniverse', 2, 'علم نفس مبسّط بالرسوم'],
     ['Sprouts', 'SproutsSchools', 1], ['Psych2Go', 'Psych2go', 1], ['TED-Ed', 'TEDEd', 1], ['Practical Psychology', 'PracticalPsychology', 2],
     ['SciShow Psych', 'SciShowPsych', 2], ['The School of Life', 'theschooloflifetv', 2], ['Charisma on Command', 'Charismaoncommand', 2], ['Dr Tracey Marks', 'DrTraceyMarks', 3],
     ['Big Think', 'bigthink', 3], ['Andrew Huberman', 'hubermanlab', 3], ['Academy of Ideas', 'academyofideas', 3], ['Einzelgänger', 'Einzelganger', 3],
@@ -122,6 +123,7 @@ export const FIELDS = [
     ['The School of Greatness', 'lewishowes', 2], ['TED', 'TED', 2],
   ] },
   { k: 'self', n: 'تطوير الذات', c: [
+    ['Deep Primate', 'DeepPrimate', 2, 'أفكار نفسية برسوم هادية'],
     ['TED', 'TED', 2], ['Mel Robbins', 'melrobbins', 1], ['Ali Abdaal', 'aliabdaal', 2], ['Psych2Go', 'Psych2go', 1], ['Simon Sinek', 'simonsinek', 2],
     ['Matt D\'Avella', 'mattdavella', 2], ['Thomas Frank', 'Thomasfrank', 2], ['The School of Life', 'theschooloflifetv', 3], ['Lavendaire', 'Lavendaire', 1],
     ['Improvement Pill', 'ImprovementPill', 2], ['Charisma on Command', 'Charismaoncommand', 2], ['Huberman Lab', 'hubermanlab', 3], ['Sprouts', 'SproutsSchools', 1],
