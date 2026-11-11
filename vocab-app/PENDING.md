@@ -17,6 +17,13 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 | 10 | 🏠 Review batch 2: «اليوم» shows the last 7 days (tap = calendar), a 2-minute session (5 words), «وش بعد؟» next steps after the session; phones get a 5th tab «المزيد» (friends, settings) and the streak instead of the duplicate ＋; the reader's back button returns where you came from; thumb bar on phones (previous · play · again · next); «مفتاح الألوان» + «رجّع إعدادات المقطع الأصلية»; plain words beside A1…C2; new accounts start with a goal of 5; modulepreload | deployed 2026-11-10 | in the batch | 0 |
 | 11 | 🎨 Filter icons are themed line icons (no emoji); practice drops the «غيّر الاختيار» row; a video opens wide by itself (remembered); this source's new words stay teal after saving — videos, pasted texts and files (purple = saved before it) | deployed 2026-11-11 | in the batch | 0 |
 
+(New batch — collect 10, on the free preview)
+
+| # | Change | Status | Deploy cost | Running cost |
+|---|--------|--------|-------------|--------------|
+| 1 | 📱 Phone bottom bar: three icons only (أضف · كلماتي · تدرّب); «اليوم», «الإعدادات» and «أصدقائي» stay in the ☰ menu | built — on the free preview | in the batch | 0 |
+| – | ✉️ (fix, rides along) reset-code email: no code in the subject | built | – | 0 |
+
 (Batch 6 deployed on 2026-11-09 — commit adc23df on `lexitube-live`: one teal filter bar for «تدرّب» + «كلماتي» (العدد · المستوى · الحالة · المقطع · الوقت · الترتيب),
 clear button contrast, «إدارة بياناتي» (wipe words / videos / settings with «تأكيد» + automatic backup + restore), «مغامرات» channels field
 + fields accordion, suggestions emailed to the owner, numbered Excel rows that follow the filter, phone font 13, the video plays again

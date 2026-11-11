@@ -1582,3 +1582,4 @@ body.has-thumb-bar .help-fab:not(.mini) { bottom: 170px; }
 
 /* this video's new words: teal even once saved (purple = saved before this video) */
 .transcript .mark.s-saved.s-newhere, .lt-note .mark.s-saved.s-newhere { background: color-mix(in srgb, var(--accent) 22%, transparent); box-shadow: none; border-radius: 5px; }
+@media (max-width: 900px) { .tabbar { grid-template-columns: repeat(3, 1fr) !important; } }
