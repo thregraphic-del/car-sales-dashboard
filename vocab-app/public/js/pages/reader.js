@@ -300,7 +300,7 @@ export async function render(view, { segments, params }) {
           <div class="sgroup">المساعدة</div>
           <div class="srow"><span class="slabel">قائمة الكلمات</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="wbOn"> كل</label><input class="input sopt-num" id="wbN" type="number" min="3" max="300" inputmode="numeric"> <span class="tiny">كلمة</span><span class="sopts" id="wbWhen"><button type="button" class="sopt" data-when="before">قبلها</button><button type="button" class="sopt" data-when="after">بعدها</button></span></div></div>
           <div class="srow"><span class="slabel">ملخص كل فترة</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="recapOn"> بالعامية</label>
-            <span class="sopts" id="recapMin">${[3, 5, 10].map((m) => `<button type="button" class="sopt en-inline" data-rmin="${m}">${m}د</button>`).join('')}<input class="input sopt-num" id="recapMinN" type="number" min="1" max="60" inputmode="numeric" placeholder="د"></span>
+            <span class="sopts" id="recapMin">${[3, 6].map((m) => `<button type="button" class="sopt en-inline" data-rmin="${m}">${m}د</button>`).join('')}<input class="input sopt-num" id="recapMinN" type="number" min="1" max="60" inputmode="numeric" placeholder="اكتب" aria-label="كل كم دقيقة"></span>
             <span class="sopts" id="recapWhen"><button type="button" class="sopt" data-rwhen="before">قبل</button><button type="button" class="sopt" data-rwhen="after">بعد</button></span></div></div>` : ''}
           <div class="sgroup">العرض</div>
           <div id="viewPick" class="rgrp"><button type="button" class="hidden" id="viewBtn"></button><div id="viewMenu" class="rgrp">
@@ -496,9 +496,9 @@ export async function render(view, { segments, params }) {
   window.addEventListener('lexitube:ended', onEnded);
   // 🔔 Every N new words of the video: a list with meanings — before they come, or after they went by.
   // A word shown once in this video is never listed again (so new words always take the place).
-  let wbN = Math.max(3, Math.min(300, Number(pref('reader.wbN', pref('reader.wordBatch', '20'))) || 20));
-  let wbOn = pref('reader.wbOn2', '0') === '1' && !params.jump;
-  let wbWhen = pref('reader.wbWhen', 'after') === 'before' ? 'before' : 'after';
+  let wbN = Math.max(3, Math.min(300, Number(pref('reader.wbN2', '10')) || 10)); // default: the next 10 words
+  let wbOn = pref('reader.wbOn3', '1') === '1' && !params.jump; // on by default
+  let wbWhen = pref('reader.wbWhen2', 'before') === 'after' ? 'after' : 'before'; // shown BEFORE they come
   const shownKey = `reader.shown.${id}`;
   const shown = new Set((() => { try { return JSON.parse(localStorage.getItem(shownKey) || '[]'); } catch { return []; } })());
   const saveShown = () => { try { localStorage.setItem(shownKey, JSON.stringify([...shown])); } catch { /* storage unavailable */ } };
@@ -508,9 +508,9 @@ export async function render(view, { segments, params }) {
     const n = $('#wbN', view); if (n) n.value = String(wbN);
     view.querySelectorAll('#wbWhen [data-when]').forEach((b) => b.classList.toggle('active', b.dataset.when === wbWhen));
   };
-  $('#wbOn', view)?.addEventListener('change', (e) => { wbOn = e.target.checked; setPref('reader.wbOn2', wbOn ? '1' : '0'); passed.clear(); });
-  $('#wbN', view)?.addEventListener('change', (e) => { wbN = Math.max(3, Math.min(300, Number(e.target.value) || 20)); setPref('reader.wbN', String(wbN)); showWb(); });
-  view.querySelectorAll('#wbWhen [data-when]').forEach((b) => b.addEventListener('click', () => { wbWhen = b.dataset.when; setPref('reader.wbWhen', wbWhen); passed.clear(); showWb(); }));
+  $('#wbOn', view)?.addEventListener('change', (e) => { wbOn = e.target.checked; setPref('reader.wbOn3', wbOn ? '1' : '0'); passed.clear(); });
+  $('#wbN', view)?.addEventListener('change', (e) => { wbN = Math.max(3, Math.min(300, Number(e.target.value) || 10)); setPref('reader.wbN2', String(wbN)); showWb(); });
+  view.querySelectorAll('#wbWhen [data-when]').forEach((b) => b.addEventListener('click', () => { wbWhen = b.dataset.when; setPref('reader.wbWhen2', wbWhen); passed.clear(); showWb(); }));
   showWb();
   // the words still to come, in the order they are said, that were never listed
   const upcoming = (n) => {
@@ -660,24 +660,24 @@ export async function render(view, { segments, params }) {
   view.addEventListener('click', (e) => { if (e.target.closest('#pfOpen')) openPracticeFilter(); });
 
   // 📝 What it is about, in a few words of everyday Saudi Arabic — when and how often the learner chooses.
-  let recapOn = pref('reader.recap2', '0') === '1' && !params.jump;
+  let recapOn = pref('reader.recap3', '1') === '1' && !params.jump; // on by default
   const recapBox = $('#recapOn', view);
   if (recapBox) {
     recapBox.checked = recapOn;
-    recapBox.addEventListener('change', () => { recapOn = recapBox.checked; setPref('reader.recap2', recapOn ? '1' : '0'); resetRecap(); });
+    recapBox.addEventListener('change', () => { recapOn = recapBox.checked; setPref('reader.recap3', recapOn ? '1' : '0'); resetRecap(); });
   }
   // ⏱ every N minutes (3 / 5 / 10 / any number) · «قبل» = what the next part is about, «بعد» = what was just said
-  let recapMin = Math.max(1, Math.min(60, Number(pref('reader.recapMin', '5')) || 5));
-  let recapWhen = pref('reader.recapWhen', 'after') === 'before' ? 'before' : 'after';
+  let recapMin = Math.max(1, Math.min(60, Number(pref('reader.recapMin2', '3')) || 3)); // every 3 minutes
+  let recapWhen = pref('reader.recapWhen2', 'after') === 'before' ? 'before' : 'after';
   const showRecap = () => {
     view.querySelectorAll('[data-rmin]').forEach((b) => b.classList.toggle('active', Number(b.dataset.rmin) === recapMin));
-    const n = $('#recapMinN', view); if (n && ![3, 5, 10].includes(recapMin)) n.value = String(recapMin);
+    const n = $('#recapMinN', view); if (n && ![3, 6].includes(recapMin)) n.value = String(recapMin);
     view.querySelectorAll('[data-rwhen]').forEach((b) => b.classList.toggle('active', b.dataset.rwhen === recapWhen));
   };
   showRecap();
-  view.querySelectorAll('[data-rmin]').forEach((b) => b.addEventListener('click', () => { recapMin = Number(b.dataset.rmin); setPref('reader.recapMin', String(recapMin)); const n = $('#recapMinN', view); if (n) n.value = ''; resetRecap(); showRecap(); }));
-  $('#recapMinN', view)?.addEventListener('change', (e) => { recapMin = Math.max(1, Math.min(60, Number(e.target.value) || 5)); setPref('reader.recapMin', String(recapMin)); resetRecap(); showRecap(); });
-  view.querySelectorAll('[data-rwhen]').forEach((b) => b.addEventListener('click', () => { recapWhen = b.dataset.rwhen; setPref('reader.recapWhen', recapWhen); resetRecap(); showRecap(); }));
+  view.querySelectorAll('[data-rmin]').forEach((b) => b.addEventListener('click', () => { recapMin = Number(b.dataset.rmin); setPref('reader.recapMin2', String(recapMin)); const n = $('#recapMinN', view); if (n) n.value = ''; resetRecap(); showRecap(); }));
+  $('#recapMinN', view)?.addEventListener('change', (e) => { recapMin = Math.max(1, Math.min(60, Number(e.target.value) || 3)); setPref('reader.recapMin2', String(recapMin)); resetRecap(); showRecap(); });
+  view.querySelectorAll('[data-rwhen]').forEach((b) => b.addEventListener('click', () => { recapWhen = b.dataset.rwhen; setPref('reader.recapWhen2', recapWhen); resetRecap(); showRecap(); }));
   // 📝 «السالفة باختصار» every N minutes OF THE VIDEO (not of the clock): the video is cut into
   // fixed parts (0–5, 5–10, …). Entering a new part shows the part just watched («بعد») or the
   // part about to start («قبل»). Fixed parts = the same text each time, so the AI answer is cached

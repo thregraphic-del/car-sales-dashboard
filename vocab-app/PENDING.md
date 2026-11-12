@@ -36,6 +36,7 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 | 13 | ⭐ «المفضلة» opens right under the section title, above the fields (not at the bottom) | built — on the free preview | in the batch | 0 |
 | 14 | ⛶ A link pasted on «أضف» opens the video straight in the wide view (no logo/side bars — only the top bar with ⏯ 📝 ⚙, the rest inside ⚙), even if the learner shrank it before | built — on the free preview | in the batch | 0 |
 | 15 | 🎯 Daily goal — the learner picks what counts (الإعدادات): new words that go by in a video (no need to open them) · minutes watched · practice answers, plus the number; progress bar on «اليوم»; 🎉 when reached (in the video it pauses and celebrates, elsewhere a short note). Counted on the device, no server work | built — on the free preview | in the batch | 0 |
+| 16 | ⚙ Video defaults: «قائمة الكلمات» ON — the next 10 new words shown BEFORE they come; «ملخص كل فترة» ON — after each 3 minutes of the video (choices 3د · 6د · or type any number) | built — on the free preview | in the batch | recap = one AI call per 3-minute part of a video, saved and reused |
 | – | ✉️ (fix, rides along) reset-code email: no code in the subject | built | – | 0 |
 
 (Batch 6 deployed on 2026-11-09 — commit adc23df on `lexitube-live`: one teal filter bar for «تدرّب» + «كلماتي» (العدد · المستوى · الحالة · المقطع · الوقت · الترتيب),
