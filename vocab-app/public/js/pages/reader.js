@@ -278,6 +278,7 @@ export async function render(view, { segments, params }) {
       <div class="reader-title-sm en" dir="auto" title="${esc(source.title)}">${esc(source.title)}</div>
       ${isVideo ? `<button type="button" class="rb-btn rb-ic play-btn" id="playBtn" title="تشغيل / إيقاف (مسافة)" aria-label="تشغيل أو إيقاف">${icon.play}</button>` : ''}
       ${isVideo && hasTimes ? `<button type="button" class="rb-btn rb-ic" id="againBtn" aria-pressed="false" title="كل جملة تُعاد مرتين تلقائيًا">${icon.repeat}<span class="rb-x">×2</span></button><button type="button" class="rb-btn rb-ic" id="shadowBtn" aria-pressed="false" title="ردّد معي: يقف بعد كل جملة لتعيدها">${icon.mic}<span>ردّد</span></button>` : ''}
+      ${isVideo || data.lines.length ? `<button type="button" class="rb-btn sum-top" id="sumTop" title="ملخص المقطع كامل: أبرز الأفكار، خطوات عملية، الحكم والرسالة">${icon.doc}<span>ملخص المقطع</span></button>` : ''}
       <button type="button" class="rb-btn words-btn" id="wordsBtn" aria-pressed="false" title="الكلمات الجديدة في المقطع">${icon.list}<span>الكلمات</span> <b id="wcount2">${data.items.length}</b></button>
       <button type="button" class="rb-btn rb-ic" id="focusBtn" aria-pressed="false" title="توسيع الشاشة">${icon.expand}</button>
       <button type="button" class="btn icon sm ghost set-btn" id="setBtn" aria-expanded="false" title="إعدادات المقطع">${icon.settings}</button>
@@ -297,7 +298,7 @@ export async function render(view, { segments, params }) {
           </div>
           <div class="sgroup">المساعدة</div>
           <div class="srow"><span class="slabel">قائمة الكلمات</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="wbOn"> كل</label><input class="input sopt-num" id="wbN" type="number" min="3" max="300" inputmode="numeric"> <span class="tiny">كلمة</span><span class="sopts" id="wbWhen"><button type="button" class="sopt" data-when="before">قبلها</button><button type="button" class="sopt" data-when="after">بعدها</button></span></div></div>
-          <div class="srow"><span class="slabel">الملخص</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="recapOn"> بالعامية</label>
+          <div class="srow"><span class="slabel">ملخص كل فترة</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="recapOn"> بالعامية</label>
             <span class="sopts" id="recapMin">${[3, 5, 10].map((m) => `<button type="button" class="sopt en-inline" data-rmin="${m}">${m}د</button>`).join('')}<input class="input sopt-num" id="recapMinN" type="number" min="1" max="60" inputmode="numeric" placeholder="د"></span>
             <span class="sopts" id="recapWhen"><button type="button" class="sopt" data-rwhen="before">قبل</button><button type="button" class="sopt" data-rwhen="after">بعد</button></span></div></div>` : ''}
           <div class="sgroup">العرض</div>
@@ -310,7 +311,7 @@ export async function render(view, { segments, params }) {
           <div class="sgroup">أدوات</div>
           <div class="srow"><span class="slabel">شرح</span><div class="sopts"><button class="sopt" id="tourR">شرح الأزرار</button><button class="sopt" id="colorKey">🎨 مفتاح الألوان</button><button class="sopt" id="resetR">↺ رجّع إعدادات المقطع الأصلية</button></div></div>
           <div class="srow"><span class="slabel">أدوات</span><div class="sopts">
-            <button class="sopt" id="retrBtn">ترجمة أدق</button><button class="sopt" id="summaryBtn">📝 الملخص</button><button class="sopt" id="listenBtn">🎧 استماع</button>
+            <button class="sopt" id="retrBtn">ترجمة أدق</button><button class="sopt" id="summaryBtn">📝 ملخص المقطع كامل</button><button class="sopt" id="listenBtn">🎧 استماع</button>
             ${source.youtube_id && !source.is_demo ? `<a class="sopt" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">يوتيوب ↗</a>` : ''}
             <button class="sopt" id="del" style="color:var(--bad)">🗑 حذف</button></div></div>
           <button type="button" class="btn primary rset-ok" id="setOk">موافق</button>
@@ -726,32 +727,31 @@ export async function render(view, { segments, params }) {
     showLayout();
     recenter();
   }));
-  // ⚙ Settings as ONE row of small icons: each group is closed until its icon is tapped
-  // (tap again to close) — the full sheet took most of the screen.
+  // ⚙ Settings: one clear list, every section open — a soft grey line between sections,
+  // each title in a rounded tinted pill with its own line icon (the site's theme).
   (() => {
     const rset = $('#rset', view);
     if (!rset) return;
-    const IC = { 'السرعة': '⏩', 'التوقف': '⏸', 'التدريب': '🗣', 'قائمة الكلمات': '📋', 'الملخص': '📝', 'الترجمة': '🌐', 'النص': '🔤', 'الفيديو': '🎬', 'بحث': '🔍', 'شرح': '❓', 'أدوات': '🧰' };
-    const rows = [...rset.querySelectorAll('.srow')];
-    if (!rows.length) return;
-    const bar = document.createElement('div');
-    bar.className = 'rset-icons';
-    bar.setAttribute('role', 'tablist');
-    rows.forEach((r, i) => {
-      const name = r.querySelector('.slabel')?.textContent.trim() || '';
-      r.dataset.sk = String(i);
-      r.classList.add('rs-closed');
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'rs-ic';
-      b.dataset.sk = String(i);
-      b.setAttribute('aria-expanded', 'false');
-      b.title = name;
-      b.innerHTML = `<span aria-hidden="true">${IC[name] || '•'}</span><small>${name}</small>`;
-      bar.appendChild(b);
+    const sv = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+    const IC = {
+      'السرعة': sv('<path d="M4 15a8 8 0 1 1 16 0"/><path d="m12 15 4-5"/>'),
+      'التوقف': sv('<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>'),
+      'التدريب': sv('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>'),
+      'قائمة الكلمات': sv('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>'),
+      'ملخص كل فترة': sv('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+      'الترجمة': sv('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'),
+      'النص': sv('<path d="M5 7V5h14v2M12 5v14M9 19h6"/>'),
+      'الفيديو': sv('<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/>'),
+      'بحث': sv('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'),
+      'شرح': sv('<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01"/>'),
+      'أدوات': sv('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/>'),
+    };
+    rset.querySelectorAll('.slabel').forEach((l) => {
+      const name = l.textContent.trim();
+      l.innerHTML = `${IC[name] || ''}<span>${esc(name)}</span>`;
     });
-    rset.classList.add('rs-compact');
-    // 🔲 expanded mode keeps only ⏯ and ⚙ on top — the rest lives here
+    rset.classList.add('rs-list');
+    // 🔲 expanded mode keeps only ⏯ 📝 ⚙ on top — the rest lives here
     const fr = document.createElement('div');
     fr.className = 'rs-focus-row';
     fr.innerHTML = `<button type="button" class="btn sm" data-fx="wordsBtn">📋 الكلمات <b class="en-inline" data-fx-count></b></button><button type="button" class="btn sm" data-fx="focusBtn">↙ تصغير الشاشة</button>`;
@@ -762,14 +762,6 @@ export async function render(view, { segments, params }) {
       $(`#${b.dataset.fx}`, view)?.click();
     });
     rset.insertBefore(fr, rset.querySelector('.rset-title')?.nextSibling || rset.firstChild);
-    rset.insertBefore(bar, rset.querySelector('.rset-title')?.nextSibling || rset.firstChild);
-    bar.addEventListener('click', (e) => {
-      const b = e.target.closest('.rs-ic');
-      if (!b) return;
-      const open = b.getAttribute('aria-expanded') !== 'true';
-      bar.querySelectorAll('.rs-ic').forEach((x) => x.setAttribute('aria-expanded', String(open && x === b)));
-      rows.forEach((r) => r.classList.toggle('rs-closed', !(open && r.dataset.sk === b.dataset.sk)));
-    });
   })();
   // Font size of the transcript (remembered). Phones start at 13 until the learner changes it.
   const defFont = window.matchMedia?.('(max-width: 760px)').matches ? '13' : '16';
@@ -1983,6 +1975,7 @@ export async function render(view, { segments, params }) {
   });
   /* 📝 Summary of the video */
   let summaryCache = null;
+  $('#sumTop', view)?.addEventListener('click', () => $('#summaryBtn', view)?.click());
   $('#summaryBtn', view)?.addEventListener('click', async () => {
     const box = openModal('<h2>📝 ملخص المقطع</h2><p class="muted"><span class="spinner"></span> نقرأ المقطع كاملًا ونلخّصه…</p>', { wide: true });
     try {

@@ -1592,7 +1592,8 @@ body.reader-focus .reader-head.slim #backLink, body.reader-focus .reader-head.sl
 body.reader-focus .reader-head.slim #againBtn, body.reader-focus .reader-head.slim #shadowBtn,
 body.reader-focus .reader-head.slim #wordsBtn, body.reader-focus .reader-head.slim #focusBtn,
 body.reader-focus .thumb-bar { display: none !important; }
-body.reader-focus .reader-head.slim { justify-content: space-between; }
+body.reader-focus .reader-head.slim { justify-content: flex-start; gap: 8px; }
+body.reader-focus .reader-head.slim #setBtn { margin-inline-start: auto; }
 
 /* ✍️ «العدد»: type any number under 10 / 20 / 30 */
 .fb-custom { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--line, #e5e2dc); }
@@ -1600,3 +1601,21 @@ body.reader-focus .reader-head.slim { justify-content: space-between; }
 
 /* 🌐 «املأ الفراغ»: the sentence's Arabic under it */
 .q-sentence-ar { margin-top: 6px; font-size: 15px; line-height: 1.7; color: var(--muted, #6b6b6b); text-align: center; }
+
+/* ⚙ settings list: every section open, grey line between, title in a tinted pill with its icon */
+@media (max-width: 999px) {
+  .rset.rs-list { gap: 0; }
+  .rset.rs-list .sgroup { display: none; }
+  .rset.rs-list .srow { display: block; padding: 12px 2px; border-bottom: 1px solid var(--line); }
+  .rset.rs-list .srow:last-of-type { border-bottom: 0; }
+  .rset.rs-list .slabel { display: inline-flex; align-items: center; gap: 7px; padding: 5px 13px 5px 11px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent); font-size: 13.5px; font-weight: 800; }
+  .rset.rs-list .slabel svg { width: 17px; height: 17px; flex: none; }
+  .rset.rs-list .srow > .sopts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+  .rset.rs-list .sopt { padding: 7px 13px; font-size: 14px; }
+  .rset.rs-list .rset-title { margin-bottom: 4px; }
+  .rset.rs-list .rset-ok { margin-top: 12px; }
+}
+/* 📝 the whole-video summary sits on top, next to play */
+.reader-head .sum-top { display: inline-flex; align-items: center; gap: 5px; }
+.reader-head .sum-top svg { width: 17px; height: 17px; }
+@media (max-width: 520px) { .reader-head .sum-top span { display: none; } }
