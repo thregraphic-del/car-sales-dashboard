@@ -1597,3 +1597,6 @@ body.reader-focus .reader-head.slim { justify-content: space-between; }
 /* ✍️ «العدد»: type any number under 10 / 20 / 30 */
 .fb-custom { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--line, #e5e2dc); }
 .fb-custom .input { flex: 1; min-width: 0; padding: 8px 10px; font-size: 16px; text-align: center; }
+
+/* 🌐 «املأ الفراغ»: the sentence's Arabic under it */
+.q-sentence-ar { margin-top: 6px; font-size: 15px; line-height: 1.7; color: var(--muted, #6b6b6b); text-align: center; }

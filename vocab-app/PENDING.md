@@ -27,6 +27,7 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 | 4 | 📋 A video's new words stay listed and counted inside it after you save them (✓), on any device — the server marks words saved from this video | built — on the free preview | in the batch | 0 (one extra column in the same query) |
 | 5 | 🔊 Practice sound in sync: the last word's sound is stopped when the next question opens (a slow/late sound no longer plays over the new word), and «صح أو خطأ» says the shown word with the question | built — on the free preview | in the batch | 0 |
 | 6 | 🔢 «العدد» in every filter bar (كلماتي + تدرّب): الكل · 10 · 20 · 30 + a box to type any number (تم / Enter) | built — on the free preview | in the batch | 0 |
+| 7 | 🌐 «املأ الفراغ»: the sentence's Arabic translation shows under it (when the sentence has one) | built — on the free preview | in the batch | 0 (already saved, no AI call) |
 | – | ✉️ (fix, rides along) reset-code email: no code in the subject | built | – | 0 |
 
 (Batch 6 deployed on 2026-11-09 — commit adc23df on `lexitube-live`: one teal filter bar for «تدرّب» + «كلماتي» (العدد · المستوى · الحالة · المقطع · الوقت · الترتيب),

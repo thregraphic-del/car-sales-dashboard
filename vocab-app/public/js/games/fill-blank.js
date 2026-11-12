@@ -13,10 +13,12 @@ export default {
   /** Ask one word; resolves true (correct) or false. */
   play: (stage, w, pool) => {
     const b = blankable(w);
+    const ar = b.arabic; // 🌐 the sentence in Arabic, under it
     return choice(stage, w, {
       prompt: `<div class="prompt">أكمل الجملة</div>
         <div class="q-sentence">${esc(b.sentence.slice(0, b.index))}<span class="blank">&nbsp;</span>${esc(b.sentence.slice(b.index + b.match.length))}
           <button class="btn icon sm ghost" data-say="${esc(`${b.sentence.slice(0, b.index)} ... ${b.sentence.slice(b.index + b.match.length)}`)}" aria-label="استمع للجملة">${icon.speaker}</button></div>
+        ${ar ? `<div class="q-sentence-ar" dir="rtl">${esc(ar)}</div>` : ''}
         ${w.arabic ? `<div class="small muted" style="margin-top:8px">التلميح: ${esc(w.arabic)}</div>` : ''}`,
       options: distractors(w, pool, 3, (x) => x.term.toLowerCase()),
       text: (o) => `<span class="en-inline">${esc(o.term)}</span>`,
