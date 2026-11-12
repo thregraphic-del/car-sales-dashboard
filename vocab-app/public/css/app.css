@@ -1593,3 +1593,7 @@ body.reader-focus .reader-head.slim #againBtn, body.reader-focus .reader-head.sl
 body.reader-focus .reader-head.slim #wordsBtn, body.reader-focus .reader-head.slim #focusBtn,
 body.reader-focus .thumb-bar { display: none !important; }
 body.reader-focus .reader-head.slim { justify-content: space-between; }
+
+/* ✍️ «العدد»: type any number under 10 / 20 / 30 */
+.fb-custom { display: flex; gap: 6px; padding: 8px; border-top: 1px solid var(--line, #e5e2dc); }
+.fb-custom .input { flex: 1; min-width: 0; padding: 8px 10px; font-size: 16px; text-align: center; }

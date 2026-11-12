@@ -17,7 +17,9 @@ function current(d) {
     if (!d.value.length) return 'الكل';
     return d.value.length > 2 ? `${d.value.slice(0, 2).join(' ')} +${d.value.length - 2}` : d.value.join(' · ');
   }
-  const o = d.opts.find(([v]) => String(v) === String(d.value)) || d.opts[0];
+  const found = d.opts.find(([v]) => String(v) === String(d.value));
+  if (!found && d.k === 'count' && Number(d.value) > 0) return String(Number(d.value)); // a typed number
+  const o = found || d.opts[0];
   // «كل المقاطع» / «أي وقت» … read as a short «الكل» on the button (the list keeps the full words)
   return o ? (/^(كل |أي )/.test(o[1]) ? 'الكل' : o[1]) : '';
 }
@@ -35,7 +37,7 @@ export function filterBarHtml(defs, open = '') {
     const active = d.multi ? d.value.length > 0 : String(d.value) !== String(d.opts[0]?.[0] ?? '');
     return `<div class="dd fb${open === d.k ? ' open' : ''}">
       <button type="button" class="dd-btn fb-btn${active ? ' set' : ''}" data-fb="${d.k}" aria-expanded="${open === d.k}" title="${esc(d.t)}"><span class="fb-ic" aria-hidden="true">${ICONS[d.k] || ''}</span><span class="fb-txt"><span class="dd-t">${esc(d.t)}</span><span class="dd-v">${esc(current(d))} ▾</span></span></button>
-      ${open === d.k ? `<div class="dd-menu fb-menu${d.video ? ' fb-menu-vid' : ''}" role="listbox"${d.multi ? ' aria-multiselectable="true"' : ''}>${d.opts.map((o) => optHtml(d, o)).join('') || '<span class="tiny muted" style="padding:10px">ما فيه</span>'}</div>` : ''}
+      ${open === d.k ? `<div class="dd-menu fb-menu${d.video ? ' fb-menu-vid' : ''}" role="listbox"${d.multi ? ' aria-multiselectable="true"' : ''}>${d.opts.map((o) => optHtml(d, o)).join('') || '<span class="tiny muted" style="padding:10px">ما فيه</span>'}${d.k === 'count' ? `<div class="fb-custom"><input type="number" class="input en-inline" min="1" max="5000" inputmode="numeric" placeholder="اكتب العدد" aria-label="اكتب العدد" data-fbn="${d.k}" value="${d.opts.some(([v]) => String(v) === String(d.value)) ? '' : esc(String(d.value))}" onkeydown="if(event.key==='Enter'){event.preventDefault();const b=this.nextElementSibling;this.blur();setTimeout(()=>b.click())}"><button type="button" class="btn sm primary" data-fbgo="${d.k}">تم</button></div>` : ''}</div>` : ''}
     </div>`;
   }).join('')}</div>`;
 }
@@ -47,6 +49,13 @@ export function filterBarHtml(defs, open = '') {
 export function filterBarClick(e, defs, open) {
   const btn = e.target.closest('[data-fb]');
   if (btn) return { open: open === btn.dataset.fb ? '' : btn.dataset.fb };
+  // ✍️ «العدد»: a number typed in the box
+  const go = e.target.closest('[data-fbgo]');
+  if (go) {
+    const n = Math.round(Number(go.previousElementSibling?.value));
+    return n > 0 ? { k: go.dataset.fbgo, value: String(Math.min(n, 5000)), close: true } : null;
+  }
+  if (e.target.closest('[data-fbn]')) return null;
   const opt = e.target.closest('[data-fbv]');
   if (!opt) return null;
   const i = opt.dataset.fbv.indexOf('|');

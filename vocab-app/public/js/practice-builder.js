@@ -178,7 +178,7 @@ export function renderBuilder(stage, { words: all, groups = [], games = [], onGo
     const n = (patch) => selectWords(all, { ...F, ...patch, count: 0 }).list.length;
     const srcVal = F.from === 'groups' && F.groups.length === 1 ? `g:${F.groups[0]}` : F.from === 'videos' && F.sources.length === 1 ? `v:${F.sources[0]}` : F.from;
     const defs = [
-      { k: 'count', t: 'العدد', value: String(Number(F.count) || 0), opts: [['10', '10'], ['20', '20'], ['30', '30'], ['50', '50'], ['0', 'الكل']] },
+      { k: 'count', t: 'العدد', value: String(Number(F.count) || 0), opts: [['0', 'الكل'], ['10', '10'], ['20', '20'], ['30', '30']] },
       { k: 'levels', t: 'المستوى', multi: true, all: 'كل المستويات', value: F.levels.map(String),
         opts: [['', 'كل المستويات', n({ levels: [] })], ...LEVELS.map((l) => [l, l, n({ levels: [l] })])] },
       { k: 'perf', t: 'الحالة', value: F.perf.length === 1 ? F.perf[0] : '',
@@ -264,6 +264,7 @@ export function renderBuilder(stage, { words: all, groups = [], games = [], onGo
     window.addEventListener('hashchange', () => { stage._outside?.(); stage._outside = null; }, { once: true });
   }
   stage.onchange = (e) => {
+    if (e.target.closest('[data-fbn]')) return; // «العدد» box: applied by its «تم» button
     const c = e.target.closest('[data-pv]');
     if (c) { const v = Number(c.dataset.pv); if (c.checked) off.delete(v); else off.add(v); const keep = stage.querySelector('.pb-list')?.open; draw(); if (keep) stage.querySelector('.pb-list').open = true; return; }
     if (e.target.id === 'pbLastN') { F.lastN = Math.max(1, Number(e.target.value) || 10); F.when = 'lastN'; }

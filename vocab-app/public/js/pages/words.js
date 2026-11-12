@@ -188,7 +188,7 @@ export async function render(view, { params }) {
   function barDefs() {
     const n = (fn) => all.filter(fn).length;
     return [
-      { k: 'count', t: 'العدد', value: String(f.count), opts: [['0', 'الكل'], ['20', '20'], ['50', '50'], ['100', '100']] },
+      { k: 'count', t: 'العدد', value: String(f.count), opts: [['0', 'الكل'], ['10', '10'], ['20', '20'], ['30', '30']] },
       { k: 'levels', t: 'المستوى', multi: true, all: 'كل المستويات', value: f.levels,
         opts: [['', 'كل المستويات', all.length], ...LEVELS.map((l) => [l, l, n((w) => w.level === l)])] },
       { k: 'filter', t: 'الحالة', value: f.filter, opts: FILTERS.map(([k, l]) => [k, l, k === 'all' ? all.length : n((w) => w.state === k)]) },
@@ -258,6 +258,7 @@ export async function render(view, { params }) {
   };
 
   view.addEventListener('click', async (e) => {
+    if (!document.getElementById('summary')) return; // left «كلماتي» (the page area is reused)
     const fb = filterBarClick(e, barDefs(), fbOpen);
     if (fb) {
       if ('open' in fb) fbOpen = fb.open;
