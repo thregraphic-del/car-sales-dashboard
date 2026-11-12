@@ -5,6 +5,7 @@ import { stop as stopAudio, speak } from './audio.js';
 import { closeWordPanel } from './components.js';
 import { icon, $, closeModal, esc, openModal, toast, applyTheme } from './ui.js';
 import { openFeedback } from './feedback.js';
+import { goalText } from './goal.js';
 
 const NAV = [
   { path: '/', label: 'اليوم', icon: 'today', page: 'today', badge: true },
@@ -283,6 +284,8 @@ async function init() {
   });
   // 👤 a guest went past the free trial → one kind card: create the free account (everything moves with them)
   window.addEventListener('lexitube:guest-limit', (e) => askToRegister(e.detail));
+  // 🎯 the chosen daily goal reached outside a video (the video page celebrates by itself)
+  window.addEventListener('lexitube:goal-reached', (e) => { if (!location.hash.startsWith('#/source/')) toast(`🎉 وصلت هدف اليوم — ${goalText(e.detail)}`); });
   window.addEventListener('offline', () => toast('انقطع الإنترنت — بنكمل أول ما يرجع'));
   window.addEventListener('online', () => toast('رجع الإنترنت ✓'));
   window.addEventListener('lexitube:auth', () => {

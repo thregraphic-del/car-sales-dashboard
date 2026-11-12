@@ -1,3 +1,4 @@
+import { progress as goalProgress } from '../goal.js';
 // اليوم — one screen, three things: greeting + streak (→ calendar), start today's session,
 // and two small shortcuts (yesterday's words · continue watching).
 import { api } from '../api.js';
@@ -35,6 +36,7 @@ export async function render(view) {
       <span class="streak-chip">🔥 ${stats.streak.current} ${stats.streak.current === 1 ? 'يوم' : 'أيام'} ${icon.today}</span>
     </button>
     <div class="week-strip" id="weekStrip" aria-label="آخر ٧ أيام"></div>
+    ${(() => { const p = goalProgress(); return `<a class="card goal-bar" href="#/settings" title="غيّر هدفك من الإعدادات"><span class="row between"><b>🎯 هدف اليوم: ${p.short}</b><span class="en-inline">${p.count} / ${p.n} ${p.unit}${p.done ? ' ✓' : ''}</span></span><span class="gb-track"><span class="gb-fill" style="width:${p.pct}%"></span></span></a>`; })()}
     ${main}
     <div class="today-two">
       ${yesterday.length ? `<a class="card t2" href="#/practice?mode=cards&ids=${yesterday.slice(0, 60).map((w) => w.uv_id).join(',')}&yesterday=1&exact=1&n=1"><span class="t2-ic">${icon.sun}</span><b>كلمات أمس</b><span class="tiny muted">${yesterday.length}</span></a>` : `<a class="card t2" href="#/words"><span class="t2-ic">${icon.book}</span><b>كلماتي</b><span class="tiny muted">${stats.total}</span></a>`}

@@ -1,3 +1,4 @@
+import { noteAnswer } from './goal.js';
 // Thin JSON client for the LexiTube API.
 async function request(method, url, body, retried = false) {
   let res;
@@ -92,7 +93,7 @@ export const api = {
 
   practice: (params) => request('GET', `/api/practice${qs(params)}`),
   // Words practised from a video before saving them have a negative id: not recorded.
-  review: (uv_id, grade, source) => (Number(uv_id) > 0 ? request('POST', '/api/review', { uv_id, grade, source }) : Promise.resolve({ skipped: true })),
+  review: (uv_id, grade, source) => { noteAnswer(); return Number(uv_id) > 0 ? request('POST', '/api/review', { uv_id, grade, source }) : Promise.resolve({ skipped: true }); },
 
   exportUrl: (params) => `/api/export${qs(params)}`,
 

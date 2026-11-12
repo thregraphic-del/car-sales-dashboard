@@ -35,6 +35,7 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 | 12 | 📚 Channel fields: icons in tinted rounded tiles (filled when open); one field always stays open | built — on the free preview | in the batch | 0 |
 | 13 | ⭐ «المفضلة» opens right under the section title, above the fields (not at the bottom) | built — on the free preview | in the batch | 0 |
 | 14 | ⛶ A link pasted on «أضف» opens the video straight in the wide view (no logo/side bars — only the top bar with ⏯ 📝 ⚙, the rest inside ⚙), even if the learner shrank it before | built — on the free preview | in the batch | 0 |
+| 15 | 🎯 Daily goal — the learner picks what counts (الإعدادات): new words that go by in a video (no need to open them) · minutes watched · practice answers, plus the number; progress bar on «اليوم»; 🎉 when reached (in the video it pauses and celebrates, elsewhere a short note). Counted on the device, no server work | built — on the free preview | in the batch | 0 |
 | – | ✉️ (fix, rides along) reset-code email: no code in the subject | built | – | 0 |
 
 (Batch 6 deployed on 2026-11-09 — commit adc23df on `lexitube-live`: one teal filter bar for «تدرّب» + «كلماتي» (العدد · المستوى · الحالة · المقطع · الوقت · الترتيب),

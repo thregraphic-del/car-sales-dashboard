@@ -5,6 +5,7 @@ import { esc, icon, toast, num, openModal, closeModal, applyTheme } from '../ui.
 import { refreshStats } from '../app.js';
 import { readDataFiles, importSnapshot, countsOf, TABLES } from '../data-transfer.js';
 import { feedbackCardHtml, bindFeedbackCard } from '../feedback.js';
+import { GOAL_TYPES, goalCfg, setGoal, progress } from '../goal.js';
 
 const TABLE_LABELS = {
   sources: 'مصادر', transcript_lines: 'أسطر نص', vocabulary: 'مفردات', examples: 'أمثلة', occurrences: 'سياقات', user_vocabulary: 'كلماتك',
@@ -31,8 +32,10 @@ export async function render(view) {
       <div class="card stack">
         <b>تفضيلاتك</b>
         <label class="field">الاسم<input class="input" id="name" value="${esc(u.name)}"></label>
-        <label class="field">هدف الكلمات اليومي: <span id="goalVal" class="en-inline">${u.daily_goal}</span>
-          <input type="range" id="goal" min="${cfg.limits?.daily_goal_min || 4}" max="${cfg.limits?.daily_goal_max || 30}" value="${u.daily_goal}" style="accent-color:var(--accent)"></label>
+        <div class="field goal-set"><span>🎯 هدفي اليومي يُحسب على:</span>
+          <div class="goal-types" id="goalTypes">${Object.entries(GOAL_TYPES).map(([k, t]) => `<button type="button" class="goal-type${goalCfg().type === k ? ' on' : ''}" data-gt="${k}"><b>${t.label}</b><span class="tiny muted">${t.note}</span></button>`).join('')}</div>
+          <label class="row" style="gap:8px;align-items:center;margin-top:8px">العدد: <input class="input en-inline" id="goalN" type="number" inputmode="numeric" style="width:96px;text-align:center" value="${goalCfg().n}"> <span id="goalUnit">${goalCfg().unit}</span></label>
+          <span class="tiny muted" id="goalNow"></span></div>
         <button class="btn primary sm" id="saveProfile" style="justify-self:start">حفظ</button>
         <div class="divider" style="margin:4px 0"></div>
         <label class="field">سرعة النطق: <span id="rateVal" class="en-inline">${u.speech_rate}×</span>
@@ -101,10 +104,29 @@ export async function render(view) {
     </div>`;
 
   const $ = (s) => view.querySelector(s);
-  $('#goal').addEventListener('input', (e) => ($('#goalVal').textContent = e.target.value));
+  // 🎯 pick what counts (words that go by / minutes watched / practice answers) and how many
+  const drawGoal = () => {
+    const g = goalCfg();
+    view.querySelectorAll('[data-gt]').forEach((b) => b.classList.toggle('on', b.dataset.gt === g.type));
+    $('#goalN').value = g.n;
+    $('#goalN').min = g.min; $('#goalN').max = g.max;
+    $('#goalUnit').textContent = g.unit;
+    const p = progress();
+    $('#goalNow').textContent = `اليوم: ${p.count} من ${p.n} ${p.unit}${p.done ? ' ✓' : ''}`;
+  };
+  $('#goalTypes').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-gt]');
+    if (!b) return;
+    setGoal(b.dataset.gt, Number(localStorage.getItem(`goal.n.${b.dataset.gt}`)) || GOAL_TYPES[b.dataset.gt].def);
+    drawGoal();
+  });
+  $('#goalN').addEventListener('change', () => { setGoal(goalCfg().type, Number($('#goalN').value)); drawGoal(); });
+  drawGoal();
   $('#rate').addEventListener('input', (e) => ($('#rateVal').textContent = `${e.target.value}×`));
   $('#saveProfile').addEventListener('click', async () => {
-    state.user = await api.updateMe({ name: $('#name').value, daily_goal: Number($('#goal').value) });
+    setGoal(goalCfg().type, Number($('#goalN').value));
+    drawGoal();
+    state.user = await api.updateMe({ name: $('#name').value });
     toast('تم الحفظ');
   });
   $('#rate').addEventListener('change', async (e) => {

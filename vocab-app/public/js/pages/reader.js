@@ -11,6 +11,7 @@
 import { api } from '../api.js';
 import { startTour, maybeTour } from '../tour.js';
 import { state } from '../state.js';
+import { notePassed, noteWatched } from '../goal.js';
 import { esc, icon, levelChip, usageDot, usageLegend, fmtTime, fmtDuration, toast, $, emptyState, openModal } from '../ui.js';
 import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech, celebrateGoal } from '../components.js';
 import { tokenize, quickTier, normalizeArabic } from '../shared/text.js';
@@ -571,26 +572,10 @@ export async function render(view, { segments, params }) {
     listCard(list, `🔔 مرّت عليك ${list.length} كلمة جديدة`, '↩ عد للمقطع');
   }
 
-  // 🎯 Words gone through today (each once, in any video) against the daily goal; can pass 100%.
-  const dayKey = `lt.passed.${new Date().toISOString().slice(0, 10)}`;
-  const passedToday = new Set((() => { try { return JSON.parse(localStorage.getItem(dayKey) || '[]'); } catch { return []; } })());
-  let goalTarget = 10;
-  function showGoalChip() {
-    const chip = $('#goalChip', view);
-    if (!chip) return;
-    const n = passedToday.size;
-    const pct = Math.round((100 * n) / Math.max(1, goalTarget));
-    chip.innerHTML = `🎯 <b class="en-inline">${n}</b><span class="tiny">/${goalTarget}${n >= goalTarget ? ' ✓' : ''}</span>`;
-    void pct;
-    chip.classList.toggle('done', n >= goalTarget);
-    const inVideo = data.items.filter((it) => passedToday.has(it.vocabulary_id)).length;
-    chip.title = `كلمات مرّت عليك اليوم بدون تكرار: ${n} من هدفك ${goalTarget} — في هذا المقطع ${inVideo} من ${data.items.length}`;
-  }
+  // 🎯 a NEW word that goes by counts toward today's goal (once a day, no need to open it)
   function countPassed(vid) {
-    if (passedToday.has(vid)) return;
-    passedToday.add(vid);
-    try { localStorage.setItem(dayKey, JSON.stringify([...passedToday])); } catch { /* storage unavailable */ }
-    showGoalChip();
+    if (knownBefore.has(vid) || !data.items.some((it) => it.vocabulary_id === vid)) return;
+    notePassed(vid);
   }
 
   // 🎛 Practise exactly the words you want: part of the video, how many, level, how common,
@@ -1284,17 +1269,20 @@ export async function render(view, { segments, params }) {
   }
   refineWords();
   // 🎯 Today's goal (target from the learner's settings; the count is the words gone through).
-  const showGoal = (g) => { if (g?.goal) goalTarget = g.goal; showGoalChip(); };
-  api.today().then((t) => showGoal(t.watch_goal)).catch(() => {});
+  // the goal the learner chose (words that went by / minutes watched / answers) — reached here
   const onGoal = (e) => {
-    showGoal(e.detail);
-    if (e.detail.just_reached) {
-      closeWordPanel();
-      selfPause(); player?.pause?.();
-      celebrateGoal(e.detail, `#/practice?${new URLSearchParams({ source: id, title: source.title.slice(0, 40), mode: 'cards' })}`);
-    }
+    closeWordPanel();
+    selfPause(); player?.pause?.();
+    celebrateGoal(e.detail, `#/practice?${new URLSearchParams({ source: id, title: source.title.slice(0, 40), mode: 'cards' })}`);
   };
-  window.addEventListener('lexitube:goal', onGoal);
+  window.addEventListener('lexitube:goal-reached', onGoal);
+  // ⏱ minutes watched (counted on this device only, while the video really plays)
+  let watchAt = Date.now();
+  const watchTimer = isVideo ? setInterval(() => {
+    const now = Date.now();
+    if (playing && document.visibilityState === 'visible') noteWatched((now - watchAt) / 1000);
+    watchAt = now;
+  }, 5000) : 0;
   // Every word of the built-in dictionary used in this video (once per video, no AI).
   // Then every suggested word moves to its simplest form, a few seconds per call.
   let simplifying = null;
@@ -2127,7 +2115,8 @@ export async function render(view, { segments, params }) {
     document.body.classList.remove('has-thumb-bar');
     window.removeEventListener('resize', placeFloat);
     document.querySelectorAll('.lt-note').forEach((n) => n.remove());
-    window.removeEventListener('lexitube:goal', onGoal);
+    window.removeEventListener('lexitube:goal-reached', onGoal);
+    clearInterval(watchTimer);
     window.removeEventListener('resize', onResize);
     cancelGap();
     document.removeEventListener('fullscreenchange', onFsChange);

@@ -1637,3 +1637,12 @@ body.reader-focus .reader-head.slim #setBtn { margin-inline-start: auto; }
 a.ch-main { text-decoration: none; color: inherit; }
 .ch-card .ch-vids { flex: none; color: var(--accent); }
 .ch-card .ch-vids svg { width: 18px; height: 18px; }
+
+/* 🎯 daily goal: what counts */
+.goal-types { display: grid; gap: 8px; margin-top: 6px; }
+.goal-type { display: grid; gap: 2px; text-align: start; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--surface); font: inherit; color: var(--ink); cursor: pointer; }
+.goal-type.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.goal-type.on b::after { content: ' ✓'; color: var(--accent); }
+.goal-bar { display: grid; gap: 6px; padding: 12px 14px; margin: 10px 0; text-decoration: none; color: inherit; }
+.goal-bar .gb-track { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.goal-bar .gb-fill { height: 100%; background: var(--accent); border-radius: 99px; }
