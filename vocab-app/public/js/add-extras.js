@@ -387,13 +387,14 @@ export function bindChannels(view, { onPick }) {
     const shown = list.filter((c) => edit || !c.hidden);
     box.innerHTML = `<div class="ch-grid">${shown.map((c) => `
       <div class="ch-card ${c.hidden ? 'is-hidden' : ''} ${open === c.id ? 'open' : ''}" data-ch="${esc(c.id)}">
-        <button class="ch-main" data-open="${esc(c.id)}">${avatar(c)}<span class="ch-txt"><b class="en-inline">${esc(c.name)}</b><span class="tiny muted">${c.pinned ? '📌 ' : ''}${esc(c.field || '')}</span></span></button>
+        ${edit ? `<div class="ch-main">` : `<a class="ch-main" href="${esc(c.url)}" target="_blank" rel="noopener" title="افتح القناة في يوتيوب">`}${avatar(c)}<span class="ch-txt"><b class="en-inline">${esc(c.name)}</b><span class="tiny muted">${c.pinned ? '📌 ' : ''}${esc(c.field || '')}</span></span>${edit ? '</div>' : '</a>'}
+        ${edit ? '' : `<button type="button" class="btn icon sm ghost ch-vids" data-open="${esc(c.id)}" title="فيديوهات من القناة هنا" aria-label="فيديوهات من القناة هنا">${icon.video}</button>`}
         ${edit ? `<div class="ch-tools">
           <button class="btn icon sm ghost" data-act="${c.pinned ? 'unpin' : 'pin'}" title="${c.pinned ? 'إلغاء التثبيت' : 'تثبيت في الأعلى'}">📌</button>
           ${c.kind === 'custom' ? '<button class="btn icon sm ghost" data-act="edit" title="تعديل">✎</button>' : ''}
           <button class="btn icon sm ghost" data-act="${c.hidden ? 'show' : c.kind === 'custom' ? 'remove' : 'hide'}" title="${c.hidden ? 'إظهار' : 'حذف من القائمة'}">${c.hidden ? '↺' : '✕'}</button></div>` : ''}
       </div>`).join('')}</div>
-      ${edit ? '<p class="tiny muted">📌 للتثبيت في الأعلى · ✕ للحذف من القائمة · ↺ لإرجاع قناة محذوفة.</p>' : '<p class="tiny muted">اضغط قناة لترى فيديوهات منها تضيفها مباشرة.</p>'}`;
+      ${edit ? '<p class="tiny muted">📌 للتثبيت في الأعلى · ✕ للحذف من القائمة · ↺ لإرجاع قناة محذوفة.</p>' : '<p class="tiny muted">اضغط القناة تفتح في يوتيوب مباشرة · 🎬 لفيديوهاتها هنا.</p>'}`;
     $('#chEdit', view).classList.toggle('primary', edit);
   };
   const load = async () => {

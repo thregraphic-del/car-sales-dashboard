@@ -1632,3 +1632,8 @@ body.reader-focus .reader-head.slim #setBtn { margin-inline-start: auto; }
 .fd-item.open .fd-head .ic { background: var(--accent); color: var(--accent-ink, #fff); }
 .fd-head { gap: 11px; padding: 9px 12px; }
 #favBox { margin: 4px 0 12px; }
+
+/* ⭐ favourite channel: the card opens YouTube; the small 🎬 lists its videos here */
+a.ch-main { text-decoration: none; color: inherit; }
+.ch-card .ch-vids { flex: none; color: var(--accent); }
+.ch-card .ch-vids svg { width: 18px; height: 18px; }
