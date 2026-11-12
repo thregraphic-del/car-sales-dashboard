@@ -30,6 +30,7 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 | 7 | 🌐 «املأ الفراغ»: the sentence's Arabic translation shows under it (when the sentence has one) | built — on the free preview | in the batch | 0 (already saved, no AI call) |
 | 8 | 💡 «خمّن الكلمة»: a hint button shows one hidden letter — 3 hints per word, not counted as a mistake | built — on the free preview | in the batch | 0 |
 | 9 | ⚙ Reader settings back as one clear open list (every section open, grey line between sections, title in a tinted pill with a theme line icon, options under it) + «📝 ملخص المقطع» (whole-video summary: ideas, steps, quotes) moved out next to ⏯; the every-few-minutes recap renamed «ملخص كل فترة» | built — on the free preview | in the batch | 0 (summary is made once and saved) |
+| 10 | 🎬 Clean video: YouTube's title, «more videos» strip and control bar are cropped out of view (also when paused by ردّد معي / التوقف); one tap on the video shows YouTube's own buttons for 6 s | built — on the free preview (needs a check on a real video) | in the batch | 0 |
 | – | ✉️ (fix, rides along) reset-code email: no code in the subject | built | – | 0 |
 
 (Batch 6 deployed on 2026-11-09 — commit adc23df on `lexitube-live`: one teal filter bar for «تدرّب» + «كلماتي» (العدد · المستوى · الحالة · المقطع · الوقت · الترتيب),

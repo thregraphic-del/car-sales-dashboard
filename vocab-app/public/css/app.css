@@ -1619,3 +1619,9 @@ body.reader-focus .reader-head.slim #setBtn { margin-inline-start: auto; }
 .reader-head .sum-top { display: inline-flex; align-items: center; gap: 5px; }
 .reader-head .sum-top svg { width: 17px; height: 17px; }
 @media (max-width: 520px) { .reader-head .sum-top span { display: none; } }
+
+/* 🎬 clean video: the iframe is taller than the box, so YouTube's top title and bottom bar/«more
+   videos» fall outside it (the video itself fits the width and is not cut). Tap = show them. */
+.player-box.yt-clean iframe { position: absolute; inset-inline: 0; top: -90px; height: calc(100% + 180px) !important; }
+.yt-shield { position: absolute; inset: 0; z-index: 2; background: transparent; border: 0; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.player-box:not(.yt-clean) .yt-shield, .player-box:not(:has(iframe)) .yt-shield { display: none; }

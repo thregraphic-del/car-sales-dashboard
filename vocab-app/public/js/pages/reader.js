@@ -317,7 +317,7 @@ export async function render(view, { segments, params }) {
           <button type="button" class="btn primary rset-ok" id="setOk">موافق</button>
         </div>
         <div class="reader-status"><span class="tiny mode-note" id="modeNote"></span><span class="tiny muted" id="trNote"></span></div>
-        ${isVideo ? '<div class="player-box"><div id="player"></div></div><div class="split" id="split" role="separator" aria-orientation="horizontal" title="اسحب لتكبير الفيديو أو النص"><span></span></div>' : ''}
+        ${isVideo ? '<div class="player-box yt-clean"><div id="player"></div><button type="button" class="yt-shield" id="ytShield" aria-label="أظهر أزرار يوتيوب"></button></div><div class="split" id="split" role="separator" aria-orientation="horizontal" title="اسحب لتكبير الفيديو أو النص"><span></span></div>' : ''}
         <button type="button" class="btn sm primary back-now hidden" id="backNow">↓ الجملة الحالية</button>
         <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}${arLayout === 'below' ? ' ar-below' : ''}" id="lines"></div>
         <p class="tiny muted reader-hint">${isVideo && hasTimes ? 'اضغط أي كلمة: يقف الفيديو عندها ويظهر معناها، ويكمل حين تغلقها أو تحفظها. اسحب الفاصل تحت الفيديو لتكبيره أو تصغيره. لوحة المفاتيح: مسافة تشغيل/إيقاف · ← → الجملة السابقة/التالية · R أعد الجملة · L كرّرها · A أخفِ العربي.' : 'اضغط على أي كلمة لترى معناها في هذه الجملة.'} جديدة: <span class="mark s-suggested u-common">شائعة</span> <span class="mark s-suggested u-medium">أقل شيوعًا</span> <span class="mark s-suggested u-rare">نادرة</span> · <span class="mark s-saved">في كلماتي</span></p>
@@ -342,6 +342,17 @@ export async function render(view, { segments, params }) {
   let floatW = Number(pref('reader.fw', '0')) || 0; // 0 = automatic (large)
   let fpos = (() => { try { return JSON.parse(pref('reader.fpos', 'null')); } catch { return null; } })(); // {x,y} fractions
   const pbox = () => $('.player-box', view);
+  // 🎬 clean video: YouTube's title, «more videos» strip and control bar sit outside the visible
+  // frame (cropped), even when the video pauses (ردّد معي / التوقف). One tap = YouTube's own
+  // buttons for a few seconds, then clean again.
+  let ytShowT = 0;
+  $('#ytShield', view)?.addEventListener('click', () => {
+    const box = pbox();
+    if (!box) return;
+    box.classList.remove('yt-clean');
+    clearTimeout(ytShowT);
+    ytShowT = setTimeout(() => { if (alive) pbox()?.classList.add('yt-clean'); }, 6000);
+  });
   function ensureFloatBar() {
     const b = pbox();
     if (!b || b.querySelector('.float-bar')) return;
