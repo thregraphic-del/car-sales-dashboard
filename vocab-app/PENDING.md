@@ -17,7 +17,7 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 | 10 | 🏠 Review batch 2: «اليوم» shows the last 7 days (tap = calendar), a 2-minute session (5 words), «وش بعد؟» next steps after the session; phones get a 5th tab «المزيد» (friends, settings) and the streak instead of the duplicate ＋; the reader's back button returns where you came from; thumb bar on phones (previous · play · again · next); «مفتاح الألوان» + «رجّع إعدادات المقطع الأصلية»; plain words beside A1…C2; new accounts start with a goal of 5; modulepreload | deployed 2026-11-10 | in the batch | 0 |
 | 11 | 🎨 Filter icons are themed line icons (no emoji); practice drops the «غيّر الاختيار» row; a video opens wide by itself (remembered); this source's new words stay teal after saving — videos, pasted texts and files (purple = saved before it) | deployed 2026-11-11 | in the batch | 0 |
 
-(New batch — collect 10, on the free preview)
+(New batch — collect 20 (owner raised it from 10 on 2026-11-12), on the free preview — deploy at 20 or on «ارفع»)
 
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
