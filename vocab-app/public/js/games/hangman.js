@@ -15,7 +15,8 @@ export default {
     let miss = 0;
     const draw = () => [...word].map((c) => (got.has(c) ? c : '_')).join(' ');
     stage.innerHTML = `<div class="card question"><div class="prompt">المعنى: <b>${esc(w.arabic)}</b></div>
-        <div class="en big-word" dir="ltr" id="hw">${draw()}</div><div class="tiny muted" id="hm">الأخطاء: 0 / 6</div></div>
+        <div class="en big-word" dir="ltr" id="hw">${draw()}</div><div class="tiny muted" id="hm">الأخطاء: 0 / 6</div>
+        <button type="button" class="btn sm ghost hint-btn" id="hhint">💡 تلميح حرف <b class="en-inline" id="hleft">3</b></button></div>
       <div class="kbd en" dir="ltr">${[...'abcdefghijklmnopqrstuvwxyz'].map((c) => `<button class="key" data-c="${c}">${c}</button>`).join('')}</div>
       <div class="feedback" id="fb"></div><div class="next-wrap"><button class="btn primary hidden" id="nextBtn">التالي ←</button></div>`;
     let done = false;
@@ -27,6 +28,17 @@ export default {
       next.classList.remove('hidden');
       next.addEventListener('click', () => resolve(ok));
     };
+    // 💡 3 hints: each one shows a letter that's still hidden (not counted as a mistake)
+    let hints = 3;
+    stage.querySelector('#hhint').addEventListener('click', (e) => {
+      if (done || hints <= 0) return;
+      const hidden = [...new Set(word)].filter((c) => !got.has(c));
+      if (!hidden.length) return;
+      hints -= 1;
+      stage.querySelector('#hleft').textContent = hints;
+      if (!hints) e.currentTarget.disabled = true;
+      stage.querySelector(`.key[data-c="${hidden[Math.floor(Math.random() * hidden.length)]}"]`)?.click();
+    });
     stage.querySelectorAll('.key').forEach((k) => k.addEventListener('click', () => {
       if (done || k.disabled) return;
       k.disabled = true;
