@@ -872,7 +872,10 @@ export async function render(view, { segments, params }) {
     setFocus(on);
   });
   // a video opens wide by itself (no site bars) unless the learner shrank it last time
-  if (isVideo && pref('reader.focus', '1') === '1') setFocus(true);
+  // …and a link just pasted on «أضف» always opens wide (only the top bar + ⚙)
+  let justAdded = false;
+  try { justAdded = sessionStorage.getItem('reader.openWide') === String(id); sessionStorage.removeItem('reader.openWide'); } catch { /* ignore */ }
+  if (justAdded || (isVideo && pref('reader.focus', '1') === '1')) setFocus(true);
   // The browser may leave full screen by itself (on iPad: scrolling up to read earlier lines).
   // Focus mode stays on — only the ✕ / shrink button takes the learner back.
   const onFsChange = () => { if (focusFs && !document.fullscreenElement) focusFs = false; };

@@ -114,6 +114,7 @@ export async function render(view, { params }) {
       if (r?.pending) throw Object.assign(new Error('الفيديو طويل جدًا وما زال نصّه يُجهَّز — جرّب بعد دقيقة.'), { data: {} });
       status.innerHTML = '';
       stop();
+      try { sessionStorage.setItem('reader.openWide', String(r.source_id)); } catch { /* ignore */ } // just pasted: open wide
       location.hash = `#/source/${r.source_id}`;
     } catch (err) {
       stop();

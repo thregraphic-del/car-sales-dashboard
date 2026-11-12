@@ -34,6 +34,7 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 | 11 | ＋ قناة: paste the link or @handle and the channel's name fills in by itself (read once from its YouTube page); ✎ تعديل still renames it; asks for the name only if YouTube doesn't give it; tapping a channel in «المفضلة» opens it on YouTube directly (a small 🎬 lists its videos here) | built — on the free preview | in the batch | 0 (one page read per added channel) |
 | 12 | 📚 Channel fields: icons in tinted rounded tiles (filled when open); one field always stays open | built — on the free preview | in the batch | 0 |
 | 13 | ⭐ «المفضلة» opens right under the section title, above the fields (not at the bottom) | built — on the free preview | in the batch | 0 |
+| 14 | ⛶ A link pasted on «أضف» opens the video straight in the wide view (no logo/side bars — only the top bar with ⏯ 📝 ⚙, the rest inside ⚙), even if the learner shrank it before | built — on the free preview | in the batch | 0 |
 | – | ✉️ (fix, rides along) reset-code email: no code in the subject | built | – | 0 |
 
 (Batch 6 deployed on 2026-11-09 — commit adc23df on `lexitube-live`: one teal filter bar for «تدرّب» + «كلماتي» (العدد · المستوى · الحالة · المقطع · الوقت · الترتيب),
