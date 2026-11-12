@@ -1625,3 +1625,10 @@ body.reader-focus .reader-head.slim #setBtn { margin-inline-start: auto; }
 .player-box.yt-clean iframe { position: absolute; inset-inline: 0; top: -90px; height: calc(100% + 180px) !important; }
 .yt-shield { position: absolute; inset: 0; z-index: 2; background: transparent; border: 0; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .player-box:not(.yt-clean) .yt-shield, .player-box:not(:has(iframe)) .yt-shield { display: none; }
+
+/* 📚 field icons: a tinted rounded tile in the site's colour */
+.fd-head .ic { display: inline-grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 11px; background: color-mix(in srgb, var(--accent) 11%, var(--surface)); color: var(--accent); }
+.fd-head .ic svg { width: 19px; height: 19px; }
+.fd-item.open .fd-head .ic { background: var(--accent); color: var(--accent-ink, #fff); }
+.fd-head { gap: 11px; padding: 9px 12px; }
+#favBox { margin: 4px 0 12px; }

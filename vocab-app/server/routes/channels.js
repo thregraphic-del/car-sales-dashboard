@@ -92,10 +92,16 @@ router.post('/', wrap(async (req) => {
   else if (b.action === 'hide') toggle(prefs.hidden, true);
   else if (b.action === 'show') toggle(prefs.hidden, false);
   else if (b.action === 'add' || b.action === 'edit') {
-    const name = clean(b.name);
-    if (!name) throw httpError(400, 'اكتب اسم القناة.');
-    const url = clean(b.url, 200);
-    const handle = clean(b.handle, 60).replace(/^@/, '') || handleOf(url);
+    let url = clean(b.url, 200);
+    let handle = clean(b.handle, 60).replace(/^@/, '') || handleOf(url);
+    // ✨ no name typed: read it from the channel's YouTube page (one request, only when adding)
+    let name = clean(b.name);
+    if (!name && (handle || /youtube\.com\//.test(url))) {
+      const meta = await channelMeta(handle ? `https://www.youtube.com/@${handle}` : url);
+      name = clean(meta?.name);
+      if (!handle && meta?.handle) { handle = meta.handle; url = ''; }
+    }
+    if (!name) throw Object.assign(httpError(400, 'ما لقينا اسم القناة — اكتبه.'), { code: 'need_name' });
     const c = { name, handle, url: handle ? '' : url, field: clean(b.field, 40) || 'قنواتي' };
     if (b.action === 'edit') prefs.custom = prefs.custom.filter((x) => idOf(x) !== id);
     if (prefs.custom.length >= 60) throw httpError(400, 'وصلت للحد الأعلى من القنوات.');
@@ -112,6 +118,23 @@ router.post('/', wrap(async (req) => {
 /** Channels like the learner's (AI). */
 // ✔ Channels by field: each @handle is checked ONCE on YouTube (real page link + logo) and saved
 // for everyone. A handle YouTube doesn't know is remembered as missing and never shown.
+/** Name (+ @handle) of a YouTube channel from its page — used once when a learner adds one. */
+async function channelMeta(url) {
+  if (!/^https:\/\/(www\.|m\.)?youtube\.com\//.test(url)) return null;
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 6000);
+    const res = await fetch(url, { signal: ctl.signal, headers: { 'Accept-Language': 'en', 'User-Agent': 'Mozilla/5.0 (compatible; LexiTube)', Cookie: 'CONSENT=YES+1; SOCS=CAI' } });
+    clearTimeout(t);
+    if (!res.ok) return null;
+    const html = await res.text();
+    const dec = (x) => String(x || '').replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+    const name = dec(html.match(/<meta property="og:title" content="([^"]+)"/)?.[1]).replace(/\s*-\s*YouTube$/, '');
+    const handle = (html.match(/"canonicalBaseUrl":"\/@([A-Za-z0-9._-]+)"/) || html.match(/youtube\.com\/@([A-Za-z0-9._-]+)/) || [])[1] || '';
+    return name ? { name, handle } : null;
+  } catch { return null; }
+}
+
 async function checkHandle(handle) {
   const key = `ytch:${handle.toLowerCase()}`;
   const hit = await get('SELECT value FROM app_settings WHERE key = ?', key);

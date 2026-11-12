@@ -40,7 +40,6 @@ export async function render(view, { params }) {
     ${packsHtml()}
     ${suggestWordsHtml()}
     ${fieldsHtml()}
-    ${channelsHtml()}
     ${suggestionsHtml()}`;
   const myVids = bindMyVideos(view.querySelector('#sources'), cached);
   api.sources().then((list) => {

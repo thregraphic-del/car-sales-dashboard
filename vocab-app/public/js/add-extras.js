@@ -431,12 +431,26 @@ export function bindChannels(view, { onPick }) {
       $('#chVids', extra).innerHTML = `<p class="tiny muted">${esc(err.message)}</p>`;
     }
   };
+  // ＋ قناة: paste the link or @handle — the channel's name comes by itself (✎ to change it later)
   const askChannel = async (c = null) => {
-    const name = prompt('اسم القناة', c?.name || '');
-    if (!name?.trim()) return;
-    const link = prompt('رابط القناة أو @handle (اختياري)', c?.handle ? `@${c.handle}` : c?.url || '');
-    const isHandle = /^@?[A-Za-z0-9._-]+$/.test((link || '').trim()) && !/^https?:/.test(link || '');
-    await act({ action: c ? 'edit' : 'add', id: c?.id, name: name.trim(), handle: isHandle ? link.trim() : '', url: isHandle ? '' : (link || '').trim() });
+    const link = prompt(c ? 'رابط القناة أو @handle' : 'الصق رابط القناة أو @handle — الاسم يطلع تلقائي', c?.handle ? `@${c.handle}` : c?.url || '');
+    if (link == null) return;
+    const l = link.trim();
+    const isHandle = /^@?[A-Za-z0-9._-]+$/.test(l) && !/^https?:/.test(l);
+    const body = { action: c ? 'edit' : 'add', id: c?.id, handle: isHandle ? l : '', url: isHandle ? '' : l };
+    let name = c ? prompt('اسم القناة', c.name || '') : '';
+    if (c && !name?.trim()) return;
+    if (!l && !c) name = prompt('اسم القناة', '');
+    if (!c && !l && !name?.trim()) return;
+    try {
+      await api.channelAction({ ...body, name: (name || '').trim() });
+      await load();
+      if (!c) toast(`✓ أُضيفت${list[0]?.name ? `: ${list[0].name}` : ''} — تقدر تعدّل اسمها من «✎ تعديل»`);
+    } catch (err) {
+      if (err.data?.code !== 'need_name') return toast(err.message);
+      const typed = prompt('ما لقينا اسم القناة — اكتبه', '');
+      if (typed?.trim()) await act({ ...body, name: typed.trim() });
+    }
   };
   box.addEventListener('click', (e) => {
     const card = e.target.closest('[data-ch]');
@@ -484,6 +498,7 @@ const saveChk = () => { try { localStorage.setItem(CHK_KEY, JSON.stringify(chkCa
 export const fieldsHtml = () => `
   <div class="section-title row between" style="gap:8px"><h2>قنوات لتعلّم الإنجليزي</h2>
     <button type="button" class="fav-chip" id="favChip"><span class="ic">${icon.star}</span> المفضلة</button></div>
+  ${channelsHtml()}
   <div class="fd-acc" id="fdAcc">${CH_FIELDS.map((f) => `<section class="fd-item" data-fdi="${f.k}">
     <button type="button" class="fd-head" data-fd="${f.k}" aria-expanded="false">${fic(f.k)}<b>${f.n}</b><span class="tiny muted fd-n">${f.c.length} قناة</span><span class="fd-caret" aria-hidden="true">▾</span></button>
     <div class="fd-body"></div></section>`).join('')}</div>`;
@@ -499,7 +514,7 @@ export function bindFields(view) {
   let lv = '';
   try { lv = localStorage.getItem('fields.level') || ''; } catch { /* ignore */ }
   const fav = $('#favBox', view);
-  const showFav = (on) => { fav?.classList.toggle('hidden', !on); $('#favChip', view)?.classList.toggle('on', on); };
+  const showFav = (on) => { fav?.classList.toggle('hidden', !on); $('#favChip', view)?.classList.toggle('on', on); if (on) fav?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
   const draw = () => {
     acc.querySelectorAll('.fd-item').forEach((it) => {
       const open = it.dataset.fdi === field?.k;
@@ -556,7 +571,9 @@ export function bindFields(view) {
     const f = e.target.closest('[data-fd]');
     if (f && acc.contains(f)) {
       // tapping the open field closes it; tapping another opens it and closes the previous
-      field = field?.k === f.dataset.fd ? null : CH_FIELDS.find((x) => x.k === f.dataset.fd);
+      // one field always stays open: tapping the open one keeps it
+      if (field?.k === f.dataset.fd) return;
+      field = CH_FIELDS.find((x) => x.k === f.dataset.fd);
       if (field) { try { localStorage.setItem('fields.last', field.k); } catch { /* ignore */ } }
       draw();
       if (field) { check(field); f.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
