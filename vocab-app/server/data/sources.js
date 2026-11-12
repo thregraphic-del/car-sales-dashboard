@@ -330,7 +330,7 @@ export async function sourceView(sourceId, userId) {
   const lines = await sourceLines(sourceId);
   const occ = await all(
     `SELECT o.*, v.term, v.item_type, v.part_of_speech, v.level, v.band, v.pronunciation, v.arabic AS arabic_general, v.simple_english,
-       v.similar_json, v.topic, uv.id AS uv_id, uv.state AS user_state, uv.user_arabic
+       v.similar_json, v.topic, uv.id AS uv_id, uv.state AS user_state, uv.user_arabic, uv.source_id AS uv_source_id
      FROM occurrences o JOIN vocabulary v ON v.id = o.vocabulary_id
      LEFT JOIN user_vocabulary uv ON uv.vocabulary_id = v.id AND uv.user_id = ?
      WHERE o.source_id = ? ORDER BY o.rank, o.id`,
@@ -350,6 +350,7 @@ export async function sourceView(sourceId, userId) {
       line_id: o.line_id,
       uv_id: o.uv_id,
       user_state: o.user_state || null,
+      saved_here: o.user_state === 'saved' && Number(o.uv_source_id) === Number(sourceId),
       arabic: o.user_arabic || o.contextual_meaning || o.arabic_general,
       context_sentence: o.sentence,
       context_arabic: o.sentence_ar,

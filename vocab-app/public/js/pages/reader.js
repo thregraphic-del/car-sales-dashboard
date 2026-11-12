@@ -751,6 +751,17 @@ export async function render(view, { segments, params }) {
       bar.appendChild(b);
     });
     rset.classList.add('rs-compact');
+    // 🔲 expanded mode keeps only ⏯ and ⚙ on top — the rest lives here
+    const fr = document.createElement('div');
+    fr.className = 'rs-focus-row';
+    fr.innerHTML = `<button type="button" class="btn sm" data-fx="wordsBtn">📋 الكلمات <b class="en-inline" data-fx-count></b></button><button type="button" class="btn sm" data-fx="focusBtn">↙ تصغير الشاشة</button>`;
+    fr.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-fx]');
+      if (!b) return;
+      $('#setBtn', view)?.click();
+      $(`#${b.dataset.fx}`, view)?.click();
+    });
+    rset.insertBefore(fr, rset.querySelector('.rset-title')?.nextSibling || rset.firstChild);
     rset.insertBefore(bar, rset.querySelector('.rset-title')?.nextSibling || rset.firstChild);
     bar.addEventListener('click', (e) => {
       const b = e.target.closest('.rs-ic');
@@ -965,20 +976,23 @@ export async function render(view, { segments, params }) {
       seenItems.add(it.vocabulary_id);
       const had = it.user_state === 'saved' || it.user_state === 'dismissed';
       if (newSet.has(it.vocabulary_id)) continue;
-      if (had && (firstNew || !autoSaveAll)) knownBefore.add(it.vocabulary_id);
+      if (had && !it.saved_here && (firstNew || !autoSaveAll)) knownBefore.add(it.vocabulary_id);
       else { newSet.add(it.vocabulary_id); added = true; }
     }
     if (added) { try { localStorage.setItem(newKey, JSON.stringify([...newSet].slice(-3000))); } catch { /* ignore */ } }
   };
   let autoSaveAll = (() => { try { return localStorage.getItem(`reader.saveall.${id}`) === '1'; } catch { return false; } })(); // «احفظ الكل» once = the later ones too
   noteKnown();
-  const isNew = (it) => !knownBefore.has(it.vocabulary_id);
+  // a word saved FROM this video is always one of its new words (on any device)
+  const isNew = (it) => it.saved_here || hereSetHas(it.vocabulary_id) || !knownBefore.has(it.vocabulary_id);
+  let hereSetHas = () => false;
   // 🟦 this video's NEW words stay teal in the text even after they are saved — a clear record of
   // what this video added; purple is only for words that were in «كلماتي» before it.
   // any word seen NOT saved in this video's text is «new here» from then on (kept on this device)
   const hereKey = `reader.newhere.${id}`;
   const hereSet = (() => { try { return new Set(JSON.parse(localStorage.getItem(hereKey) || '[]')); } catch { return new Set(); } })();
   newSet.forEach((v) => hereSet.add(v));
+  hereSetHas = (v) => hereSet.has(v);
   const paintNew = () => {
     let grew = false;
     linesEl.querySelectorAll('.mark[data-vid]').forEach((m) => {
@@ -1002,6 +1016,7 @@ export async function render(view, { segments, params }) {
     const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].filter((l) => fresh.some((i) => i.level === l));
     $('#wcount', view).textContent = fresh.length;
     if ($('#wcount2', view)) $('#wcount2', view).textContent = fresh.length;
+    view.querySelectorAll('[data-fx-count]').forEach((x) => { x.textContent = fresh.length; });
     const q = (extra) => `#/practice?${new URLSearchParams({ source: id, title: source.title.slice(0, 40), ...extra })}`;
     side.innerHTML = `
       <div class="side-head">

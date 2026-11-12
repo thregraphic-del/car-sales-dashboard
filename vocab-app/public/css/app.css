@@ -1583,3 +1583,13 @@ body.has-thumb-bar .help-fab:not(.mini) { bottom: 170px; }
 /* this video's new words: teal even once saved (purple = saved before this video) */
 .transcript .mark.s-saved.s-newhere, .lt-note .mark.s-saved.s-newhere { background: color-mix(in srgb, var(--accent) 22%, transparent); box-shadow: none; border-radius: 5px; }
 @media (max-width: 900px) { .tabbar { grid-template-columns: repeat(3, 1fr) !important; } }
+
+/* 🔲 expanded mode: only the video + text; on top just ⏯ and ⚙ (everything else is in ⚙) */
+.rs-focus-row { display: none; }
+body.reader-focus .rs-focus-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 4px 0 10px; }
+body.reader-focus .rs-focus-row .btn { flex: 1 1 0; justify-content: center; }
+body.reader-focus .reader-head.slim #backLink, body.reader-focus .reader-head.slim .reader-title-sm,
+body.reader-focus .reader-head.slim #againBtn, body.reader-focus .reader-head.slim #shadowBtn,
+body.reader-focus .reader-head.slim #wordsBtn, body.reader-focus .reader-head.slim #focusBtn,
+body.reader-focus .thumb-bar { display: none !important; }
+body.reader-focus .reader-head.slim { justify-content: space-between; }
