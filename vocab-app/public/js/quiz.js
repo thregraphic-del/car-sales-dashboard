@@ -7,6 +7,7 @@ import { bindSpeech } from './components.js';
 import { GAMES, GAME_BY_KEY, chooseType } from './games/index.js';
 import { examplesFor } from './games/shared.js';
 import { state } from './state.js';
+import { stop as stopSound } from './audio.js';
 
 /** 📝 Words without a complete, translated example get one simple sentence (made once, saved for everyone). */
 export async function ensureExamples(words) {
@@ -61,6 +62,7 @@ export async function runQuiz(stage, { words, distractors: pool, type = 'mixed',
     onProgress(i, list.length, score);
     const w = list[i];
     const kind = type === 'mixed' ? chooseType(w, i) : type;
+    stopSound(); // the last word's sound never spills into the next question
     const ok = await GAME_BY_KEY[kind].play(stage, w, all);
     await record(w, ok);
   }

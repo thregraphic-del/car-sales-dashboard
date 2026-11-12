@@ -85,9 +85,11 @@ function playUrl(url, rate) {
   });
 }
 
+let sayGen = 0; // bumps on every stop(): a late fallback for an older word is dropped
 let speaking = null; // keep the utterance referenced (Chrome drops events of collected ones)
 
 export function stop() {
+  sayGen += 1;
   if (currentAudio) {
     currentAudio.pause();
     currentAudio = null;
@@ -105,17 +107,19 @@ export function speak(text, { rate = 1, lang = 'en' } = {}) {
   stop();
   const base = state.user?.speech_rate || 1;
   const finalRate = Math.max(0.5, Math.min(1.5, rate * base));
+  const my = sayGen;
+  const late = () => (my === sayGen ? browserSpeak(text, lang, finalRate) : undefined);
   if (lang === 'ar') text = arabicForSpeech(text) || text;
   const single = lang === 'en' && !/\s/.test(text.trim());
   const key = text.trim().toLowerCase();
   if (single) {
     if (recordedReady.has(key)) {
       const url = recordedReady.get(key);
-      if (url) return playUrl(url, finalRate).catch(() => browserSpeak(text, lang, finalRate));
+      if (url) return playUrl(url, finalRate).catch(late);
     } else recordedUrl(key); // ready for next time
   }
   if (state.config?.tts?.server) {
-    return playUrl(`/api/tts?${new URLSearchParams({ text, speed: 1, lang })}`, finalRate).catch(() => browserSpeak(text, lang, finalRate));
+    return playUrl(`/api/tts?${new URLSearchParams({ text, speed: 1, lang })}`, finalRate).catch(late);
   }
   return browserSpeak(text, lang, finalRate);
 }

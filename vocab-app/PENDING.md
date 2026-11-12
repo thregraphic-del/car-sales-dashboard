@@ -25,6 +25,7 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 | 2 | 📺 New channels (ONE item — every channel the owner sends later is added here, not counted again): Deep Primate (@DeepPrimate) and Croc Universe (@CrocUniverse) in «علم النفس»; Deep Primate also in «تطوير الذات» | built — on the free preview | in the batch | 0 (each channel checked once) |
 | 3 | 🔲 Expanded mode shows only the video + text; the top row keeps just ⏯ and ⚙ — «الكلمات» and «تصغير الشاشة» moved into ⚙ (with ×2 / ردّد already there); the phone thumb bar hides | built — on the free preview | in the batch | 0 |
 | 4 | 📋 A video's new words stay listed and counted inside it after you save them (✓), on any device — the server marks words saved from this video | built — on the free preview | in the batch | 0 (one extra column in the same query) |
+| 5 | 🔊 Practice sound in sync: the last word's sound is stopped when the next question opens (a slow/late sound no longer plays over the new word), and «صح أو خطأ» says the shown word with the question | built — on the free preview | in the batch | 0 |
 | – | ✉️ (fix, rides along) reset-code email: no code in the subject | built | – | 0 |
 
 (Batch 6 deployed on 2026-11-09 — commit adc23df on `lexitube-live`: one teal filter bar for «تدرّب» + «كلماتي» (العدد · المستوى · الحالة · المقطع · الوقت · الترتيب),

@@ -2,6 +2,7 @@
 import { esc } from '../ui.js';
 import { distractors, reveal } from './shared.js';
 import { sayBtns } from './shared.js';
+import { speak } from '../audio.js';
 
 export default {
   key: 'truefalse',
@@ -20,6 +21,7 @@ export default {
         <div class="q-big">${esc(w.term)}</div>${sayBtns(w.term)}<div class="tf-meaning">${esc(shown)}</div></div>
       <div class="options tf-options"><button class="option tf-yes" data-v="1">✓ صح</button><button class="option tf-no" data-v="0">✗ خطأ</button></div>
       <div class="feedback" id="fb"></div><div class="next-wrap"><button class="btn primary hidden" id="nextBtn">التالي ←</button></div>`;
+    speak(w.term).catch(() => {}); // say THIS word with the question
     let done = false;
     stage.querySelectorAll('[data-v]').forEach((b) => b.addEventListener('click', () => {
       if (done) return;
