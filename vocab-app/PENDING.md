@@ -71,3 +71,5 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 | 8 | 🌐 «الترجمة» in ⚙: «🙈 أخفه» removed — the «عربي» tick alone shows/hides the Arabic, and «بجانبه / تحته» appear only when it is on | built — on the free preview | in the batch | 0 |
 | 9 | ✕ in the ⚙ sheet's title (always on top while scrolling): back to the video WITHOUT keeping what was changed since ⚙ was opened («موافق» keeps it); the video goes on from the same place | built — on the free preview | in the batch | 0 |
 | 10 | 🔘 «قائمة الكلمات» and «ملخص كل فترة» in ⚙: an on/off switch like «أزرار تحت» (the word «بالعامية» removed); when on, two lines under it: how many (كل 10 كلمة / كل 3د · 6د · اكتب) then قبل / بعد | built — on the free preview | in the batch | 0 |
+| 11 | ⏸ «التوقف» and «التدريب» merged into one ⚙ section «بعد كل جملة» — one choice: عادي · وقفة بثواني (0.5/1/2/3ث show under it) · وقفة بطول الجملة للترديد · كرر كل جملة مرتين | built — on the free preview | in the batch | 0 |
+| 12 | ⚙ «السرعة»: all speeds on one line | built — on the free preview | in the batch | 0 |

@@ -1781,3 +1781,11 @@ body:has(.page-reader #rset:not(.hidden)) .thumb-bar { display: none !important;
 .rset .sw-row .sw-sub { display: grid; gap: 8px; width: 100%; margin-top: 4px; }
 .rset .sw-row .sw-sub > .sopts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .rset .sw-row:has(.tg-switch input:not(:checked)) .sw-sub { display: none; }
+
+/* ⚙ «بعد كل جملة»: one choice per line; the seconds show only for «وقفة بثواني» */
+.rset .am-list { display: grid !important; gap: 8px; justify-items: start; }
+.rset .am-list .am-gap { display: none; padding-inline-start: 14px; }
+.rset .am-list.am-gap-on .am-gap { display: flex; }
+/* ⚙ speeds on one line */
+.rset #speed { flex-wrap: nowrap !important; gap: 4px !important; width: 100%; }
+.rset #speed .sopt { flex: 1 1 0; min-width: 0; padding: 7px 2px; font-size: 13px; text-align: center; justify-content: center; }

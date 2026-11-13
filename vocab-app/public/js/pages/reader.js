@@ -305,8 +305,12 @@ export async function render(view, { segments, params }) {
           <div class="rset-title row between"><span>إعدادات المقطع</span><button type="button" class="btn icon sm ghost rset-x" id="setX" title="رجوع بدون حفظ" aria-label="رجوع بدون حفظ">✕</button></div>
           ${isVideo && hasTimes ? `<div class="sgroup">التشغيل</div><div id="mode" class="rgrp">
             <div class="srow"><span class="slabel">السرعة</span><div class="sopts" id="speed">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" class="sopt en-inline" data-rate="${r}">${r}×</button>`).join('')}</div></div>
-            <div class="srow"><span class="slabel">التوقف</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="gapOn"> بعد كل سطر</label><span class="sopts" id="gapChips">${[500, 1000, 2000, 3000].map((ms) => `<button type="button" class="sopt en-inline" data-gap="${ms}">${ms / 1000}ث</button>`).join('')}</span></div></div>
-            <div class="srow"><span class="slabel">التدريب</span><div class="sopts"><button type="button" class="sopt" data-mode="shadow">🗣 ردّد ورائي</button><button type="button" class="sopt" id="loopBtn" aria-pressed="false">🔁 كل جملة مرتين</button><button type="button" class="sopt hidden" id="modeOff">✕ عادي</button></div></div>
+            <div class="srow"><span class="slabel">بعد كل جملة</span><div class="sopts am-list" id="amList">
+              <button type="button" class="sopt" data-am="normal">▶ عادي</button>
+              <button type="button" class="sopt" data-am="gap">⏸ وقفة بثواني</button>
+              <span class="sopts am-gap" id="gapChips">${[500, 1000, 2000, 3000].map((ms) => `<button type="button" class="sopt en-inline" data-gap="${ms}">${ms / 1000}ث</button>`).join('')}</span>
+              <button type="button" class="sopt" data-am="shadow">🗣 وقفة بطول الجملة للترديد</button>
+              <button type="button" class="sopt" data-am="twice">🔁 كرر كل جملة مرتين</button></div></div>
           </div>
           <div class="sgroup">المساعدة</div>
           <div class="srow sw-row"><span class="slabel">قائمة الكلمات</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="wbOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label>
@@ -761,7 +765,7 @@ export async function render(view, { segments, params }) {
     const sv = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
     const IC = {
       'السرعة': sv('<path d="M4 15a8 8 0 1 1 16 0"/><path d="m12 15 4-5"/>'),
-      'التوقف': sv('<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>'),
+      'بعد كل جملة': sv('<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>'),
       'التدريب': sv('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>'),
       'قائمة الكلمات': sv('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>'),
       'ملخص كل فترة': sv('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
@@ -1607,6 +1611,24 @@ export async function render(view, { segments, params }) {
   };
   showLoop();
   $('#loopBtn', view)?.addEventListener('click', toggleLoop);
+  // ⚙ «بعد كل جملة»: one choice — normal · a pause of N seconds · a pause as long as the sentence (to repeat it) · each sentence twice
+  const amNow = () => (repeatPara && playMode === 'normal' ? 'twice' : playMode);
+  const drawAm = () => {
+    const cur = amNow();
+    view.querySelectorAll('[data-am]').forEach((b) => b.classList.toggle('active', b.dataset.am === cur));
+    $('#amList', view)?.classList.toggle('am-gap-on', cur === 'gap');
+  };
+  const setRepeat = (v) => { repeatPara = v; repeatedPara = null; setPref('reader.repeatPara', v ? '1' : '0'); showLoop(); };
+  $('#amList', view)?.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-am]');
+    if (!b) { setTimeout(drawAm, 0); return; }
+    const m = b.dataset.am;
+    setRepeat(m === 'twice');
+    setMode(m === 'twice' ? 'normal' : m);
+    drawAm();
+  });
+  view.addEventListener('click', (e) => { if (e.target.closest('#shadowBtn, #againBtn')) setTimeout(drawAm, 0); });
+  drawAm();
   $('#againBtn', view)?.addEventListener('click', toggleLoop);
   $('#tourR', view)?.addEventListener('click', () => { toggleSet(false); startTour('reader'); });
   // back = where the learner came from (today, words…), not always «أضف»
