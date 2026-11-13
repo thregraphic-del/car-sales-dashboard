@@ -42,6 +42,7 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 | 19 | 🌗 «الخلفية» in ⚙: like the site · night · white · beige | built — on the free preview | in the batch | 0 |
 | 20 | ↺ «رجّع كل الإعدادات للأصل» button at the bottom of ⚙ (confirm first; the learner's words and new-word records are kept). Every ⚙ choice already applies to all videos, old and new | built — on the free preview | in the batch | 0 |
 | 21 | 👍 «أزرار تحت» in ⚙ (phones): the 4 buttons under the thumb show in the normal view only (default) · always · hidden; size small · medium · large — for every video | built — on the free preview | in the batch | 0 |
+| 22 | 🏁 When a video ends: its full Arabic summary opens by itself with «✓ تم», then «أحسنت!» with confetti 🎉 and two choices: «🎮 تدرّب على كلمات المقطع» (practice, not a test) or «إنهاء» (replaces the old 5-question quiz note) | built — on the free preview | in the batch | summary: one AI call per video, saved |
 | – | ✉️ (fix, rides along) reset-code email: no code in the subject | built | – | 0 |
 
 (Batch 6 deployed on 2026-11-09 — commit adc23df on `lexitube-live`: one teal filter bar for «تدرّب» + «كلماتي» (العدد · المستوى · الحالة · المقطع · الوقت · الترتيب),

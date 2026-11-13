@@ -12,7 +12,7 @@ import { api } from '../api.js';
 import { startTour, maybeTour } from '../tour.js';
 import { state } from '../state.js';
 import { notePassed, noteWatched } from '../goal.js';
-import { esc, icon, levelChip, usageDot, usageLegend, fmtTime, fmtDuration, toast, $, emptyState, openModal } from '../ui.js';
+import { esc, icon, levelChip, usageDot, usageLegend, fmtTime, fmtDuration, toast, $, emptyState, openModal, closeModal } from '../ui.js';
 import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech, celebrateGoal } from '../components.js';
 import { tokenize, quickTier, normalizeArabic } from '../shared/text.js';
 import { buildTimeline, positionAt, steadyPosition, wordIndexByChar } from '../shared/sync.js';
@@ -506,10 +506,8 @@ export async function render(view, { segments, params }) {
   }
 
   // 🏁 The video ended: a quick 5-question quiz on its words.
-  const onEnded = () => {
-    if (!data.items.length) return;
-    popNote(`<b>🏁 خلص المقطع!</b><p class="small">اختبر نفسك بـ ٥ أسئلة من كلماته.</p><a class="btn primary sm" href="#/practice?mode=quiz&source=${id}&size=5&n=${Date.now()}">ابدأ الاختبار ←</a>`);
-  };
+  let endedFlow = null; // set below: the summary, then «أحسنت»
+  const onEnded = () => endedFlow?.();
   window.addEventListener('lexitube:ended', onEnded);
   // 🔔 Every N new words of the video: a list with meanings — before they come, or after they went by.
   // A word shown once in this video is never listed again (so new words always take the place).
@@ -2040,7 +2038,9 @@ export async function render(view, { segments, params }) {
   /* 📝 Summary of the video */
   let summaryCache = null;
   $('#sumTop', view)?.addEventListener('click', () => $('#summaryBtn', view)?.click());
-  $('#summaryBtn', view)?.addEventListener('click', async () => {
+  // done = a «✓ تم» button at the end (used when the video ends)
+  const showSummary = async (done = null) => {
+    const doneBtn = done ? '<div class="btn-row" style="justify-content:center;margin-top:14px"><button type="button" class="btn primary" id="sumDone">✓ تم</button></div>' : '';
     const box = openModal('<h2>📝 ملخص المقطع</h2><p class="muted"><span class="spinner"></span> نقرأ المقطع كاملًا ونلخّصه…</p>', { wide: true });
     try {
       summaryCache = summaryCache || await api.summary(id);
@@ -2051,12 +2051,28 @@ export async function render(view, { segments, params }) {
         <div class="sum-sec"><b>🎁 الفائدة</b><p>${esc(s.benefit)}</p></div>
         ${s.points.length ? `<div class="sum-sec"><b>📌 أهم النقاط</b><ul>${s.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
         ${s.steps.length ? `<div class="sum-sec"><b>✅ خطوات عملية</b><ol>${s.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol></div>` : ''}
-        ${s.quotes.length ? `<div class="sum-sec"><b>💬 أقوال وحِكم من المقطع</b>${s.quotes.map((q) => `<blockquote class="sum-quote"><p class="en" dir="ltr">“${esc(q.en)}” <button class="btn icon sm ghost" data-say="${esc(q.en)}" aria-label="استمع">🔊</button></p><p>${esc(q.ar)}</p></blockquote>`).join('')}</div>` : ''}`;
+        ${s.quotes.length ? `<div class="sum-sec"><b>💬 أقوال وحِكم من المقطع</b>${s.quotes.map((q) => `<blockquote class="sum-quote"><p class="en" dir="ltr">“${esc(q.en)}” <button class="btn icon sm ghost" data-say="${esc(q.en)}" aria-label="استمع">🔊</button></p><p>${esc(q.ar)}</p></blockquote>`).join('')}</div>` : ''}${doneBtn}`;
       bindSpeech(box);
     } catch (err) {
-      box.innerHTML = `<button class="btn icon sm ghost modal-close" data-close aria-label="إغلاق">${icon.x}</button><h2>📝 ملخص المقطع</h2><div class="alert">${esc(err.message)}</div>`;
+      box.innerHTML = `<button class="btn icon sm ghost modal-close" data-close aria-label="إغلاق">${icon.x}</button><h2>📝 ملخص المقطع</h2><div class="alert">${esc(err.message)}</div>${doneBtn}`;
     }
-  });
+    box.querySelector('#sumDone')?.addEventListener('click', () => { closeModal(true); done(); });
+  };
+  $('#summaryBtn', view)?.addEventListener('click', () => showSummary());
+
+  // 🏁 the video ended: its summary, then «أحسنت» 🎉 with practice on its words (not a test) or finish
+  const finishVideo = () => {
+    const colors = ['#0ABAB5', '#8b5cf6', '#CBA55E', '#22a35a', '#ec4899', '#3b82f6', '#f59e0b'];
+    const bits = Array.from({ length: 70 }, (_, i) => `<i style="--x:${Math.round(Math.random() * 100)}%;--d:${(Math.random() * 0.9).toFixed(2)}s;--t:${(1.6 + Math.random() * 1.4).toFixed(2)}s;--r:${Math.round(Math.random() * 720 - 360)}deg;--c:${colors[i % colors.length]}"></i>`).join('');
+    const box = openModal(`<div class="confetti" aria-hidden="true">${bits}</div><div class="celebrate"><div class="celebrate-emoji">🎉</div>
+      <h2>أحسنت! خلّصت المقطع</h2>
+      <p class="ink-2">${data.items.length ? `فيه <b class="en-inline">${data.items.length}</b> كلمة جديدة — ثبّتها الحين وهي طازجة في بالك.` : 'خطوة زينة في طريقك.'}</p>
+      <div class="stack" style="gap:8px;margin-top:14px">
+        ${data.items.length ? `<a class="btn primary" href="#/practice?${new URLSearchParams({ source: id, title: source.title.slice(0, 40) })}" data-close>🎮 تدرّب على كلمات المقطع</a>` : ''}
+        <button type="button" class="btn" id="endExit">إنهاء</button></div></div>`);
+    box.querySelector('#endExit')?.addEventListener('click', () => { closeModal(); location.hash = '#/add'; });
+  };
+  endedFlow = () => showSummary(finishVideo);
 
   /* 🎧 Listen: each sentence read aloud, Arabic then English (or the other way) — follow by ear */
   let listenRun = 0;

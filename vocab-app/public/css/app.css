@@ -1679,3 +1679,9 @@ body.has-thumb-bar[data-tb="off"] .page-reader, body.has-thumb-bar.reader-focus:
 body[data-tbsize="s"] .thumb-bar button { height: 36px; font-size: 16px; } body[data-tbsize="s"] .thumb-bar button svg { width: 18px; height: 18px; }
 body[data-tbsize="l"] .thumb-bar button { height: 58px; font-size: 24px; } body[data-tbsize="l"] .thumb-bar button svg { width: 27px; height: 27px; }
 body.has-thumb-bar[data-tbsize="l"] .page-reader { padding-bottom: 78px; }
+
+/* 🎉 video finished: confetti */
+.confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 1; }
+.confetti i { position: absolute; top: -12px; left: var(--x); width: 9px; height: 14px; border-radius: 2px; background: var(--c); opacity: .95; animation: confFall var(--t) var(--d) cubic-bezier(.3,.6,.4,1) forwards; }
+@keyframes confFall { to { transform: translateY(105vh) rotate(var(--r)); opacity: .7; } }
+@media (prefers-reduced-motion: reduce) { .confetti { display: none; } }
