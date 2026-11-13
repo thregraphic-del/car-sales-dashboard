@@ -12,12 +12,26 @@ export default {
   /** Can this word be asked in this format? */
   can: (w) => !!(w.context_sentence && w.arabic && w.context_sentence.trim().split(/\s+/).length >= 5),
   /** Ask one word; resolves true (correct) or false. */
-  play: (stage, w, pool) => choice(stage, w, {
-    prompt: `<div class="q-sentence">“${highlight(w.context_sentence, w.term)}” ${sayBtns(w.context_sentence)}</div>
-      ${w.context_arabic ? `<button type="button" class="btn sm ghost q-ar-btn" data-show-ar>🌐 الترجمة</button><p class="ctx-ar tiny muted hidden" dir="rtl">${esc(w.context_arabic)}</p>` : ''}
-      <div class="prompt" style="margin-top:12px">ماذا تعني <b class="en-inline">${esc(w.term)}</b> هنا؟</div>`,
-    options: distractors(w, pool, 3, (x) => x.arabic),
-    text: (o) => esc(o.arabic),
-    sentence: w.context_sentence,
-  }),
+  // 🔁 mixes the languages: sometimes the English sentence with Arabic choices,
+  // sometimes the Arabic sentence with English choices
+  play: (stage, w, pool) => {
+    const flip = !!w.context_arabic && Math.random() < 0.5;
+    if (flip) {
+      return choice(stage, w, {
+        prompt: `<div class="q-sentence" dir="rtl">«${esc(w.context_arabic)}»</div>
+          <div class="prompt" style="margin-top:12px">وش الكلمة الإنجليزية اللي معناها <b>${esc(String(w.arabic).split('/')[0].trim())}</b> في هالجملة؟</div>`,
+        options: distractors(w, pool, 3, (x) => x.term.toLowerCase()),
+        text: (o) => `<span class="en-inline">${esc(o.term)}</span>`,
+        sentence: w.context_sentence,
+      });
+    }
+    return choice(stage, w, {
+      prompt: `<div class="q-sentence">“${highlight(w.context_sentence, w.term)}” ${sayBtns(w.context_sentence)}</div>
+        ${w.context_arabic ? `<button type="button" class="btn sm ghost q-ar-btn" data-show-ar>🌐 الترجمة</button><p class="ctx-ar tiny muted hidden" dir="rtl">${esc(w.context_arabic)}</p>` : ''}
+        <div class="prompt" style="margin-top:12px">ماذا تعني <b class="en-inline">${esc(w.term)}</b> هنا؟</div>`,
+      options: distractors(w, pool, 3, (x) => x.arabic),
+      text: (o) => esc(o.arabic),
+      sentence: w.context_sentence,
+    });
+  },
 };

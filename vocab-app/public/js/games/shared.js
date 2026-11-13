@@ -59,6 +59,18 @@ export function hintLine(w) {
   const pos = POS_AR[String(w.part_of_speech || '').toLowerCase()] || (w.term.includes(' ') ? 'عبارة' : '');
   return [pos, `يبدأ بـ ${w.term.trim()[0]?.toLowerCase() || ''}`, `${letters(w).replace(/\s/g, '').length} حروف`].filter(Boolean).join(' · ');
 }
+/** 💡 the hints of a word, in order: easy English meaning → the meaning in Arabic → a sentence with it hidden */
+export function hintSteps(w) {
+  const out = [];
+  const def = String(w.simple_english || '').trim();
+  const re = termRegex(w.term);
+  if (def && !(re && re.test(def))) out.push(`<div class="hint-box"><p class="tiny muted" style="margin:0 0 4px">بإنجليزي سهل:</p><p class="en" dir="ltr">${esc(def)}</p><p class="tiny muted" style="margin:4px 0 0">${esc(hintLine(w))}</p></div>`);
+  if (w.arabic) out.push(`<div class="hint-box"><p class="tiny muted" style="margin:0 0 4px">بالعربي:</p><p>${esc(w.arabic)}</p></div>`);
+  const sent = hintSentence(w);
+  if (sent) out.push(sent);
+  if (!out.length) out.push(`<p class="tiny muted">${esc(hintLine(w))}</p>`);
+  return out;
+}
 /** 💡 a clue that helps without giving the answer away: the meaning in easy English (+ the kind of word) */
 export function smartHint(w) {
   const def = String(w.simple_english || '').trim();
@@ -108,12 +120,16 @@ export function choice(stage, w, { prompt, options, text, after = '', sentence =
     let done = false;
     let tries = 0;
     let hinted = false;
-    // 💡 one small button; tapping it gives a real clue (an easy definition), not just letters
-    stage.querySelector('.question').insertAdjacentHTML('beforeend', `<button type="button" class="btn sm ghost hint-btn" id="hintBtn">💡 تلميح</button><div id="hintBox"></div>`);
+    // 💡 hints one after another, as many as needed (no penalty): easy English → Arabic → a sentence
+    const hints = hintSteps(w);
+    let shownHints = 0;
+    stage.querySelector('.question').insertAdjacentHTML('beforeend', `<div id="hintBox"></div><button type="button" class="btn sm ghost hint-btn" id="hintBtn">💡 تلميح</button>`);
     stage.querySelector('#hintBtn').addEventListener('click', (e) => {
       hinted = true;
-      stage.querySelector('#hintBox').innerHTML = smartHint(w);
-      e.currentTarget.remove();
+      stage.querySelector('#hintBox').insertAdjacentHTML('beforeend', hints[shownHints] || '');
+      shownHints += 1;
+      if (shownHints >= hints.length) e.currentTarget.remove();
+      else e.currentTarget.textContent = '💡 تلميح آخر';
     });
     // 🌐 the sentence's Arabic, only when asked for
     stage.querySelector('[data-show-ar]')?.addEventListener('click', (e) => {
@@ -132,7 +148,8 @@ export function choice(stage, w, { prompt, options, text, after = '', sentence =
         return;
       }
       done = true;
-      const ok = right && tries === 1 && !hinted;
+      const ok = right && tries === 1; // hints are free: a right first answer still wins
+      void hinted;
       stage.querySelectorAll('.option').forEach((b) => {
         b.disabled = true;
         if (opts[Number(b.dataset.k)].uv_id === w.uv_id) b.classList.add('correct');
