@@ -158,7 +158,7 @@ export async function render(view, { params }) {
     const playable = list.filter((w) => canPlay(type, w));
     stage.innerHTML = `
       <div class="game-stage">
-        <div class="game-top"><span class="small muted"><b class="game-name" id="gameName">🎮 ${type === 'mixed' ? 'أسئلة متنوعة' : TYPES[type].name}</b>${mode === 'games' ? ` · <a class="link-btn" href="${href({ ...base, mode: 'games', type: undefined })}">كل الألعاب</a>` : ''}</span><span class="score-pill" id="score">✅ 0 · ❌ 0</span></div>
+        <div class="game-top"><span class="small muted"><b class="game-name" id="gameName">🎮 ${type === 'mixed' ? 'أسئلة متنوعة' : TYPES[type].name}</b>${mode === 'games' ? ` · <a class="link-btn" href="${href({ ...base, mode: 'games', type: undefined })}">كل الألعاب</a>` : ''}</span><span class="row" style="gap:6px"><button type="button" class="btn sm ghost q-back" id="qBack" disabled title="السؤال السابق">↩ السابق</button><span class="score-pill" id="score">✅ 0 · ❌ 0</span></span></div>
         <div class="bar" style="margin-bottom:18px"><span id="gbar" style="width:0%"></span></div>
         <div id="q"></div>
       </div>`;

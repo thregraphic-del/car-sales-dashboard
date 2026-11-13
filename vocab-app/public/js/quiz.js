@@ -58,16 +58,27 @@ export async function runQuiz(stage, { words, distractors: pool, type = 'mixed',
   }
 
   const list = type === 'mixed' ? words : words.filter((w) => game?.can(w));
+  const kinds = [];
+  const answered = new Set(); // ↩ a question seen again is not counted twice
+  const backBtn = document.getElementById('qBack');
   for (let i = 0; i < list.length; i += 1) {
     onProgress(i, list.length, score);
     const w = list[i];
-    const kind = type === 'mixed' ? chooseType(w, i) : type;
+    const kind = kinds[i] ||= type === 'mixed' ? chooseType(w, i) : type;
     stopSound(); // the last word's sound never spills into the next question
     const gn = document.getElementById('gameName'); // 🎮 the game being played, by name
     if (gn && type === 'mixed') gn.textContent = `🎮 ${GAME_BY_KEY[kind].name}`;
-    const ok = await GAME_BY_KEY[kind].play(stage, w, all);
-    await record(w, ok);
+    // ↩ back to the previous question (to look at it again)
+    let goBack = null;
+    const back = new Promise((res) => { goBack = res; });
+    const onBack = () => goBack('back');
+    if (backBtn) { backBtn.disabled = i === 0; backBtn.onclick = onBack; }
+    const ok = await Promise.race([GAME_BY_KEY[kind].play(stage, w, all), back]);
+    if (backBtn) backBtn.onclick = null;
+    if (ok === 'back') { i = Math.max(-1, i - 2); continue; }
+    if (!answered.has(i)) { answered.add(i); await record(w, ok); }
   }
+  if (backBtn) backBtn.disabled = true;
   onProgress(list.length, list.length, score);
   return score;
 }

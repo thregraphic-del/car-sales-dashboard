@@ -2,7 +2,7 @@
 import { api } from './api.js';
 import { state, loadGroups } from './state.js';
 import { stop as stopAudio, speak } from './audio.js';
-import { closeWordPanel } from './components.js';
+import { closeWordPanel, openWordPanel } from './components.js';
 import { icon, $, closeModal, esc, openModal, toast, applyTheme } from './ui.js';
 import { openFeedback } from './feedback.js';
 import { goalText } from './goal.js';
@@ -256,6 +256,30 @@ async function init() {
   } catch {
     /* storage unavailable */
   }
+  // 👆 Any English word anywhere (examples, games, summaries, notes…): tap it for its meaning,
+  // forms and an example, and save it. The video text has its own word marks, so it is left out;
+  // so are buttons, links, fields and the word a game question is asking about.
+  const wordAt = (x, y) => {
+    let node; let off;
+    if (document.caretPositionFromPoint) { const p = document.caretPositionFromPoint(x, y); node = p?.offsetNode; off = p?.offset; }
+    else if (document.caretRangeFromPoint) { const r = document.caretRangeFromPoint(x, y); node = r?.startContainer; off = r?.startOffset; }
+    if (!node || node.nodeType !== 3) return null;
+    const t = node.textContent;
+    let a = off; let b = off;
+    while (a > 0 && /[A-Za-z'’-]/.test(t[a - 1])) a -= 1;
+    while (b < t.length && /[A-Za-z'’-]/.test(t[b])) b += 1;
+    const w = t.slice(a, b).replace(/^['’-]+|['’-]+$/g, '');
+    return /^[A-Za-z][A-Za-z'’-]{1,30}$/.test(w) ? { word: w, sentence: t.trim().slice(0, 300) } : null;
+  };
+  document.addEventListener('click', (e) => {
+    if (e.defaultPrevented || window.getSelection()?.toString().trim()) return;
+    const el = e.target;
+    if (!el.closest?.('.en, .en-inline, [dir="ltr"], .q-sentence, .fb-ex, .hint-box, .sum-quote, .nt-clip, .nt-ref')) return;
+    if (el.closest('#lines, .word-pop, a, button, label, input, textarea, select, [contenteditable], [data-say], .mark, .option, .key, .q-big, .question mark, .question .hl, .question .hit, .tg-switch, .fc-wrap')) return;
+    const hit = wordAt(e.clientX, e.clientY);
+    if (!hit) return;
+    openWordPanel(el, { word: hit.word, context: '1' });
+  });
   // 🔊 Every listen button on every page works, as many times as you like (pages that
   // handle their own buttons stop the click before it gets here).
   document.addEventListener('click', (e) => {
