@@ -280,8 +280,8 @@ export function bindSuggestions(view, { onPick }) {
 
 /* ------------------------------------------------ suggest new words */
 
-const FIELDS = ['عام', 'عمل وإدارة', 'سفر', 'تقنية', 'طب وصحة', 'دراسة', 'مشاعر وعلاقات', 'أكاديمي', 'مال واقتصاد', 'رياضة'];
-const FIELD_EN = { 'عام': 'general everyday English', 'عمل وإدارة': 'business and management', 'سفر': 'travel', 'تقنية': 'technology', 'طب وصحة': 'medicine and health', 'دراسة': 'school and study', 'مشاعر وعلاقات': 'feelings and relationships', 'أكاديمي': 'academic English', 'مال واقتصاد': 'money and economy', 'رياضة': 'sports' };
+const FIELDS = ['عام', 'عمل وإدارة', 'سفر', 'تقنية', 'طب وصحة', 'دراسة', 'مشاعر وعلاقات', 'أكاديمي', 'مال واقتصاد', 'رياضة', 'قانون', 'تربية وتعليم', 'مطاعم وطبخ', 'تصميم وفنون', 'تسويق ومبيعات', 'هندسة'];
+const FIELD_EN = { 'عام': 'general everyday English', 'عمل وإدارة': 'business and management', 'سفر': 'travel', 'تقنية': 'technology', 'طب وصحة': 'medicine and health', 'دراسة': 'school and study', 'مشاعر وعلاقات': 'feelings and relationships', 'أكاديمي': 'academic English', 'مال واقتصاد': 'money and economy', 'رياضة': 'sports', 'قانون': 'law and legal English', 'تربية وتعليم': 'education and teaching', 'مطاعم وطبخ': 'restaurants, cooking and food service', 'تصميم وفنون': 'design and the arts', 'تسويق ومبيعات': 'marketing and sales', 'هندسة': 'engineering' };
 
 export const suggestWordsHtml = () => `
   <div class="card suggest-words hidden" id="swCard">
@@ -289,7 +289,7 @@ export const suggestWordsHtml = () => `
     <div class="row wrap" style="gap:10px;margin-top:10px">
       <label class="small">العدد <select class="input sm" id="swCount"><option>10</option><option selected>20</option><option>30</option><option>50</option></select></label>
       <label class="small">المستوى <select class="input sm" id="swLevel"><option value="">كل المستويات (مزيج)</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select></label>
-      <input class="input sm" id="swTopic" placeholder="المجال (اختياري) مثل: تسويق" style="flex:1;min-width:150px">
+      <input class="input sm" id="swTopic" placeholder="اكتب هنا مجالك أو مهنتك إذا ما لقيته تحت…" style="flex:1;min-width:150px">
     </div>
     <div class="row wrap" style="gap:6px;margin-top:8px">${FIELDS.map((f) => `<button type="button" class="gchip" data-field="${esc(f)}">${esc(f)}</button>`).join('')}</div>
     <div class="btn-row" style="margin-top:12px"><button class="btn primary" id="swGo">اقترح</button></div>

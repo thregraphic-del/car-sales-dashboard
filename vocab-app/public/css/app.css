@@ -1716,3 +1716,4 @@ body.has-thumb-bar[data-tbsize="l"] .page-reader { padding-bottom: 78px; }
 .nt-clip { display: flex; align-items: flex-start; gap: 4px; }
 .nt-clip-go { flex: 1; display: grid; gap: 3px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; }
 .nt-clip mark { background: color-mix(in srgb, var(--mk-new, #0ABAB5) 26%, transparent); color: inherit; border-radius: 4px; padding: 1px 3px; line-height: 1.8; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
+#swTopic::placeholder { color: var(--muted); opacity: .75; font-size: 14px; }
