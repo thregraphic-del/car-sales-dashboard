@@ -89,3 +89,9 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 | 9 | 💡 Hints one after another, as many as wanted, no penalty (a right first answer still wins): 1) easy English meaning, 2) «تلميح آخر» → the meaning in Arabic, 3) a sentence with the word hidden. 🔁 «تحدّي السياق» mixes the languages: some questions show the English sentence with Arabic choices, others the Arabic sentence with English choices | deployed 2026-11-13 | in the batch | 0 |
 | 10 | 🔊 Games: the English word is said right away when each question/card opens (whenever it is on the screen — never when it is the hidden answer) | deployed 2026-11-13 | in the batch | 0 |
 | 11 | ⛶ Top row of a video: ⚙ is a normal button again (never covers ⛶); wide view shows only ⏯ and «⛶ رجوع» (back to the normal view) — also fixes a broken CSS rule that had stopped the wide view from hiding the other buttons | deployed 2026-11-13 | in the batch | 0 |
+
+(New batch — collect 20, on the free preview — deploy at 20 or on «ارفع»)
+
+| # | Change | Status | Deploy cost | Running cost |
+|---|--------|--------|-------------|--------------|
+| 1 | 🧹 Fix (deployed alone 2026-11-13, urgent): the «كلماتي» tidy-up never started — it waited for the simplest-form pass (26 calls) and stopped when the page was left. Now the multi-word tidy runs FIRST, keeps going in the background while the site is open, 25 terms per AI call, with a small progress note. Also: Enter in the «العدد» box now works (the CSP blocked the inline handler) | deployed 2026-11-13 | alone | as before |

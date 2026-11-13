@@ -394,26 +394,31 @@ export async function render(view, { params }) {
   window.addEventListener('hashchange', unOutside, { once: true });
   draw();
 
-  // Older saved words move to their simplest form once (struggling → struggle), a slice at a time.
+  // 🧹 «كلماتي» tidy-up (runs in the background while the site is open, even after leaving this page):
+  // 1) multi-word items first — real expressions stay, free combinations become their one word;
+  // 2) every word to its simplest form (struggling → struggle, delusional → delusion).
   (async () => {
     let changed = 0;
+    if (window.__tidyRunning) return;
+    window.__tidyRunning = true;
+    const note = (n) => { if (n) toast(`🧹 نرتّب كلماتك… اتعدّلت ${n} حتى الحين`, 2500); };
+    if (state.config?.ai?.available) {
+      try {
+        for (let i = 0; i < 100; i++) {
+          const r = await api.tidyWords();
+          if (r.changed) { changed += r.changed; note(changed); }
+          if (r.done) break;
+        }
+      } catch { /* next visit */ }
+    }
     try {
-      for (let i = 0; i < 60; i++) {
+      for (let i = 0; i < 80; i++) {
         const r = await api.simplifyWords();
         changed += r.changed || 0;
         if (r.done) break;
       }
     } catch { /* try again next time */ }
-    // multi-word items: real expressions stay, free combinations (senior years) become their one word
-    if (state.config?.ai?.available) {
-      try {
-        for (let i = 0; i < 100 && view.isConnected; i++) {
-          const r = await api.tidyWords();
-          changed += r.changed || 0;
-          if (r.done) break;
-        }
-      } catch { /* next visit */ }
-    }
+    window.__tidyRunning = false;
     // levels never checked: once, then saved for good
     let levelled = 0;
     try {
