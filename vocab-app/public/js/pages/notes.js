@@ -3,19 +3,12 @@
 // moment and write about it (it is kept with the note and opens the video right there).
 import { api } from '../api.js';
 import { esc, icon, toast, emptyState } from '../ui.js';
+import { summaryHtml } from '../summary-view.js';
 
 const fmt = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const TOKEN = /@(\d{1,3})(?::(\d{1,2}))?/g;
 const secOf = (m, s) => Number(m) * 60 + (s ? Number(s) : 0);
 const thumbOf = (n) => n.thumbnail_url || (n.youtube_id ? `https://i.ytimg.com/vi/${encodeURIComponent(n.youtube_id)}/mqdefault.jpg` : '');
-
-function summaryHtml(s = {}) {
-  return `<div class="sum-sec"><b>💡 الفكرة</b><p>${esc(s.idea || '')}</p></div>
-    ${s.benefit ? `<div class="sum-sec"><b>🎁 الفائدة</b><p>${esc(s.benefit)}</p></div>` : ''}
-    ${s.points?.length ? `<div class="sum-sec"><b>📌 أهم النقاط</b><ul>${s.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
-    ${s.steps?.length ? `<div class="sum-sec"><b>✅ خطوات عملية</b><ol>${s.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol></div>` : ''}
-    ${s.quotes?.length ? `<div class="sum-sec"><b>💬 أقوال وحِكم من المقطع</b>${s.quotes.map((q) => `<blockquote class="sum-quote"><p class="en" dir="ltr">“${esc(q.en)}” <button class="btn icon sm ghost" data-say="${esc(q.en)}" aria-label="استمع">🔊</button></p><p>${esc(q.ar)}</p></blockquote>`).join('')}</div>` : ''}`;
-}
 
 // the note with each @minute shown as a small time chip that opens the video there
 function noteHtml(n) {

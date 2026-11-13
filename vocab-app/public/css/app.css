@@ -1704,3 +1704,5 @@ body.has-thumb-bar[data-tbsize="l"] .page-reader { padding-bottom: 78px; }
 .nt-edit textarea { min-height: 96px; resize: vertical; font-size: 16px; line-height: 1.7; }
 .nt-pick { display: grid; gap: 6px; max-height: 240px; overflow: auto; }
 .nt-cand:hover { border-color: var(--accent); }
+
+.sum-kind { display: inline-block; font-size: 12px; padding: 2px 10px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent); margin-bottom: 8px; }

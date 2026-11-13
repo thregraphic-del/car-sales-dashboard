@@ -716,26 +716,40 @@ export async function dictionaryBatchWithAi(words) {
 
 /* ------------------------------------------------------- video summary */
 
+// The summary fits the kind of video: a lesson gets its benefit and steps; a vlog, film, story
+// or game gets a quick summary and its highlights instead (sections chosen by the AI).
+const SUMMARY_KINDS = ['learn', 'story', 'vlog', 'entertainment', 'news', 'talk'];
 const SUMMARY_SCHEMA = obj({
+  kind: { type: 'string', enum: SUMMARY_KINDS },
+  kind_ar: str,
   idea: str, benefit: str,
   points: { type: 'array', items: str },
   steps: { type: 'array', items: str },
+  sections: { type: 'array', items: obj({ emoji: str, title: str, items: { type: 'array', items: str } }) },
   quotes: { type: 'array', items: obj({ en: str, ar: str }) },
 });
 const SummaryZ = z.object({
-  idea: z.string(), benefit: z.string(), points: z.array(z.string()), steps: z.array(z.string()),
-  quotes: z.array(z.object({ en: z.string(), ar: z.string() })),
+  kind: z.enum(SUMMARY_KINDS).catch('learn').default('learn'), kind_ar: z.string().default(''),
+  idea: z.string(), benefit: z.string().default(''), points: z.array(z.string()).default([]), steps: z.array(z.string()).default([]),
+  sections: z.array(z.object({ emoji: z.string().default(''), title: z.string(), items: z.array(z.string()) })).default([]),
+  quotes: z.array(z.object({ en: z.string(), ar: z.string() })).default([]),
 });
 
-/** A complete Arabic summary of a video: idea, value, key points, practical steps, quotes. Cached per transcript. */
 export async function summaryWithAi({ title, text }) {
   return jsonCall({
-    task: 'video_summary',
-    system: 'You summarise English videos for an Arabic-speaking learner, in clear Modern Standard Arabic. Fields: "idea" = the main idea in 2–3 sentences; "benefit" = what the viewer gains from this video, 1–2 sentences; "points" = 3–7 key points (one sentence each); "steps" = practical, actionable steps the video recommends, in order (empty list if it has none); "quotes" = 2–5 memorable sentences or pieces of wisdom quoted EXACTLY from the transcript in English ("en") with a natural Arabic translation ("ar"). Be faithful to the transcript; do not invent content.',
+    task: 'video_summary_v2',
+    system: `You summarise English videos for an Arabic-speaking learner, in clear Modern Standard Arabic. FIRST decide what kind of video it is and fit the summary to it:
+- "learn" (lesson, advice, self-improvement, how-to, science, business): "idea" = the main idea in 2–3 sentences; "benefit" = what the viewer gains, 1–2 sentences; "points" = 3–7 key points; "steps" = practical steps the video recommends, in order (empty if none); "sections" = [].
+- "story" (film, series, cartoon, fiction, a told story): "idea" = a quick spoiler-light summary in 2–3 sentences; "benefit" = ""; "points" = []; "steps" = []; "sections" = e.g. {emoji "🎬", title "أبرز الأحداث", items: the main events in order}, {emoji "👥", title "الشخصيات", items} and, if there is one, {emoji "💭", title "الرسالة", items}.
+- "vlog" (daily life, travel, food, challenge, adventure): "idea" = what happens in 2–3 sentences; "benefit" = ""; "points" = []; "steps" = []; "sections" = e.g. {"📍","أبرز اللحظات", items}, {"😄","أطرف المواقف", items} and any place/food worth knowing.
+- "entertainment" (comedy, game, reaction, music): like vlog, with sections such as "أبرز اللقطات" and "ليش ممتع".
+- "news" (news, report, documentary): "idea" = the story in 2–3 sentences; "points" = the key facts; "benefit" = why it matters, 1 sentence; "steps" = []; "sections" = optional {"🗓","التسلسل", items}.
+- "talk" (podcast, interview, conversation): "idea" = what it is about; "points" = the main opinions/ideas; "benefit" = 1 sentence; "steps" = practical advice if any; "sections" = optional {"🎙","المتحدثون", items}.
+"kind_ar" = the kind in 1–3 Arabic words (e.g. "درس تطويري", "فيلم قصير", "فلوق سفر"). Section titles are short Arabic headings; 3–7 items each, one sentence each. "quotes" = 2–5 memorable sentences quoted EXACTLY from the transcript in English ("en") with a natural Arabic translation ("ar"). Be faithful to the transcript; do not invent content.`,
     user: `Title: ${title}\n\nTranscript:\n${text.slice(0, 60000)}`,
     schema: SUMMARY_SCHEMA,
     zod: SummaryZ,
-    maxTokens: 2500,
+    maxTokens: 2800,
     timeoutMs: 50000,
   });
 }

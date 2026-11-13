@@ -21,6 +21,8 @@ async function save(userId, list) {
 const strList = (a, n, len) => (Array.isArray(a) ? a : []).slice(0, n).map((x) => clean(x, len));
 function cleanSummary(s = {}) {
   return {
+    kind: clean(s.kind, 20), kind_ar: clean(s.kind_ar, 60),
+    sections: (Array.isArray(s.sections) ? s.sections : []).slice(0, 6).map((x) => ({ emoji: clean(x?.emoji, 8), title: clean(x?.title, 80), items: strList(x?.items, 12, 600) })),
     idea: clean(s.idea, 1500), benefit: clean(s.benefit, 1000),
     points: strList(s.points, 12, 600), steps: strList(s.steps, 12, 600),
     quotes: (Array.isArray(s.quotes) ? s.quotes : []).slice(0, 8).map((q) => ({ en: clean(q?.en, 400), ar: clean(q?.ar, 400) })),

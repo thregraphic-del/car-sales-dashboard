@@ -12,6 +12,7 @@ import { api } from '../api.js';
 import { startTour, maybeTour } from '../tour.js';
 import { state } from '../state.js';
 import { notePassed, noteWatched } from '../goal.js';
+import { summaryHtml } from '../summary-view.js';
 import { esc, icon, levelChip, usageDot, usageLegend, fmtTime, fmtDuration, toast, $, emptyState, openModal, closeModal } from '../ui.js';
 import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech, celebrateGoal } from '../components.js';
 import { tokenize, quickTier, normalizeArabic } from '../shared/text.js';
@@ -2047,11 +2048,7 @@ export async function render(view, { segments, params }) {
       const s = summaryCache;
       box.innerHTML = `<button class="btn icon sm ghost modal-close" data-close aria-label="إغلاق">${icon.x}</button>
         <h2 style="margin-bottom:4px">📝 ملخص المقطع</h2><div class="tiny muted en" style="margin-bottom:12px">${esc(source.title)}</div>
-        <div class="sum-sec"><b>💡 الفكرة</b><p>${esc(s.idea)}</p></div>
-        <div class="sum-sec"><b>🎁 الفائدة</b><p>${esc(s.benefit)}</p></div>
-        ${s.points.length ? `<div class="sum-sec"><b>📌 أهم النقاط</b><ul>${s.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
-        ${s.steps.length ? `<div class="sum-sec"><b>✅ خطوات عملية</b><ol>${s.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol></div>` : ''}
-        ${s.quotes.length ? `<div class="sum-sec"><b>💬 أقوال وحِكم من المقطع</b>${s.quotes.map((q) => `<blockquote class="sum-quote"><p class="en" dir="ltr">“${esc(q.en)}” <button class="btn icon sm ghost" data-say="${esc(q.en)}" aria-label="استمع">🔊</button></p><p>${esc(q.ar)}</p></blockquote>`).join('')}</div>` : ''}
+        ${summaryHtml(s)}
         <div class="btn-row" style="justify-content:center;margin-top:12px"><button type="button" class="btn" id="sumKeep">${icon.bookmark} احفظ في خلاصاتي</button></div>${doneBtn}`;
       bindSpeech(box);
       box.querySelector('#sumKeep')?.addEventListener('click', async (e) => {
