@@ -115,7 +115,8 @@ export function choice(stage, w, { prompt, options, text, after = '', sentence =
       <div class="options">${opts.map((o, k) => `<button class="option" data-k="${k}">${text(o)}</button>`).join('')}</div>
       <div class="feedback" id="fb"></div>
       <div class="next-wrap"><button class="btn primary hidden" id="nextBtn">التالي ←</button></div>`;
-    if (showsWord) speak(w.term).catch(() => {});
+    // 🔊 the English word is said as soon as the question opens, whenever it is on the screen
+    if (prompt.toLowerCase().includes(esc(w.term).toLowerCase())) speak(w.term).catch(() => {});
     // 3 tries: a wrong pick turns grey and you try again; right first time (no hint) counts as known
     let done = false;
     let tries = 0;
