@@ -13,7 +13,7 @@ import { startTour, maybeTour } from '../tour.js';
 import { state } from '../state.js';
 import { notePassed, noteWatched } from '../goal.js';
 import { summaryHtml } from '../summary-view.js';
-import { esc, icon, levelChip, usageDot, usageLegend, fmtTime, fmtDuration, toast, $, emptyState, openModal, closeModal } from '../ui.js';
+import { esc, icon, levelChip, usageDot, usageLegend, fmtTime, fmtDuration, toast, $, emptyState, openModal, closeModal, applyTheme } from '../ui.js';
 import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech, celebrateGoal } from '../components.js';
 import { tokenize, quickTier, normalizeArabic } from '../shared/text.js';
 import { buildTimeline, positionAt, steadyPosition, wordIndexByChar } from '../shared/sync.js';
@@ -781,7 +781,14 @@ export async function render(view, { segments, params }) {
   // 🎨 words: highlight or frame, colour of new words and of «كلماتي»; 🌗 page background — for every video
   applyMarkLook();
   const rbgOf = () => pref('reader.bg', '');
-  const applyBg = () => { if (rbgOf()) document.documentElement.dataset.rbg = rbgOf(); else delete document.documentElement.dataset.rbg; };
+  // night = the whole page in the site's dark colours; white / beige = the light colours —
+  // so every icon and button keeps its contrast (back to the site's own theme when leaving)
+  const siteTheme = () => { try { return localStorage.getItem('theme') || 'light'; } catch { return 'light'; } };
+  const applyBg = () => {
+    const bg = rbgOf();
+    if (bg) document.documentElement.dataset.rbg = bg; else delete document.documentElement.dataset.rbg;
+    applyTheme(bg === 'night' ? 'dark' : bg ? 'light' : siteTheme());
+  };
   applyBg();
   const drawLook = () => {
     view.querySelectorAll('[data-mks]').forEach((b) => b.classList.toggle('active', b.dataset.mks === pref('reader.mkStyle', 'fill')));
@@ -2226,6 +2233,7 @@ export async function render(view, { segments, params }) {
     window.removeEventListener('lexitube:goal-reached', onGoal);
     clearInterval(watchTimer);
     delete document.documentElement.dataset.rbg;
+    applyTheme(siteTheme());
     delete document.body.dataset.tb; delete document.body.dataset.tbsize;
     window.removeEventListener('resize', onResize);
     cancelGap();

@@ -1748,3 +1748,13 @@ body.has-thumb-bar[data-tbsize="l"] .page-reader { padding-bottom: 78px; }
   .reader-head.one-row .rb-btn { padding: 4px 7px; }
   .reader-head.one-row .reader-title-sm { display: none; }
 }
+/* ⚙ the gear stays visible while its sheet is open */
+.reader-head.one-row #setBtn[aria-expanded="true"] { background: var(--accent); color: var(--accent-ink); box-shadow: none; }
+/* ⚙ «موافق» always in sight at the bottom of the sheet, with room under it (above the phone bars) */
+@media (max-width: 999px) {
+  .page-reader .rset { max-height: calc(100dvh - var(--tabbar-h, 64px) - 170px); padding-bottom: 0; }
+  .page-reader .rset .rset-ok { position: sticky; bottom: 0; z-index: 3; margin: 10px -12px 0; width: calc(100% + 24px); border-radius: 0 0 16px 16px; box-shadow: 0 -8px 14px -6px color-mix(in srgb, var(--ink) 18%, transparent); }
+}
+body.reader-focus .page-reader .rset { max-height: calc(100dvh - 120px); }
+/* the phone buttons step aside while ⚙ is open, so «موافق» is never under them */
+body:has(.page-reader #rset:not(.hidden)) .thumb-bar { display: none !important; }
