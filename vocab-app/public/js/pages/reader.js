@@ -37,6 +37,16 @@ const setPref = (k, v) => {
   }
 };
 
+// 🎨 word colours (the learner picks; kept for every video)
+const MK_NEW = [['#0ABAB5', 'تيفاني'], ['#22a35a', 'أخضر'], ['#3b82f6', 'أزرق'], ['#f59e0b', 'برتقالي'], ['#ec4899', 'وردي']];
+const MK_MINE = [['#8b5cf6', 'بنفسجي'], ['#3b82f6', 'أزرق'], ['#64748b', 'رمادي'], ['#CBA55E', 'ذهبي'], ['#ef4444', 'أحمر']];
+function applyMarkLook() {
+  const r = document.documentElement;
+  r.style.setProperty('--mk-new', pref('reader.mkNew', MK_NEW[0][0]));
+  r.style.setProperty('--mk-mine', pref('reader.mkMine', MK_MINE[0][0]));
+  r.dataset.mk = pref('reader.mkStyle', 'fill');
+}
+
 /* --------------------------------------------------------------- players */
 
 let ytApi = null;
@@ -305,19 +315,25 @@ export async function render(view, { segments, params }) {
           <div class="sgroup">العرض</div>
           <div id="viewPick" class="rgrp"><button type="button" class="hidden" id="viewBtn"></button><div id="viewMenu" class="rgrp">
             <div class="srow"><span class="slabel">الترجمة</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="arToggle" ${showAr ? 'checked' : ''}> عربي</label><span class="sopts${showAr ? '' : ' hidden'}" id="arLayout"><button type="button" class="sopt" data-layout="side">بجانبه</button><button type="button" class="sopt" data-layout="below">تحته</button></span><button type="button" class="sopt" id="hideArBtn" aria-pressed="false">🙈 أخفه</button></div></div>
+            <div class="srow"><span class="slabel">شكل الكلمات</span><div class="sopts mk-set">
+              <span class="sopts" id="mkStyle"><button type="button" class="sopt" data-mks="fill">تظليل</button><button type="button" class="sopt" data-mks="frame">إطار</button></span>
+              <span class="mk-row"><span class="tiny">الجديدة</span>${MK_NEW.map(([c, n]) => `<button type="button" class="mk-sw" data-mkn="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span>
+              <span class="mk-row"><span class="tiny">كلماتي</span>${MK_MINE.map(([c, n]) => `<button type="button" class="mk-sw" data-mkm="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span></div></div>
+            <div class="srow"><span class="slabel">الخلفية</span><div class="sopts" id="rBg">${[['', 'مثل الموقع'], ['night', '🌙 ليلي'], ['white', '⬜ أبيض'], ['beige', '🟫 بيج']].map(([k, l]) => `<button type="button" class="sopt" data-rbg="${k}">${l}</button>`).join('')}</div></div>
             <div class="srow"><span class="slabel">النص</span><div class="sopts">${hasTimes ? `<label class="sopt-check"><input type="checkbox" class="check" id="followToggle" ${follow ? 'checked' : ''}> متابعة تلقائية</label>` : ''}${hasTimes ? '<label class="sopt-check"><input type="checkbox" class="check" id="timesToggle"> الوقت</label>' : ''}<span class="sopts fontsize"><button type="button" class="sopt" data-font="-1">A−</button><button type="button" class="sopt" data-font="1">A+</button></span></div></div>
           </div></div>
           ${isVideo ? `<div class="srow"><span class="slabel">الفيديو</span><div class="sopts" id="vidPos"><button type="button" class="sopt" data-vpos="top">فوق</button><button type="button" class="sopt" data-vpos="bottom">تحت</button><button type="button" class="sopt" data-vpos="float">عائم</button></div></div>` : ''}
           <div class="srow"><span class="slabel">بحث</span><div class="sopts tr-search"><input class="input sm" id="trQ" type="search" placeholder="ابحث في النص" aria-label="ابحث في النص"><span class="tiny muted" id="trQn"></span></div></div>
           <div class="sgroup">أدوات</div>
-          <div class="srow"><span class="slabel">شرح</span><div class="sopts"><button class="sopt" id="tourR">شرح الأزرار</button><button class="sopt" id="colorKey">🎨 مفتاح الألوان</button><button class="sopt" id="resetR">↺ رجّع إعدادات المقطع الأصلية</button></div></div>
+          <div class="srow"><span class="slabel">شرح</span><div class="sopts"><button class="sopt" id="tourR">شرح الأزرار</button><button class="sopt" id="colorKey">🎨 مفتاح الألوان</button><button class="sopt" id="resetR">↺ رجّع كل الإعدادات للأصل</button></div></div>
           <div class="srow"><span class="slabel">أدوات</span><div class="sopts">
             <button class="sopt" id="retrBtn">ترجمة أدق</button><button class="sopt" id="summaryBtn">📝 ملخص المقطع كامل</button><button class="sopt" id="listenBtn">🎧 استماع</button>
             ${source.youtube_id && !source.is_demo ? `<a class="sopt" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">يوتيوب ↗</a>` : ''}
             <button class="sopt" id="del" style="color:var(--bad)">🗑 حذف</button></div></div>
+          <button type="button" class="btn rset-reset" id="resetAll">↺ رجّع كل الإعدادات للأصل</button>
           <button type="button" class="btn primary rset-ok" id="setOk">موافق</button>
         </div>
-        <div class="reader-status"><span class="tiny mode-note" id="modeNote"></span><span class="tiny muted" id="trNote"></span></div>
+        <div class="reader-status"><span class="mk-legend" aria-hidden="true"><span class="mk-l mine">كلماتي</span><span class="mk-l new">جديد</span></span><span class="tiny mode-note" id="modeNote"></span><span class="tiny muted" id="trNote"></span></div>
         ${isVideo ? '<div class="player-box yt-clean"><div id="player"></div><button type="button" class="yt-shield" id="ytShield" aria-label="أظهر أزرار يوتيوب"></button></div><div class="split" id="split" role="separator" aria-orientation="horizontal" title="اسحب لتكبير الفيديو أو النص"><span></span></div>' : ''}
         <button type="button" class="btn sm primary back-now hidden" id="backNow">↓ الجملة الحالية</button>
         <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}${arLayout === 'below' ? ' ar-below' : ''}" id="lines"></div>
@@ -736,6 +752,8 @@ export async function render(view, { segments, params }) {
       'قائمة الكلمات': sv('<path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1"/><circle cx="4.5" cy="12" r="1"/><circle cx="4.5" cy="18" r="1"/>'),
       'ملخص كل فترة': sv('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
       'الترجمة': sv('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'),
+      'شكل الكلمات': sv('<path d="M4 20h16"/><rect x="5" y="5" width="14" height="9" rx="2"/>'),
+      'الخلفية': sv('<path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/>'),
       'النص': sv('<path d="M5 7V5h14v2M12 5v14M9 19h6"/>'),
       'الفيديو': sv('<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/>'),
       'بحث': sv('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'),
@@ -759,6 +777,28 @@ export async function render(view, { segments, params }) {
     });
     rset.insertBefore(fr, rset.querySelector('.rset-title')?.nextSibling || rset.firstChild);
   })();
+  // 🎨 words: highlight or frame, colour of new words and of «كلماتي»; 🌗 page background — for every video
+  applyMarkLook();
+  const rbgOf = () => pref('reader.bg', '');
+  const applyBg = () => { if (rbgOf()) document.documentElement.dataset.rbg = rbgOf(); else delete document.documentElement.dataset.rbg; };
+  applyBg();
+  const drawLook = () => {
+    view.querySelectorAll('[data-mks]').forEach((b) => b.classList.toggle('active', b.dataset.mks === pref('reader.mkStyle', 'fill')));
+    view.querySelectorAll('[data-mkn]').forEach((b) => b.classList.toggle('on', b.dataset.mkn === pref('reader.mkNew', MK_NEW[0][0])));
+    view.querySelectorAll('[data-mkm]').forEach((b) => b.classList.toggle('on', b.dataset.mkm === pref('reader.mkMine', MK_MINE[0][0])));
+    view.querySelectorAll('[data-rbg]').forEach((b) => b.classList.toggle('active', b.dataset.rbg === rbgOf()));
+  };
+  drawLook();
+  $('#rset', view)?.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-mks],[data-mkn],[data-mkm],[data-rbg]');
+    if (!b) return;
+    if (b.dataset.mks) setPref('reader.mkStyle', b.dataset.mks);
+    if (b.dataset.mkn) setPref('reader.mkNew', b.dataset.mkn);
+    if (b.dataset.mkm) setPref('reader.mkMine', b.dataset.mkm);
+    if (b.dataset.rbg !== undefined) { setPref('reader.bg', b.dataset.rbg); applyBg(); }
+    applyMarkLook();
+    drawLook();
+  });
   // Font size of the transcript (remembered). Phones start at 13 until the learner changes it.
   const defFont = window.matchMedia?.('(max-width: 760px)').matches ? '13' : '16';
   let fontPx = Number(pref('reader.font', defFont)) || Number(defFont);
@@ -1298,7 +1338,7 @@ export async function render(view, { segments, params }) {
     })().catch(() => {}).finally(() => { simplifying = null; });
     return simplifying;
   };
-  if ((!source.dict_words_at || !source.simplified) && !source.is_demo) simplifyWords();
+  if ((!String(source.dict_words_at || '').startsWith('v2:') || !source.simplified) && !source.is_demo) simplifyWords();
   // words of this video that never had their level checked get it now — once, then saved for good
   (async () => {
     if (source.is_demo || !ai()) return;
@@ -1549,11 +1589,16 @@ export async function render(view, { segments, params }) {
       <div><span class="mark s-saved">كلمة</span> كانت في كلماتك قبل هذا المقطع</div>
       <div><span class="ck-line"></span> السطر اللي ينقال الحين</div></div>`, { cls: 'lt-contrast' });
   });
-  $('#resetR', view)?.addEventListener('click', () => {
-    try { Object.keys(localStorage).filter((k) => k.startsWith('reader.') && !k.startsWith('reader.saveall')).forEach((k) => localStorage.removeItem(k)); } catch { /* ignore */ }
-    toast('رجعت إعدادات المقطع للأصل ✓');
+  // ↺ every look/behaviour setting back to the original (they are shared by ALL videos);
+  // the learner's data — which words were new in each video, «احفظ الكل» — is kept
+  const resetAll = () => {
+    if (!confirm('ترجع كل إعدادات المقاطع للأصل؟ (كلماتك ما تتأثر)')) return;
+    try { Object.keys(localStorage).filter((k) => k.startsWith('reader.') && !/^reader\.(saveall|new|newhere)\./.test(k)).forEach((k) => localStorage.removeItem(k)); } catch { /* ignore */ }
+    toast('رجعت كل الإعدادات للأصل ✓');
     setTimeout(() => location.reload(), 700);
-  });
+  };
+  $('#resetR', view)?.addEventListener('click', resetAll);
+  $('#resetAll', view)?.addEventListener('click', resetAll);
   maybeTour('reader');
 
   // 🙈 Hide the Arabic until it is touched (try to understand first)
@@ -2117,6 +2162,7 @@ export async function render(view, { segments, params }) {
     document.querySelectorAll('.lt-note').forEach((n) => n.remove());
     window.removeEventListener('lexitube:goal-reached', onGoal);
     clearInterval(watchTimer);
+    delete document.documentElement.dataset.rbg;
     window.removeEventListener('resize', onResize);
     cancelGap();
     document.removeEventListener('fullscreenchange', onFsChange);

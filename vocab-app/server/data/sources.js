@@ -399,15 +399,28 @@ export async function occurrenceFor(vocabularyId, lineId, userId, { contextual_m
  * most basic ones): found through its inflections (went → go), one context each,
  * after the AI's choices. Fast enough for one request (no AI).
  */
-export async function addDictionaryWords(sourceId, { skipTop = 150, limit = 700 } = {}) {
-  const { COMMON_WORDS } = await import('../lib/common-words.js');
-  const rankOf = new Map(COMMON_WORDS.map((w, i) => [w, i]));
+// grammar words only — everything else in the video that the dictionary knows gets a mark (≈90%+)
+const DICT_STOP = new Set('the a an and or but if of to in on at by for from with as is am are was were be been being it its this that these those he she they we you i me him her them us my your his our their its what which who whom whose when where why how not no yes do does did done have has had will would can could should shall may might must so than then there here into over under up down out off oh uh um yeah okay ok gonna wanna gotta mr mrs ms ll ve re don doesn didn isn aren wasn weren won wouldn couldn shouldn'.split(' '));
+export const DICT_WORDS_VERSION = 'v2';
+const simpleStems = (w) => {
+  const out = [w];
+  if (w.endsWith('ies')) out.push(`${w.slice(0, -3)}y`);
+  if (w.endsWith('es')) out.push(w.slice(0, -2));
+  if (w.endsWith('s') && !w.endsWith('ss')) out.push(w.slice(0, -1));
+  if (w.endsWith('ied')) out.push(`${w.slice(0, -3)}y`);
+  if (w.endsWith('ed')) out.push(w.slice(0, -2), w.slice(0, -1));
+  if (w.endsWith('ing')) out.push(w.slice(0, -3), `${w.slice(0, -3)}e`);
+  if (w.endsWith('ly')) out.push(w.slice(0, -2));
+  return out.filter((x) => x.length >= 2);
+};
+export async function addDictionaryWords(sourceId, { limit = 1500 } = {}) {
   const lines = await all('SELECT id, idx, start_seconds, text, text_ar FROM transcript_lines WHERE source_id = ? ORDER BY idx', sourceId);
   // first place and count of every word form
   const forms = new Map();
   for (const l of lines) {
     for (const m of l.text.matchAll(/[A-Za-z][A-Za-z'’-]*/g)) {
       const f = m[0].toLowerCase().replace(/’/g, "'").replace(/'s$/, '');
+      if (f.length < 2 || DICT_STOP.has(f) || f.includes("'")) continue;
       const hit = forms.get(f);
       if (hit) hit.n += 1;
       else forms.set(f, { n: 1, line: l, start: m.index, end: m.index + m[0].length });
@@ -419,32 +432,53 @@ export async function addDictionaryWords(sourceId, { skipTop = 150, limit = 700 
     const part = list.slice(i, i + 400);
     for (const r of await all(`SELECT form, lemma FROM lemma_index WHERE form IN (${part.map(() => '?').join(',')})`, ...part)) lemmaOf.set(r.form, r.lemma);
   }
+  // every candidate dictionary form of each word (its lemma, else the word and simple stems)
+  const cands = new Map();
+  for (const f of list) cands.set(f, lemmaOf.has(f) ? [lemmaOf.get(f), f] : simpleStems(f));
+  const allTerms = [...new Set([...cands.values()].flat())].filter((t) => !DICT_STOP.has(t));
+  // any word in the site's dictionary with an Arabic meaning (the built-in dictionary first)
+  const vocab = new Map();
+  for (let i = 0; i < allTerms.length; i += 400) {
+    const part = allTerms.slice(i, i + 400);
+    const rows = await all(`SELECT id, term, origin FROM vocabulary WHERE term IN (${part.map(() => '?').join(',')}) AND arabic IS NOT NULL AND arabic <> ''`, ...part);
+    for (const r of rows) if (!vocab.has(r.term) || r.origin === 'dictionary') vocab.set(r.term, r.id);
+  }
   // lemma → first appearance and total count
   const byLemma = new Map();
   for (const [f, info] of forms) {
-    const lemma = lemmaOf.get(f);
+    const lemma = cands.get(f).find((t) => vocab.has(t));
     if (!lemma) continue;
     const cur = byLemma.get(lemma);
     if (!cur) byLemma.set(lemma, { ...info });
     else cur.n += info.n;
   }
-  const lemmas = [...byLemma.keys()].filter((l) => (rankOf.get(l) ?? 99999) >= skipTop);
-  const vocab = new Map();
-  for (let i = 0; i < lemmas.length; i += 400) {
-    const part = lemmas.slice(i, i + 400);
-    for (const r of await all(`SELECT id, term FROM vocabulary WHERE origin = 'dictionary' AND term IN (${part.map(() => '?').join(',')})`, ...part)) vocab.set(r.term, r.id);
-  }
   const already = new Set((await all('SELECT vocabulary_id FROM occurrences WHERE source_id = ? AND suggested = 1', sourceId)).map((r) => r.vocabulary_id));
-  // most used in this video first, then the rarer (more useful) words
-  const chosen = lemmas.filter((l) => vocab.has(l) && !already.has(vocab.get(l)))
-    .sort((a, b) => byLemma.get(b).n - byLemma.get(a).n || (rankOf.get(b) ?? 0) - (rankOf.get(a) ?? 0))
+  // most used in this video first
+  const chosen = [...byLemma.keys()].filter((l) => !already.has(vocab.get(l)))
+    .sort((a, b) => byLemma.get(b).n - byLemma.get(a).n)
     .slice(0, limit);
+  // a few multi-row writes (one per word would be too slow for long videos on the hosting)
+  const have = new Map((await all('SELECT id, vocabulary_id, line_id FROM occurrences WHERE source_id = ?', sourceId)).map((o) => [`${o.vocabulary_id}:${o.line_id}`, o.id]));
+  const ins = [];
+  const upd = [];
+  chosen.forEach((lemma, i) => {
+    const h = byLemma.get(lemma);
+    const vid = vocab.get(lemma);
+    const ex = have.get(`${vid}:${h.line.id}`);
+    if (ex) upd.push(ex);
+    else ins.push([vid, sourceId, h.line.id, h.start, h.end, h.line.text, h.line.text_ar || null, null, floorOrNull(h.line.start_seconds), 1, 1000 + i]);
+  });
   await tx(async () => {
-    for (const [i, lemma] of chosen.entries()) {
-      const h = byLemma.get(lemma);
-      await addOccurrence(sourceId, vocab.get(lemma), { ...h.line, start: h.line.start_seconds }, { start: h.start, end: h.end }, { suggested: true, rank: 1000 + i });
+    for (let i = 0; i < ins.length; i += 300) {
+      const part = ins.slice(i, i + 300);
+      await run(`INSERT INTO occurrences (vocabulary_id, source_id, line_id, char_start, char_end, sentence, sentence_ar, contextual_meaning, timestamp_seconds, suggested, rank)
+        VALUES ${part.map(() => '(?,?,?,?,?,?,?,?,?,?,?)').join(',')}`, ...part.flat());
     }
-    await run('UPDATE sources SET dict_words_at = ? WHERE id = ?', new Date().toISOString(), sourceId);
+    for (let i = 0; i < upd.length; i += 400) {
+      const part = upd.slice(i, i + 400);
+      await run(`UPDATE occurrences SET suggested = 1, rank = 1000 WHERE id IN (${part.map(() => '?').join(',')})`, ...part);
+    }
+    await run('UPDATE sources SET dict_words_at = ? WHERE id = ?', `${DICT_WORDS_VERSION}:${new Date().toISOString()}`, sourceId);
   });
   return { added: chosen.length };
 }

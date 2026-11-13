@@ -1646,3 +1646,29 @@ a.ch-main { text-decoration: none; color: inherit; }
 .goal-bar { display: grid; gap: 6px; padding: 12px 14px; margin: 10px 0; text-decoration: none; color: inherit; }
 .goal-bar .gb-track { height: 8px; border-radius: 99px; background: var(--line); overflow: hidden; }
 .goal-bar .gb-fill { height: 100%; background: var(--accent); border-radius: 99px; }
+
+/* 🎨 word marks — the learner's look (⚙ «شكل الكلمات»): new words vs «كلماتي», highlight or frame */
+:root { --mk-new: #0ABAB5; --mk-mine: #8b5cf6; }
+.transcript .mark, .reader-hint .mark, .lt-note .mark { color: inherit; font-weight: inherit; border: 0; border-radius: 5px; padding: 0 3px; box-shadow: none; }
+.transcript .mark:not(.s-saved), .transcript .mark.s-saved.s-newhere, .reader-hint .mark:not(.s-saved), .lt-note .mark:not(.s-saved), .lt-note .mark.s-saved.s-newhere { background: color-mix(in srgb, var(--mk-new) 26%, transparent); box-shadow: none; }
+.transcript .mark.s-light:not(.s-saved) { background: color-mix(in srgb, var(--mk-new) 16%, transparent); }
+.transcript .mark.s-saved:not(.s-newhere), .reader-hint .mark.s-saved:not(.s-newhere), .lt-note .mark.s-saved:not(.s-newhere) { background: color-mix(in srgb, var(--mk-mine) 24%, transparent); box-shadow: none; }
+:root[data-mk="frame"] .transcript .mark:not(.s-saved), :root[data-mk="frame"] .transcript .mark.s-saved.s-newhere, :root[data-mk="frame"] .lt-note .mark:not(.s-saved) { background: transparent; box-shadow: inset 0 0 0 1.6px var(--mk-new); }
+:root[data-mk="frame"] .transcript .mark.s-saved:not(.s-newhere), :root[data-mk="frame"] .lt-note .mark.s-saved:not(.s-newhere) { background: transparent; box-shadow: inset 0 0 0 1.6px var(--mk-mine); }
+.mk-legend { display: inline-flex; gap: 6px; align-items: center; margin-inline-end: 8px; }
+.mk-l { font-size: 11.5px; padding: 1px 8px; border-radius: 99px; }
+.mk-l.new { background: color-mix(in srgb, var(--mk-new) 26%, transparent); }
+.mk-l.mine { background: color-mix(in srgb, var(--mk-mine) 24%, transparent); }
+:root[data-mk="frame"] .mk-l.new { background: none; box-shadow: inset 0 0 0 1.4px var(--mk-new); }
+:root[data-mk="frame"] .mk-l.mine { background: none; box-shadow: inset 0 0 0 1.4px var(--mk-mine); }
+body.reader-focus .mk-legend { display: none; }
+.mk-row { display: inline-flex; align-items: center; gap: 6px; }
+.mk-sw { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--surface); background: var(--c); box-shadow: 0 0 0 1px var(--line); cursor: pointer; padding: 0; }
+.mk-sw.on { box-shadow: 0 0 0 2.5px var(--ink); }
+/* 🌗 video page background (⚙ «الخلفية») */
+:root[data-rbg="night"] { --bg: #121A28; --surface: #1B263A; --surface-2: #223049; --surface-3: #2A3A57; --ink: #EDEBE6; --ink-2: #BFC3CC; --muted: #8A91A0; --line: #2D3B55; --accent: #4FA3B5; --accent-ink: #0E1522; --accent-soft: #173444; color-scheme: dark; }
+:root[data-rbg="white"] { --bg: #ffffff; --surface: #ffffff; --surface-2: #f2f2f2; --surface-3: #e8e8e8; --line: #e6e6e6; }
+:root[data-rbg="beige"] { --bg: #EFE6D5; --surface: #FAF4E8; --surface-2: #F1E8D6; --surface-3: #E8DCC5; --line: #E2D6BE; }
+
+.rset-reset { width: 100%; margin-top: 12px; color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
+@media (min-width: 1000px) { .page-reader .rset .rset-reset { width: auto; margin: 0; } }

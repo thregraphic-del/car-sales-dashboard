@@ -110,7 +110,8 @@ router.post('/:id/dictionary-words', wrap(async (req) => {
   }
   if (req.body?.dry) return simplifySourceWords(id, { dry: true });
   const t0 = Date.now();
-  const r = src.dict_words_at ? { added: 0 } : await sources.addDictionaryWords(id);
+  // run again for videos marked by an older, smaller pass (only the missing words are added)
+  const r = String(src.dict_words_at || '').startsWith(`${sources.DICT_WORDS_VERSION}:`) ? { added: 0 } : await sources.addDictionaryWords(id);
   // a few seconds of simplifying per call; the reader calls again while "more" is true
   const s = await simplifySourceWords(id, { budgetMs: Math.max(3000, 16000 - (Date.now() - t0)) });
   return { ...r, ...s };
