@@ -387,7 +387,8 @@ export async function tidyUserExpressions(userId, { batch = 12 } = {}) {
       try { decided.set(d.key, JSON.parse(d.value)); } catch { /* ask again */ }
     }
   }
-  const todo = [...new Set(rows.filter((r) => !decided.has(keyOf(r.term))).map((r) => r.term))].slice(0, batch);
+  // newest first: what was just saved is tidied right away
+  const todo = [...new Set(rows.filter((r) => !decided.has(keyOf(r.term))).map((r) => r.term).reverse())].slice(0, batch);
   if (todo.length) {
     const { tidyTermsWithAi, aiAvailable } = await import('../services/extractor.js');
     if (!aiAvailable()) return { done: true, changed: 0, skipped: 'ai' };
