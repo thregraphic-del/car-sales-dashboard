@@ -1590,7 +1590,7 @@ body.reader-focus .rs-focus-row { display: flex; gap: 8px; flex-wrap: wrap; marg
 body.reader-focus .rs-focus-row .btn { flex: 1 1 0; justify-content: center; }
 body.reader-focus .reader-head.slim #backLink, body.reader-focus .reader-head.slim .reader-title-sm,
 body.reader-focus .reader-head.slim #againBtn, body.reader-focus .reader-head.slim #shadowBtn,
-body.reader-focus .reader-head.slim #wordsBtn, body.reader-focus .reader-head.slim #focusBtn,
+body.reader-focus .reader-head.slim #wordsBtn, body.reader-focus .reader-head.slim #setBtn, body.reader-focus .reader-head.slim #sumTop { display: none !important; }
 body.reader-focus .reader-head.slim { justify-content: flex-start; gap: 8px; }
 body.reader-focus .reader-head.slim #setBtn { margin-inline-start: auto; }
 
@@ -1742,7 +1742,7 @@ body.has-thumb-bar[data-tbsize="l"] .page-reader { padding-bottom: 78px; }
 .nt-body .nt-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .nt-body .nt-tools svg { width: 16px; height: 16px; }
 /* ⚙ the settings gear never scrolls out of the top row; on phones the row uses icons only */
-.reader-head.one-row #setBtn { position: sticky; inset-inline-end: 0; z-index: 2; flex: none; background: var(--bg); box-shadow: -8px 0 8px -4px var(--bg); }
+.reader-head.one-row #setBtn { flex: none; } /* a normal button in the row (it never covers another) */
 @media (max-width: 520px) {
   .reader-head.one-row #shadowBtn > span, .reader-head.one-row #wordsBtn > span { display: none; }
   .reader-head.one-row .rb-btn { padding: 4px 7px; }
@@ -1810,3 +1810,8 @@ body:has(.page-reader #rset:not(.hidden)) .thumb-bar { display: none !important;
 .game-name { font-size: 15px; color: var(--accent); font-weight: 800; }
 .q-ar-btn { margin-top: 6px; }
 .ctx-ar { margin: 6px 0 0; text-align: center; line-height: 1.7; font-size: 14px !important; color: var(--muted); }
+
+/* ⛶ wide view: only ⏯ and «رجوع» (back to the normal view) on top */
+body.reader-focus .reader-head.slim #focusBtn { display: inline-flex !important; gap: 6px; align-items: center; margin-inline-start: auto; }
+body.reader-focus .reader-head.slim #focusBtn::after { content: 'رجوع'; font-size: 13px; font-weight: 700; }
+body.reader-focus .rs-focus-row { display: none !important; }
