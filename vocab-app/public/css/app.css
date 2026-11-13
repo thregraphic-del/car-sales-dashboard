@@ -1591,7 +1591,6 @@ body.reader-focus .rs-focus-row .btn { flex: 1 1 0; justify-content: center; }
 body.reader-focus .reader-head.slim #backLink, body.reader-focus .reader-head.slim .reader-title-sm,
 body.reader-focus .reader-head.slim #againBtn, body.reader-focus .reader-head.slim #shadowBtn,
 body.reader-focus .reader-head.slim #wordsBtn, body.reader-focus .reader-head.slim #focusBtn,
-body.reader-focus .thumb-bar { display: none !important; }
 body.reader-focus .reader-head.slim { justify-content: flex-start; gap: 8px; }
 body.reader-focus .reader-head.slim #setBtn { margin-inline-start: auto; }
 
@@ -1672,3 +1671,11 @@ body.reader-focus .mk-legend { display: none; }
 
 .rset-reset { width: 100%; margin-top: 12px; color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, var(--line)); }
 @media (min-width: 1000px) { .page-reader .rset .rset-reset { width: auto; margin: 0; } }
+
+/* 👍 phone buttons under the thumb — ⚙ «أزرار تحت»: normal view only (default) · always · hidden; 3 sizes */
+body:not(.has-thumb-bar) .rset .tb-only { display: none !important; }
+body.reader-focus:not([data-tb="always"]) .thumb-bar, body[data-tb="off"] .thumb-bar { display: none !important; }
+body.has-thumb-bar[data-tb="off"] .page-reader, body.has-thumb-bar.reader-focus:not([data-tb="always"]) .page-reader { padding-bottom: 0; }
+body[data-tbsize="s"] .thumb-bar button { height: 36px; font-size: 16px; } body[data-tbsize="s"] .thumb-bar button svg { width: 18px; height: 18px; }
+body[data-tbsize="l"] .thumb-bar button { height: 58px; font-size: 24px; } body[data-tbsize="l"] .thumb-bar button svg { width: 27px; height: 27px; }
+body.has-thumb-bar[data-tbsize="l"] .page-reader { padding-bottom: 78px; }

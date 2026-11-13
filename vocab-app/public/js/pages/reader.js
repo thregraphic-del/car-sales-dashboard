@@ -319,6 +319,7 @@ export async function render(view, { segments, params }) {
               <span class="sopts" id="mkStyle"><button type="button" class="sopt" data-mks="fill">تظليل</button><button type="button" class="sopt" data-mks="frame">إطار</button></span>
               <span class="mk-row"><span class="tiny">الجديدة</span>${MK_NEW.map(([c, n]) => `<button type="button" class="mk-sw" data-mkn="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span>
               <span class="mk-row"><span class="tiny">كلماتي</span>${MK_MINE.map(([c, n]) => `<button type="button" class="mk-sw" data-mkm="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span></div></div>
+            <div class="srow tb-only"><span class="slabel">أزرار تحت</span><div class="sopts"><span class="sopts" id="tbShow">${[['normal', 'بالعادي بس'], ['always', 'دايم'], ['off', 'مخفية']].map(([k, l]) => `<button type="button" class="sopt" data-tbs="${k}">${l}</button>`).join('')}</span><span class="sopts" id="tbSize">${[['s', 'صغير'], ['m', 'وسط'], ['l', 'كبير']].map(([k, l]) => `<button type="button" class="sopt" data-tbz="${k}">${l}</button>`).join('')}</span></div></div>
             <div class="srow"><span class="slabel">الخلفية</span><div class="sopts" id="rBg">${[['', 'مثل الموقع'], ['night', '🌙 ليلي'], ['white', '⬜ أبيض'], ['beige', '🟫 بيج']].map(([k, l]) => `<button type="button" class="sopt" data-rbg="${k}">${l}</button>`).join('')}</div></div>
             <div class="srow"><span class="slabel">النص</span><div class="sopts">${hasTimes ? `<label class="sopt-check"><input type="checkbox" class="check" id="followToggle" ${follow ? 'checked' : ''}> متابعة تلقائية</label>` : ''}${hasTimes ? '<label class="sopt-check"><input type="checkbox" class="check" id="timesToggle"> الوقت</label>' : ''}<span class="sopts fontsize"><button type="button" class="sopt" data-font="-1">A−</button><button type="button" class="sopt" data-font="1">A+</button></span></div></div>
           </div></div>
@@ -753,6 +754,7 @@ export async function render(view, { segments, params }) {
       'ملخص كل فترة': sv('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
       'الترجمة': sv('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>'),
       'شكل الكلمات': sv('<path d="M4 20h16"/><rect x="5" y="5" width="14" height="9" rx="2"/>'),
+      'أزرار تحت': sv('<rect x="3" y="14" width="18" height="7" rx="2"/><path d="M8 17.5h.01M12 17.5h.01M16 17.5h.01"/>'),
       'الخلفية': sv('<path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/>'),
       'النص': sv('<path d="M5 7V5h14v2M12 5v14M9 19h6"/>'),
       'الفيديو': sv('<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/>'),
@@ -788,6 +790,21 @@ export async function render(view, { segments, params }) {
     view.querySelectorAll('[data-mkm]').forEach((b) => b.classList.toggle('on', b.dataset.mkm === pref('reader.mkMine', MK_MINE[0][0])));
     view.querySelectorAll('[data-rbg]').forEach((b) => b.classList.toggle('active', b.dataset.rbg === rbgOf()));
   };
+  // 👍 phone buttons under the thumb: when to show them and how big (for every video)
+  const applyTb = () => { document.body.dataset.tb = pref('reader.tbShow', 'normal'); document.body.dataset.tbsize = pref('reader.tbSize', 'm'); };
+  applyTb();
+  const drawTb = () => {
+    view.querySelectorAll('[data-tbs]').forEach((b) => b.classList.toggle('active', b.dataset.tbs === pref('reader.tbShow', 'normal')));
+    view.querySelectorAll('[data-tbz]').forEach((b) => b.classList.toggle('active', b.dataset.tbz === pref('reader.tbSize', 'm')));
+  };
+  drawTb();
+  $('#rset', view)?.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-tbs],[data-tbz]');
+    if (!b) return;
+    if (b.dataset.tbs) setPref('reader.tbShow', b.dataset.tbs);
+    if (b.dataset.tbz) setPref('reader.tbSize', b.dataset.tbz);
+    applyTb(); drawTb();
+  });
   drawLook();
   $('#rset', view)?.addEventListener('click', (e) => {
     const b = e.target.closest('[data-mks],[data-mkn],[data-mkm],[data-rbg]');
@@ -2163,6 +2180,7 @@ export async function render(view, { segments, params }) {
     window.removeEventListener('lexitube:goal-reached', onGoal);
     clearInterval(watchTimer);
     delete document.documentElement.dataset.rbg;
+    delete document.body.dataset.tb; delete document.body.dataset.tbsize;
     window.removeEventListener('resize', onResize);
     cancelGap();
     document.removeEventListener('fullscreenchange', onFsChange);

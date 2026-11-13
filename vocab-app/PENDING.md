@@ -41,6 +41,7 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 | 18 | 🎨 «شكل الكلمات» in ⚙: highlight (default) or frame; a colour for new words (default Tiffany) and one for «كلماتي» (default purple); a small «كلماتي · جديد» key on top, hidden in the wide view | built — on the free preview | in the batch | 0 |
 | 19 | 🌗 «الخلفية» in ⚙: like the site · night · white · beige | built — on the free preview | in the batch | 0 |
 | 20 | ↺ «رجّع كل الإعدادات للأصل» button at the bottom of ⚙ (confirm first; the learner's words and new-word records are kept). Every ⚙ choice already applies to all videos, old and new | built — on the free preview | in the batch | 0 |
+| 21 | 👍 «أزرار تحت» in ⚙ (phones): the 4 buttons under the thumb show in the normal view only (default) · always · hidden; size small · medium · large — for every video | built — on the free preview | in the batch | 0 |
 | – | ✉️ (fix, rides along) reset-code email: no code in the subject | built | – | 0 |
 
 (Batch 6 deployed on 2026-11-09 — commit adc23df on `lexitube-live`: one teal filter bar for «تدرّب» + «كلماتي» (العدد · المستوى · الحالة · المقطع · الوقت · الترتيب),
