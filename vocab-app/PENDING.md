@@ -69,3 +69,4 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 | 6 | 👍 «أزرار تحت» in ⚙: one on/off switch (grey = off, Tiffany = on), the buttons are always the small size; no size choices | built — on the free preview | in the batch | 0 |
 | 7 | 🎨 «شكل الكلمات»: no highlight/frame choice any more (always highlighted) — just «جديد» with its colours and «كلماتي» with its colours, one line each | built — on the free preview | in the batch | 0 |
 | 8 | 🌐 «الترجمة» in ⚙: «🙈 أخفه» removed — the «عربي» tick alone shows/hides the Arabic, and «بجانبه / تحته» appear only when it is on | built — on the free preview | in the batch | 0 |
+| 9 | ✕ in the ⚙ sheet's title (always on top while scrolling): back to the video WITHOUT keeping what was changed since ⚙ was opened («موافق» keeps it); the video goes on from the same place | built — on the free preview | in the batch | 0 |

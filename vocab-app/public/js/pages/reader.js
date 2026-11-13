@@ -302,7 +302,7 @@ export async function render(view, { segments, params }) {
     <div class="reader-grid" data-tab="text">
       <div class="reader-main">
         <div class="rset hidden" id="rset">
-          <div class="rset-title">إعدادات المقطع</div>
+          <div class="rset-title row between"><span>إعدادات المقطع</span><button type="button" class="btn icon sm ghost rset-x" id="setX" title="رجوع بدون حفظ" aria-label="رجوع بدون حفظ">✕</button></div>
           ${isVideo && hasTimes ? `<div class="sgroup">التشغيل</div><div id="mode" class="rgrp">
             <div class="srow"><span class="slabel">السرعة</span><div class="sopts" id="speed">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" class="sopt en-inline" data-rate="${r}">${r}×</button>`).join('')}</div></div>
             <div class="srow"><span class="slabel">التوقف</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="gapOn"> بعد كل سطر</label><span class="sopts" id="gapChips">${[500, 1000, 2000, 3000].map((ms) => `<button type="button" class="sopt en-inline" data-gap="${ms}">${ms / 1000}ث</button>`).join('')}</span></div></div>
@@ -346,11 +346,24 @@ export async function render(view, { segments, params }) {
   const linesEl = $('#lines', view);
   // ⚙ One settings panel instead of a row of buttons.
   const rset = $('#rset', view);
-  const toggleSet = (open) => { rset.classList.toggle('hidden', !open); $('#setBtn', view).setAttribute('aria-expanded', String(open)); $('#setBtn', view).classList.toggle('primary', open); };
+  // ✕ = back to the video without keeping what was changed since ⚙ was opened
+  const snapReader = () => { const o = {}; try { Object.keys(localStorage).filter((k) => k.startsWith('reader.') && !/^reader\.(saveall|new|newhere)\./.test(k)).forEach((k) => { o[k] = localStorage.getItem(k); }); } catch { /* ignore */ } return o; };
+  let setSnap = null;
+  const toggleSet = (open) => { if (open) setSnap = snapReader(); rset.classList.toggle('hidden', !open); $('#setBtn', view).setAttribute('aria-expanded', String(open)); $('#setBtn', view).classList.toggle('primary', open); };
   $('#setBtn', view).addEventListener('click', (e) => { e.stopPropagation(); toggleSet(rset.classList.contains('hidden')); });
   const closeSet = (e) => { if (!rset.classList.contains('hidden') && !e.target.closest?.('#rset, #setBtn')) toggleSet(false); };
   document.addEventListener('click', closeSet);
   $('#setOk', view).addEventListener('click', () => toggleSet(false));
+  $('#setX', view)?.addEventListener('click', () => {
+    const now = snapReader();
+    const before = setSnap || now;
+    const changed = Object.keys({ ...before, ...now }).filter((k) => before[k] !== now[k] && k !== 'reader.focus');
+    toggleSet(false);
+    if (!changed.length) return;
+    try { changed.forEach((k) => (before[k] == null ? localStorage.removeItem(k) : localStorage.setItem(k, before[k]))); } catch { /* ignore */ }
+    toast('رجعنا بدون حفظ التغييرات');
+    setTimeout(() => location.reload(), 400); // the video goes on from where it was
+  });
   // Video above the text, below it, or floating in a corner (drag it anywhere, it snaps to a corner).
   // 🎬 The video sits above the text by default; when the learner picks «عائم» it floats, large, over the lower half; it can be moved
   // anywhere (drag its top bar) and resized (drag its corner ↘ or pinch the bar with two fingers).
