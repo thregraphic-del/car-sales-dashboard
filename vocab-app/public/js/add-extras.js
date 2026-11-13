@@ -315,20 +315,30 @@ export function bindSuggestWords(view) {
     box.innerHTML = '<p class="tiny muted" style="margin-top:10px"><span class="spinner"></span> نختار كلمات جديدة لك…</p>';
     const topic = topicEl.value.trim();
     try {
-      // ⚡ Small parallel batches of 10: each answers in a few seconds (a single 50-word call ran past the server's time limit).
+      // ⚡ Small parallel batches of 10, and more rounds until the number asked for is reached
+      // (words already in «كلماتي» are dropped, so one round often gives fewer) — shown as they come.
       const want = Number($('#swCount', view).value) || 20;
       const body = { level: $('#swLevel', view).value, topic: FIELD_EN[topic] || topic };
-      const parts = Array.from({ length: Math.ceil(want / 10) }, (_, k) => Math.min(10, want - k * 10));
-      const got = await Promise.allSettled(parts.map((n, k) => api.suggestWords({ ...body, count: Math.max(5, n), part: k, parts: parts.length })));
-      const ok = got.filter((g) => g.status === 'fulfilled').map((g) => g.value.items).flat();
-      if (!ok.length) throw got.find((g) => g.status === 'rejected')?.reason || new Error('حاول مرة ثانية.');
+      const items = [];
       const seenT = new Set();
-      const items = ok.filter((it) => { const k = it.term.toLowerCase(); if (seenT.has(k)) return false; seenT.add(k); return true; }).slice(0, want);
-      if (!items.length) {
-        box.innerHTML = '<p class="tiny muted" style="margin-top:10px">ما لقينا كلمات جديدة — جرّب مجالًا آخر.</p>';
-        return;
+      let lastErr = null;
+      for (let round = 0; round < 6 && items.length < want; round += 1) {
+        const need = want - items.length;
+        const parts = Array.from({ length: Math.ceil(need / 10) }, (_, k) => Math.min(10, need - k * 10));
+        const got = await Promise.allSettled(parts.map((n, k) => api.suggestWords({ ...body, count: Math.max(5, n), part: k, parts: parts.length, round, extra: [...seenT] })));
+        lastErr = got.find((g) => g.status === 'rejected')?.reason || lastErr;
+        const before = items.length;
+        for (const it of got.filter((g) => g.status === 'fulfilled').flatMap((g) => g.value.items)) {
+          const k = it.term.toLowerCase();
+          if (seenT.has(k) || items.length >= want) continue;
+          seenT.add(k);
+          items.push(it);
+        }
+        if (items.length < want) box.innerHTML = `<p class="tiny muted" style="margin-top:10px"><span class="spinner"></span> لقينا ${items.length} من ${want} — نكمل البحث…</p>${items.map((it) => `<div class="sw-item"><div><b class="en-inline">${esc(it.term)}</b> <span class="ink-2">${esc(it.arabic)}</span></div></div>`).join('')}`;
+        if (items.length === before && round > 0) break; // nothing new any more
       }
-      box.innerHTML = `
+      if (!items.length && lastErr) throw lastErr;
+      box.innerHTML = `${items.length < want ? `<p class="tiny muted" style="margin-top:10px">لقينا ${items.length} كلمة جديدة بس في هذا المجال (الباقي عندك في «كلماتي») — اضغط «اقترح» مرة ثانية لمزيد.</p>` : ''}
         <div class="sw-list">${items.map((it, k) => `<label class="sw-item"><input type="checkbox" class="check" data-k="${k}" checked>
           <div style="min-width:0"><b class="en-inline">${esc(it.term)}</b> <span class="chip">${esc(it.level)}</span> <span class="ink-2">${esc(it.arabic)}</span>
           ${it.example ? `<div class="en small" dir="ltr">${esc(it.example)}</div><div class="tiny muted">${esc(it.example_ar)}</div>` : ''}</div></label>`).join('')}</div>

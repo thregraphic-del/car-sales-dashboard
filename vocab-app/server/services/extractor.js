@@ -670,7 +670,7 @@ export async function suggestWordsWithAi({ count, topic = '', level = '', avoid 
   return jsonCall({
     task: 'suggest_words',
     system: 'You suggest English vocabulary for an Arabic-speaking learner of English. Suggest useful, commonly used words and expressions (single words, phrasal verbs, collocations) for the requested field and level, varied, in dictionary form, none of the listed words to avoid. "arabic" = short natural Arabic meaning; "example" = one natural example sentence (8–16 words); "example_ar" = its Arabic translation.',
-    user: `Number of items: ${count}\nField: ${topic || 'general everyday English'}\nLevel: ${level || 'a balanced mix of ALL levels A1, A2, B1, B2, C1 and C2'}\nVariant: ${Date.now()}\nPrefer words starting with: ${slice}\nAvoid: ${avoid.slice(0, 400).join(', ') || '(none)'}`,
+    user: `Number of items: ${count}\nField: ${topic || 'general everyday English'}\nLevel: ${level || 'a balanced mix of ALL levels A1, A2, B1, B2, C1 and C2'}\nVariant: ${Date.now()}\nPrefer words starting with: ${slice}\nAvoid (the learner already has these): ${avoid.slice(0, 500).join(', ') || '(none)'}`,
     schema: SUGGEST_WORDS_SCHEMA,
     zod: SuggestWordsZ,
     maxTokens: Math.min(12000, 160 * count + 600),

@@ -159,7 +159,14 @@ router.post('/suggest-words', wrap(async (req, res) => {
   return withAi(res, async () => {
     const parts = Math.max(1, Math.min(10, Number(req.body?.parts) || 1));
     const part = Math.max(0, Math.min(parts - 1, Number(req.body?.part) || 0));
-    const r = await suggestWordsWithAi({ count: Math.ceil(count * 1.3), topic, level, avoid: mine.map((w) => w.term), part, parts });
+    // each round asks again: words already shown first, then a different slice of the learner's words
+    const round = Math.max(0, Math.min(8, Number(req.body?.round) || 0));
+    const extra = (Array.isArray(req.body?.extra) ? req.body.extra : []).map((t) => String(t).slice(0, 60)).slice(0, 200);
+    const terms = mine.map((w) => w.term);
+    const from = terms.length > 300 ? (round * 300) % terms.length : 0;
+    const avoid = [...extra, ...terms.slice(from), ...terms.slice(0, from)];
+    extra.forEach((t) => have.add(matchKey(t)));
+    const r = await suggestWordsWithAi({ count: Math.min(30, count * 2), topic, level, avoid, part: (part + round) % parts, parts });
     const seen = new Set();
     const items = r.items.filter((it) => {
       const k = matchKey(it.term);

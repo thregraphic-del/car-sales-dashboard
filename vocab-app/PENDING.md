@@ -48,6 +48,7 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 | 25 | 📌 Highlight a passage while watching → «📌 احفظ في خلاصاتي» (next to «✨ اشرح»); a note confirms; in «خلاصاتي» it shows under «مقتطفاتي» highlighted, with its time and Arabic — tap it to go back to that moment in the video; ✕ removes it | built — on the free preview | in the batch | 0 |
 | 26 | ✨ «اقترح لي كلمات»: the field box says (light grey) «اكتب هنا مجالك أو مهنتك إذا ما لقيته تحت…»; 6 more fields: قانون · تربية وتعليم · مطاعم وطبخ · تصميم وفنون · تسويق ومبيعات · هندسة | built — on the free preview | in the batch | 0 |
 | 27 | 📚 Channel fields as small chips (icon + name) side by side on every screen; the chosen field opens under them, full width | built — on the free preview | in the batch | 0 |
+| 28 | ✨ «اقترح لي كلمات» gives the full number asked for: more rounds (up to 6) until it is reached, each skipping the words already shown and a different part of «كلماتي»; the words appear as they are found («لقينا 8 من 20 — نكمل البحث…») | built — on the free preview | in the batch | a few more AI calls only when the first round falls short |
 | – | ✉️ (fix, rides along) reset-code email: no code in the subject | built | – | 0 |
 
 (Batch 6 deployed on 2026-11-09 — commit adc23df on `lexitube-live`: one teal filter bar for «تدرّب» + «كلماتي» (العدد · المستوى · الحالة · المقطع · الوقت · الترتيب),
