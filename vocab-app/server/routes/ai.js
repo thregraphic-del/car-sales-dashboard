@@ -166,7 +166,8 @@ router.post('/suggest-words', wrap(async (req, res) => {
     const from = terms.length > 300 ? (round * 300) % terms.length : 0;
     const avoid = [...extra, ...terms.slice(from), ...terms.slice(0, from)];
     extra.forEach((t) => have.add(matchKey(t)));
-    const r = await suggestWordsWithAi({ count: Math.min(30, count * 2), topic, level, avoid, part: (part + round) % parts, parts });
+    const kind = req.body?.kind === 'sentences' ? 'sentences' : 'words';
+    const r = await suggestWordsWithAi({ count: Math.min(30, count * 2), topic, level, avoid: kind === 'sentences' ? extra : avoid, part: (part + round) % parts, parts, kind });
     const seen = new Set();
     const items = r.items.filter((it) => {
       const k = matchKey(it.term);

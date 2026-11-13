@@ -662,11 +662,22 @@ const SUGGEST_WORDS_SCHEMA = obj({
 const SuggestWordsZ = z.object({ items: z.array(z.object({ term: z.string(), arabic: z.string(), level: z.enum(LEVELS), example: z.string(), example_ar: z.string() })) });
 
 /** Useful words in a field, avoiding words the learner already has. */
-export async function suggestWordsWithAi({ count, topic = '', level = '', avoid = [], part = 0, parts = 1 }) {
+export async function suggestWordsWithAi({ count, topic = '', level = '', avoid = [], part = 0, parts = 1, kind = 'words' }) {
   // parallel batches ask for different first letters so they rarely overlap
   const ab = 'abcdefghijklmnoprstw';
   const per = Math.ceil(ab.length / Math.max(1, parts));
   const slice = parts > 1 ? ab.slice(part * per, part * per + per).split('').join(', ') : 'any letter';
+  if (kind === 'sentences') {
+    return jsonCall({
+      task: 'suggest_sentences',
+      system: 'You suggest useful English SENTENCES for an Arabic-speaking learner: natural, everyday sentences a person in the requested field really says or writes (requests, questions, replies, polite phrases), 5–14 words each, varied, none of the listed ones to avoid. "term" = the English sentence; "arabic" = its natural Arabic translation; "level" = its CEFR level; "example" = a short situation in English where it is used (or ""); "example_ar" = that situation in Arabic (or "").',
+      user: `Number of items: ${count}\nField: ${topic || 'general everyday English'}\nLevel: ${level || 'a balanced mix of levels A2 to C1'}\nVariant: ${Date.now()}-${part}\nAvoid: ${avoid.slice(0, 200).join(' | ') || '(none)'}`,
+      schema: SUGGEST_WORDS_SCHEMA,
+      zod: SuggestWordsZ,
+      maxTokens: Math.min(12000, 180 * count + 600),
+      cache: false,
+    });
+  }
   return jsonCall({
     task: 'suggest_words',
     system: 'You suggest English vocabulary for an Arabic-speaking learner of English. Suggest useful, commonly used words and expressions (single words, phrasal verbs, collocations) for the requested field and level, varied, in dictionary form, none of the listed words to avoid. "arabic" = short natural Arabic meaning; "example" = one natural example sentence (8–16 words); "example_ar" = its Arabic translation.',

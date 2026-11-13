@@ -49,6 +49,7 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 | 26 | ✨ «اقترح لي كلمات»: the field box says (light grey) «اكتب هنا مجالك أو مهنتك إذا ما لقيته تحت…»; 6 more fields: قانون · تربية وتعليم · مطاعم وطبخ · تصميم وفنون · تسويق ومبيعات · هندسة | built — on the free preview | in the batch | 0 |
 | 27 | 📚 Channel fields as small chips (icon + name) side by side on every screen; the chosen field opens under them, full width | built — on the free preview | in the batch | 0 |
 | 28 | ✨ «اقترح لي كلمات» gives the full number asked for: more rounds (up to 6) until it is reached, each skipping the words already shown and a different part of «كلماتي»; the words appear as they are found («لقينا 8 من 20 — نكمل البحث…») | built — on the free preview | in the batch | a few more AI calls only when the first round falls short |
+| 29 | ✨ «اقترح لي» (was «اقترح لي كلمات»): choose كلمات or جمل, then the number, field and level; sentences are natural ones people in that field say (with Arabic and where it is used), saved to «كلماتي» as expressions | built — on the free preview | in the batch | same AI calls as before, only when «اقترح» is pressed |
 | – | ✉️ (fix, rides along) reset-code email: no code in the subject | built | – | 0 |
 
 (Batch 6 deployed on 2026-11-09 — commit adc23df on `lexitube-live`: one teal filter bar for «تدرّب» + «كلماتي» (العدد · المستوى · الحالة · المقطع · الوقت · الترتيب),

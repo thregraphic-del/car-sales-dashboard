@@ -128,7 +128,7 @@ export function bindAttach(view, { input, go, status }) {
 
 export const packsHtml = () => `
   <div class="tile-row">${PACKS.map((p) => `<button class="tile" data-pack="${p.key}" title="${esc(p.description)}"><span class="tile-ic">${p.key.includes('phrasal') ? icon.layers : icon.library}</span><span>${esc(p.name.replace(/\s*\(.*\)/, ''))}</span></button>`).join('')}
-    <button class="tile" id="swTile"><span class="tile-ic">${icon.stars}</span><span>اقترح لي كلمات</span></button></div>`;
+    <button class="tile" id="swTile"><span class="tile-ic">${icon.stars}</span><span>اقترح لي</span></button></div>`;
 
 async function savePack(pack, mode, onProgress) {
   const { categories, total } = packSummary(pack);
@@ -285,7 +285,8 @@ const FIELD_EN = { 'عام': 'general everyday English', 'عمل وإدارة': 
 
 export const suggestWordsHtml = () => `
   <div class="card suggest-words hidden" id="swCard">
-    <div class="row between wrap" style="gap:8px"><b>✨ اقترح لي كلمات جديدة</b><span class="tiny muted">كلمات ليست عندك في «كلماتي»</span></div>
+    <div class="row between wrap" style="gap:8px"><b>✨ اقترح لي</b><span class="tiny muted">جديدة — ليست عندك في «كلماتي»</span></div>
+    <div class="segmented sw-kind" id="swKind" style="margin-top:10px"><button type="button" class="active" data-swk="words">كلمات</button><button type="button" data-swk="sentences">جمل</button></div>
     <div class="row wrap" style="gap:10px;margin-top:10px">
       <label class="small">العدد <select class="input sm" id="swCount"><option>10</option><option selected>20</option><option>30</option><option>50</option></select></label>
       <label class="small">المستوى <select class="input sm" id="swLevel"><option value="">كل المستويات (مزيج)</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select></label>
@@ -301,6 +302,12 @@ export function bindSuggestWords(view) {
   if (!box) return;
   $('#swTile', view)?.addEventListener('click', () => { const c = $('#swCard', view); c.classList.toggle('hidden'); $('#swTile', view).classList.toggle('on', !c.classList.contains('hidden')); });
   const topicEl = $('#swTopic', view);
+  let kind = 'words'; // كلمات أو جمل
+  view.querySelectorAll('[data-swk]').forEach((b) => b.addEventListener('click', () => {
+    kind = b.dataset.swk;
+    view.querySelectorAll('[data-swk]').forEach((x) => x.classList.toggle('active', x === b));
+    box.innerHTML = '';
+  }));
   view.querySelectorAll('[data-field]').forEach((b) => b.addEventListener('click', () => {
     view.querySelectorAll('[data-field]').forEach((x) => x.classList.toggle('on', x === b && !b.classList.contains('on')));
     topicEl.value = b.classList.contains('on') ? b.dataset.field : '';
@@ -312,7 +319,7 @@ export function bindSuggestWords(view) {
     }
     const btn = $('#swGo', view);
     btn.disabled = true;
-    box.innerHTML = '<p class="tiny muted" style="margin-top:10px"><span class="spinner"></span> نختار كلمات جديدة لك…</p>';
+    box.innerHTML = `<p class="tiny muted" style="margin-top:10px"><span class="spinner"></span> نختار ${kind === 'sentences' ? 'جمل' : 'كلمات'} جديدة لك…</p>`;
     const topic = topicEl.value.trim();
     try {
       // ⚡ Small parallel batches of 10, and more rounds until the number asked for is reached
@@ -325,7 +332,7 @@ export function bindSuggestWords(view) {
       for (let round = 0; round < 6 && items.length < want; round += 1) {
         const need = want - items.length;
         const parts = Array.from({ length: Math.ceil(need / 10) }, (_, k) => Math.min(10, need - k * 10));
-        const got = await Promise.allSettled(parts.map((n, k) => api.suggestWords({ ...body, count: Math.max(5, n), part: k, parts: parts.length, round, extra: [...seenT] })));
+        const got = await Promise.allSettled(parts.map((n, k) => api.suggestWords({ ...body, kind, count: Math.max(5, n), part: k, parts: parts.length, round, extra: [...seenT] })));
         lastErr = got.find((g) => g.status === 'rejected')?.reason || lastErr;
         const before = items.length;
         for (const it of got.filter((g) => g.status === 'fulfilled').flatMap((g) => g.value.items)) {
@@ -338,10 +345,10 @@ export function bindSuggestWords(view) {
         if (items.length === before && round > 0) break; // nothing new any more
       }
       if (!items.length && lastErr) throw lastErr;
-      box.innerHTML = `${items.length < want ? `<p class="tiny muted" style="margin-top:10px">لقينا ${items.length} كلمة جديدة بس في هذا المجال (الباقي عندك في «كلماتي») — اضغط «اقترح» مرة ثانية لمزيد.</p>` : ''}
+      box.innerHTML = `${items.length < want ? `<p class="tiny muted" style="margin-top:10px">لقينا ${items.length} ${kind === 'sentences' ? 'جملة' : 'كلمة'} جديدة بس في هذا المجال (الباقي عندك في «كلماتي») — اضغط «اقترح» مرة ثانية لمزيد.</p>` : ''}
         <div class="sw-list">${items.map((it, k) => `<label class="sw-item"><input type="checkbox" class="check" data-k="${k}" checked>
           <div style="min-width:0"><b class="en-inline">${esc(it.term)}</b> <span class="chip">${esc(it.level)}</span> <span class="ink-2">${esc(it.arabic)}</span>
-          ${it.example ? `<div class="en small" dir="ltr">${esc(it.example)}</div><div class="tiny muted">${esc(it.example_ar)}</div>` : ''}</div></label>`).join('')}</div>
+          ${it.example ? `<div class="${kind === 'sentences' ? 'tiny muted' : 'en small'}" dir="${kind === 'sentences' ? 'auto' : 'ltr'}">${esc(kind === 'sentences' ? `📍 ${it.example_ar || it.example}` : it.example)}</div>${kind === 'sentences' ? '' : `<div class="tiny muted">${esc(it.example_ar)}</div>`}` : ''}</div></label>`).join('')}</div>
         <div class="btn-row" style="margin-top:10px"><button class="btn primary" id="swSave">احفظ المحدد في كلماتي</button><button class="btn ghost" id="swAll">تحديد/إلغاء الكل</button></div>`;
       $('#swAll', view).addEventListener('click', () => {
         const boxes = [...box.querySelectorAll('input[data-k]')];
@@ -355,7 +362,7 @@ export function bindSuggestWords(view) {
         save.disabled = true;
         try {
           const res = await api.importSave(chosen.map((it) => ({
-            term: it.term, arabic: it.arabic, level: it.level, meaning_from: 'ai',
+            term: it.term, arabic: it.arabic, level: it.level, meaning_from: 'ai', item_type: kind === 'sentences' ? 'expression' : undefined,
             examples: it.example ? [{ sentence: it.example, arabic: it.example_ar || null }] : [],
           })));
           toast(`تم حفظ ${res.results.filter((x) => x.result !== 'unchanged').length} كلمة ✓`);
