@@ -62,3 +62,4 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
 | 1 | 💡 «خلاصاتي» renamed «أفكار»; each video is closed: cover · name · one line about it · small counts (📝 ملخص · 📌 مقتطفات · ✍️ ملاحظة); tap to open the details, with «▶ افتح المقطع», ✎ note and 🗑 | built — on the free preview | in the batch | 0 |
+| 2 | ⚙ Fix: on phones the top row of a video was wider than the screen, so the ⚙ gear (and back arrow) slid out of view. Now the gear is pinned at the end of the row and the row uses icons only on phones (no title, «ردّد»/«الكلمات» show their icon and count) | built — on the free preview | in the batch | 0 |

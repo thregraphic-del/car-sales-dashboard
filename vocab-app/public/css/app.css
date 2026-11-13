@@ -1741,3 +1741,10 @@ body.has-thumb-bar[data-tbsize="l"] .page-reader { padding-bottom: 78px; }
 .nt-card.open .nt-body { display: grid; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
 .nt-body .nt-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .nt-body .nt-tools svg { width: 16px; height: 16px; }
+/* ⚙ the settings gear never scrolls out of the top row; on phones the row uses icons only */
+.reader-head.one-row #setBtn { position: sticky; inset-inline-end: 0; z-index: 2; flex: none; background: var(--bg); box-shadow: -8px 0 8px -4px var(--bg); }
+@media (max-width: 520px) {
+  .reader-head.one-row #shadowBtn > span, .reader-head.one-row #wordsBtn > span { display: none; }
+  .reader-head.one-row .rb-btn { padding: 4px 7px; }
+  .reader-head.one-row .reader-title-sm { display: none; }
+}
