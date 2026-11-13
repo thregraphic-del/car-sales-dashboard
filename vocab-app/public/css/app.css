@@ -1802,3 +1802,7 @@ body:has(.page-reader #rset:not(.hidden)) .thumb-bar { display: none !important;
 .vd-card .vd-thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--surface-2); }
 .vd-card b, .vd-card span { padding: 0 8px; }
 .vd-card b { font-size: 12.5px; line-height: 1.35; }
+
+/* word colours with their meaning, small pills */
+.u-keys { gap: 4px; }
+.u-keys .u-d { width: auto; height: auto; border-radius: 99px; padding: 2px 8px; font-style: normal; font-size: 11px; font-weight: 700; line-height: 1.5; color: #fff; }

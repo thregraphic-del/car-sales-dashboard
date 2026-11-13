@@ -1088,7 +1088,7 @@ export async function render(view, { segments, params }) {
     side.innerHTML = `
       <div class="side-head">
         <div class="row between"><b>الكلمات الجديدة <span class="tiny muted en-inline">${shown.length}${shown.length !== fresh.length ? `/${fresh.length}` : ''}</span></b>
-          <span class="row" style="gap:8px"><span class="u-dots" title="شائعة · أقل · نادرة"><i class="u-d common"></i><i class="u-d medium"></i><i class="u-d rare"></i></span><button type="button" class="pop-x side-close" id="sideClose" aria-label="إغلاق">✕</button></span></div>
+          <span class="row" style="gap:8px"><span class="u-dots u-keys" title="ألوان الكلمات حسب الصعوبة"><i class="u-d common">سهل</i><i class="u-d medium">متوسط</i><i class="u-d rare">متقدم</i></span><button type="button" class="pop-x side-close" id="sideClose" aria-label="إغلاق">✕</button></span></div>
         <div class="glow-row">
           ${unsavedShown.length ? `<button class="save-all-btn" id="saveAll" title="احفظ كل الكلمات الجديدة">${icon.bookmark}<span>حفظ الكل</span></button>` : ''}
           ${fresh.some((i) => i.user_state === 'saved') ? `<button class="glow-ic ${sideF.show === 'saved' ? 'on' : ''}" id="savedOnly" title="اعرض المحفوظة فقط">${icon.check}<span>المحفوظة</span>${sideF.show === 'saved' ? '<b class="x">✕</b>' : ''}</button>` : ''}
