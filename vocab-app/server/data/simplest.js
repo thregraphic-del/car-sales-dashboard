@@ -161,8 +161,26 @@ async function adjBase(w) {
     // a known word with its own Arabic meaning (common, or already in the site's dictionary)
     if (row && row.term.toLowerCase() === t && row.arabic && (rank.has(t) || row.level)) return row;
   }
+  // delusional → «delusion» not in the dictionary yet: its meaning is asked once (cached), then kept
+  const strong = /(ional|mental|ural)$/.test(w) ? tries.filter((t) => t && /(ion|ment|ure)$/.test(t)) : [];
+  if (strong.length && aiLeft <= 0) aiShort = true; // out of AI calls for this request: come back to it
+  if (strong.length && aiLeft > 0) {
+    try {
+      const { lookupWithAi, aiAvailable } = await import('../services/extractor.js');
+      if (!aiAvailable()) return null;
+      aiLeft -= 1;
+      const t = strong[0];
+      const r = await lookupWithAi({ word: t, sentence: '' });
+      if (r?.arabic && String(r.term || '').toLowerCase() === t) {
+        const { id } = await upsertVocabulary({ term: t, arabic: r.arabic, level: r.level, part_of_speech: r.part_of_speech, simple_english: r.simple_english, origin: 'ai' });
+        return await get('SELECT * FROM vocabulary WHERE id = ?', id);
+      }
+    } catch { /* keep the long form for now */ }
+  }
   return null;
 }
+let aiLeft = 0; // a few AI meanings per request at most (each call stays short)
+let aiShort = false;
 
 /**
  * The shortest basic form to show and save for an extracted word or expression:
@@ -198,7 +216,7 @@ export async function simpleTerm(term) {
   return lemma !== lower ? { term: lemma, kind: 'inflection' } : { term: t, kind: 'same' };
 }
 
-const VERSION = '8'; // 8: adjectives / adverbs / -ness too
+const VERSION = '9'; // 8: adjectives / adverbs / -ness too
 
 /**
  * Point a video's suggested words at their simplest forms (once per video).
@@ -221,6 +239,7 @@ async function simpleTermCached(term) {
  * stops after `budgetMs` and says whether more is left), so no request runs too long.
  */
 export async function simplifySourceWords(sourceId, { dry = false, budgetMs = 15000 } = {}) {
+  aiLeft = 4;
   const started = Date.now();
   const curKey = `simplest-cursor:${sourceId}`;
   let cursor = dry ? 0 : Number((await get('SELECT value FROM app_settings WHERE key = ?', curKey))?.value) || 0;
@@ -284,7 +303,7 @@ export async function baseVocabId(v) {
     arabic: v.arabic, simple_english: v.simple_english, topic: v.topic, origin: v.origin || 'ai' })).id;
 }
 
-const WORDS_VERSION = '2'; // 2: delusional → delusion, happiness → happy …
+const WORDS_VERSION = '3'; // 2: delusional → delusion, happiness → happy …
 
 /**
  * Move the learner's saved words to their simplest forms, a slice at a time
@@ -292,6 +311,8 @@ const WORDS_VERSION = '2'; // 2: delusional → delusion, happiness → happy �
  * two cards of the same word become one (the one with more practice stays).
  */
 export async function simplifyUserWords(userId, { limit = 120 } = {}) {
+  aiLeft = 3;
+  aiShort = false;
   const key = `words-simplest:${userId}`;
   const state = (await get('SELECT value FROM app_settings WHERE key = ?', key))?.value || '';
   const [ver, last] = state.split(':');
@@ -301,10 +322,13 @@ export async function simplifyUserWords(userId, { limit = 120 } = {}) {
     `SELECT uv.id AS uv_id, uv.state, uv.review_count, v.* FROM user_vocabulary uv JOIN vocabulary v ON v.id = uv.vocabulary_id
      WHERE uv.user_id = ? AND uv.id > ? ORDER BY uv.id LIMIT ?`, userId, after, limit);
   const changes = [];
+  let lastDone = after;
   await tx(async () => {
     for (const r of rows) {
-      if (r.state !== 'saved') continue;
+      if (r.state !== 'saved') { lastDone = r.uv_id; continue; }
       const to = await baseVocabId(r);
+      if (aiShort) break; // this word needs one more AI meaning: the next call starts here
+      lastDone = r.uv_id;
       if (!to || to === r.id) continue;
       const other = await get('SELECT id, state, review_count FROM user_vocabulary WHERE user_id = ? AND vocabulary_id = ?', userId, to);
       if (other && other.state === 'saved') {
@@ -321,9 +345,9 @@ export async function simplifyUserWords(userId, { limit = 120 } = {}) {
       }
       changes.push(`${r.term}→${(await get('SELECT term FROM vocabulary WHERE id = ?', to)).term}`);
     }
-    const done = rows.length < limit;
+    const done = rows.length < limit && !aiShort;
     await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value',
-      key, `${WORDS_VERSION}:${done ? 'done' : rows.at(-1).uv_id}`);
+      key, `${WORDS_VERSION}:${done ? 'done' : lastDone}`);
   });
-  return { done: rows.length < limit, changed: changes.length, changes };
+  return { done: rows.length < limit && !aiShort, changed: changes.length, changes };
 }

@@ -73,3 +73,9 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 | 10 | 🔘 «قائمة الكلمات» and «ملخص كل فترة» in ⚙: an on/off switch like «أزرار تحت» (the word «بالعامية» removed); when on, two lines under it: how many (كل 10 كلمة / كل 3د · 6د · اكتب) then قبل / بعد | deployed 2026-11-13 | in the batch | 0 |
 | 11 | ⏸ «التوقف» and «التدريب» merged into one ⚙ section «بعد كل جملة» — one choice: عادي · وقفة بثواني (0.5/1/2/3ث show under it) · وقفة بطول الجملة للترديد · كرر كل جملة مرتين | deployed 2026-11-13 | in the batch | 0 |
 | 12 | ⚙ «السرعة»: all speeds on one line | deployed 2026-11-13 | in the batch | 0 |
+
+(New batch — collect 20, on the free preview — deploy at 20 or on «ارفع»)
+
+| # | Change | Status | Deploy cost | Running cost |
+|---|--------|--------|-------------|--------------|
+| 1 | 🔤 Simplest form, second pass: when the shorter word inside an adjective (delusional → «delusion», environmental → «environment») is not in the dictionary yet, its meaning is asked from the AI once (saved for everyone) and the word moves to it; a few per request, the rest on the next call — every word in «كلماتي» is checked again once | built — on the free preview | in the batch | one short AI call per missing base word, once |
