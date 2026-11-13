@@ -1943,10 +1943,10 @@ export async function render(view, { segments, params }) {
 
   /* ------------------------------------------- explain a selection (AI) */
 
-  // one small bar over a highlighted passage: 📌 keep it in «خلاصاتي» · ✨ explain it (short ones)
+  // one small bar over a highlighted passage: 📌 keep it in «أفكار» · ✨ explain it (short ones)
   const selBar = document.createElement('div');
   selBar.className = 'sel-fab hidden';
-  selBar.innerHTML = '<button type="button" class="btn sm" id="keepSel">📌 احفظ في خلاصاتي</button>';
+  selBar.innerHTML = '<button type="button" class="btn sm" id="keepSel">📌 احفظ في «أفكار»</button>';
   const explainBtn = document.createElement('button');
   explainBtn.className = 'btn sm primary';
   explainBtn.type = 'button';
@@ -1991,7 +1991,7 @@ export async function render(view, { segments, params }) {
     try {
       await api.keepClip(id, t, en, ar);
       window.getSelection()?.removeAllRanges();
-      toast('📌 انحفظت في خلاصاتي');
+      toast('📌 انحفظت في «أفكار»');
     } catch (err) { toast(err.message); }
   });
   explainBtn.addEventListener('mousedown', (e) => e.preventDefault()); // keep the selection
@@ -2076,12 +2076,12 @@ export async function render(view, { segments, params }) {
       box.innerHTML = `<button class="btn icon sm ghost modal-close" data-close aria-label="إغلاق">${icon.x}</button>
         <h2 style="margin-bottom:4px">📝 ملخص المقطع</h2><div class="tiny muted en" style="margin-bottom:12px">${esc(source.title)}</div>
         ${summaryHtml(s)}
-        <div class="btn-row" style="justify-content:center;margin-top:12px"><button type="button" class="btn" id="sumKeep">${icon.bookmark} احفظ في خلاصاتي</button></div>${doneBtn}`;
+        <div class="btn-row" style="justify-content:center;margin-top:12px"><button type="button" class="btn" id="sumKeep">${icon.bookmark} احفظ في «أفكار»</button></div>${doneBtn}`;
       bindSpeech(box);
       box.querySelector('#sumKeep')?.addEventListener('click', async (e) => {
         const b = e.currentTarget;
         b.disabled = true;
-        try { await api.keepNote(id, s); b.innerHTML = `${icon.check} محفوظ في <a href="#/notes" data-close>خلاصاتي</a>`; } catch (err) { b.disabled = false; toast(err.message); }
+        try { await api.keepNote(id, s); b.innerHTML = `${icon.check} محفوظ في <a href="#/notes" data-close>أفكار</a>`; } catch (err) { b.disabled = false; toast(err.message); }
       });
     } catch (err) {
       box.innerHTML = `<button class="btn icon sm ghost modal-close" data-close aria-label="إغلاق">${icon.x}</button><h2>📝 ملخص المقطع</h2><div class="alert">${esc(err.message)}</div>${doneBtn}`;

@@ -56,3 +56,9 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 clear button contrast, «إدارة بياناتي» (wipe words / videos / settings with «تأكيد» + automatic backup + restore), «مغامرات» channels field
 + fields accordion, suggestions emailed to the owner, numbered Excel rows that follow the filter, phone font 13, the video plays again
 after a word's meaning closes, a clear «خدمة النصوص وصلت حدها» message for 402/403, and the 504 fix when adding a video (multi-row INSERTs).)
+
+(New batch — collect 20, on the free preview — deploy at 20 or on «ارفع»)
+
+| # | Change | Status | Deploy cost | Running cost |
+|---|--------|--------|-------------|--------------|
+| 1 | 💡 «خلاصاتي» renamed «أفكار»; each video is closed: cover · name · one line about it · small counts (📝 ملخص · 📌 مقتطفات · ✍️ ملاحظة); tap to open the details, with «▶ افتح المقطع», ✎ note and 🗑 | built — on the free preview | in the batch | 0 |

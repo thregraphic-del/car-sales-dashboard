@@ -51,7 +51,7 @@ function renderNav(active) {
   const s = state.stats;
   const left = s ? Math.max(0, s.plan.total - s.plan.completed) : 0;
   const links = NAV.map((n) => `<a class="nav-link ${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? `<span class="badge">${left}</span>` : ''}</a>`).join('');
-  $('#nav').innerHTML = `${links}<div class="nav-sep"></div><a class="nav-link ${active === '/friends' ? 'active' : ''}" href="#/friends">${icon.users}<span>أصدقائي</span></a><a class="nav-link ${active === '/notes' ? 'active' : ''}" href="#/notes">${icon.bookOpen}<span>خلاصاتي</span></a><a class="nav-link ${active === '/settings' ? 'active' : ''}" href="#/settings">${icon.settings}<span>الإعدادات</span></a>`;
+  $('#nav').innerHTML = `${links}<div class="nav-sep"></div><a class="nav-link ${active === '/friends' ? 'active' : ''}" href="#/friends">${icon.users}<span>أصدقائي</span></a><a class="nav-link ${active === '/notes' ? 'active' : ''}" href="#/notes">${icon.bookOpen}<span>أفكار</span></a><a class="nav-link ${active === '/settings' ? 'active' : ''}" href="#/settings">${icon.settings}<span>الإعدادات</span></a>`;
   // bottom bar on phones: only the three working pages (اليوم · الإعدادات · أصدقائي live in the ☰ menu)
   $('#tabbar').innerHTML = NAV.filter((n) => n.path !== '/').map((n) => `<a class="${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span></a>`).join('');
   const top = $('#topStreak');
@@ -273,7 +273,7 @@ async function init() {
     e.preventDefault();
     openModal(`<h2 style="margin:0 0 10px">المزيد</h2><div class="more-list">
       <a class="more-item" href="#/friends" data-close>${icon.users}<span>أصدقائي</span></a>
-      <a class="more-item" href="#/notes" data-close>${icon.bookOpen}<span>خلاصاتي</span></a>
+      <a class="more-item" href="#/notes" data-close>${icon.bookOpen}<span>أفكار</span></a>
       <a class="more-item" href="#/settings" data-close>${icon.settings}<span>الإعدادات</span></a>
       ${state.user?.guest ? '<a class="more-item" href="/register">✨<span>سجّل حسابك المجاني</span></a>' : ''}</div>`);
   });

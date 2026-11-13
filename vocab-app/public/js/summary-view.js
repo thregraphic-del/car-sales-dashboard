@@ -1,5 +1,5 @@
 // 📝 A video summary, shaped by the kind of video (lesson → benefit + steps;
-// film / vlog / fun → quick summary + highlights). Used in the video and in «خلاصاتي».
+// film / vlog / fun → quick summary + highlights). Used in the video and in «أفكار».
 import { esc } from './ui.js';
 
 const POINTS_TITLE = { news: '📌 أهم الحقائق', talk: '🗣 أبرز الأفكار' };

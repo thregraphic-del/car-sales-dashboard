@@ -1727,3 +1727,17 @@ body.has-thumb-bar[data-tbsize="l"] .page-reader { padding-bottom: 78px; }
 .fd-acc .fd-item:not(.open) .fd-head .ic { width: 24px; height: 24px; border-radius: 99px; }
 .fd-acc .fd-item:not(.open) .fd-head .ic svg { width: 14px; height: 14px; }
 .fd-acc .fd-item:not(.open) .fd-n, .fd-acc .fd-item:not(.open) .fd-caret { display: none; }
+
+/* 📒 «أفكار»: each video closed (cover · name · one line); tap to open the details */
+.nt-card { gap: 0; padding: 10px; }
+.nt-head { cursor: pointer; align-items: flex-start; }
+.nt-thumb { width: 104px; }
+.nt-meta { gap: 3px; }
+.nt-blurb { line-height: 1.6; }
+.nt-counts { display: flex; flex-wrap: wrap; gap: 8px; color: var(--accent); }
+.nt-caret { flex: none; color: var(--muted); transition: transform .2s; align-self: center; }
+.nt-card.open .nt-caret { transform: rotate(180deg); }
+.nt-card:not(.open) .nt-body { display: none; }
+.nt-card.open .nt-body { display: grid; gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); }
+.nt-body .nt-tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.nt-body .nt-tools svg { width: 16px; height: 16px; }
