@@ -95,3 +95,4 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
 | 1 | 🧹 Fix (deployed alone 2026-11-13, urgent): the «كلماتي» tidy-up never started — it waited for the simplest-form pass (26 calls) and stopped when the page was left. Now the multi-word tidy runs FIRST, keeps going in the background while the site is open, 25 terms per AI call, with a small progress note. Also: Enter in the «العدد» box now works (the CSP blocked the inline handler) | deployed 2026-11-13 | alone | as before |
+| 2 | 🪶 Lighter tidy-up: 12 terms per AI call (≈6 s, was 14–22 s with time-outs), a 1.5 s rest between steps, paused while the tab is hidden — the site stays quick while it runs | built — on the free preview | in the batch | 0 |

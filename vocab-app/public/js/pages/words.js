@@ -404,7 +404,10 @@ export async function render(view, { params }) {
     const note = (n) => { if (n) toast(`🧹 نرتّب كلماتك… اتعدّلت ${n} حتى الحين`, 2500); };
     if (state.config?.ai?.available) {
       try {
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 200; i++) {
+          // light on the site: a short rest between steps, and none while the tab is hidden
+          await new Promise((res) => setTimeout(res, 1500));
+          while (document.visibilityState === 'hidden') await new Promise((res) => setTimeout(res, 3000));
           const r = await api.tidyWords();
           if (r.changed) { changed += r.changed; note(changed); }
           if (r.done) break;

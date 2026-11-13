@@ -375,7 +375,7 @@ async function moveUserWord(userId, r, to) {
  * free combinations and sentence pieces (senior years, simpler life) become their one useful word
  * in its simplest form. Each term is decided once by the AI (40 per call) and saved for everyone.
  */
-export async function tidyUserExpressions(userId, { batch = 25 } = {}) {
+export async function tidyUserExpressions(userId, { batch = 12 } = {}) {
   const rows = await all(
     `SELECT uv.id AS uv_id, uv.review_count, v.id, v.term, v.level FROM user_vocabulary uv JOIN vocabulary v ON v.id = uv.vocabulary_id
      WHERE uv.user_id = ? AND uv.state = 'saved' AND v.term LIKE '% %' ORDER BY uv.id`, userId);
