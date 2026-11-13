@@ -1706,3 +1706,13 @@ body.has-thumb-bar[data-tbsize="l"] .page-reader { padding-bottom: 78px; }
 .nt-cand:hover { border-color: var(--accent); }
 
 .sum-kind { display: inline-block; font-size: 12px; padding: 2px 10px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent); margin-bottom: 8px; }
+
+/* 📌 highlighted passage: keep it / explain it */
+.sel-fab { position: absolute; z-index: 60; display: flex; gap: 6px; padding: 4px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); }
+.sel-fab.hidden { display: none; }
+.sel-fab .hidden { display: none; }
+
+.nt-clips { display: grid; gap: 6px; }
+.nt-clip { display: flex; align-items: flex-start; gap: 4px; }
+.nt-clip-go { flex: 1; display: grid; gap: 3px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; }
+.nt-clip mark { background: color-mix(in srgb, var(--mk-new, #0ABAB5) 26%, transparent); color: inherit; border-radius: 4px; padding: 1px 3px; line-height: 1.8; -webkit-box-decoration-break: clone; box-decoration-break: clone; }

@@ -1943,29 +1943,56 @@ export async function render(view, { segments, params }) {
 
   /* ------------------------------------------- explain a selection (AI) */
 
+  // one small bar over a highlighted passage: 📌 keep it in «خلاصاتي» · ✨ explain it (short ones)
+  const selBar = document.createElement('div');
+  selBar.className = 'sel-fab hidden';
+  selBar.innerHTML = '<button type="button" class="btn sm" id="keepSel">📌 احفظ في خلاصاتي</button>';
   const explainBtn = document.createElement('button');
-  explainBtn.className = 'btn sm primary explain-fab hidden';
+  explainBtn.className = 'btn sm primary';
   explainBtn.type = 'button';
-  explainBtn.innerHTML = '✨ اشرح بالذكاء الاصطناعي';
-  document.body.append(explainBtn);
+  explainBtn.innerHTML = '✨ اشرح';
+  selBar.append(explainBtn);
+  document.body.append(selBar);
   let selection = null;
-  const hideExplain = () => explainBtn.classList.add('hidden');
+  const hideExplain = () => selBar.classList.add('hidden');
+  const lineOf = (node) => (node && linesEl.contains(node) ? (node.nodeType === 1 ? node : node.parentElement)?.closest('.line') : null);
   const onSelect = () => setTimeout(() => {
     const sel = window.getSelection();
     const text = sel?.toString().replace(/\s+/g, ' ').trim() || '';
-    const lineEl = sel?.anchorNode && linesEl.contains(sel.anchorNode) ? sel.anchorNode.parentElement?.closest('.line') : null;
-    if (!lineEl || text.length < 2 || text.length > 300) return hideExplain();
+    const a = lineOf(sel?.anchorNode);
+    const b = lineOf(sel?.focusNode) || a;
+    if (!a || text.length < 2 || text.length > 2000) return hideExplain();
+    // the lines the passage covers (for its time and its Arabic)
+    const all = [...linesEl.querySelectorAll('.line')];
+    const [i, j] = [all.indexOf(a), all.indexOf(b)].sort((x, y) => x - y);
+    const ids = all.slice(i, j + 1).map((el) => Number(el.dataset.id));
+    const covered = data.lines.filter((l) => ids.includes(l.id));
     const r = sel.getRangeAt(0).getBoundingClientRect();
-    selection = { text, lineId: Number(lineEl.dataset.id) };
-    explainBtn.style.top = `${Math.max(8, r.top + window.scrollY - 44)}px`;
-    explainBtn.style.left = `${Math.max(8, Math.min(window.innerWidth - 230, r.left + window.scrollX))}px`;
-    explainBtn.classList.remove('hidden');
+    // the English passage: the whole lines when several are covered, else the words picked (no Arabic / times)
+    const picked = text.replace(/[\u0600-\u06FF\u0750-\u077F]+[^A-Za-z]*/g, ' ').replace(/\b\d{1,2}:\d{2}\b/g, ' ').replace(/\s+/g, ' ').trim();
+    const en = covered.length > 1 ? covered.map((l) => l.text).join(' ') : (picked.length >= 2 ? picked : covered[0]?.text || text);
+    selection = { text: picked || text, en, lineId: ids[0], t: Math.floor(Number(covered[0]?.start_seconds) || 0), ar: covered.map((l) => l.text_ar || '').filter(Boolean).join(' ') };
+    explainBtn.classList.toggle('hidden', text.length > 300);
+    selBar.style.top = `${Math.max(8, r.top + window.scrollY - 46)}px`;
+    selBar.style.left = `${Math.max(8, Math.min(window.innerWidth - 290, r.left + window.scrollX))}px`;
+    selBar.classList.remove('hidden');
     return undefined;
   }, 10);
   linesEl.addEventListener('mouseup', onSelect);
   linesEl.addEventListener('touchend', onSelect);
   document.addEventListener('selectionchange', () => {
     if (!window.getSelection()?.toString().trim()) setTimeout(hideExplain, 150);
+  });
+  selBar.addEventListener('mousedown', (e) => e.preventDefault()); // keep the selection
+  selBar.querySelector('#keepSel').addEventListener('click', async () => {
+    if (!selection) return;
+    hideExplain();
+    const { en, t, ar } = selection;
+    try {
+      await api.keepClip(id, t, en, ar);
+      window.getSelection()?.removeAllRanges();
+      toast('📌 انحفظت في خلاصاتي');
+    } catch (err) { toast(err.message); }
   });
   explainBtn.addEventListener('mousedown', (e) => e.preventDefault()); // keep the selection
   explainBtn.addEventListener('click', async () => {
@@ -2204,7 +2231,7 @@ export async function render(view, { segments, params }) {
     cancelGap();
     document.removeEventListener('fullscreenchange', onFsChange);
     setFocus(false);
-    explainBtn.remove();
+    selBar.remove();
     clearInterval(syncTimer);
     if (frame) cancelAnimationFrame(frame);
     closeWordPanel();

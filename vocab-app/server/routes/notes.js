@@ -58,7 +58,7 @@ router.post('/', wrap(async (req) => {
   const old = list.find((n) => Number(n.source_id) === id);
   const item = {
     source_id: id, title: s.title, channel: s.channel || '', youtube_id: s.youtube_id || null, thumbnail_url: s.thumbnail_url || null,
-    saved_at: old?.saved_at || new Date().toISOString(), summary: cleanSummary(b.summary), note: old?.note || '', refs: old?.refs || [],
+    saved_at: old?.saved_at || new Date().toISOString(), summary: cleanSummary(b.summary), note: old?.note || '', refs: old?.refs || [], clips: old?.clips || [],
   };
   await save(req.userId, [item, ...list.filter((n) => Number(n.source_id) !== id)]);
   return { ok: true, note: item };
@@ -75,6 +75,32 @@ router.put('/:sourceId', wrap(async (req) => {
   item.edited_at = new Date().toISOString();
   await save(req.userId, list);
   return { ok: true, note: item };
+}));
+
+/** 📌 a passage highlighted while watching — kept with the video's entry (made if missing). */
+router.post('/clip', wrap(async (req) => {
+  const b = req.body || {};
+  const id = Number(b.source_id);
+  const s = await get('SELECT id, youtube_id, title, channel, thumbnail_url FROM sources WHERE id = ? AND user_id = ?', id, req.userId);
+  if (!s) throw httpError(404, 'المقطع غير موجود.');
+  const en = clean(b.en, 2000).trim();
+  if (!en) throw httpError(400, 'ظلّل جملة أول.');
+  const list = await load(req.userId);
+  let item = list.find((n) => Number(n.source_id) === id);
+  if (!item) item = { source_id: id, title: s.title, channel: s.channel || '', youtube_id: s.youtube_id || null, thumbnail_url: s.thumbnail_url || null, saved_at: new Date().toISOString(), summary: null, note: '', refs: [] };
+  const clip = { t: Math.max(0, Math.round(Number(b.t) || 0)), en, ar: clean(b.ar, 2000), at: new Date().toISOString() };
+  item.clips = [...(item.clips || []).filter((c) => c.en !== en), clip].sort((a, c) => a.t - c.t).slice(0, 100);
+  await save(req.userId, [item, ...list.filter((n) => Number(n.source_id) !== id)]);
+  return { ok: true, clip };
+}));
+
+router.delete('/:sourceId/clip', wrap(async (req) => {
+  const id = Number(req.params.sourceId);
+  const list = await load(req.userId);
+  const item = list.find((n) => Number(n.source_id) === id);
+  if (item) item.clips = (item.clips || []).filter((c) => !(c.t === Number(req.body?.t) && c.en === String(req.body?.en || '')));
+  await save(req.userId, list.filter((n) => n.summary || n.note || n.clips?.length));
+  return { ok: true };
 }));
 
 router.delete('/:sourceId', wrap(async (req) => {

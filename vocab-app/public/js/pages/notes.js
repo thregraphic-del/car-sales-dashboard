@@ -18,6 +18,11 @@ function noteHtml(n) {
   return `<div class="nt-note"><b>✍️ ملاحظتي</b><p>${text.replace(/\n/g, '<br>')}</p>${refs ? `<div class="nt-refs">${refs}</div>` : ''}</div>`;
 }
 
+// 📌 passages highlighted while watching — tap one to go back to that moment in the video
+const clipsHtml = (n) => (n.clips?.length ? `<div class="nt-clips"><b>📌 مقتطفاتي</b>${n.clips.map((c, i) => `
+  <div class="nt-clip"><a class="nt-clip-go" href="#/source/${n.source_id}?t=${c.t}"><span class="nt-t en-inline">⏱ ${fmt(c.t)}</span><mark class="en" dir="ltr">${esc(c.en)}</mark>${c.ar ? `<span class="tiny muted">${esc(c.ar)}</span>` : ''}</a>
+  <button type="button" class="btn icon sm ghost" data-delclip="${i}" aria-label="احذف المقتطف">✕</button></div>`).join('')}</div>` : '');
+
 const cardHtml = (n) => `
   <article class="card nt-card" data-src="${n.source_id}">
     <header class="nt-head">
@@ -25,11 +30,11 @@ const cardHtml = (n) => `
       <div class="nt-meta"><span class="tiny muted en clamp1">${esc(n.channel || '')}</span><a class="nt-title en clamp2" href="#/source/${n.source_id}" ${n.exists ? '' : 'aria-disabled="true"'}>${esc(n.title || '')}</a></div>
       <span class="nt-tools"><button type="button" class="btn icon sm ghost" data-edit title="اكتب ملاحظة" aria-label="اكتب ملاحظة">${icon.edit}</button><button type="button" class="btn icon sm ghost" data-del title="احذف من خلاصاتي" aria-label="احذف">${icon.trash}</button></span>
     </header>
-    <div class="nt-body">${noteHtml(n)}${summaryHtml(n.summary)}</div>
+    <div class="nt-body">${noteHtml(n)}${clipsHtml(n)}${n.summary ? summaryHtml(n.summary) : ""}</div>
   </article>`;
 
 export async function render(view) {
-  view.innerHTML = `<div class="page-head"><div><div class="eyebrow">Insights</div><h1>خلاصاتي</h1><p class="muted small">ملخصات المقاطع اللي حفظتها، مع ملاحظاتك عليها.</p></div></div>
+  view.innerHTML = `<div class="page-head"><div><div class="eyebrow">Insights</div><h1>خلاصاتي</h1><p class="muted small">ملخصات المقاطع والمقاطع اللي ظلّلتها، مع ملاحظاتك عليها.</p></div></div>
     <div class="stack" id="ntList"><p class="tiny muted"><span class="spinner"></span></p></div>`;
   const listEl = view.querySelector('#ntList');
   let notes = [];
@@ -116,6 +121,12 @@ export async function render(view) {
     const card = e.target.closest('[data-src]');
     if (!card) return;
     const n = notes.find((x) => String(x.source_id) === card.dataset.src);
+    const dc = e.target.closest('[data-delclip]');
+    if (dc) {
+      const c = n.clips[Number(dc.dataset.delclip)];
+      try { await api.dropClip(n.source_id, c.t, c.en); n.clips = n.clips.filter((x) => x !== c); if (!n.summary && !n.note && !n.clips.length) notes = notes.filter((x) => x !== n); draw(); } catch (err) { toast(err.message); }
+      return;
+    }
     if (e.target.closest('[data-edit]')) { if (!card.querySelector('.nt-edit')) edit(card, n); return; }
     if (e.target.closest('[data-del]')) {
       if (!confirm('تحذف هذي الخلاصة من خلاصاتي؟')) return;
