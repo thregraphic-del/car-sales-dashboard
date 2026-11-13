@@ -59,6 +59,14 @@ export function hintLine(w) {
   const pos = POS_AR[String(w.part_of_speech || '').toLowerCase()] || (w.term.includes(' ') ? 'عبارة' : '');
   return [pos, `يبدأ بـ ${w.term.trim()[0]?.toLowerCase() || ''}`, `${letters(w).replace(/\s/g, '').length} حروف`].filter(Boolean).join(' · ');
 }
+/** 💡 a clue that helps without giving the answer away: the meaning in easy English (+ the kind of word) */
+export function smartHint(w) {
+  const def = String(w.simple_english || '').trim();
+  const re = termRegex(w.term);
+  const safe = def && !(re && re.test(def)) ? def : '';
+  if (safe) return `<div class="hint-box"><p class="tiny muted" style="margin:0 0 4px">معناها بإنجليزي سهل:</p><p class="en" dir="ltr">${esc(safe)}</p><p class="tiny muted" style="margin:4px 0 0">${esc(hintLine(w))}</p></div>`;
+  return hintSentence(w) || `<p class="tiny muted">${esc(hintLine(w))}</p>`;
+}
 /** 💡 a clear sentence with the word hidden, and its Arabic */
 export function hintSentence(w) {
   const ex = examplesFor(w)[0];
@@ -100,10 +108,16 @@ export function choice(stage, w, { prompt, options, text, after = '', sentence =
     let done = false;
     let tries = 0;
     let hinted = false;
-    stage.querySelector('.question').insertAdjacentHTML('beforeend', `<div class="hint-line tiny muted">${esc(hintLine(w))}</div><button type="button" class="btn sm ghost hint-btn" id="hintBtn">💡 تلميح</button><div id="hintBox"></div>`);
+    // 💡 one small button; tapping it gives a real clue (an easy definition), not just letters
+    stage.querySelector('.question').insertAdjacentHTML('beforeend', `<button type="button" class="btn sm ghost hint-btn" id="hintBtn">💡 تلميح</button><div id="hintBox"></div>`);
     stage.querySelector('#hintBtn').addEventListener('click', (e) => {
       hinted = true;
-      stage.querySelector('#hintBox').innerHTML = hintSentence(w) || `<p class="tiny muted">${esc(hintLine(w))}</p>`;
+      stage.querySelector('#hintBox').innerHTML = smartHint(w);
+      e.currentTarget.remove();
+    });
+    // 🌐 the sentence's Arabic, only when asked for
+    stage.querySelector('[data-show-ar]')?.addEventListener('click', (e) => {
+      stage.querySelector('.ctx-ar')?.classList.remove('hidden');
       e.currentTarget.remove();
     });
     stage.querySelectorAll('.option').forEach((btn) => btn.addEventListener('click', () => {

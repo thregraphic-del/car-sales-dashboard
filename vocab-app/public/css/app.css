@@ -1806,3 +1806,7 @@ body:has(.page-reader #rset:not(.hidden)) .thumb-bar { display: none !important;
 /* word colours with their meaning, small pills */
 .u-keys { gap: 4px; }
 .u-keys .u-d { width: auto; height: auto; border-radius: 99px; padding: 2px 8px; font-style: normal; font-size: 11px; font-weight: 700; line-height: 1.5; color: #fff; }
+
+.game-name { font-size: 15px; color: var(--accent); font-weight: 800; }
+.q-ar-btn { margin-top: 6px; }
+.ctx-ar { margin: 6px 0 0; text-align: center; line-height: 1.7; font-size: 14px !important; color: var(--muted); }

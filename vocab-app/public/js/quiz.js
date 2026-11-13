@@ -63,6 +63,8 @@ export async function runQuiz(stage, { words, distractors: pool, type = 'mixed',
     const w = list[i];
     const kind = type === 'mixed' ? chooseType(w, i) : type;
     stopSound(); // the last word's sound never spills into the next question
+    const gn = document.getElementById('gameName'); // 🎮 the game being played, by name
+    if (gn && type === 'mixed') gn.textContent = `🎮 ${GAME_BY_KEY[kind].name}`;
     const ok = await GAME_BY_KEY[kind].play(stage, w, all);
     await record(w, ok);
   }
