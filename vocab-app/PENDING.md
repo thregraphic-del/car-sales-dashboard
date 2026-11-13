@@ -57,19 +57,19 @@ clear button contrast, «إدارة بياناتي» (wipe words / videos / sett
 + fields accordion, suggestions emailed to the owner, numbered Excel rows that follow the filter, phone font 13, the video plays again
 after a word's meaning closes, a clear «خدمة النصوص وصلت حدها» message for 402/403, and the 504 fix when adding a video (multi-row INSERTs).)
 
-(New batch — collect 20, on the free preview — deploy at 20 or on «ارفع»)
+(Batch of 12 — deployed 2026-11-13 on «ارفع»)
 
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
-| 1 | 💡 «خلاصاتي» renamed «أفكار»; each video is closed: cover · name · one line about it · small counts (📝 ملخص · 📌 مقتطفات · ✍️ ملاحظة); tap to open the details, with «▶ افتح المقطع», ✎ note and 🗑 | built — on the free preview | in the batch | 0 |
-| 2 | ⚙ Fix (deployed alone 2026-11-13, urgent): on phones the top row of a video was wider than the screen, so the ⚙ gear (and back arrow) slid out of view. Now the gear is pinned at the end of the row and the row uses icons only on phones (no title, «ردّد»/«الكلمات» show their icon and count) | built — on the free preview | in the batch | 0 |
-| 3 | 🔤 Simplest form also for adjectives, adverbs and -ness words: delusional → delusion, happiness → happy, quickly → quick, dangerous → danger (only when the shorter word has its own card with Arabic; look-alikes like serious/family stay). Applied to new saves, to videos (once more each) and to the words already in «كلماتي» (once, in steps) | built — on the free preview | in the batch | a short one-time pass per video / per learner |
-| 4 | 🌗 «الخلفية» in ⚙ now switches the whole page: ليلي = the site's dark colours, أبيض/بيج = the light ones — every icon, button and the gear keep their contrast; back to the site's own theme when leaving the video | built — on the free preview | in the batch | 0 |
-| 5 | ⚙ «موافق» always visible at the bottom of the settings sheet with room under it (the sheet fits above the phone bars, the 4 phone buttons step aside while it is open); the gear stays visible (filled) while its sheet is open | built — on the free preview | in the batch | 0 |
-| 6 | 👍 «أزرار تحت» in ⚙: one on/off switch (grey = off, Tiffany = on), the buttons are always the small size; no size choices | built — on the free preview | in the batch | 0 |
-| 7 | 🎨 «شكل الكلمات»: no highlight/frame choice any more (always highlighted) — just «جديد» with its colours and «كلماتي» with its colours, one line each | built — on the free preview | in the batch | 0 |
-| 8 | 🌐 «الترجمة» in ⚙: «🙈 أخفه» removed — the «عربي» tick alone shows/hides the Arabic, and «بجانبه / تحته» appear only when it is on | built — on the free preview | in the batch | 0 |
-| 9 | ✕ in the ⚙ sheet's title (always on top while scrolling): back to the video WITHOUT keeping what was changed since ⚙ was opened («موافق» keeps it); the video goes on from the same place | built — on the free preview | in the batch | 0 |
-| 10 | 🔘 «قائمة الكلمات» and «ملخص كل فترة» in ⚙: an on/off switch like «أزرار تحت» (the word «بالعامية» removed); when on, two lines under it: how many (كل 10 كلمة / كل 3د · 6د · اكتب) then قبل / بعد | built — on the free preview | in the batch | 0 |
-| 11 | ⏸ «التوقف» and «التدريب» merged into one ⚙ section «بعد كل جملة» — one choice: عادي · وقفة بثواني (0.5/1/2/3ث show under it) · وقفة بطول الجملة للترديد · كرر كل جملة مرتين | built — on the free preview | in the batch | 0 |
-| 12 | ⚙ «السرعة»: all speeds on one line | built — on the free preview | in the batch | 0 |
+| 1 | 💡 «خلاصاتي» renamed «أفكار»; each video is closed: cover · name · one line about it · small counts (📝 ملخص · 📌 مقتطفات · ✍️ ملاحظة); tap to open the details, with «▶ افتح المقطع», ✎ note and 🗑 | deployed 2026-11-13 | in the batch | 0 |
+| 2 | ⚙ Fix (deployed alone 2026-11-13, urgent): on phones the top row of a video was wider than the screen, so the ⚙ gear (and back arrow) slid out of view. Now the gear is pinned at the end of the row and the row uses icons only on phones (no title, «ردّد»/«الكلمات» show their icon and count) | deployed 2026-11-13 | in the batch | 0 |
+| 3 | 🔤 Simplest form also for adjectives, adverbs and -ness words: delusional → delusion, happiness → happy, quickly → quick, dangerous → danger (only when the shorter word has its own card with Arabic; look-alikes like serious/family stay). Applied to new saves, to videos (once more each) and to the words already in «كلماتي» (once, in steps) | deployed 2026-11-13 | in the batch | a short one-time pass per video / per learner |
+| 4 | 🌗 «الخلفية» in ⚙ now switches the whole page: ليلي = the site's dark colours, أبيض/بيج = the light ones — every icon, button and the gear keep their contrast; back to the site's own theme when leaving the video | deployed 2026-11-13 | in the batch | 0 |
+| 5 | ⚙ «موافق» always visible at the bottom of the settings sheet with room under it (the sheet fits above the phone bars, the 4 phone buttons step aside while it is open); the gear stays visible (filled) while its sheet is open | deployed 2026-11-13 | in the batch | 0 |
+| 6 | 👍 «أزرار تحت» in ⚙: one on/off switch (grey = off, Tiffany = on), the buttons are always the small size; no size choices | deployed 2026-11-13 | in the batch | 0 |
+| 7 | 🎨 «شكل الكلمات»: no highlight/frame choice any more (always highlighted) — just «جديد» with its colours and «كلماتي» with its colours, one line each | deployed 2026-11-13 | in the batch | 0 |
+| 8 | 🌐 «الترجمة» in ⚙: «🙈 أخفه» removed — the «عربي» tick alone shows/hides the Arabic, and «بجانبه / تحته» appear only when it is on | deployed 2026-11-13 | in the batch | 0 |
+| 9 | ✕ in the ⚙ sheet's title (always on top while scrolling): back to the video WITHOUT keeping what was changed since ⚙ was opened («موافق» keeps it); the video goes on from the same place | deployed 2026-11-13 | in the batch | 0 |
+| 10 | 🔘 «قائمة الكلمات» and «ملخص كل فترة» in ⚙: an on/off switch like «أزرار تحت» (the word «بالعامية» removed); when on, two lines under it: how many (كل 10 كلمة / كل 3د · 6د · اكتب) then قبل / بعد | deployed 2026-11-13 | in the batch | 0 |
+| 11 | ⏸ «التوقف» and «التدريب» merged into one ⚙ section «بعد كل جملة» — one choice: عادي · وقفة بثواني (0.5/1/2/3ث show under it) · وقفة بطول الجملة للترديد · كرر كل جملة مرتين | deployed 2026-11-13 | in the batch | 0 |
+| 12 | ⚙ «السرعة»: all speeds on one line | deployed 2026-11-13 | in the batch | 0 |
