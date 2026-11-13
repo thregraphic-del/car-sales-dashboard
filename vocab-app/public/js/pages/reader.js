@@ -320,7 +320,7 @@ export async function render(view, { segments, params }) {
               <span class="sopts" id="mkStyle"><button type="button" class="sopt" data-mks="fill">تظليل</button><button type="button" class="sopt" data-mks="frame">إطار</button></span>
               <span class="mk-row"><span class="tiny">الجديدة</span>${MK_NEW.map(([c, n]) => `<button type="button" class="mk-sw" data-mkn="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span>
               <span class="mk-row"><span class="tiny">كلماتي</span>${MK_MINE.map(([c, n]) => `<button type="button" class="mk-sw" data-mkm="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span></div></div>
-            <div class="srow tb-only"><span class="slabel">أزرار تحت</span><div class="sopts"><span class="sopts" id="tbShow">${[['normal', 'بالعادي بس'], ['always', 'دايم'], ['off', 'مخفية']].map(([k, l]) => `<button type="button" class="sopt" data-tbs="${k}">${l}</button>`).join('')}</span><span class="sopts" id="tbSize">${[['s', 'صغير'], ['m', 'وسط'], ['l', 'كبير']].map(([k, l]) => `<button type="button" class="sopt" data-tbz="${k}">${l}</button>`).join('')}</span></div></div>
+            <div class="srow tb-only"><span class="slabel">أزرار تحت</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="tbOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="tbOnTxt"></span></label></div></div>
             <div class="srow"><span class="slabel">الخلفية</span><div class="sopts" id="rBg">${[['', 'مثل الموقع'], ['night', '🌙 ليلي'], ['white', '⬜ أبيض'], ['beige', '🟫 بيج']].map(([k, l]) => `<button type="button" class="sopt" data-rbg="${k}">${l}</button>`).join('')}</div></div>
             <div class="srow"><span class="slabel">النص</span><div class="sopts">${hasTimes ? `<label class="sopt-check"><input type="checkbox" class="check" id="followToggle" ${follow ? 'checked' : ''}> متابعة تلقائية</label>` : ''}${hasTimes ? '<label class="sopt-check"><input type="checkbox" class="check" id="timesToggle"> الوقت</label>' : ''}<span class="sopts fontsize"><button type="button" class="sopt" data-font="-1">A−</button><button type="button" class="sopt" data-font="1">A+</button></span></div></div>
           </div></div>
@@ -797,20 +797,15 @@ export async function render(view, { segments, params }) {
     view.querySelectorAll('[data-rbg]').forEach((b) => b.classList.toggle('active', b.dataset.rbg === rbgOf()));
   };
   // 👍 phone buttons under the thumb: when to show them and how big (for every video)
-  const applyTb = () => { document.body.dataset.tb = pref('reader.tbShow', 'normal'); document.body.dataset.tbsize = pref('reader.tbSize', 'm'); };
+  const applyTb = () => { document.body.dataset.tb = pref('reader.tbOn', '1') === '1' ? 'always' : 'off'; document.body.dataset.tbsize = 's'; };
   applyTb();
   const drawTb = () => {
-    view.querySelectorAll('[data-tbs]').forEach((b) => b.classList.toggle('active', b.dataset.tbs === pref('reader.tbShow', 'normal')));
-    view.querySelectorAll('[data-tbz]').forEach((b) => b.classList.toggle('active', b.dataset.tbz === pref('reader.tbSize', 'm')));
+    const on = pref('reader.tbOn', '1') === '1';
+    const c = $('#tbOn', view); if (c) c.checked = on;
+    const t = $('#tbOnTxt', view); if (t) t.textContent = on ? 'شغّالة' : 'مطفأة';
   };
   drawTb();
-  $('#rset', view)?.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-tbs],[data-tbz]');
-    if (!b) return;
-    if (b.dataset.tbs) setPref('reader.tbShow', b.dataset.tbs);
-    if (b.dataset.tbz) setPref('reader.tbSize', b.dataset.tbz);
-    applyTb(); drawTb();
-  });
+  $('#tbOn', view)?.addEventListener('change', (e) => { setPref('reader.tbOn', e.target.checked ? '1' : '0'); applyTb(); drawTb(); });
   drawLook();
   $('#rset', view)?.addEventListener('click', (e) => {
     const b = e.target.closest('[data-mks],[data-mkn],[data-mkm],[data-rbg]');
