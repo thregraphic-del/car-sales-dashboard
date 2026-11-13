@@ -1,0 +1,132 @@
+// 📒 «خلاصاتي» — the summaries the learner kept from videos, with their own notes.
+// ✎ edit the note; type @ then a minute (e.g. @3 or @3:20) to pick the sentence said at that
+// moment and write about it (it is kept with the note and opens the video right there).
+import { api } from '../api.js';
+import { esc, icon, toast, emptyState } from '../ui.js';
+
+const fmt = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+const TOKEN = /@(\d{1,3})(?::(\d{1,2}))?/g;
+const secOf = (m, s) => Number(m) * 60 + (s ? Number(s) : 0);
+const thumbOf = (n) => n.thumbnail_url || (n.youtube_id ? `https://i.ytimg.com/vi/${encodeURIComponent(n.youtube_id)}/mqdefault.jpg` : '');
+
+function summaryHtml(s = {}) {
+  return `<div class="sum-sec"><b>💡 الفكرة</b><p>${esc(s.idea || '')}</p></div>
+    ${s.benefit ? `<div class="sum-sec"><b>🎁 الفائدة</b><p>${esc(s.benefit)}</p></div>` : ''}
+    ${s.points?.length ? `<div class="sum-sec"><b>📌 أهم النقاط</b><ul>${s.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+    ${s.steps?.length ? `<div class="sum-sec"><b>✅ خطوات عملية</b><ol>${s.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol></div>` : ''}
+    ${s.quotes?.length ? `<div class="sum-sec"><b>💬 أقوال وحِكم من المقطع</b>${s.quotes.map((q) => `<blockquote class="sum-quote"><p class="en" dir="ltr">“${esc(q.en)}” <button class="btn icon sm ghost" data-say="${esc(q.en)}" aria-label="استمع">🔊</button></p><p>${esc(q.ar)}</p></blockquote>`).join('')}</div>` : ''}`;
+}
+
+// the note with each @minute shown as a small time chip that opens the video there
+function noteHtml(n) {
+  if (!n.note) return '';
+  const text = esc(n.note).replace(TOKEN, (all, m, s) => `<a class="nt-at en-inline" href="#/source/${n.source_id}?t=${secOf(m, s)}">⏱ ${fmt(secOf(m, s))}</a>`);
+  const refs = (n.refs || []).map((r) => `<a class="nt-ref" href="#/source/${n.source_id}?t=${r.t}"><span class="nt-t en-inline">⏱ ${fmt(r.t)}</span><span class="en" dir="ltr">${esc(r.en)}</span>${r.ar ? `<span class="tiny muted">${esc(r.ar)}</span>` : ''}</a>`).join('');
+  return `<div class="nt-note"><b>✍️ ملاحظتي</b><p>${text.replace(/\n/g, '<br>')}</p>${refs ? `<div class="nt-refs">${refs}</div>` : ''}</div>`;
+}
+
+const cardHtml = (n) => `
+  <article class="card nt-card" data-src="${n.source_id}">
+    <header class="nt-head">
+      ${thumbOf(n) ? `<img class="nt-thumb" src="${esc(thumbOf(n))}" alt="" loading="lazy" onerror="this.remove()">` : '<span class="nt-thumb nt-noimg">📄</span>'}
+      <div class="nt-meta"><span class="tiny muted en clamp1">${esc(n.channel || '')}</span><a class="nt-title en clamp2" href="#/source/${n.source_id}" ${n.exists ? '' : 'aria-disabled="true"'}>${esc(n.title || '')}</a></div>
+      <span class="nt-tools"><button type="button" class="btn icon sm ghost" data-edit title="اكتب ملاحظة" aria-label="اكتب ملاحظة">${icon.edit}</button><button type="button" class="btn icon sm ghost" data-del title="احذف من خلاصاتي" aria-label="احذف">${icon.trash}</button></span>
+    </header>
+    <div class="nt-body">${noteHtml(n)}${summaryHtml(n.summary)}</div>
+  </article>`;
+
+export async function render(view) {
+  view.innerHTML = `<div class="page-head"><div><div class="eyebrow">Insights</div><h1>خلاصاتي</h1><p class="muted small">ملخصات المقاطع اللي حفظتها، مع ملاحظاتك عليها.</p></div></div>
+    <div class="stack" id="ntList"><p class="tiny muted"><span class="spinner"></span></p></div>`;
+  const listEl = view.querySelector('#ntList');
+  let notes = [];
+  const draw = () => {
+    listEl.innerHTML = notes.length ? notes.map(cardHtml).join('')
+      : emptyState?.('📒', 'ما حفظت خلاصات للحين', 'افتح «📝 ملخص المقطع» في أي فيديو واضغط «احفظ في خلاصاتي».') || '<div class="card empty"><h3>ما حفظت خلاصات للحين</h3><p>افتح «📝 ملخص المقطع» في أي فيديو واضغط «احفظ في خلاصاتي».</p></div>';
+  };
+  try { notes = (await api.notes()).notes; } catch (err) { listEl.innerHTML = `<div class="alert">${esc(err.message)}</div>`; return; }
+  draw();
+
+  const linesOf = new Map(); // source → its transcript lines (loaded when a note is edited)
+  const getLines = async (id) => {
+    if (!linesOf.has(id)) linesOf.set(id, api.source(id).then((d) => d.lines.filter((l) => l.start_seconds != null)).catch(() => []));
+    return linesOf.get(id);
+  };
+  const lineAt = (lines, t) => {
+    let best = null;
+    for (const l of lines) { if (Number(l.start_seconds) <= t + 0.5) best = l; else break; }
+    return best || lines[0] || null;
+  };
+
+  const edit = async (card, n) => {
+    const body = card.querySelector('.nt-body');
+    body.insertAdjacentHTML('afterbegin', `<div class="nt-edit">
+      <textarea class="input" rows="4" placeholder="اكتب ملاحظتك… واكتب @ ثم الدقيقة (مثل @3 أو @3:20) عشان تختار الجملة اللي انقالت فيها">${esc(n.note || '')}</textarea>
+      <div class="nt-pick" hidden></div>
+      <div class="btn-row"><button type="button" class="btn primary sm" data-save>حفظ</button><button type="button" class="btn sm ghost" data-cancel>إلغاء</button></div></div>`);
+    card.querySelector('.nt-note')?.remove();
+    const ta = body.querySelector('textarea');
+    const pick = body.querySelector('.nt-pick');
+    ta.focus();
+    const refs = new Map((n.refs || []).map((r) => [r.t, r]));
+    // while typing @minute: the sentences around that moment, one tap picks the exact one
+    ta.addEventListener('input', async () => {
+      const before = ta.value.slice(0, ta.selectionStart);
+      const m = before.match(/@(\d{1,3})(?::(\d{0,2}))?$/);
+      if (!m) { pick.hidden = true; return; }
+      const lines = await getLines(n.source_id);
+      if (!lines.length) { pick.hidden = false; pick.innerHTML = '<span class="tiny muted">هذا المقطع ما فيه أوقات للجمل.</span>'; return; }
+      const t = secOf(m[1], m[2] || 0);
+      const i = Math.max(0, lines.indexOf(lineAt(lines, t)));
+      const near = lines.slice(Math.max(0, i - 1), i + 3);
+      pick.hidden = false;
+      pick.innerHTML = near.map((l) => `<button type="button" class="nt-cand" data-t="${Math.floor(l.start_seconds)}"><span class="nt-t en-inline">${fmt(l.start_seconds)}</span><span class="en" dir="ltr">${esc(l.text)}</span>${l.text_ar ? `<span class="tiny muted">${esc(l.text_ar)}</span>` : ''}</button>`).join('');
+      pick.onclick = (e) => {
+        const b = e.target.closest('[data-t]');
+        if (!b) return;
+        const tt = Number(b.dataset.t);
+        const l = lines.find((x) => Math.floor(x.start_seconds) === tt);
+        refs.set(tt, { t: tt, en: l?.text || '', ar: l?.text_ar || '' });
+        const pos = ta.selectionStart;
+        const start = before.length - m[0].length;
+        ta.value = `${ta.value.slice(0, start)}@${fmt(tt)} ${ta.value.slice(pos)}`;
+        ta.focus();
+        ta.selectionStart = ta.selectionEnd = start + fmt(tt).length + 2;
+        pick.hidden = true;
+      };
+    });
+    body.querySelector('[data-cancel]').addEventListener('click', () => { body.querySelector('.nt-edit').remove(); body.insertAdjacentHTML('afterbegin', noteHtml(n)); });
+    body.querySelector('[data-save]').addEventListener('click', async () => {
+      const note = ta.value.trim();
+      // keep only the sentences the note still points at (typed @minutes are found too)
+      const used = [];
+      const lines = note.includes('@') ? await getLines(n.source_id) : [];
+      for (const m of note.matchAll(TOKEN)) {
+        const t = secOf(m[1], m[2]);
+        if (used.some((r) => r.t === t)) continue;
+        const known = refs.get(t);
+        const l = known ? null : lineAt(lines, t);
+        if (known) used.push(known);
+        else if (l) used.push({ t, en: l.text, ar: l.text_ar || '' });
+      }
+      try {
+        const r = await api.editNote(n.source_id, note, used);
+        Object.assign(n, r.note);
+        body.querySelector('.nt-edit').remove();
+        body.insertAdjacentHTML('afterbegin', noteHtml(n));
+        toast('تم الحفظ ✓');
+      } catch (err) { toast(err.message); }
+    });
+  };
+
+  listEl.addEventListener('click', async (e) => {
+    const card = e.target.closest('[data-src]');
+    if (!card) return;
+    const n = notes.find((x) => String(x.source_id) === card.dataset.src);
+    if (e.target.closest('[data-edit]')) { if (!card.querySelector('.nt-edit')) edit(card, n); return; }
+    if (e.target.closest('[data-del]')) {
+      if (!confirm('تحذف هذي الخلاصة من خلاصاتي؟')) return;
+      try { await api.dropNote(n.source_id); notes = notes.filter((x) => x !== n); draw(); } catch (err) { toast(err.message); }
+    }
+  });
+}

@@ -2051,8 +2051,14 @@ export async function render(view, { segments, params }) {
         <div class="sum-sec"><b>🎁 الفائدة</b><p>${esc(s.benefit)}</p></div>
         ${s.points.length ? `<div class="sum-sec"><b>📌 أهم النقاط</b><ul>${s.points.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
         ${s.steps.length ? `<div class="sum-sec"><b>✅ خطوات عملية</b><ol>${s.steps.map((x) => `<li>${esc(x)}</li>`).join('')}</ol></div>` : ''}
-        ${s.quotes.length ? `<div class="sum-sec"><b>💬 أقوال وحِكم من المقطع</b>${s.quotes.map((q) => `<blockquote class="sum-quote"><p class="en" dir="ltr">“${esc(q.en)}” <button class="btn icon sm ghost" data-say="${esc(q.en)}" aria-label="استمع">🔊</button></p><p>${esc(q.ar)}</p></blockquote>`).join('')}</div>` : ''}${doneBtn}`;
+        ${s.quotes.length ? `<div class="sum-sec"><b>💬 أقوال وحِكم من المقطع</b>${s.quotes.map((q) => `<blockquote class="sum-quote"><p class="en" dir="ltr">“${esc(q.en)}” <button class="btn icon sm ghost" data-say="${esc(q.en)}" aria-label="استمع">🔊</button></p><p>${esc(q.ar)}</p></blockquote>`).join('')}</div>` : ''}
+        <div class="btn-row" style="justify-content:center;margin-top:12px"><button type="button" class="btn" id="sumKeep">${icon.bookmark} احفظ في خلاصاتي</button></div>${doneBtn}`;
       bindSpeech(box);
+      box.querySelector('#sumKeep')?.addEventListener('click', async (e) => {
+        const b = e.currentTarget;
+        b.disabled = true;
+        try { await api.keepNote(id, s); b.innerHTML = `${icon.check} محفوظ في <a href="#/notes" data-close>خلاصاتي</a>`; } catch (err) { b.disabled = false; toast(err.message); }
+      });
     } catch (err) {
       box.innerHTML = `<button class="btn icon sm ghost modal-close" data-close aria-label="إغلاق">${icon.x}</button><h2>📝 ملخص المقطع</h2><div class="alert">${esc(err.message)}</div>${doneBtn}`;
     }
