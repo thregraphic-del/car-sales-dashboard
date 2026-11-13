@@ -1789,3 +1789,16 @@ body:has(.page-reader #rset:not(.hidden)) .thumb-bar { display: none !important;
 /* ⚙ speeds on one line */
 .rset #speed { flex-wrap: nowrap !important; gap: 4px !important; width: 100%; }
 .rset #speed .sopt { flex: 1 1 0; min-width: 0; padding: 7px 2px; font-size: 13px; text-align: center; justify-content: center; }
+
+/* ⭐ favourite channels like the fields: picture on top, name under, two rows scrolling sideways */
+.fav-card { position: relative; padding: 0; }
+.fav-go { display: grid; justify-items: center; gap: 4px; padding: 10px 4px; text-decoration: none; color: inherit; width: 100%; }
+.fav-vids { position: absolute; top: 4px; inset-inline-start: 4px; width: 26px; height: 26px; border-radius: 99px; border: 0; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent); display: grid; place-items: center; cursor: pointer; padding: 0; }
+.fav-vids svg { width: 15px; height: 15px; }
+.fav-card.open { border-color: var(--accent); }
+/* 🎬 similar videos: cover on top, title under, two rows scrolling sideways */
+.vd-rows2 { display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, auto); grid-auto-columns: 170px; gap: 8px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x proximity; }
+.vd-card { display: grid; gap: 4px; align-content: start; text-align: start; padding: 0 0 8px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); color: var(--ink); font: inherit; cursor: pointer; overflow: hidden; scroll-snap-align: start; }
+.vd-card .vd-thumb { width: 100%; aspect-ratio: 16/9; object-fit: cover; background: var(--surface-2); }
+.vd-card b, .vd-card span { padding: 0 8px; }
+.vd-card b { font-size: 12.5px; line-height: 1.35; }

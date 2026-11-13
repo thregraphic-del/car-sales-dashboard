@@ -247,15 +247,12 @@ export function bindSuggestions(view, { onPick }) {
       duration = r.duration;
       show(duration);
       box.innerHTML = `
-        ${r.videos.length ? `<div class="grid cols-3">${r.videos.slice(0, shown).map((v) => `
-          <div class="video-mini sug-card">
-            <img class="sug-thumb" src="${esc(v.thumbnail)}" alt="" loading="lazy">
-            <div style="min-width:0"><div class="en small clamp2" style="font-weight:600">${esc(v.title)}</div>
-              <div class="tiny muted">${esc(v.channel || '')}${v.minutes ? ` · ~${Math.round(v.minutes)} د` : ''}</div>
-              ${v.why_ar ? `<div class="tiny ink-2 clamp2">${esc(v.why_ar)}</div>` : ''}
-              <button class="btn sm primary" data-url="${esc(v.url)}" style="margin-top:6px">أضف وتعلّم</button></div></div>`).join('')}</div>`
+        ${r.videos.length ? `<div class="vd-rows2">${r.videos.map((v) => `
+          <button type="button" class="vd-card" data-url="${esc(v.url)}" title="${esc(v.why_ar || v.title)}">
+            <img class="vd-thumb" src="${esc(v.thumbnail)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">
+            <b class="en clamp2">${esc(v.title)}</b>
+            <span class="tiny muted en clamp1">${esc(v.channel || '')}${v.minutes ? ` · ~${Math.round(v.minutes)} د` : ''}</span></button>`).join('')}</div>`
           : '<p class="tiny muted">ما لقينا فيديوهات مؤكدة هذه المرة — جرّب البحث بالمواضيع أدناه.</p>'}
-        ${r.videos.length > shown ? '<button class="link-btn" id="sugMoreV">المزيد ▾</button>' : ''}
         ${r.topics.length ? `<div class="tiny muted" style="margin:12px 0 6px">ابحث في يوتيوب عن مواضيع مشابهة (بنفس الطول):</div>
           <div class="row wrap" style="gap:6px">${r.topics.map((t) => `<a class="chip topic-chip" href="${esc(t.url)}" target="_blank" rel="noopener">${esc(t.label_ar)} · <span class="en-inline">${esc(t.query)}</span></a>`).join('')}</div>` : ''}`;
       box.querySelectorAll('[data-url]').forEach((b) => b.addEventListener('click', () => onPick(b.dataset.url)));
@@ -402,7 +399,7 @@ export function bindChannels(view, { onPick }) {
   let open = null;
   const draw = () => {
     const shown = list.filter((c) => edit || !c.hidden);
-    box.innerHTML = `<div class="ch-grid">${shown.map((c) => `
+    box.innerHTML = edit ? `<div class="ch-grid">${shown.map((c) => `
       <div class="ch-card ${c.hidden ? 'is-hidden' : ''} ${open === c.id ? 'open' : ''}" data-ch="${esc(c.id)}">
         ${edit ? `<div class="ch-main">` : `<a class="ch-main" href="${esc(c.url)}" target="_blank" rel="noopener" title="افتح القناة في يوتيوب">`}${avatar(c)}<span class="ch-txt"><b class="en-inline">${esc(c.name)}</b><span class="tiny muted">${c.pinned ? '📌 ' : ''}${esc(c.field || '')}</span></span>${edit ? '</div>' : '</a>'}
         ${edit ? '' : `<button type="button" class="btn icon sm ghost ch-vids" data-open="${esc(c.id)}" title="فيديوهات من القناة هنا" aria-label="فيديوهات من القناة هنا">${icon.video}</button>`}
@@ -411,7 +408,13 @@ export function bindChannels(view, { onPick }) {
           ${c.kind === 'custom' ? '<button class="btn icon sm ghost" data-act="edit" title="تعديل">✎</button>' : ''}
           <button class="btn icon sm ghost" data-act="${c.hidden ? 'show' : c.kind === 'custom' ? 'remove' : 'hide'}" title="${c.hidden ? 'إظهار' : 'حذف من القائمة'}">${c.hidden ? '↺' : '✕'}</button></div>` : ''}
       </div>`).join('')}</div>
-      ${edit ? '<p class="tiny muted">📌 للتثبيت في الأعلى · ✕ للحذف من القائمة · ↺ لإرجاع قناة محذوفة.</p>' : '<p class="tiny muted">اضغط القناة تفتح في يوتيوب مباشرة · 🎬 لفيديوهاتها هنا.</p>'}`;
+      <p class="tiny muted">📌 للتثبيت في الأعلى · ✕ للحذف من القائمة · ↺ لإرجاع قناة محذوفة.</p>`
+      // like the channels by field: picture on top, name under it, two rows that scroll sideways
+      : `<div class="fd-grid fd-rows2 fav-rows">${shown.map((c) => `
+      <div class="fd-card fav-card ${open === c.id ? 'open' : ''}" data-ch="${esc(c.id)}">
+        <a class="fav-go" href="${esc(c.url)}" target="_blank" rel="noopener" title="افتح القناة في يوتيوب">${avatar(c)}<b class="en">${esc(c.name)}</b><span class="tiny muted fd-desc">${c.pinned ? '📌 ' : ''}${esc(c.field || '')}</span></a>
+        <button type="button" class="fav-vids" data-open="${esc(c.id)}" title="فيديوهات من القناة هنا" aria-label="فيديوهات من القناة هنا">${icon.video}</button></div>`).join('')}</div>
+      <p class="tiny muted">اضغط القناة تفتح في يوتيوب · 🎬 لفيديوهاتها هنا.</p>`;
     $('#chEdit', view).classList.toggle('primary', edit);
   };
   const load = async () => {

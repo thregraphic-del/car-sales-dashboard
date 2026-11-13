@@ -79,3 +79,4 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
 | 1 | 🔤 Simplest form, second pass: when the shorter word inside an adjective (delusional → «delusion», environmental → «environment») is not in the dictionary yet, its meaning is asked from the AI once (saved for everyone) and the word moves to it; a few per request, the rest on the next call — every word in «كلماتي» is checked again once | built — on the free preview | in the batch | one short AI call per missing base word, once |
+| 2 | ⭐ «المفضلة» channels look like the channels by field: picture on top, name under it, two rows that scroll sideways (tap = YouTube, small 🎬 = its videos here); «فيديوهات مشابهة»: cover on top, title under, two rows that scroll sideways, tap = add and learn | built — on the free preview | in the batch | 0 |
