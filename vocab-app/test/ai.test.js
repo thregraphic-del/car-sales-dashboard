@@ -567,6 +567,21 @@ test('video: suggested words are shown in their simplest form (appearance → ap
   assert.equal(view.source.simplified, true);
 });
 
+test('simplest form: adjectives, adverbs and -ness give the word inside them', async () => {
+  const { run, get } = await import('../server/db/index.js');
+  const { simpleTerm } = await import('../server/data/simplest.js');
+  for (const [term, ar] of [['delusion', 'وهم'], ['happy', 'سعيد'], ['quick', 'سريع'], ['danger', 'خطر']]) {
+    await run("INSERT INTO vocabulary (term, match_key, arabic, level, origin) VALUES (?, ?, ?, 'B2', 'dictionary') ON CONFLICT (match_key) DO NOTHING", term, term, ar);
+  }
+  assert.equal((await simpleTerm('delusional')).term, 'delusion');
+  assert.equal((await simpleTerm('happiness')).term, 'happy');
+  assert.equal((await simpleTerm('quickly')).term, 'quick');
+  assert.equal((await simpleTerm('dangerous')).term, 'danger');
+  assert.equal((await simpleTerm('serious')).term, 'serious', 'a word that only looks like one stays');
+  assert.equal((await simpleTerm('family')).term, 'family');
+  void get;
+});
+
 test('my words: saved in the simplest form, older words simplified, «الأوضح» groups one meaning', async () => {
   const { run, get } = await import('../server/db/index.js');
   const add = async (term, level, arabic, pos = 'noun') => {

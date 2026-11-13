@@ -139,6 +139,31 @@ async function doerVerb(w) {
   return null;
 }
 
+/** The shorter word inside an adjective / adverb / -ness noun (delusional → delusion,
+ * happiness → happy, quickly → quick, dangerous → danger), only when that word is common and has
+ * its own card with an Arabic meaning. */
+const ADJ_STOP = new Set('only early likely family supply apply reply rely belly jelly holy ugly silly lonely lovely friendly costly deadly elderly weekly daily monthly yearly fly ally rally bully july italy reality quality usually totally really finally actually generally especially natural normal total final local legal general central mental medical musical animal original official rural royal loyal several individual festival terminal journal signal capital hospital metal pedal crystal brutal vital fatal dental moral literal liberal federal mineral neutral plural spiral tribal oral nervous serious obvious various previous curious anxious jealous famous enormous tremendous gorgeous business witness harness wilderness'.split(' '));
+async function adjBase(w) {
+  if (w.length < 6 || ADJ_STOP.has(w)) return null;
+  const tries = [];
+  let r;
+  if (w.endsWith('ional') || w.endsWith('mental') || w.endsWith('ural')) { r = w.slice(0, -2); tries.push(r, `${r}e`); }
+  if (w.endsWith('iness')) tries.push(`${w.slice(0, -5)}y`);
+  else if (w.endsWith('ness')) tries.push(w.slice(0, -4));
+  if (w.endsWith('ically')) tries.push(w.slice(0, -4));
+  else if (w.endsWith('ily')) tries.push(`${w.slice(0, -3)}y`);
+  else if (w.endsWith('ly')) tries.push(w.slice(0, -2), `${w.slice(0, -2)}e`);
+  if (w.endsWith('ous') && !w.endsWith('ious')) tries.push(w.slice(0, -3), `${w.slice(0, -3)}e`);
+  const rank = await ranks();
+  for (const t of tries) {
+    if (!t || t.length < 4) continue;
+    const row = await findVocabulary(t);
+    // a known word with its own Arabic meaning (common, or already in the site's dictionary)
+    if (row && row.term.toLowerCase() === t && row.arabic && (rank.has(t) || row.level)) return row;
+  }
+  return null;
+}
+
 /**
  * The shortest basic form to show and save for an extracted word or expression:
  * inflections go (struggling → struggle, changed the way → change the way) and keep their meaning;
@@ -160,13 +185,20 @@ export async function simpleTerm(term) {
   const lemma = await lemmaWord(lower);
   const doer = await doerVerb(lemma);
   if (doer) return { term: doer.term, kind: 'derived', row: doer };
+  const adj = await adjBase(lemma);
+  if (adj) {
+    // delusional → delusion, and then a verb-made noun one step further only if the dictionary agrees
+    const deeper = await simplestFor({ term: adj.term, level: adj.level || null });
+    const row = deeper?.id ? await findVocabulary(deeper.term) : null;
+    return row ? { term: row.term, kind: 'derived', row } : { term: adj.term, kind: 'derived', row: adj };
+  }
   const lemmaRow = lemma !== lower ? await findVocabulary(lemma) : null;
   const derived = await simplestFor({ term: lemma, level: lemmaRow?.level || null });
   if (derived?.id) return { term: derived.term, kind: 'derived', row: await findVocabulary(derived.term) };
   return lemma !== lower ? { term: lemma, kind: 'inflection' } : { term: t, kind: 'same' };
 }
 
-const VERSION = '7';
+const VERSION = '8'; // 8: adjectives / adverbs / -ness too
 
 /**
  * Point a video's suggested words at their simplest forms (once per video).
@@ -237,7 +269,7 @@ export async function isSimplified(sourceId) {
 
 /* ------------------------------------------------------ the learner's words */
 
-const MAYBE = /(s|ed|ing|er|or|ion|ment|ance|ence|al)$|\s/;
+const MAYBE = /(s|ed|ing|er|or|ion|ment|ance|ence|al|ness|ly|ous)$|\s/;
 
 /** The vocabulary id to save for a word: its simplest form (created for an inflection). */
 export async function baseVocabId(v) {
@@ -252,7 +284,7 @@ export async function baseVocabId(v) {
     arabic: v.arabic, simple_english: v.simple_english, topic: v.topic, origin: v.origin || 'ai' })).id;
 }
 
-const WORDS_VERSION = '1';
+const WORDS_VERSION = '2'; // 2: delusional → delusion, happiness → happy …
 
 /**
  * Move the learner's saved words to their simplest forms, a slice at a time
