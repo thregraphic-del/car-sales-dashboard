@@ -1776,3 +1776,8 @@ body:has(.page-reader #rset:not(.hidden)) .thumb-bar { display: none !important;
 .rset-x { font-size: 18px; width: 36px; height: 36px; }
 @media (min-width: 1000px) { .page-reader .rset .rset-x { display: none; } }
 @media (max-width: 999px) { .page-reader .rset .rset-title { position: sticky; top: -12px; z-index: 3; background: var(--surface); margin: -12px -12px 6px; padding: 10px 12px 8px; border-radius: 16px 16px 0 0; border-bottom: 1px solid var(--line); } }
+
+/* on/off rows: the choices show under the switch only when it is on, one line each */
+.rset .sw-row .sw-sub { display: grid; gap: 8px; width: 100%; margin-top: 4px; }
+.rset .sw-row .sw-sub > .sopts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.rset .sw-row:has(.tg-switch input:not(:checked)) .sw-sub { display: none; }
