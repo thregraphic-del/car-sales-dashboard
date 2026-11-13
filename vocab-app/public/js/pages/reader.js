@@ -318,7 +318,8 @@ export async function render(view, { segments, params }) {
             <span class="sopts" id="wbWhen"><button type="button" class="sopt" data-when="before">قبلها</button><button type="button" class="sopt" data-when="after">بعدها</button></span></div></div></div>
           <div class="srow sw-row"><span class="slabel">ملخص كل فترة</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="recapOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label>
             <div class="sw-sub"><span class="sopts" id="recapMin"><span class="tiny">كل</span>${[3, 6].map((m) => `<button type="button" class="sopt en-inline" data-rmin="${m}">${m}د</button>`).join('')}<input class="input sopt-num" id="recapMinN" type="number" min="1" max="60" inputmode="numeric" placeholder="اكتب" aria-label="كل كم دقيقة"></span>
-            <span class="sopts" id="recapWhen"><button type="button" class="sopt" data-rwhen="before">قبل</button><button type="button" class="sopt" data-rwhen="after">بعد</button></span></div></div></div>` : ''}
+            <span class="sopts" id="recapWhen"><button type="button" class="sopt" data-rwhen="before">قبل</button><button type="button" class="sopt" data-rwhen="after">بعد</button></span>
+            <span class="sopts" id="recapPause"><span class="tiny">لما يطلع:</span><button type="button" class="sopt" data-rpause="none">يكمّل المقطع</button><button type="button" class="sopt" data-rpause="read">يوقف بقدر قراءته</button><button type="button" class="sopt" data-rpause="5">يوقف ٥ ثواني</button></span></div></div></div>` : ''}
           <div class="sgroup">العرض</div>
           <div id="viewPick" class="rgrp"><button type="button" class="hidden" id="viewBtn"></button><div id="viewMenu" class="rgrp">
             <div class="srow"><span class="slabel">الترجمة</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="arToggle" ${showAr ? 'checked' : ''}> عربي</label><span class="sopts${showAr ? '' : ' hidden'}" id="arLayout"><button type="button" class="sopt" data-layout="side">بجانبه</button><button type="button" class="sopt" data-layout="below">تحته</button></span></div></div>
@@ -708,6 +709,9 @@ export async function render(view, { segments, params }) {
     const n = $('#recapMinN', view); if (n && ![3, 6].includes(recapMin)) n.value = String(recapMin);
     view.querySelectorAll('[data-rwhen]').forEach((b) => b.classList.toggle('active', b.dataset.rwhen === recapWhen));
   };
+  const showRPause = () => view.querySelectorAll('[data-rpause]').forEach((b) => b.classList.toggle('active', b.dataset.rpause === pref('reader.recapPause', 'none')));
+  showRPause();
+  view.querySelectorAll('[data-rpause]').forEach((b) => b.addEventListener('click', () => { setPref('reader.recapPause', b.dataset.rpause); showRPause(); }));
   showRecap();
   view.querySelectorAll('[data-rmin]').forEach((b) => b.addEventListener('click', () => { recapMin = Number(b.dataset.rmin); setPref('reader.recapMin2', String(recapMin)); const n = $('#recapMinN', view); if (n) n.value = ''; resetRecap(); showRecap(); }));
   $('#recapMinN', view)?.addEventListener('change', (e) => { recapMin = Math.max(1, Math.min(60, Number(e.target.value) || 3)); setPref('reader.recapMin2', String(recapMin)); resetRecap(); showRecap(); });
@@ -725,7 +729,15 @@ export async function render(view, { segments, params }) {
     api.recap(id, from, to).then((r) => {
       if (!alive || !r.ok || !r.text) return;
       // stays up as long as it takes to read it (5–12 s), then hides by itself
-      popNote(`<div class="lt-title">${title}</div><p class="lt-text">${esc(r.text)}</p>`, { ms: readMs(r.text), cls: 'lt-recap' });
+      const ms = readMs(r.text);
+      popNote(`<div class="lt-title">${title}</div><p class="lt-text">${esc(r.text)}</p>`, { ms, cls: 'lt-recap' });
+      // ⚙ while it shows: keep playing (default), or pause for the reading time / 5 s, then go on
+      const how = pref('reader.recapPause', 'none');
+      if (how !== 'none' && playing) {
+        selfPause(); player?.pause?.();
+        const at = player?.time?.() || 0;
+        setTimeout(() => { if (alive && !playing && Math.abs((player?.time?.() || 0) - at) < 1) player?.play?.(); }, how === '5' ? 5000 : ms);
+      }
     }).catch(() => {}).finally(() => { recapBusy = false; });
   };
   // a new choice (minutes / before-after): start counting from where the video is now
