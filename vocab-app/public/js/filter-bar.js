@@ -82,7 +82,7 @@ export function placeMenus(root) {
 }
 
 // ✍️ Enter in the «العدد» box = «تم» (a listener, not an inline handler: the site's CSP blocks those)
-document.addEventListener('keydown', (e) => {
+if (typeof document !== 'undefined') document.addEventListener('keydown', (e) => {
   const inp = e.target.closest?.('[data-fbn]');
   if (!inp || e.key !== 'Enter') return;
   e.preventDefault();
