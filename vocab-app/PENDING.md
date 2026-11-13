@@ -68,3 +68,4 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 | 5 | ⚙ «موافق» always visible at the bottom of the settings sheet with room under it (the sheet fits above the phone bars, the 4 phone buttons step aside while it is open); the gear stays visible (filled) while its sheet is open | built — on the free preview | in the batch | 0 |
 | 6 | 👍 «أزرار تحت» in ⚙: one on/off switch (grey = off, Tiffany = on), the buttons are always the small size; no size choices | built — on the free preview | in the batch | 0 |
 | 7 | 🎨 «شكل الكلمات»: no highlight/frame choice any more (always highlighted) — just «جديد» with its colours and «كلماتي» with its colours, one line each | built — on the free preview | in the batch | 0 |
+| 8 | 🌐 «الترجمة» in ⚙: «🙈 أخفه» removed — the «عربي» tick alone shows/hides the Arabic, and «بجانبه / تحته» appear only when it is on | built — on the free preview | in the batch | 0 |

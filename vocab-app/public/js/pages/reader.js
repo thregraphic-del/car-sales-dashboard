@@ -315,7 +315,7 @@ export async function render(view, { segments, params }) {
             <span class="sopts" id="recapWhen"><button type="button" class="sopt" data-rwhen="before">قبل</button><button type="button" class="sopt" data-rwhen="after">بعد</button></span></div></div>` : ''}
           <div class="sgroup">العرض</div>
           <div id="viewPick" class="rgrp"><button type="button" class="hidden" id="viewBtn"></button><div id="viewMenu" class="rgrp">
-            <div class="srow"><span class="slabel">الترجمة</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="arToggle" ${showAr ? 'checked' : ''}> عربي</label><span class="sopts${showAr ? '' : ' hidden'}" id="arLayout"><button type="button" class="sopt" data-layout="side">بجانبه</button><button type="button" class="sopt" data-layout="below">تحته</button></span><button type="button" class="sopt" id="hideArBtn" aria-pressed="false">🙈 أخفه</button></div></div>
+            <div class="srow"><span class="slabel">الترجمة</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="arToggle" ${showAr ? 'checked' : ''}> عربي</label><span class="sopts${showAr ? '' : ' hidden'}" id="arLayout"><button type="button" class="sopt" data-layout="side">بجانبه</button><button type="button" class="sopt" data-layout="below">تحته</button></span></div></div>
             <div class="srow"><span class="slabel">شكل الكلمات</span><div class="sopts mk-set">
               <span class="mk-row"><span class="mk-lbl">جديد</span>${MK_NEW.map(([c, n]) => `<button type="button" class="mk-sw" data-mkn="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span>
               <span class="mk-row"><span class="mk-lbl">كلماتي</span>${MK_MINE.map(([c, n]) => `<button type="button" class="mk-sw" data-mkm="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span></div></div>
@@ -1619,7 +1619,8 @@ export async function render(view, { segments, params }) {
   maybeTour('reader');
 
   // 🙈 Hide the Arabic until it is touched (try to understand first)
-  let hideAr = pref('reader.hideAr', '0') === '1';
+  let hideAr = false; // the «أخفه» button was removed (the «عربي» switch hides the Arabic)
+  setPref('reader.hideAr', '0');
   const showHideAr = () => {
     linesEl.classList.toggle('ar-hidden', hideAr);
     linesEl.querySelectorAll('.ar-shown').forEach((x) => x.classList.remove('ar-shown'));
