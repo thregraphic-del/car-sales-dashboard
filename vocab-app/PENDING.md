@@ -47,6 +47,7 @@ The live site deploys from `lexitube-live` — only on «ارفع».
 | 24 | 📝 The video summary fits the kind of video: a lesson keeps idea · benefit · points · steps; a film/story, vlog, fun, news or podcast gets a quick summary + its own sections (e.g. «أبرز الأحداث», «الشخصيات», «الرسالة», «أبرز اللحظات»), with a small kind tag; same look in «خلاصاتي» | built — on the free preview | in the batch | one new AI summary per video the first time it is opened after the update (then saved) |
 | 25 | 📌 Highlight a passage while watching → «📌 احفظ في خلاصاتي» (next to «✨ اشرح»); a note confirms; in «خلاصاتي» it shows under «مقتطفاتي» highlighted, with its time and Arabic — tap it to go back to that moment in the video; ✕ removes it | built — on the free preview | in the batch | 0 |
 | 26 | ✨ «اقترح لي كلمات»: the field box says (light grey) «اكتب هنا مجالك أو مهنتك إذا ما لقيته تحت…»; 6 more fields: قانون · تربية وتعليم · مطاعم وطبخ · تصميم وفنون · تسويق ومبيعات · هندسة | built — on the free preview | in the batch | 0 |
+| 27 | 📚 Channel fields as small chips (icon + name) side by side on every screen; the chosen field opens under them, full width | built — on the free preview | in the batch | 0 |
 | – | ✉️ (fix, rides along) reset-code email: no code in the subject | built | – | 0 |
 
 (Batch 6 deployed on 2026-11-09 — commit adc23df on `lexitube-live`: one teal filter bar for «تدرّب» + «كلماتي» (العدد · المستوى · الحالة · المقطع · الوقت · الترتيب),

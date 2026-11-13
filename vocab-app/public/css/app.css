@@ -1717,3 +1717,13 @@ body.has-thumb-bar[data-tbsize="l"] .page-reader { padding-bottom: 78px; }
 .nt-clip-go { flex: 1; display: grid; gap: 3px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; }
 .nt-clip mark { background: color-mix(in srgb, var(--mk-new, #0ABAB5) 26%, transparent); color: inherit; border-radius: 4px; padding: 1px 3px; line-height: 1.8; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 #swTopic::placeholder { color: var(--muted); opacity: .75; font-size: 14px; }
+/* 📚 fields: small chips (icon + name) side by side; the open one opens under them, full width */
+.fd-acc { display: flex !important; flex-wrap: wrap; gap: 6px; }
+.fd-acc .fd-item { flex: 1 1 100%; }
+.fd-acc .fd-item.open { order: 1; margin-top: 4px; }
+.fd-acc .fd-item:not(.open) { flex: 0 0 auto; border-radius: 99px; }
+.fd-acc .fd-item:not(.open) .fd-head { padding: 5px 12px 5px 6px; gap: 6px; }
+.fd-acc .fd-item:not(.open) .fd-head b { font-size: 13px; font-weight: 700; }
+.fd-acc .fd-item:not(.open) .fd-head .ic { width: 24px; height: 24px; border-radius: 99px; }
+.fd-acc .fd-item:not(.open) .fd-head .ic svg { width: 14px; height: 14px; }
+.fd-acc .fd-item:not(.open) .fd-n, .fd-acc .fd-item:not(.open) .fd-caret { display: none; }
