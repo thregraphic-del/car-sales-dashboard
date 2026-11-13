@@ -75,6 +75,7 @@ export const api = {
   saveWordsBulk: (items) => request('POST', '/api/words/bulk', { items }),
   ensureLevels: (sourceId) => request('POST', '/api/levels', sourceId ? { source_id: sourceId } : {}),
   simplifyWords: () => request('POST', '/api/words/simplify', {}),
+  tidyWords: () => request('POST', '/api/words/tidy', {}),
   wordClusters: () => request('GET', '/api/words/clusters'),
   ladder: (term, arabic) => request('POST', '/api/ai/ladder', { term, arabic }),
   dismissWord: (vocabulary_id) => request('POST', '/api/words/dismiss', { vocabulary_id }),

@@ -351,3 +351,73 @@ export async function simplifyUserWords(userId, { limit = 120 } = {}) {
   });
   return { done: rows.length < limit && !aiShort, changed: changes.length, changes };
 }
+
+/* ------------------------------------- «كلماتي»: words and real expressions only */
+
+/** Move one saved word to another card (merging when the learner already has it). */
+async function moveUserWord(userId, r, to) {
+  const other = await get('SELECT id, state, review_count FROM user_vocabulary WHERE user_id = ? AND vocabulary_id = ?', userId, to);
+  if (other && other.state === 'saved') {
+    const [keep, drop] = Number(other.review_count) >= Number(r.review_count) ? [other.id, r.uv_id] : [r.uv_id, other.id];
+    for (const g of await all('SELECT group_id FROM word_group_items WHERE user_vocabulary_id = ?', drop)) {
+      await run('INSERT INTO word_group_items (group_id, user_vocabulary_id) VALUES (?, ?) ON CONFLICT DO NOTHING', g.group_id, keep);
+    }
+    await run('DELETE FROM user_vocabulary WHERE id = ?', drop);
+    if (keep === r.uv_id) await run('UPDATE user_vocabulary SET vocabulary_id = ? WHERE id = ?', to, r.uv_id);
+  } else {
+    if (other) await run('DELETE FROM user_vocabulary WHERE id = ?', other.id);
+    await run('UPDATE user_vocabulary SET vocabulary_id = ? WHERE id = ?', to, r.uv_id);
+  }
+}
+
+/**
+ * Multi-word items in «كلماتي»: real units (phrasal verbs, idioms, fixed expressions) stay;
+ * free combinations and sentence pieces (senior years, simpler life) become their one useful word
+ * in its simplest form. Each term is decided once by the AI (40 per call) and saved for everyone.
+ */
+export async function tidyUserExpressions(userId, { batch = 40 } = {}) {
+  const rows = await all(
+    `SELECT uv.id AS uv_id, uv.review_count, v.id, v.term, v.level FROM user_vocabulary uv JOIN vocabulary v ON v.id = uv.vocabulary_id
+     WHERE uv.user_id = ? AND uv.state = 'saved' AND v.term LIKE '% %' ORDER BY uv.id`, userId);
+  const keyOf = (t) => `tidy:${String(t).toLowerCase().trim()}`;
+  const decided = new Map();
+  for (let i = 0; i < rows.length; i += 400) {
+    const part = rows.slice(i, i + 400).map((r) => keyOf(r.term));
+    for (const d of await all(`SELECT key, value FROM app_settings WHERE key IN (${part.map(() => '?').join(',')})`, ...part)) {
+      try { decided.set(d.key, JSON.parse(d.value)); } catch { /* ask again */ }
+    }
+  }
+  const todo = [...new Set(rows.filter((r) => !decided.has(keyOf(r.term))).map((r) => r.term))].slice(0, batch);
+  if (todo.length) {
+    const { tidyTermsWithAi, aiAvailable } = await import('../services/extractor.js');
+    if (!aiAvailable()) return { done: true, changed: 0, skipped: 'ai' };
+    const r = await tidyTermsWithAi(todo);
+    for (const t of todo) {
+      const it = r.items.find((x) => String(x.term).toLowerCase().trim() === t.toLowerCase().trim()); // by term only, never by position
+      if (!it) continue;
+      const d = { keep: !!it.keep, base: String(it.base || '').trim().toLowerCase(), arabic: it.arabic || '', level: it.level || null };
+      decided.set(keyOf(t), d);
+      await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', keyOf(t), JSON.stringify(d));
+    }
+  }
+  const changes = [];
+  await tx(async () => {
+    for (const r of rows) {
+      const d = decided.get(keyOf(r.term));
+      if (!d || d.keep || !/^[a-z][a-z'-]*$/.test(d.base) || d.base === r.term.toLowerCase()) continue;
+      let to = await findVocabulary(d.base);
+      if (!to || to.term.toLowerCase() !== d.base) {
+        if (!d.arabic) continue;
+        to = { id: (await upsertVocabulary({ term: d.base, arabic: d.arabic, level: d.level, origin: 'ai' })).id };
+      }
+      const simple = await simpleTerm(d.base); // the one word, in its simplest form too
+      const s2 = simple.row || (simple.term !== d.base ? await findVocabulary(simple.term) : null);
+      const target = s2 && s2.term.toLowerCase() === simple.term.toLowerCase() ? s2.id : to.id;
+      if (target === r.id) continue;
+      await moveUserWord(userId, r, target);
+      changes.push(`${r.term}→${simple.term || d.base}`);
+    }
+  });
+  const left = new Set(rows.filter((r) => !decided.has(keyOf(r.term))).map((r) => r.term)).size;
+  return { done: left === 0, changed: changes.length, changes: changes.slice(0, 50) };
+}

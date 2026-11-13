@@ -1,6 +1,6 @@
 // /api/lookup, /api/words, /api/export — clicked words and the learner's words.
 import { wordClusters } from '../data/clusters.js';
-import { simplifyUserWords } from '../data/simplest.js';
+import { simplifyUserWords, tidyUserExpressions } from '../data/simplest.js';
 import { Router } from 'express';
 import { wrap, num, idParam, idList, str, oneOf } from '../http.js';
 import { httpError } from '../lib/errors.js';
@@ -97,6 +97,8 @@ router.post('/levels', wrap(async (req) => {
 }));
 router.get('/words/clusters', wrap(async (req) => ({ clusters: await wordClusters(req.userId) })));
 router.post('/words/simplify', wrap(async (req) => simplifyUserWords(req.userId)));
+// multi-word items: real expressions stay, free combinations become their one word (AI, once per term)
+router.post('/words/tidy', wrap(async (req) => tidyUserExpressions(req.userId)));
 router.get('/words/:id', wrap(async (req) => words.getWord(req.userId, idParam(req))));
 router.patch('/words/:id', wrap(async (req) => {
   const b = req.body || {};

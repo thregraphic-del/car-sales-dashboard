@@ -567,6 +567,24 @@ test('video: suggested words are shown in their simplest form (appearance → ap
   assert.equal(view.source.simplified, true);
 });
 
+test('«كلماتي» keeps real expressions; free combinations become their one word', async () => {
+  const save = await postJson('/api/import/save', { items: [
+    { term: 'senior years', arabic: 'السنوات الأخيرة', level: 'B2', meaning_from: 'ai' },
+    { term: 'give up', arabic: 'يستسلم', level: 'B1', meaning_from: 'ai' },
+  ] });
+  assert.equal(save.status, 200);
+  reply = ok({ items: [
+    { term: 'senior years', keep: false, base: 'senior', arabic: 'كبير / أقدم', level: 'B2' },
+    { term: 'give up', keep: true, base: 'give up', arabic: '', level: 'B1' },
+  ] });
+  const r = await postJson('/api/words/tidy', {});
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const list = await (await realFetch(`${app.base}/api/words`)).json();
+  const terms = (Array.isArray(list) ? list : list.words || []).map((w) => w.term);
+  assert.ok(terms.includes('senior') && !terms.includes('senior years'), JSON.stringify(r.body));
+  assert.ok(terms.includes('give up'), 'a phrasal verb stays');
+});
+
 test('simplest form: adjectives, adverbs and -ness give the word inside them', async () => {
   const { run, get } = await import('../server/db/index.js');
   const { simpleTerm } = await import('../server/data/simplest.js');

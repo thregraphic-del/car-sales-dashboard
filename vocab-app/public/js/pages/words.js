@@ -404,6 +404,16 @@ export async function render(view, { params }) {
         if (r.done) break;
       }
     } catch { /* try again next time */ }
+    // multi-word items: real expressions stay, free combinations (senior years) become their one word
+    if (state.config?.ai?.available) {
+      try {
+        for (let i = 0; i < 100 && view.isConnected; i++) {
+          const r = await api.tidyWords();
+          changed += r.changed || 0;
+          if (r.done) break;
+        }
+      } catch { /* next visit */ }
+    }
     // levels never checked: once, then saved for good
     let levelled = 0;
     try {

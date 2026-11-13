@@ -765,6 +765,22 @@ export async function summaryWithAi({ title, text }) {
   });
 }
 
+/* ------------------------------------------- «كلماتي»: words and real expressions only */
+const TIDY_SCHEMA = obj({ items: { type: 'array', items: obj({ term: str, keep: { type: 'boolean' }, base: str, arabic: str, level: { type: 'string', enum: LEVELS } }) } });
+const TidyZ = z.object({ items: z.array(z.object({ term: z.string(), keep: z.boolean(), base: z.string().default(''), arabic: z.string().default(''), level: z.enum(LEVELS).catch('B1') })) });
+/** For multi-word items: keep real units (phrasal verbs, idioms, fixed expressions); turn free word
+ *  combinations and sentence pieces into their one useful word, in its simplest dictionary form. */
+export async function tidyTermsWithAi(terms) {
+  return jsonCall({
+    task: 'tidy_terms_v1',
+    system: 'A learner\'s vocabulary list must hold only single words, phrasal verbs, idioms and fixed expressions whose meaning is NOT just the sum of their words. For each item decide: keep=true for a phrasal verb (give up, look after, ease into something), an idiom (take something for granted, in the long run), or a fixed expression/collocation a learner must learn as a whole (thumbs up, make a decision); keep=false for a free combination of ordinary words or a piece of a sentence (senior years, simpler life, waste time on something, reflect on something, very important). When keep=false: "base" = the ONE most useful word in it, in its simplest dictionary form (senior, simple, waste, reflect), "arabic" = its short natural Arabic meaning, "level" = its CEFR level. When keep=true: "base" = the item in its standard dictionary form (thumbs up), "arabic" = "" and level as given. Return one item per input, same order, with "term" exactly as given.',
+    user: terms.map((t, i) => `${i + 1}. ${t}`).join('\n'),
+    schema: TIDY_SCHEMA,
+    zod: TidyZ,
+    maxTokens: Math.min(6000, 90 * terms.length + 400),
+  });
+}
+
 /* ------------------------------------------------- similar channels */
 
 const CHANNELS_SCHEMA = obj({ channels: { type: 'array', items: obj({ name: str, handle: str, field: str, why_ar: str }) } });
