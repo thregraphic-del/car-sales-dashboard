@@ -45,7 +45,7 @@ function applyMarkLook() {
   const r = document.documentElement;
   r.style.setProperty('--mk-new', pref('reader.mkNew', MK_NEW[0][0]));
   r.style.setProperty('--mk-mine', pref('reader.mkMine', MK_MINE[0][0]));
-  r.dataset.mk = pref('reader.mkStyle', 'fill');
+  r.dataset.mk = 'fill'; // always a highlight (the frame option was removed)
 }
 
 /* --------------------------------------------------------------- players */
@@ -317,9 +317,8 @@ export async function render(view, { segments, params }) {
           <div id="viewPick" class="rgrp"><button type="button" class="hidden" id="viewBtn"></button><div id="viewMenu" class="rgrp">
             <div class="srow"><span class="slabel">الترجمة</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="arToggle" ${showAr ? 'checked' : ''}> عربي</label><span class="sopts${showAr ? '' : ' hidden'}" id="arLayout"><button type="button" class="sopt" data-layout="side">بجانبه</button><button type="button" class="sopt" data-layout="below">تحته</button></span><button type="button" class="sopt" id="hideArBtn" aria-pressed="false">🙈 أخفه</button></div></div>
             <div class="srow"><span class="slabel">شكل الكلمات</span><div class="sopts mk-set">
-              <span class="sopts" id="mkStyle"><button type="button" class="sopt" data-mks="fill">تظليل</button><button type="button" class="sopt" data-mks="frame">إطار</button></span>
-              <span class="mk-row"><span class="tiny">الجديدة</span>${MK_NEW.map(([c, n]) => `<button type="button" class="mk-sw" data-mkn="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span>
-              <span class="mk-row"><span class="tiny">كلماتي</span>${MK_MINE.map(([c, n]) => `<button type="button" class="mk-sw" data-mkm="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span></div></div>
+              <span class="mk-row"><span class="mk-lbl">جديد</span>${MK_NEW.map(([c, n]) => `<button type="button" class="mk-sw" data-mkn="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span>
+              <span class="mk-row"><span class="mk-lbl">كلماتي</span>${MK_MINE.map(([c, n]) => `<button type="button" class="mk-sw" data-mkm="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span></div></div>
             <div class="srow tb-only"><span class="slabel">أزرار تحت</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="tbOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="tbOnTxt"></span></label></div></div>
             <div class="srow"><span class="slabel">الخلفية</span><div class="sopts" id="rBg">${[['', 'مثل الموقع'], ['night', '🌙 ليلي'], ['white', '⬜ أبيض'], ['beige', '🟫 بيج']].map(([k, l]) => `<button type="button" class="sopt" data-rbg="${k}">${l}</button>`).join('')}</div></div>
             <div class="srow"><span class="slabel">النص</span><div class="sopts">${hasTimes ? `<label class="sopt-check"><input type="checkbox" class="check" id="followToggle" ${follow ? 'checked' : ''}> متابعة تلقائية</label>` : ''}${hasTimes ? '<label class="sopt-check"><input type="checkbox" class="check" id="timesToggle"> الوقت</label>' : ''}<span class="sopts fontsize"><button type="button" class="sopt" data-font="-1">A−</button><button type="button" class="sopt" data-font="1">A+</button></span></div></div>
