@@ -388,7 +388,12 @@ export const channelsHtml = () => `
   </div>`;
 
 const initials = (name) => esc(String(name || '?').trim().slice(0, 1).toUpperCase());
-const avatar = (c) => `<span class="ch-ava" aria-hidden="true">${c.handle ? `<img src="https://unavatar.io/youtube/${encodeURIComponent(c.handle)}?fallback=false" alt="" loading="lazy" onerror="this.remove()">` : ''}<span>${initials(c.name)}</span></span>`;
+// the channel's real picture (checked once on YouTube for everyone), else unavatar, else its first letter
+const avatar = (c) => {
+  const logo = c.logo || (c.handle && chkCache[c.handle]?.logo) || (c.handle && chkCache[c.handle.toLowerCase()]?.logo);
+  const src = logo || (c.handle ? `https://unavatar.io/youtube/${encodeURIComponent(c.handle)}?fallback=false` : '');
+  return `<span class="ch-ava" aria-hidden="true">${src ? `<img src="${esc(src)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<span>${initials(c.name)}</span></span>`;
+};
 
 export function bindChannels(view, { onPick }) {
   const box = $('#chBox', view);
@@ -421,6 +426,15 @@ export function bindChannels(view, { onPick }) {
     try {
       list = (await api.channels()).channels;
       draw();
+      // pictures: ask the server once for the channels this browser has not checked yet
+      const need = [...new Set(list.map((c) => c.handle).filter((h) => h && !chkCache[h]))].slice(0, 40);
+      if (need.length) {
+        api.channelCheck(need).then((r) => {
+          for (const [h, v] of Object.entries(r.channels || {})) if (v) chkCache[h] = v;
+          saveChk();
+          draw();
+        }).catch(() => {});
+      }
     } catch (err) {
       box.innerHTML = `<p class="tiny muted">${esc(err.message)}</p>`;
     }
