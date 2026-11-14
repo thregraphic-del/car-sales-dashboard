@@ -1394,17 +1394,7 @@ body.reader-focus .reader-grid[data-tab="words"] .reader-main { display: none !i
 .cal-key i { width: 12px; height: 12px; border-radius: 4px; display: inline-block; background: var(--surface-2); }
 .cal-key i.l1 { background: color-mix(in srgb, var(--accent) 30%, transparent); } .cal-key i.l2 { background: var(--accent); }
 .cal-info { text-align: center; min-height: 22px; }
-/* 🖥 iPad / big screens: every video option sits on the page as a compact toolbar — no ⚙ needed */
-@media (min-width: 1000px) {
-  .page-reader #setBtn { display: none; }
-  .page-reader .rset, .page-reader .rset.hidden { display: flex !important; flex-wrap: wrap; gap: 4px 14px; align-items: center; position: static; max-width: none; margin: 0 0 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface); box-shadow: none; }
-  .page-reader .rset .rset-title, .page-reader .rset .sgroup, .page-reader .rset .rset-ok, .page-reader .rset #viewBtn { display: none !important; }
-  .page-reader .rset .rgrp, .page-reader .rset #viewMenu { display: contents !important; }
-  .page-reader .rset .srow { display: inline-flex; align-items: center; gap: 6px; border: 0; padding: 2px 0; margin: 0; }
-  .page-reader .rset .slabel { font-size: 12px; min-width: 0; color: var(--ink-2); }
-  .page-reader .rset .sopt { padding: 4px 9px; font-size: 12.5px; }
-  .page-reader .rset .tr-search .input { width: 150px; }
-}
+/* 🖥 iPad / big screens: the same ⚙ list as the phone (no on-page toolbar) — opened from the gear */
 .src-pick { display: inline-flex; align-items: center; gap: 6px; max-width: 220px; cursor: pointer; }
 .src-pick svg { width: 18px; height: 18px; flex: none; }
 .src-pick img { width: 34px; height: 24px; object-fit: cover; border-radius: 4px; flex: none; }
@@ -1601,19 +1591,17 @@ body.reader-focus .reader-head.slim #setBtn { margin-inline-start: auto; }
 /* 🌐 «املأ الفراغ»: the sentence's Arabic under it */
 .q-sentence-ar { margin-top: 6px; font-size: 15px; line-height: 1.7; color: var(--muted, #6b6b6b); text-align: center; }
 
-/* ⚙ settings list: every section open, grey line between, title in a tinted pill with its icon */
-@media (max-width: 999px) {
-  .rset.rs-list { gap: 0; }
-  .rset.rs-list .sgroup { display: none; }
-  .rset.rs-list .srow { display: block; padding: 12px 2px; border-bottom: 1px solid var(--line); }
-  .rset.rs-list .srow:last-of-type { border-bottom: 0; }
-  .rset.rs-list .slabel { display: inline-flex; align-items: center; gap: 7px; padding: 5px 13px 5px 11px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent); font-size: 13.5px; font-weight: 800; }
-  .rset.rs-list .slabel svg { width: 17px; height: 17px; flex: none; }
-  .rset.rs-list .srow > .sopts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
-  .rset.rs-list .sopt { padding: 7px 13px; font-size: 14px; }
-  .rset.rs-list .rset-title { margin-bottom: 4px; }
-  .rset.rs-list .rset-ok { margin-top: 12px; }
-}
+/* ⚙ settings list (all screens): every section open, grey line between, title in a tinted pill with its icon */
+.rset.rs-list { gap: 0; }
+.rset.rs-list .sgroup { display: none; }
+.rset.rs-list .srow { display: block; padding: 12px 2px; border-bottom: 1px solid var(--line); }
+.rset.rs-list .srow:last-of-type { border-bottom: 0; }
+.rset.rs-list .slabel { display: inline-flex; align-items: center; gap: 7px; padding: 5px 13px 5px 11px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent); font-size: 13.5px; font-weight: 800; }
+.rset.rs-list .slabel svg { width: 17px; height: 17px; flex: none; }
+.rset.rs-list .srow > .sopts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.rset.rs-list .sopt { padding: 7px 13px; font-size: 14px; }
+.rset.rs-list .rset-title { margin-bottom: 4px; }
+.rset.rs-list .rset-ok { margin-top: 12px; }
 /* 📝 the whole-video summary sits on top, next to play */
 .reader-head .sum-top { display: inline-flex; align-items: center; gap: 5px; }
 .reader-head .sum-top svg { width: 17px; height: 17px; }
@@ -1751,10 +1739,9 @@ body.has-thumb-bar[data-tbsize="l"] .page-reader { padding-bottom: 78px; }
 /* ⚙ the gear stays visible while its sheet is open */
 .reader-head.one-row #setBtn[aria-expanded="true"] { background: var(--accent); color: var(--accent-ink); box-shadow: none; }
 /* ⚙ «موافق» always in sight at the bottom of the sheet, with room under it (above the phone bars) */
-@media (max-width: 999px) {
-  .page-reader .rset { max-height: calc(100dvh - var(--tabbar-h, 64px) - 170px); padding-bottom: 0; }
-  .page-reader .rset .rset-ok { position: sticky; bottom: 0; z-index: 3; margin: 10px -12px 0; width: calc(100% + 24px); border-radius: 0 0 16px 16px; box-shadow: 0 -8px 14px -6px color-mix(in srgb, var(--ink) 18%, transparent); }
-}
+.page-reader .rset { max-height: calc(100dvh - var(--tabbar-h, 64px) - 170px); padding-bottom: 0; }
+.page-reader .rset .rset-ok { position: sticky; bottom: 0; z-index: 3; margin: 10px -12px 0; width: calc(100% + 24px); border-radius: 0 0 16px 16px; box-shadow: 0 -8px 14px -6px color-mix(in srgb, var(--ink) 18%, transparent); }
+@media (min-width: 1000px) { .page-reader .rset { max-height: calc(100dvh - 140px); } }
 body.reader-focus .page-reader .rset { max-height: calc(100dvh - 120px); }
 /* the phone buttons step aside while ⚙ is open, so «موافق» is never under them */
 body:has(.page-reader #rset:not(.hidden)) .thumb-bar { display: none !important; }
@@ -1774,7 +1761,6 @@ body:has(.page-reader #rset:not(.hidden)) .thumb-bar { display: none !important;
 
 .rset-title.row { display: flex; align-items: center; justify-content: space-between; }
 .rset-x { font-size: 18px; width: 36px; height: 36px; }
-@media (min-width: 1000px) { .page-reader .rset .rset-x { display: none; } }
 @media (max-width: 999px) { .page-reader .rset .rset-title { position: sticky; top: -12px; z-index: 3; background: var(--surface); margin: -12px -12px 6px; padding: 10px 12px 8px; border-radius: 16px 16px 0 0; border-bottom: 1px solid var(--line); } }
 
 /* on/off rows: the choices show under the switch only when it is on, one line each */
