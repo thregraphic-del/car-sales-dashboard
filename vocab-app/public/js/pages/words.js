@@ -448,7 +448,11 @@ function openExport(groupId) {
       <label class="field">المستوى
         <select class="input" name="level"><option value="">كل المستويات</option>${['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map((l) => `<option>${l}</option>`).join('')}</select></label>
       <label class="row small" style="gap:8px"><input type="checkbox" class="check" name="difficult" value="1"> الكلمات التي تحتاج تدريب فقط</label>
-      <div class="btn-row"><button class="btn primary" type="submit">${icon.download} تنزيل Excel</button><button class="btn ghost" type="button" id="csv">CSV</button><button class="btn ghost" type="button" id="json">JSON</button></div>
+      <div class="field">الشكل<div class="segmented" id="exKind"><button type="button" class="active" data-k="full">كامل</button><button type="button" data-k="short">مختصر للطباعة</button></div></div>
+      <div class="field hidden" id="exColorRow">الألوان<div class="segmented" id="exColor"><button type="button" class="active" data-c="0">بدون ألوان</button><button type="button" data-c="1">بألوان حسب المستوى</button></div>
+        <span class="tiny muted">المختصر: الكلمة وترجمتها في نفس الخانة، ٤ أعمدة على ورق A4 — PDF من نافذة الطباعة.</span></div>
+      <div class="btn-row" id="exFull"><button class="btn primary" type="submit">${icon.download} تنزيل Excel</button><button class="btn ghost" type="button" id="csv">CSV</button><button class="btn ghost" type="button" id="json">JSON</button></div>
+      <div class="btn-row hidden" id="exShort"><button class="btn primary" type="button" id="pdf">${icon.download} PDF مختصر</button></div>
     </form>`);
   const form = box.querySelector('#ex');
   form.range.addEventListener('change', () => box.querySelector('#dates').classList.toggle('hidden', form.range.value !== 'custom'));
@@ -466,6 +470,48 @@ function openExport(groupId) {
   form.addEventListener('submit', (e) => {
     e.preventDefault();
     download('xlsx');
+  });
+  // 🖨 short sheet: word + Arabic in one cell, 4 columns on A4, coloured by level or not → PDF from the print window
+  let kind = 'full';
+  let colored = false;
+  box.querySelector('#exKind').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-k]');
+    if (!b) return;
+    kind = b.dataset.k;
+    box.querySelectorAll('#exKind [data-k]').forEach((x) => x.classList.toggle('active', x === b));
+    ['#exColorRow', '#exShort'].forEach((sel) => box.querySelector(sel).classList.toggle('hidden', kind !== 'short'));
+    box.querySelector('#exFull').classList.toggle('hidden', kind === 'short');
+  });
+  box.querySelector('#exColor').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-c]');
+    if (!b) return;
+    colored = b.dataset.c === '1';
+    box.querySelectorAll('#exColor [data-c]').forEach((x) => x.classList.toggle('active', x === b));
+  });
+  box.querySelector('#pdf').addEventListener('click', async () => {
+    const w = window.open('', '_blank'); // opened inside the tap (popup blockers), filled when the words arrive
+    if (!w) { toast('اسمح بالنوافذ المنبثقة عشان يطلع الملف'); return; }
+    w.document.write('<p style="font-family:sans-serif;padding:20px">…</p>');
+    try {
+      const fd = new FormData(form);
+      const params = { format: 'json', range: fd.get('range'), from: fd.get('from'), to: fd.get('to'), group_id: fd.get('group_id'), level: fd.get('level'), difficult: fd.get('difficult') };
+      const data = await (await fetch(api.exportUrl(params), { credentials: 'same-origin' })).json();
+      const tone = (lv) => (/^A/.test(lv) ? 'a' : /^B/.test(lv) ? 'b' : /^C/.test(lv) ? 'c' : 'x');
+      const cells = (data.words || []).map((r) => `<div class="c ${colored ? `l-${tone(r['CEFR Level'])}` : ''}"><b dir="ltr">${esc(r.Word)}</b><span>${esc(r.Arabic)}</span></div>`).join('');
+      const legend = colored ? '<div class="lg"><i class="l-a">A1–A2 سهل</i><i class="l-b">B1–B2 متوسط</i><i class="l-c">C1–C2 متقدم</i></div>' : '';
+      w.document.open();
+      w.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>كلماتي — ${data.count || 0} كلمة</title>
+        <style>@page{size:A4;margin:10mm}body{font-family:'IBM Plex Sans Arabic',Tahoma,sans-serif;margin:0;color:#111}
+        h1{font-size:14px;margin:0 0 6px}.lg{display:flex;gap:6px;margin:0 0 6px;font-size:10px}.lg i{font-style:normal;padding:1px 8px;border-radius:9px}
+        .g{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}.c{border:1px solid #ccc;border-radius:4px;padding:3px 5px;display:flex;justify-content:space-between;gap:6px;font-size:10.5px;line-height:1.3;break-inside:avoid}
+        .c b{font-weight:700}.c span{color:#333;text-align:start}
+        .l-a{background:#e3f1e8;border-color:#8cc7a1}.l-b{background:#f7eddc;border-color:#e0b46b}.l-c{background:#f7e3e0;border-color:#df9a90}
+        *{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head>
+        <body><h1>كلماتي — ${data.count || 0} كلمة</h1>${legend}<div class="g">${cells}</div></body></html>`);
+      w.document.close();
+      closeModal();
+      setTimeout(() => { try { w.focus(); w.print(); } catch { /* the learner prints from the page */ } }, 400);
+    } catch (err) { w.close(); toast(err.message || 'ما قدرنا نجهّز الملف'); }
   });
   box.querySelector('#json').addEventListener('click', () => download('json'));
   box.querySelector('#csv').addEventListener('click', () => download('csv'));
