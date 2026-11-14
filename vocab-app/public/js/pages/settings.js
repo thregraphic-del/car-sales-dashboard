@@ -384,7 +384,6 @@ function openMyData({ onDone }) {
 // 🎛 «تحكّم بالموقع»: how the site opens and behaves — saved on this device
 const SITE_CTL = [
   { k: 'reader.focus', label: '🎬 الفيديو يفتح على', def: '1', opts: [['1', 'شاشة موسّعة'], ['0', 'عادي']] },
-  { k: 'reader.tbOn', label: '📱 أزرار الفيديو تحت', def: '1', opts: [['1', 'شغّالة'], ['0', 'مطفأة']] },
   { k: 'app.autoSave', label: '🔖 حفظ كلمات المقطع', def: '0', opts: [['1', 'تلقائي أول ما يفتح'], ['0', 'أنا أضغط «حفظ الكل»']] },
 ];
 const ctlGet = (c) => { try { return localStorage.getItem(c.k) ?? (typeof c.def === 'function' ? c.def() : c.def); } catch { return typeof c.def === 'function' ? c.def() : c.def; } };
