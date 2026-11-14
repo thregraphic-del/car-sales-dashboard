@@ -329,7 +329,8 @@ export async function render(view, { segments, params }) {
               <span class="mk-row"><span class="mk-lbl">كلماتي</span>${MK_MINE.map(([c, n]) => `<button type="button" class="mk-sw" data-mkm="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span></div></div>
             <div class="srow tb-only"><span class="slabel">أزرار تحت</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="tbOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="tbOnTxt"></span></label></div></div>
             <div class="srow"><span class="slabel">الخلفية</span><div class="sopts" id="rBg">${[['', 'مثل الموقع'], ['night', '🌙 ليلي'], ['white', '⬜ أبيض'], ['beige', '🟫 بيج']].map(([k, l]) => `<button type="button" class="sopt" data-rbg="${k}">${l}</button>`).join('')}</div></div>
-            <div class="srow"><span class="slabel">النص</span><div class="sopts">${hasTimes ? `<label class="sopt-check"><input type="checkbox" class="check" id="followToggle" ${follow ? 'checked' : ''}> متابعة تلقائية</label>` : ''}${hasTimes ? '<label class="sopt-check"><input type="checkbox" class="check" id="timesToggle"> الوقت</label>' : ''}<span class="sopts fontsize"><button type="button" class="sopt" data-font="-1">A−</button><button type="button" class="sopt" data-font="1">A+</button></span></div></div>
+            <div class="srow"><span class="slabel">النص</span><div class="sopts">${hasTimes ? `<label class="sopt-check"><input type="checkbox" class="check" id="followToggle" ${follow ? 'checked' : ''}> متابعة تلقائية</label>` : ''}<span class="sopts fontsize"><button type="button" class="sopt" data-font="-1">A−</button><button type="button" class="sopt" data-font="1">A+</button></span></div></div>
+            ${hasTimes ? '<div class="srow"><span class="slabel">وقت كل سطر</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="timesToggle"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="timesTxt"></span></label></div></div>' : ''}
           </div></div>
           ${isVideo ? `<div class="srow"><span class="slabel">الفيديو</span><div class="sopts" id="vidPos"><button type="button" class="sopt" data-vpos="top">فوق</button><button type="button" class="sopt" data-vpos="bottom">تحت</button><button type="button" class="sopt" data-vpos="float">عائم</button></div></div>` : ''}
           <div class="srow"><span class="slabel">بحث</span><div class="sopts tr-search"><input class="input sm" id="trQ" type="search" placeholder="ابحث في النص" aria-label="ابحث في النص"><span class="tiny muted" id="trQn"></span></div></div>
@@ -2103,7 +2104,7 @@ export async function render(view, { segments, params }) {
   });
   // ⏱ line times: hidden by default on phones (more room for the text), shown on bigger screens
   let showTimes = pref('reader.times', window.innerWidth < 700 ? '0' : '1') === '1';
-  const applyTimes = () => { linesEl.classList.toggle('no-times', !showTimes); const c = $('#timesToggle', view); if (c) c.checked = showTimes; };
+  const applyTimes = () => { linesEl.classList.toggle('no-times', !showTimes); const c = $('#timesToggle', view); if (c) c.checked = showTimes; const t = $('#timesTxt', view); if (t) t.textContent = showTimes ? 'ظاهر' : 'مخفي'; };
   applyTimes();
   $('#timesToggle', view)?.addEventListener('change', (e) => { showTimes = e.target.checked; setPref('reader.times', showTimes ? '1' : '0'); applyTimes(); });
   $('#followToggle', view)?.addEventListener('change', (e) => {
