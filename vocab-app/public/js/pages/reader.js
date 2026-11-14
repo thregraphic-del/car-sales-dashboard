@@ -1065,7 +1065,7 @@ export async function render(view, { segments, params }) {
     }
     if (added) { try { localStorage.setItem(newKey, JSON.stringify([...newSet].slice(-3000))); } catch { /* ignore */ } }
   };
-  let autoSaveAll = (() => { try { return localStorage.getItem(`reader.saveall.${id}`) === '1'; } catch { return false; } })(); // «احفظ الكل» once = the later ones too
+  let autoSaveAll = (() => { try { return localStorage.getItem(`reader.saveall.${id}`) === '1' || localStorage.getItem('app.autoSave') === '1'; } catch { return false; } })(); // «احفظ الكل» once = the later ones too
   noteKnown();
   // a word saved FROM this video is always one of its new words (on any device)
   const isNew = (it) => it.saved_here || hereSetHas(it.vocabulary_id) || !knownBefore.has(it.vocabulary_id);

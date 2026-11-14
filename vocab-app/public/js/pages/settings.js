@@ -384,12 +384,8 @@ function openMyData({ onDone }) {
 // 🎛 «تحكّم بالموقع»: how the site opens and behaves — saved on this device
 const SITE_CTL = [
   { k: 'reader.focus', label: '🎬 الفيديو يفتح على', def: '1', opts: [['1', 'شاشة موسّعة'], ['0', 'عادي']] },
-  { k: 'app.home', label: '🏠 أول صفحة تفتح', def: '/', opts: [['/', 'اليوم'], ['/add', 'أضف'], ['/words', 'كلماتي'], ['/practice', 'تدرّب']] },
-  { k: 'reader.rate', label: '⏩ سرعة الفيديو', def: '1', opts: [['0.75', '0.75×'], ['0.9', '0.9×'], ['1', '1×'], ['1.25', '1.25×']] },
-  { k: 'reader.ar', label: '🌐 الترجمة العربية', def: '1', opts: [['1', 'تظهر'], ['0', 'مخفية']] },
-  { k: 'reader.times', label: '⏱ وقت كل سطر', def: () => (window.innerWidth < 700 ? '0' : '1'), opts: [['1', 'ظاهر'], ['0', 'مخفي']] },
   { k: 'reader.tbOn', label: '📱 أزرار الفيديو تحت', def: '1', opts: [['1', 'شغّالة'], ['0', 'مطفأة']] },
-  { k: 'app.goalToast', label: '🎉 تنبيه وصول الهدف', def: '1', opts: [['1', 'يطلع'], ['0', 'لا']] },
+  { k: 'app.autoSave', label: '🔖 حفظ كلمات المقطع', def: '0', opts: [['1', 'تلقائي أول ما يفتح'], ['0', 'أنا أضغط «حفظ الكل»']] },
 ];
 const ctlGet = (c) => { try { return localStorage.getItem(c.k) ?? (typeof c.def === 'function' ? c.def() : c.def); } catch { return typeof c.def === 'function' ? c.def() : c.def; } };
 function siteCtlHtml() {
