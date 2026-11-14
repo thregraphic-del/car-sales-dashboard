@@ -44,6 +44,7 @@ export async function render(view) {
           <button class="btn sm ghost" id="test">${icon.speaker} جرّب الصوت</button></div>
         <div class="field">المظهر<div class="segmented" id="theme">${[['light', 'فاتح'], ['dark', 'داكن'], ['auto', 'تلقائي']].map(([k, l]) => `<button data-t="${k}" class="${k === theme ? 'active' : ''}">${l}</button>`).join('')}</div></div>
       </div>
+      ${siteCtlHtml()}
       ${feedbackCardHtml()}
       ${cfg.auth?.required && u.guest ? `<div class="card stack guest-settings">
         <b>الحساب</b>
@@ -114,6 +115,7 @@ export async function render(view) {
     const p = progress();
     $('#goalNow').textContent = `اليوم: ${p.count} من ${p.n} ${p.unit}${p.done ? ' ✓' : ''}`;
   };
+  wireSiteCtl(view);
   $('#goalTypes').addEventListener('click', (e) => {
     const b = e.target.closest('[data-gt]');
     if (!b) return;
@@ -376,4 +378,29 @@ function openMyData({ onDone }) {
       }
     });
   });
+}
+
+
+// 🎛 «تحكّم بالموقع»: how the site opens and behaves — saved on this device
+const SITE_CTL = [
+  { k: 'reader.focus', label: '🎬 الفيديو يفتح على', def: '1', opts: [['1', 'شاشة موسّعة'], ['0', 'عادي']] },
+  { k: 'app.home', label: '🏠 أول صفحة تفتح', def: '/', opts: [['/', 'اليوم'], ['/add', 'أضف'], ['/words', 'كلماتي'], ['/practice', 'تدرّب']] },
+  { k: 'reader.rate', label: '⏩ سرعة الفيديو', def: '1', opts: [['0.75', '0.75×'], ['0.9', '0.9×'], ['1', '1×'], ['1.25', '1.25×']] },
+  { k: 'reader.ar', label: '🌐 الترجمة العربية', def: '1', opts: [['1', 'تظهر'], ['0', 'مخفية']] },
+  { k: 'reader.times', label: '⏱ وقت كل سطر', def: () => (window.innerWidth < 700 ? '0' : '1'), opts: [['1', 'ظاهر'], ['0', 'مخفي']] },
+  { k: 'reader.tbOn', label: '📱 أزرار الفيديو تحت', def: '1', opts: [['1', 'شغّالة'], ['0', 'مطفأة']] },
+  { k: 'app.goalToast', label: '🎉 تنبيه وصول الهدف', def: '1', opts: [['1', 'يطلع'], ['0', 'لا']] },
+];
+const ctlGet = (c) => { try { return localStorage.getItem(c.k) ?? (typeof c.def === 'function' ? c.def() : c.def); } catch { return typeof c.def === 'function' ? c.def() : c.def; } };
+function siteCtlHtml() {
+  return `<div class="card stack site-ctl"><b>🎛 تحكّم بالموقع</b><span class="tiny muted">كيف يفتح الموقع ويشتغل — يتغيّر فورًا ويبقى محفوظ على هذا الجهاز.</span>
+    ${SITE_CTL.map((c, i) => `<div class="sc-row"><span class="sc-label">${c.label}</span><div class="segmented sc-opts" data-sc="${i}">${c.opts.map(([v, l]) => `<button type="button" data-v="${v}" class="${ctlGet(c) === v ? 'active' : ''}">${l}</button>`).join('')}</div></div>`).join('')}</div>`;
+}
+function wireSiteCtl(view) {
+  view.querySelectorAll('[data-sc]').forEach((box) => box.addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-v]'); if (!b) return;
+    const c = SITE_CTL[Number(box.dataset.sc)];
+    try { localStorage.setItem(c.k, b.dataset.v); } catch { /* storage unavailable */ }
+    box.querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b));
+  }));
 }
