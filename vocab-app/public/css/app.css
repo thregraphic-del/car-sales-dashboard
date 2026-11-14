@@ -1815,3 +1815,4 @@ body:has(.page-reader #rset:not(.hidden)) .thumb-bar { display: none !important;
 body.reader-focus .reader-head.slim #focusBtn { display: inline-flex !important; gap: 6px; align-items: center; margin-inline-start: auto; }
 body.reader-focus .reader-head.slim #focusBtn::after { content: 'رجوع'; font-size: 13px; font-weight: 700; }
 body.reader-focus .rs-focus-row { display: none !important; }
+.question .q-big { cursor: pointer; }

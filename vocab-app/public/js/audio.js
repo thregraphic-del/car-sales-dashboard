@@ -115,7 +115,9 @@ export function speak(text, { rate = 1, lang = 'en' } = {}) {
   if (single) {
     if (recordedReady.has(key)) {
       const url = recordedReady.get(key);
-      if (url) return playUrl(url, finalRate).catch(late);
+      // a recording that fails once (blocked / missing) is never tried again: the next tap goes
+      // straight to the voice, inside the tap itself (phones refuse sound started later)
+      if (url) return playUrl(url, finalRate).catch(() => { recordedReady.set(key, null); return late(); });
     } else recordedUrl(key); // ready for next time
   }
   if (state.config?.tts?.server) {

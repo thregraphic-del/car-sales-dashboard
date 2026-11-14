@@ -271,6 +271,12 @@ async function init() {
     const w = t.slice(a, b).replace(/^['’-]+|['’-]+$/g, '');
     return /^[A-Za-z][A-Za-z'’-]{1,30}$/.test(w) ? { word: w, sentence: t.trim().slice(0, 300) } : null;
   };
+  // 🔊 the big English word of a game question: each tap says it again
+  document.addEventListener('click', (e) => {
+    const big = e.target.closest?.('.q-big.en, .question .q-big');
+    if (!big || !/[A-Za-z]/.test(big.textContent) || /_/.test(big.textContent)) return;
+    speak(big.textContent.trim()).catch(() => {});
+  });
   document.addEventListener('click', (e) => {
     if (e.defaultPrevented || window.getSelection()?.toString().trim()) return;
     const el = e.target;

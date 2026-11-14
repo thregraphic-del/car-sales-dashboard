@@ -85,6 +85,7 @@ async function youtubePlayer(el, videoId, start, onState = () => {}) {
           resolve({
           time: () => p.getCurrentTime?.() || 0,
           unmute: () => { p.unMute?.(); p.setVolume?.(100); },
+          muted: () => !!p.isMuted?.(),
           seek: (t, { play = true } = {}) => {
             p.seekTo(t, true);
             if (play) p.playVideo();
@@ -1868,8 +1869,14 @@ export async function render(view, { segments, params }) {
   document.addEventListener('visibilitychange', onHide);
   window.addEventListener('pagehide', onLeave);
   // 🔊 the phone allowed only a muted start: the first touch anywhere on the page turns the sound on (no button)
-  const unmuteOnTouch = () => { player?.unmute?.(); document.removeEventListener('pointerdown', unmuteOnTouch, true); };
-  const onMuted = () => document.addEventListener('pointerdown', unmuteOnTouch, true);
+  // (iPhone counts a sound-allowing tap only on the finished touch — «click» / «touchend», not «pointerdown» —
+  // and it keeps listening until the sound is really on)
+  const stopUnmute = () => { ['click', 'touchend'].forEach((ev) => document.removeEventListener(ev, unmuteOnTouch, true)); };
+  const unmuteOnTouch = () => {
+    player?.unmute?.();
+    setTimeout(() => { if (!player?.muted || !player.muted()) { stopUnmute(); toast('🔊 الصوت شغّال'); } }, 400);
+  };
+  const onMuted = () => ['click', 'touchend'].forEach((ev) => document.addEventListener(ev, unmuteOnTouch, true));
   window.addEventListener('lexitube:muted', onMuted);
   if (params.line) {
     setTimeout(() => {
@@ -2256,7 +2263,7 @@ export async function render(view, { segments, params }) {
     document.removeEventListener('visibilitychange', onHide);
     window.removeEventListener('pagehide', onLeave);
     window.removeEventListener('lexitube:muted', onMuted);
-    document.removeEventListener('pointerdown', unmuteOnTouch, true);
+    stopUnmute();
     document.querySelector('#fontPill')?.remove();
     alive = false;
     clearInterval(progressTimer);
