@@ -84,6 +84,7 @@ async function youtubePlayer(el, videoId, start, onState = () => {}) {
           }, 1500);
           resolve({
           time: () => p.getCurrentTime?.() || 0,
+          duration: () => p.getDuration?.() || 0,
           unmute: () => { p.unMute?.(); p.setVolume?.(100); },
           muted: () => !!p.isMuted?.(),
           seek: (t, { play = true } = {}) => {
@@ -140,6 +141,7 @@ function demoPlayer(el, duration) {
   });
   return {
     time: () => t,
+    duration: () => duration,
     seek: (s, { play = true } = {}) => { t = s; playing = play; last = performance.now(); },
     playing: () => playing,
     pause: () => { playing = false; },
@@ -346,6 +348,7 @@ export async function render(view, { segments, params }) {
         <div class="reader-status"><span class="mk-legend" aria-hidden="true"><span class="mk-l mine">كلماتي</span><span class="mk-l new">جديد</span></span><span class="tiny mode-note" id="modeNote"></span><span class="tiny muted" id="trNote"></span></div>
         ${isVideo ? '<div class="player-box yt-clean"><div id="player"></div><button type="button" class="yt-shield" id="ytShield" aria-label="أظهر أزرار يوتيوب"></button></div><div class="split" id="split" role="separator" aria-orientation="horizontal" title="اسحب لتكبير الفيديو أو النص"><span></span></div>' : ''}
         <button type="button" class="btn sm primary back-now hidden" id="backNow">↓ الجملة الحالية</button>
+        ${isVideo && hasTimes ? '<div class="time-strip hidden" id="timeStrip" aria-label="وين وصلت في المقطع"><span class="en-inline" id="tsNow">0:00</span><div class="ts-bar"><span id="tsFill"></span></div><span class="en-inline" id="tsDur">0:00</span></div>' : ''}
         <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}${arLayout === 'below' ? ' ar-below' : ''}" id="lines"></div>
         <p class="tiny muted reader-hint">${isVideo && hasTimes ? 'اضغط أي كلمة: يقف الفيديو عندها ويظهر معناها، ويكمل حين تغلقها أو تحفظها. اسحب الفاصل تحت الفيديو لتكبيره أو تصغيره. لوحة المفاتيح: مسافة تشغيل/إيقاف · ← → الجملة السابقة/التالية · R أعد الجملة · L كرّرها · A أخفِ العربي.' : 'اضغط على أي كلمة لترى معناها في هذه الجملة.'} جديدة: <span class="mark s-suggested u-common">شائعة</span> <span class="mark s-suggested u-medium">أقل شيوعًا</span> <span class="mark s-suggested u-rare">نادرة</span> · <span class="mark s-saved">في كلماتي</span></p>
       </div>
@@ -1770,6 +1773,13 @@ export async function render(view, { segments, params }) {
   const tick = () => {
     if (!player || !timeline.length) return;
     let t = player.time();
+    const strip = $('#timeStrip', view);
+    if (strip && !strip.classList.contains('hidden')) {
+      const d = player.duration?.() || Number(source.duration_seconds) || 0;
+      $('#tsNow', view).textContent = fmtTime(t);
+      $('#tsDur', view).textContent = d ? fmtTime(d) : '';
+      $('#tsFill', view).style.width = d ? `${Math.min(100, (100 * t) / d)}%` : '0%';
+    }
     // 🔁 Repeat one sentence: back to its start each time it ends.
     if (loopId != null && playing) {
       const e = timeline.find((x) => x.id === loopId);
@@ -2104,7 +2114,7 @@ export async function render(view, { segments, params }) {
   });
   // ⏱ line times: hidden by default on phones (more room for the text), shown on bigger screens
   let showTimes = pref('reader.times', window.innerWidth < 700 ? '0' : '1') === '1';
-  const applyTimes = () => { linesEl.classList.toggle('no-times', !showTimes); const c = $('#timesToggle', view); if (c) c.checked = showTimes; const t = $('#timesTxt', view); if (t) t.textContent = showTimes ? 'ظاهر' : 'مخفي'; };
+  const applyTimes = () => { linesEl.classList.toggle('no-times', !showTimes); const c = $('#timesToggle', view); if (c) c.checked = showTimes; const t = $('#timesTxt', view); if (t) t.textContent = showTimes ? 'ظاهر' : 'مخفي'; $('#timeStrip', view)?.classList.toggle('hidden', showTimes); };
   applyTimes();
   $('#timesToggle', view)?.addEventListener('change', (e) => { showTimes = e.target.checked; setPref('reader.times', showTimes ? '1' : '0'); applyTimes(); });
   $('#followToggle', view)?.addEventListener('change', (e) => {

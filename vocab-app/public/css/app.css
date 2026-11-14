@@ -1816,3 +1816,10 @@ body.reader-focus .reader-head.slim #focusBtn { display: inline-flex !important;
 body.reader-focus .reader-head.slim #focusBtn::after { content: 'رجوع'; font-size: 13px; font-weight: 700; }
 body.reader-focus .rs-focus-row { display: none !important; }
 .question .q-big { cursor: pointer; }
+
+/* ⏱ When line times are hidden: one strip above the text — where you are in the clip */
+.time-strip { display: flex; align-items: center; gap: 10px; padding: 6px 12px; margin: 0 0 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--muted); }
+.time-strip.hidden { display: none; }
+.time-strip .ts-bar { flex: 1; height: 6px; border-radius: 99px; background: var(--line); overflow: hidden; }
+.time-strip .ts-bar span { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .25s linear; }
+#tsNow { color: var(--ink); font-weight: 700; }
