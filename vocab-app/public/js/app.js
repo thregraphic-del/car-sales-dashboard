@@ -230,6 +230,7 @@ async function start() {
   try {
     state.config = await api.config();
     state.user = state.config.user;
+    import('./tour.js').then((m) => m.syncTours(state.config.tours || [])).catch(() => {});
     await loadGroups();
   } catch (err) {
     if (err.status === 401) return showAuth();

@@ -145,7 +145,14 @@ export function mountHelp() {
 }
 
 const done = (k) => { try { return localStorage.getItem(`tour.${k}`) === '1'; } catch { return true; } };
-const mark = (k) => { try { localStorage.setItem(`tour.${k}`, '1'); } catch { /* ignore */ } };
+const mark = (k) => {
+  try { localStorage.setItem(`tour.${k}`, '1'); } catch { /* ignore */ }
+  import('./api.js').then(({ api }) => api.tourSeen(k)).catch(() => {}); // remembered on the account too
+};
+/** Explanations already seen on the account (any device): marked here so they never show again. */
+export function syncTours(list = []) {
+  for (const k of list) { try { localStorage.setItem(`tour.${k}`, '1'); } catch { /* ignore */ } }
+}
 const visible = (el) => el && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
 
 export function startTour(kind = 'home') {

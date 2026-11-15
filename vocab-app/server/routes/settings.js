@@ -5,7 +5,7 @@ import { wrap, str } from '../http.js';
 import { aiStatus, checkModel } from '../services/ai.js';
 import { ttsInfo } from '../services/tts.js';
 import { ensureUser, updateUser, publicUser } from '../data/users.js';
-import { dialect } from '../db/index.js';
+import { dialect, get, run } from '../db/index.js';
 
 const router = Router();
 const STARTED = new Date().toISOString();
@@ -18,6 +18,7 @@ router.get('/config', wrap(async (req) => ({
   ai: aiStatus(),
   tts: ttsInfo(),
   user: publicUser(await ensureUser(req.userId)),
+  tours: await toursSeen(req.userId),
   database: { engine: await dialect() },
   auth: { required: config.auth.required },
   features: { demo_reset: config.features.demoReset },
@@ -33,6 +34,18 @@ router.patch('/me', wrap(async (req) => {
   if (b.speak_arabic !== undefined) patch.speak_arabic = b.speak_arabic ? 1 : 0;
   if (b.speech_rate !== undefined) patch.speech_rate = Math.max(0.5, Math.min(1.5, Number(b.speech_rate) || 1));
   return publicUser(await updateUser(req.userId, patch));
+}));
+
+// 👋 the page explanations a learner has already seen — kept on the account, so each shows once on any device
+async function toursSeen(userId) {
+  try { return JSON.parse((await get('SELECT value FROM app_settings WHERE key = ?', `tours:${userId}`))?.value || '[]'); } catch { return []; }
+}
+router.post('/me/tours', wrap(async (req) => {
+  const k = String(req.body?.tour || '').replace(/[^a-z]/g, '').slice(0, 20);
+  if (!k) return { tours: await toursSeen(req.userId) };
+  const list = [...new Set([...(await toursSeen(req.userId)), k])].slice(0, 40);
+  await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', `tours:${req.userId}`, JSON.stringify(list));
+  return { tours: list };
 }));
 
 export default router;

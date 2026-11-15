@@ -44,6 +44,7 @@ export const qs = (params = {}) => {
 
 export const api = {
   config: () => request('GET', '/api/config'),
+  tourSeen: (tour) => request('POST', '/api/me/tours', { tour }),
   updateMe: (patch) => request('PATCH', '/api/me', patch),
   today: () => request('GET', '/api/today'),
   rescueStreak: () => request('POST', '/api/streak/rescue', {}),
