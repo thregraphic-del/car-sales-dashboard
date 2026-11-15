@@ -238,6 +238,10 @@ async function start() {
   }
   if (!started) {
     started = true;
+    // ‹ the side menu folds into icons (wide screens), remembered
+    const navMini = (on) => { document.body.classList.toggle('nav-mini', on); const b = document.getElementById('navMini'); if (b) { b.textContent = on ? '‹' : '›'; b.title = on ? 'افتح القائمة' : 'تصغير القائمة'; } };
+    try { navMini(localStorage.getItem('app.navMini') === '1'); } catch { /* ignore */ }
+    document.getElementById('navMini')?.addEventListener('click', () => { const on = !document.body.classList.contains('nav-mini'); navMini(on); try { localStorage.setItem('app.navMini', on ? '1' : '0'); } catch { /* ignore */ } });
     // ⏰ daily reminder (🔔 on «اليوم»): fires once a day at the chosen time while the site is open
     setInterval(() => {
       try {

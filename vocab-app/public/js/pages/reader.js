@@ -363,6 +363,13 @@ export async function render(view, { segments, params }) {
   const linesEl = $('#lines', view);
   // ⚙ One settings panel instead of a row of buttons.
   const rset = $('#rset', view);
+  // 📋 wide screens: the words list folds into a slim rail (icon + count) and opens again with a tap — remembered
+  const wideScreen = () => window.matchMedia('(min-width: 901px)').matches;
+  const setSideMini = (on) => {
+    $('.reader-grid', view)?.classList.toggle('side-mini', on);
+    try { localStorage.setItem('reader.sideMini', on ? '1' : '0'); } catch { /* ignore */ }
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 260);
+  };
   // ✕ = back to the video without keeping what was changed since ⚙ was opened
   const snapReader = () => { const o = {}; try { Object.keys(localStorage).filter((k) => k.startsWith('reader.') && !/^reader\.(saveall|new|new2|newhere)\./.test(k)).forEach((k) => { o[k] = localStorage.getItem(k); }); } catch { /* ignore */ } return o; };
   let setSnap = null;
@@ -961,6 +968,7 @@ export async function render(view, { segments, params }) {
   let focusFs = false;
   const setFocus = (on) => {
     document.body.classList.toggle('reader-focus', on);
+    setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
     const b = $('#focusBtn', view);
     b?.setAttribute('aria-pressed', String(on));
     b?.classList.toggle('primary', on);
@@ -1004,7 +1012,18 @@ export async function render(view, { segments, params }) {
   const sizeHintOn = () => pref('reader.sizeHint', '1') === '1';
   // 👆 each opening (unless switched off in ⚙): the video starts a little smaller and a finger
   // shows — and plays — that dragging the line resizes it (up = smaller, down = bigger)
-  let splitPct = applySplit(isVideo && sizeHintOn() ? Math.min(85, Number(pref('reader.split', '100'))) : Number(pref('reader.split', '100')));
+  try { if (localStorage.getItem('reader.sideMini') === '1') $('.reader-grid', view)?.classList.add('side-mini'); } catch { /* ignore */ }
+  // 📜 the text fills the screen down to the bottom (the translation matters most)
+  const fitText = () => {
+    const tr = $('#lines', view);
+    if (!tr || !view.isConnected) return;
+    if (document.body.classList.contains('reader-focus')) { tr.style.height = ''; return; }
+    const bar = [...document.querySelectorAll('.tabbar, .thumb-bar')].map((x) => (x.offsetParent ? x.getBoundingClientRect().height : 0)).reduce((a, b) => Math.max(a, b), 0);
+    tr.style.height = `${Math.max(260, Math.floor(window.innerHeight - tr.getBoundingClientRect().top - bar - 14))}px`;
+  };
+  window.addEventListener('resize', fitText);
+  setTimeout(fitText, 300); setTimeout(fitText, 1500);
+  let splitPct = applySplit(isVideo && sizeHintOn() ? Math.min(85, Number(pref('reader.split', '70'))) : Number(pref('reader.split', '70')));
   function sizeHint() {
     const bar = $('#split', view);
     if (!bar || !sizeHintOn() || !bar.offsetParent) return;
@@ -1041,6 +1060,7 @@ export async function render(view, { segments, params }) {
       box.style.pointerEvents = '';
       setPref('reader.split', String(Math.round(splitPct)));
       mainEl.classList.remove('dragging');
+      fitText();
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
     };
@@ -1162,7 +1182,7 @@ export async function render(view, { segments, params }) {
     if ($('#wcount2', view)) $('#wcount2', view).textContent = fresh.length;
     view.querySelectorAll('[data-fx-count]').forEach((x) => { x.textContent = fresh.length; });
     const q = (extra) => `#/practice?${new URLSearchParams({ source: id, title: source.title.slice(0, 40), ...extra })}`;
-    side.innerHTML = `
+    side.innerHTML = `<button type="button" class="side-rail" title="افتح قائمة الكلمات" aria-label="افتح قائمة الكلمات"><span class="sr-arrow">›</span>${icon.list}<b class="en-inline">${fresh.length}</b><span class="sr-t">الكلمات</span></button>
       <div class="side-head">
         <div class="row between"><b>الكلمات الجديدة <span class="tiny muted en-inline">${shown.length}${shown.length !== fresh.length ? `/${fresh.length}` : ''}</span></b>
           <span class="row" style="gap:8px"><span class="u-dots u-keys" title="ألوان الكلمات حسب الصعوبة"><i class="u-d common">سهل</i><i class="u-d medium">متوسط</i><i class="u-d rare">متقدم</i></span><button type="button" class="pop-x side-close" id="sideClose" aria-label="إغلاق">✕</button></span></div>
@@ -1193,7 +1213,8 @@ export async function render(view, { segments, params }) {
     const pop = e.target.closest('[data-pop]');
     if (pop) { sidePop = sidePop === pop.dataset.pop ? '' : pop.dataset.pop; drawSide(); if (sidePop === 'q') $('#sideQ', view)?.focus(); return; }
     if (e.target.closest('[data-clearq]')) { sideF.q = ''; sidePop = ''; saveSideF(); drawSide(); return; }
-    if (e.target.closest('#sideClose')) { switchTab('text'); return; }
+    if (e.target.closest('#sideClose')) { if (wideScreen()) setSideMini(true); else switchTab('text'); return; }
+    if (e.target.closest('.side-rail')) { setSideMini(false); return; }
     if (e.target.closest('#savedOnly')) { sideF.show = sideF.show === 'saved' ? 'all' : 'saved'; saveSideF(); drawSide(); return; }
     const sh = e.target.closest('[data-show]');
     if (sh) { sideF.show = sh.dataset.show; sidePop = ''; saveSideF(); drawSide(); return; }
@@ -2279,7 +2300,7 @@ export async function render(view, { segments, params }) {
     view.querySelectorAll('.reader-tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === t));
     $('#wordsBtn', view)?.classList.toggle('primary', t === 'words');
   };
-  $('#wordsBtn', view)?.addEventListener('click', () => { switchTab(tab === 'words' ? 'text' : 'words'); window.scrollTo({ top: 0 }); });
+  $('#wordsBtn', view)?.addEventListener('click', () => { if (wideScreen()) { setSideMini(!$('.reader-grid', view).classList.contains('side-mini')); return; } switchTab(tab === 'words' ? 'text' : 'words'); window.scrollTo({ top: 0 }); });
   view.querySelector('.reader-tabs').addEventListener('click', (e) => {
     const b = e.target.closest('[data-tab]');
     if (b) switchTab(b.dataset.tab);
@@ -2444,6 +2465,7 @@ export async function render(view, { segments, params }) {
     thumbBar?.remove();
     document.body.classList.remove('has-thumb-bar');
     window.removeEventListener('resize', placeFloat);
+    window.removeEventListener('resize', fitText);
     document.querySelectorAll('.lt-note').forEach((n) => n.remove());
     window.removeEventListener('lexitube:goal-reached', onGoal);
     clearInterval(watchTimer);

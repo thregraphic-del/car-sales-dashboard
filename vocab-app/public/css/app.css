@@ -1927,3 +1927,35 @@ html, body { overflow-x: clip; max-width: 100%; overscroll-behavior-x: none; }
 .set-sub-in { overflow: hidden; display: grid; gap: 8px; }
 .set-item.on .set-sub-in { padding-top: 10px; }
 .set-item:not(.on) .set-t b { color: var(--muted); }
+
+/* 📜 reader, normal view: the text box reaches the bottom of the screen (height set by the page);
+   the long help line under it is gone (it lives in «!») */
+.page-reader .reader-hint { display: none; }
+body:not(.reader-focus) .view.page-reader .transcript { max-height: none; }
+/* 📋 words list → a slim rail on wide screens */
+.side-rail { display: none; }
+@media (min-width: 901px) {
+  .view.page-reader .reader-grid { transition: grid-template-columns .25s ease; }
+  .view.page-reader .reader-grid.side-mini { grid-template-columns: minmax(0, 1fr) 58px !important; }
+  .reader-grid.side-mini .reader-side { padding: 0; overflow: hidden; }
+  .reader-grid.side-mini .reader-side > :not(.side-rail) { display: none !important; }
+  .reader-grid.side-mini .side-rail { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; padding: 14px 0; border: 0; background: none; color: var(--ink); cursor: pointer; font: inherit; }
+  .side-rail svg { width: 22px; height: 22px; color: var(--accent); }
+  .side-rail b { font-size: 14px; background: var(--gold, #c9a45c); color: #fff; border-radius: 999px; padding: 2px 8px; }
+  .side-rail .sr-t { writing-mode: vertical-rl; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+  .side-rail .sr-arrow { font-size: 18px; color: var(--muted); }
+  .side-rail:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
+}
+/* ‹ side menu → icons only (wide screens) */
+.nav-mini-btn { display: none; }
+@media (min-width: 901px) {
+  .sidebar { position: sticky; }
+  .nav-mini-btn { display: grid; place-items: center; position: absolute; top: 18px; inset-inline-end: -14px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); font-size: 18px; line-height: 1; cursor: pointer; z-index: 5; box-shadow: var(--shadow-sm); }
+  .shell { transition: grid-template-columns .25s ease; }
+  body.nav-mini .shell { grid-template-columns: 72px 1fr; }
+  body.nav-mini .sidebar { padding-inline: 10px; overflow: visible; }
+  body.nav-mini .sidebar .brand > div, body.nav-mini .sidebar .nav-link span:not(.badge), body.nav-mini .sidebar-foot { display: none; }
+  body.nav-mini .sidebar .nav-link { justify-content: center; padding-inline: 0; position: relative; }
+  body.nav-mini .sidebar .nav-link .badge { position: absolute; top: 2px; inset-inline-end: 4px; font-size: 10px; padding: 0 5px; }
+  body.nav-mini .sidebar .brand { justify-content: center; }
+}
