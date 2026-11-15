@@ -77,11 +77,15 @@ async function youtubePlayer(el, videoId, start, onState = () => {}) {
         onReady: () => {
           // ▶ starts by itself; if the phone blocks sound, it plays muted and offers «شغّل الصوت»
           try { p.playVideo(); } catch { /* ignore */ }
+          // 🔇 phones may block the sound start, or start the video muted on their own (iPhone):
+          // either way the reader is told, and the first real tap turns the sound on
+          const flagMuted = () => { window.__ytMuted = true; window.dispatchEvent(new CustomEvent('lexitube:muted')); };
           setTimeout(() => {
-            if (p.getPlayerState?.() !== 1 && p.getPlayerState?.() !== 3) {
-              try { p.mute(); p.playVideo(); window.dispatchEvent(new CustomEvent('lexitube:muted')); } catch { /* ignore */ }
-            }
+            try {
+              if (p.getPlayerState?.() !== 1 && p.getPlayerState?.() !== 3) { p.mute(); p.playVideo(); flagMuted(); } else if (p.isMuted?.()) flagMuted();
+            } catch { /* ignore */ }
           }, 1500);
+          setTimeout(() => { try { if (p.isMuted?.() && !window.__ytMuted) flagMuted(); } catch { /* ignore */ } }, 4000);
           resolve({
           time: () => p.getCurrentTime?.() || 0,
           duration: () => p.getDuration?.() || 0,
@@ -1421,6 +1425,7 @@ export async function render(view, { segments, params }) {
       if (resumeAt != null) player.seek(resumeAt, { play: false });
     } else {
       box.parentElement.innerHTML = '<div id="player"></div>';
+      window.__ytMuted = false; // a new video
       youtubePlayer($('#player', view), source.youtube_id, startAt ?? resumeAt, (isPlaying) => setPlaying(isPlaying)).then((p) => {
         player = p;
         player.setRate?.(rate);
@@ -1885,10 +1890,11 @@ export async function render(view, { segments, params }) {
   const stopUnmute = () => { ['click', 'touchend'].forEach((ev) => document.removeEventListener(ev, unmuteOnTouch, true)); };
   const unmuteOnTouch = () => {
     player?.unmute?.();
-    setTimeout(() => { if (!player?.muted || !player.muted()) { stopUnmute(); toast('🔊 الصوت شغّال'); } }, 400);
+    setTimeout(() => { if (!player?.muted || !player.muted()) { stopUnmute(); window.__ytMuted = false; toast('🔊 الصوت شغّال'); } }, 400);
   };
   const onMuted = () => ['click', 'touchend'].forEach((ev) => document.addEventListener(ev, unmuteOnTouch, true));
   window.addEventListener('lexitube:muted', onMuted);
+  if (window.__ytMuted) onMuted(); // it may have been flagged before this listener was ready
   if (params.line) {
     setTimeout(() => {
       const el = linesEl.querySelector(`.line[data-id="${params.line}"]`);
