@@ -1977,3 +1977,16 @@ body:not(.reader-focus) .view.page-reader .transcript { max-height: none; }
 .rset .tg-switch input:checked + .tg-track { background: #34c759; }
 .rset #resetR { display: none; }
 .rset .sopt { border-radius: 12px; }
+/* ⚙ «بعد كل جملة»: the four choices side by side (2 × 2), one icon style in the site colour */
+.rset .am-list { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; justify-items: stretch; }
+.rset .am-list .am-opt { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 11px 10px; font-weight: 700; }
+.rset .am-list .am-opt svg { width: 18px; height: 18px; flex: none; color: var(--accent); }
+.rset .am-list .am-opt.active svg { color: currentColor; }
+.rset .am-list .am-gap { grid-column: 1 / -1; order: 5; }
+@media (min-width: 640px) { .rset .am-list { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+/* Tiffany switches (the site colour), not green */
+.rset .tg-switch input:checked + .tg-track, .sw:checked { background: #0ABAB5 !important; }
+/* «معاينة» + «حفظ» at the bottom of the sheet */
+.rset-ok-row { position: sticky; bottom: 0; z-index: 3; display: grid; grid-template-columns: auto 1fr; gap: 8px; margin: 10px -12px 0; padding: 10px 12px; background: var(--surface); border-top: 1px solid var(--line); border-radius: 0 0 16px 16px; }
+.rset-ok-row .rset-ok { position: static !important; margin: 0 !important; width: 100% !important; border-radius: 12px !important; box-shadow: none !important; }
+.rset-ok-row .rset-peek { border-radius: 12px; }

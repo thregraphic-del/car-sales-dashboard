@@ -313,11 +313,11 @@ export async function render(view, { segments, params }) {
           ${isVideo && hasTimes ? `<div class="sgroup">التشغيل</div><div id="mode" class="rgrp">
             <div class="srow"><span class="slabel">السرعة</span><div class="sopts" id="speed">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" class="sopt en-inline" data-rate="${r}">${r}×</button>`).join('')}</div></div>
             <div class="srow"><span class="slabel">بعد كل جملة</span><div class="sopts am-list" id="amList">
-              <button type="button" class="sopt" data-am="normal">▶ عادي</button>
-              <button type="button" class="sopt" data-am="gap">⏸ وقفة بثواني</button>
+              <button type="button" class="sopt am-opt" data-am="normal">${icon.play}<span>عادي</span></button>
+              <button type="button" class="sopt am-opt" data-am="gap">${icon.pause}<span>وقفة بثواني</span></button>
               <span class="sopts am-gap" id="gapChips">${[500, 1000, 2000, 3000].map((ms) => `<button type="button" class="sopt en-inline" data-gap="${ms}">${ms / 1000}ث</button>`).join('')}</span>
-              <button type="button" class="sopt" data-am="shadow">🗣 وقفة بطول الجملة للترديد</button>
-              <button type="button" class="sopt" data-am="twice">🔁 كرر كل جملة مرتين</button></div></div>
+              <button type="button" class="sopt am-opt" data-am="shadow">${icon.mic}<span>وقفة للترديد</span></button>
+              <button type="button" class="sopt am-opt" data-am="twice">${icon.repeat}<span>كل جملة مرتين</span></button></div></div>
           </div>
           <div class="sgroup">المساعدة</div>
           <div class="srow sw-row"><span class="slabel">قائمة الكلمات</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="wbOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label>
@@ -349,7 +349,7 @@ export async function render(view, { segments, params }) {
             ${source.youtube_id && !source.is_demo ? `<a class="sopt" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">يوتيوب ↗</a>` : ''}
             <button class="sopt" id="del" style="color:var(--bad)">🗑 حذف</button></div></div>
           <button type="button" class="btn rset-reset" id="resetAll">↺ رجّع كل الإعدادات للأصل</button>
-          <button type="button" class="btn primary rset-ok" id="setOk">موافق</button>
+          <div class="rset-ok-row"><button type="button" class="btn rset-peek" id="setPeek">👁 معاينة</button><button type="button" class="btn primary rset-ok" id="setOk">حفظ</button></div>
         </div>
         <div class="reader-status"><span class="mk-legend" aria-hidden="true"><span class="mk-l mine">كلماتي</span><span class="mk-l new">جديد</span></span><span class="tiny mode-note" id="modeNote"></span><span class="tiny muted" id="trNote"></span></div>
         ${isVideo ? '<div class="player-box yt-clean"><div id="player"></div><button type="button" class="yt-shield" id="ytShield" aria-label="أظهر أزرار يوتيوب"></button></div><div class="split" id="split" role="separator" aria-orientation="horizontal" title="اسحب لتكبير الفيديو أو النص"><span></span></div>' : ''}
@@ -375,10 +375,21 @@ export async function render(view, { segments, params }) {
   const snapReader = () => { const o = {}; try { Object.keys(localStorage).filter((k) => k.startsWith('reader.') && !/^reader\.(saveall|new|new2|newhere)\./.test(k)).forEach((k) => { o[k] = localStorage.getItem(k); }); } catch { /* ignore */ } return o; };
   let setSnap = null;
   const toggleSet = (open) => { if (open) setSnap = snapReader(); rset.classList.toggle('hidden', !open); $('#setBtn', view).setAttribute('aria-expanded', String(open)); $('#setBtn', view).classList.toggle('primary', open); };
-  $('#setBtn', view).addEventListener('click', (e) => { e.stopPropagation(); toggleSet(rset.classList.contains('hidden')); });
-  const closeSet = (e) => { if (!rset.classList.contains('hidden') && !e.target.closest?.('#rset, #setBtn')) toggleSet(false); };
+  $('#setBtn', view).addEventListener('click', (e) => { e.stopPropagation(); if (rset.classList.contains('hidden')) toggleSet(true); else discardSet(); });
+  // closing without «حفظ» (✕, a tap outside, ⚙ again) = nothing changed is kept
+  const discardSet = () => {
+    const now = snapReader();
+    const before = setSnap || now;
+    const changed = Object.keys({ ...before, ...now }).filter((k) => before[k] !== now[k] && k !== 'reader.focus');
+    toggleSet(false);
+    if (!changed.length) return;
+    try { changed.forEach((k) => (before[k] == null ? localStorage.removeItem(k) : localStorage.setItem(k, before[k]))); } catch { /* ignore */ }
+    toast('رجعنا بدون حفظ التغييرات');
+    setTimeout(() => location.reload(), 400); // the video goes on from where it was
+  };
+  const closeSet = (e) => { if (!rset.classList.contains('hidden') && !e.target.closest?.('#rset, #setBtn, .peek-note')) discardSet(); };
   document.addEventListener('click', closeSet);
-  $('#setOk', view).addEventListener('click', () => toggleSet(false));
+  $('#setOk', view).addEventListener('click', () => { toggleSet(false); toast('✓ انحفظت الإعدادات'); });
   // 👁 preview: after any change the sheet fades for a moment so the video/text shows what changed
   // (tools, search, ✕ and «موافق» don't fade it; a tap during the preview just brings the sheet back)
   let peekT = 0;
@@ -392,29 +403,17 @@ export async function render(view, { segments, params }) {
     clearTimeout(peekT);
     rset.classList.add('peek');
     peekNote.classList.add('on');
-    peekT = setTimeout(endPeek, 1800);
+    peekT = setTimeout(endPeek, 2500);
   };
   const NO_PEEK = '#setX, #setOk, .rset-ok, #resetAll, #resetR, #tourR, #colorKey, #retrBtn, #summaryBtn, #listenBtn, #del, a, #trQ, .rset-title';
-  rset.addEventListener('click', (e) => {
-    const b = e.target.closest('button, .tg-switch, .sopt-check');
-    if (!b || e.target.closest(NO_PEEK)) return;
-    setTimeout(peek, 60); // after the change is applied
-  });
-  rset.addEventListener('change', (e) => { if (!e.target.closest(NO_PEEK) && e.target.type !== 'checkbox') setTimeout(peek, 60); });
+  void NO_PEEK;
+  // 👁 «معاينة»: the sheet steps aside for a moment to show the video/text with the new choices
+  $('#setPeek', view)?.addEventListener('click', (e) => { e.stopPropagation(); peek(); });
   document.addEventListener('click', (e) => {
     if (!rset.classList.contains('peek') || e.target.closest?.('#rset')) return;
     e.stopPropagation(); e.preventDefault(); endPeek();
   }, true);
-  $('#setX', view)?.addEventListener('click', () => {
-    const now = snapReader();
-    const before = setSnap || now;
-    const changed = Object.keys({ ...before, ...now }).filter((k) => before[k] !== now[k] && k !== 'reader.focus');
-    toggleSet(false);
-    if (!changed.length) return;
-    try { changed.forEach((k) => (before[k] == null ? localStorage.removeItem(k) : localStorage.setItem(k, before[k]))); } catch { /* ignore */ }
-    toast('رجعنا بدون حفظ التغييرات');
-    setTimeout(() => location.reload(), 400); // the video goes on from where it was
-  });
+  $('#setX', view)?.addEventListener('click', discardSet);
   // Video above the text, below it, or floating in a corner (drag it anywhere, it snaps to a corner).
   // 🎬 The video sits above the text by default; when the learner picks «عائم» it floats, large, over the lower half; it can be moved
   // anywhere (drag its top bar) and resized (drag its corner ↘ or pinch the bar with two fingers).
