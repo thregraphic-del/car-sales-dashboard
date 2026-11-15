@@ -1891,3 +1891,13 @@ html, body { overflow-x: clip; max-width: 100%; overscroll-behavior-x: none; }
 /* 🎤 «ردّد معي»: a clear note while the video waits for you to say the line */
 .say-note { position: fixed; bottom: calc(var(--tabbar-h, 64px) + 86px); inset-inline: 0; margin-inline: auto; width: max-content; max-width: 90vw; padding: 10px 18px; border-radius: 999px; background: var(--accent); color: var(--accent-ink, #fff); font-size: 15px; font-weight: 800; z-index: 55; box-shadow: var(--shadow); opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s, transform .2s; }
 .say-note.on { opacity: 1; transform: none; }
+/* 👆 resize hint on the line under the video: a finger goes up and down while the video shrinks / grows */
+.split { position: relative; overflow: visible !important; }
+.size-hint { position: absolute; top: calc(100% + 6px); inset-inline: 0; margin-inline: auto; width: max-content; display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 10px; border-radius: 999px; background: var(--ink); color: var(--surface); font-size: 13px; font-weight: 700; z-index: 30; pointer-events: none; box-shadow: var(--shadow); animation: shIn .25s ease; }
+.size-hint .sh-txt { font-weight: 700; }
+.size-hint .sh-finger { font-style: normal; font-size: 20px; display: inline-block; transition: transform .6s ease; }
+.size-hint.up .sh-finger { transform: translateY(-8px); }
+.size-hint.down .sh-finger { transform: translateY(8px) rotate(180deg); }
+@keyframes shIn { from { opacity: 0; } to { opacity: 1; } }
+.reader-main .player-box { transition: width .55s ease, height .55s ease; }
+.reader-main.dragging .player-box { transition: none; }

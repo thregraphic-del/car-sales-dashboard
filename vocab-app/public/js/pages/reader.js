@@ -339,6 +339,7 @@ export async function render(view, { segments, params }) {
             ${hasTimes ? '<div class="srow"><span class="slabel">وقت كل سطر</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="timesToggle"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="timesTxt"></span></label></div></div>' : ''}
           </div></div>
           ${isVideo ? `<div class="srow"><span class="slabel">الفيديو</span><div class="sopts" id="vidPos"><button type="button" class="sopt" data-vpos="top">فوق</button><button type="button" class="sopt" data-vpos="bottom">تحت</button><button type="button" class="sopt" data-vpos="float">عائم</button></div></div>` : ''}
+          ${isVideo ? `<div class="srow"><span class="slabel">شرح التكبير 👆</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="shOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="shTxt"></span></label></div></div>` : ''}
           <div class="srow"><span class="slabel">بحث</span><div class="sopts tr-search"><input class="input sm" id="trQ" type="search" placeholder="ابحث في النص" aria-label="ابحث في النص"><span class="tiny muted" id="trQn"></span></div></div>
           <div class="sgroup">أدوات</div>
           <div class="srow"><span class="slabel">شرح</span><div class="sopts"><button class="sopt" id="tourR">شرح الأزرار</button><button class="sopt" id="colorKey">🎨 مفتاح الألوان</button><button class="sopt" id="resetR">↺ رجّع كل الإعدادات للأصل</button></div></div>
@@ -998,7 +999,31 @@ export async function render(view, { segments, params }) {
     if (box) mainEl.style.setProperty('--ph', `${Math.round(box.getBoundingClientRect().height)}px`);
     return p;
   };
-  let splitPct = applySplit(Number(pref('reader.split', '100')));
+  const sizeHintOn = () => pref('reader.sizeHint', '1') === '1';
+  // 👆 each opening (unless switched off in ⚙): the video starts a little smaller and a finger
+  // shows — and plays — that dragging the line resizes it (up = smaller, down = bigger)
+  let splitPct = applySplit(isVideo && sizeHintOn() ? Math.min(85, Number(pref('reader.split', '100'))) : Number(pref('reader.split', '100')));
+  function sizeHint() {
+    const bar = $('#split', view);
+    if (!bar || !sizeHintOn() || !bar.offsetParent) return;
+    bar.insertAdjacentHTML('beforeend', '<div class="size-hint" aria-hidden="true"><i class="sh-finger">👆</i><b class="sh-txt">اسحب الخط: ↑ يصغر · ↓ يكبر</b></div>');
+    const h = bar.querySelector('.size-hint');
+    const base = splitPct;
+    const steps = [base - 12, base, Math.min(100, base + 10), base];
+    let k = 0;
+    const play = setInterval(() => {
+      if (k >= steps.length) { clearInterval(play); return; }
+      h.classList.toggle('up', steps[k] < base); h.classList.toggle('down', steps[k] > base);
+      splitPct = applySplit(steps[k]); k += 1;
+    }, 700);
+    const close = () => { clearInterval(play); splitPct = applySplit(base); h?.remove(); };
+    bar.addEventListener('pointerdown', () => { clearInterval(play); h?.remove(); }, { once: true });
+    setTimeout(close, 5200);
+  }
+  if (isVideo) setTimeout(sizeHint, 1200);
+  const drawSh = () => { const c = $('#shOn', view); if (c) c.checked = sizeHintOn(); const t = $('#shTxt', view); if (t) t.textContent = sizeHintOn() ? 'يطلع كل مرة' : 'مطفأ'; };
+  drawSh();
+  $('#shOn', view)?.addEventListener('change', (e) => { setPref('reader.sizeHint', e.target.checked ? '1' : '0'); drawSh(); });
   $('#split', view)?.addEventListener('pointerdown', (e) => {
     const box = $('.player-box', view);
     const startY = e.clientY;
@@ -1006,12 +1031,14 @@ export async function render(view, { segments, params }) {
     const full = mainEl.getBoundingClientRect().width * (9 / 16);
     e.currentTarget.setPointerCapture(e.pointerId);
     box.style.pointerEvents = 'none';
+    mainEl.classList.add('dragging');
     const move = (ev) => {
       splitPct = applySplit(((startH + ev.clientY - startY) / full) * 100);
     };
     const up = () => {
       box.style.pointerEvents = '';
       setPref('reader.split', String(Math.round(splitPct)));
+      mainEl.classList.remove('dragging');
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
     };
