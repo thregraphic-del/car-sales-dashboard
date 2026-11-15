@@ -104,7 +104,7 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 | 8 | 🎛 Settings → «تحكّم بالموقع» (2 choices, saved on the device): video opens expanded or normal · 🔖 save a video’s words automatically as soon as it opens (no more «حفظ الكل» each time) | deployed 2026-11-15 | in the batch | 0 |
 | 9 | 🏠 New «اليوم» (daily learning home): «أهلًا بعودتك 👋» + line · 🔔 what is new (red dot) + a daily reminder at a chosen hour (in-site alert, or add to the phone calendar) · 🔥 streak with this week's days (Sat→Fri) — missed a day? the flame goes grey with «ترجّع حماسك بتدريب بسيط»; tap → 5 quick words → the streak comes back · main task «مراجعة كلمات آخر يوم» (yesterday, or the last day you learned) → choose 5/10/20/all + level → random different games, each word once → «أحسنت! 🎉» screen with score, «مجموعة أخرى» / «العودة للرئيسية» · «تقدّمك هذا الأسبوع»: words, minutes under it small | deployed 2026-11-15 | in the batch | 0 |
 
-(New batch — collect 20, on the free preview — deploy at 20 or on «ارفع»)
+(New batch — collect 30 (owner raised it from 20 on 2026-11-16), on the free preview — deploy at 30 or on «ارفع»)
 
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
