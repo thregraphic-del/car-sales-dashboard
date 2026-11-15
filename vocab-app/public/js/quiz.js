@@ -28,11 +28,17 @@ export const TYPES = Object.fromEntries(GAMES.map((g) => [g.key, g]));
 export const GAME_ORDER = GAMES.map((g) => g.key);
 export { chooseType };
 
+/** 🎲 A different game each question (one-question games only, never the same twice in a row). */
+function randomType(w, prev) {
+  const ok = GAMES.filter((g) => g.play && !g.round && g.key !== prev && g.can(w)).map((g) => g.key);
+  return ok.length ? ok[Math.floor(Math.random() * ok.length)] : chooseType(w, 0);
+}
+
 /**
  * Run a round. type: 'mixed' or a game key.
  * onProgress(done, total, score); resolves {correct, wrong, missed: word[], points?}.
  */
-export async function runQuiz(stage, { words, distractors: pool, type = 'mixed', onProgress = () => {} }) {
+export async function runQuiz(stage, { words, distractors: pool, type = 'mixed', random = false, onProgress = () => {} }) {
   bindSpeech(stage);
   stage.innerHTML = '<p class="tiny muted"><span class="spinner"></span></p>';
   await ensureExamples(words);
@@ -64,7 +70,7 @@ export async function runQuiz(stage, { words, distractors: pool, type = 'mixed',
   for (let i = 0; i < list.length; i += 1) {
     onProgress(i, list.length, score);
     const w = list[i];
-    const kind = kinds[i] ||= type === 'mixed' ? chooseType(w, i) : type;
+    const kind = kinds[i] ||= type === 'mixed' ? (random ? randomType(w, kinds[i - 1]) : chooseType(w, i)) : type;
     stopSound(); // the last word's sound never spills into the next question
     const gn = document.getElementById('gameName'); // 🎮 the game being played, by name
     if (gn && type === 'mixed') gn.textContent = `🎮 ${GAME_BY_KEY[kind].name}`;

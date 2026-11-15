@@ -16,6 +16,7 @@ router.get('/today', wrap(async (req) => {
   const { viewsToday } = await import('../data/goal.js');
   return { plan, stats, watch_goal: await viewsToday(req.userId) };
 }));
+router.post('/streak/rescue', wrap(async (req) => learning.rescueStreak(req.userId)));
 router.post('/today/extend', wrap(async (req) => learning.extendTodayPlan(req.userId, Math.max(1, Math.min(20, num(req.body?.count) || 5)))));
 router.get('/stats', wrap(async (req) => learning.stats(req.userId)));
 

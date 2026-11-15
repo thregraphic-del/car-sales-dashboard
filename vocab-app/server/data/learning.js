@@ -169,19 +169,35 @@ export async function practiceSet(userId, { ids, exact = false, group_id, source
 
 /* ================================================================== stats */
 
-/** Consecutive study days (in the learner's calendar), ending today or yesterday. */
+/** Days given back by «رجّع حماسك» (one missed day made up by practising). */
+async function rescuedDays(userId) {
+  try { return JSON.parse((await get('SELECT value FROM app_settings WHERE key = ?', `streak_rescue:${userId}`))?.value || '[]'); } catch { return []; }
+}
+
+/** Consecutive study days (in the learner's calendar), ending today or yesterday.
+ *  `rescue`: yesterday was missed but the day before was studied — a short practice today gives it back. */
 export async function streak(userId) {
   const since = startOfDay(400).toISOString();
   const rows = await all('SELECT created_at FROM review_logs WHERE user_id = ? AND created_at >= ?', userId, since);
-  const days = new Set(rows.map((r) => localDate(new Date(r.created_at))));
+  const studied = new Set(rows.map((r) => localDate(new Date(r.created_at))));
+  const days = new Set([...studied, ...(await rescuedDays(userId))]);
   const today = localDate();
-  let n = days.has(today) ? 0 : 1;
-  let count = 0;
-  while (days.has(localDate(startOfDay(n)))) {
-    count += 1;
-    n += 1;
-  }
-  return { current: count, studied_today: days.has(today) };
+  const run = (from) => { let n = from; let c = 0; while (days.has(localDate(startOfDay(n)))) { c += 1; n += 1; } return c; };
+  const count = run(days.has(today) ? 0 : 1);
+  const yesterday = localDate(startOfDay(1));
+  const lost = !days.has(yesterday) ? run(2) : 0;
+  return { current: count, studied_today: studied.has(today), rescue: lost ? { day: yesterday, lost } : null };
+}
+
+/** Give yesterday back once today's practice is done. */
+export async function rescueStreak(userId) {
+  const st = await streak(userId);
+  if (!st.rescue) return st;
+  if (!st.studied_today) throw httpError(400, 'تدرّب أولًا ثم ترجع شعلتك');
+  const list = (await rescuedDays(userId)).filter((d) => d >= localDate(startOfDay(400)));
+  list.push(st.rescue.day);
+  await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', `streak_rescue:${userId}`, JSON.stringify(list));
+  return streak(userId);
 }
 
 export async function stats(userId) {

@@ -1,66 +1,197 @@
-import { progress as goalProgress } from '../goal.js';
-// اليوم — one screen, three things: greeting + streak (→ calendar), start today's session,
-// and two small shortcuts (yesterday's words · continue watching).
+// اليوم — a daily learning home, one clear task:
+//   greeting + 🔔 (what's new · daily reminder) · 🔥 streak with this week's days
+//   · «مراجعة كلمات آخر يوم» (the main task) · this week's progress.
 import { api } from '../api.js';
 import { maybeTour } from '../tour.js';
 import { state } from '../state.js';
-import { esc, icon, openModal } from '../ui.js';
+import { esc, icon, openModal, closeModal, toast } from '../ui.js';
+import { dayStr } from '../goal.js';
+
+const ls = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage off */ } };
+const WD = ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س']; // Sun..Sat
+const DAY_NAMES = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+const shuffle = (a) => { const x = [...a]; for (let i = x.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [x[i], x[j]] = [x[j], x[i]]; } return x; };
+
+/** The words of the last day something was saved (yesterday if any, else the latest earlier day). */
+function lastDay(words) {
+  const today = dayStr();
+  const by = new Map();
+  for (const w of words) {
+    if (!w.saved_at) continue;
+    const d = dayStr(new Date(w.saved_at));
+    if (d >= today) continue;
+    if (!by.has(d)) by.set(d, []);
+    by.get(d).push(w);
+  }
+  const day = [...by.keys()].sort().pop();
+  if (!day) return null;
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  return { day, words: by.get(day), yesterday: day === dayStr(y), name: DAY_NAMES[new Date(`${day}T12:00:00`).getDay()] };
+}
+
+/** This week's minutes (watching, counted on this device). */
+function weekMinutes() {
+  let sec = 0;
+  for (let i = 0; i < 7; i += 1) { const d = new Date(); d.setDate(d.getDate() - i); sec += Number(ls(`lt.watch.${dayStr(d)}`, 0)) || 0; }
+  return Math.round(sec / 60);
+}
+
+/** Start a review of the given words: random different games, each word once. */
+export function startReview(list, { label = 'lastday', rest = [] } = {}) {
+  lsSet('review.rest', JSON.stringify(rest.map((w) => w.uv_id)));
+  location.hash = `#/practice?mode=quiz&mix=random&review=${label}&exact=1&ids=${list.map((w) => w.uv_id).join(',')}&n=${Date.now()}`;
+}
+
+function openReviewSetup(words) {
+  let count = Math.min(10, words.length) === words.length ? 0 : 10;
+  let level = '';
+  const box = openModal('');
+  const pick = () => { const l = level ? words.filter((w) => String(w.level || '').startsWith(level)) : words; return shuffle(l); };
+  const draw = () => {
+    const n = pick().length;
+    box.innerHTML = `<div class="rv-setup stack">
+      <h3 style="margin:0">خصّص مراجعتك</h3>
+      <div class="field"><span class="small ink-2">عدد الكلمات</span><div class="segmented rv-seg" id="rvN">${[[5, '5'], [10, '10'], [20, '20'], [0, 'الكل']].map(([v, l]) => `<button type="button" data-n="${v}" class="${count === v ? 'active' : ''}">${l}</button>`).join('')}</div></div>
+      <div class="field"><span class="small ink-2">المستوى</span><div class="segmented rv-seg" id="rvL">${[['', 'الكل'], ['A', 'مبتدئ'], ['B', 'متوسط'], ['C', 'متقدم']].map(([v, l]) => `<button type="button" data-l="${v}" class="${level === v ? 'active' : ''}">${l}</button>`).join('')}</div></div>
+      <p class="tiny muted">${n ? `${count && count < n ? count : n} من ${n} كلمة · ألعاب مختلفة عشوائية · كل كلمة مرة وحدة` : 'ما فيه كلمات بهذا المستوى'}</p>
+      <button class="btn primary lg" id="rvGo" ${n ? '' : 'disabled'}>ابدأ الاختبار ←</button></div>`;
+  };
+  box.addEventListener('click', (e) => {
+    const nb = e.target.closest('[data-n]'); if (nb) { count = Number(nb.dataset.n); draw(); return; }
+    const lb = e.target.closest('[data-l]'); if (lb) { level = lb.dataset.l; draw(); return; }
+    if (e.target.closest('#rvGo')) {
+      const all = pick();
+      const take = count ? all.slice(0, count) : all;
+      closeModal();
+      startReview(take, { rest: all.slice(take.length) });
+    }
+  });
+  draw();
+}
+
+/* 🔔 what's new + a daily reminder */
+function newsItems(stats, ld) {
+  const out = [];
+  if (stats.streak.rescue) out.push(['🔥', `فاتك يوم — تدريب بسيط يرجّع شعلتك (${stats.streak.rescue.lost} ${stats.streak.rescue.lost === 1 ? 'يوم' : 'أيام'})`, 'rescue']);
+  if (ld) out.push(['📚', `${ld.words.length} كلمة من ${ld.yesterday ? 'أمس' : `يوم ${ld.name}`} تنتظر مراجعتك`, 'review']);
+  if (stats.due) out.push(['⏰', `${stats.due} كلمة حان وقت مراجعتها`, '#/practice?mode=quiz&focus=due']);
+  if (stats.difficult) out.push(['💪', `${stats.difficult} كلمة صعبة تحتاج تدريب`, '#/practice?mode=quiz&focus=difficult']);
+  if (stats.saved_today) out.push(['✨', `حفظت اليوم ${stats.saved_today} كلمة جديدة`, '#/words']);
+  return out;
+}
+const newsSig = (items) => items.map((i) => i[1]).join('|');
+
+function openBell(items, onAct) {
+  const box = openModal('');
+  const t = ls('reminder.time', '');
+  box.innerHTML = `<div class="bell-sheet stack">
+    <h3 style="margin:0">${icon.bell} الجديد</h3>
+    ${items.length ? `<div class="bell-list">${items.map(([ic, txt, act], i) => `<button type="button" class="bell-item" data-i="${i}"><span>${ic}</span><span>${esc(txt)}</span><span class="muted">‹</span></button>`).join('')}</div>` : '<p class="small muted">ما فيه شي جديد الحين 👌</p>'}
+    <div class="divider"></div>
+    <b>⏰ منبّه يومي</b>
+    <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap"><span class="small">ذكّرني الساعة</span><input class="input en-inline" id="remT" type="time" value="${esc(t)}" style="width:130px">
+      <button class="btn sm primary" id="remSave">حفظ</button>${t ? '<button class="btn sm ghost" id="remOff">إيقاف</button>' : ''}</div>
+    <p class="tiny muted" id="remNote">${t ? `المنبّه مضبوط على <b class="en-inline">${esc(t)}</b>.` : 'اختر ساعة، ونذكّرك كل يوم.'} للتنبيه حتى والموقع مقفل: <button type="button" class="link-btn" id="remCal">أضفه لتقويم جوالك 📅</button></p>
+  </div>`;
+  box.addEventListener('click', async (e) => {
+    const it = e.target.closest('[data-i]');
+    if (it) { closeModal(); onAct(items[Number(it.dataset.i)][2]); return; }
+    if (e.target.closest('#remSave')) {
+      const v = box.querySelector('#remT').value;
+      if (!v) { toast('اختر الساعة أولًا'); return; }
+      lsSet('reminder.time', v);
+      try { if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission(); } catch { /* ignore */ }
+      toast(`⏰ نذكّرك كل يوم الساعة ${v}`);
+      closeModal();
+    }
+    if (e.target.closest('#remOff')) { try { localStorage.removeItem('reminder.time'); } catch { /* ignore */ } toast('أوقفنا المنبّه'); closeModal(); }
+    if (e.target.closest('#remCal')) {
+      const v = box.querySelector('#remT').value || t || '20:00';
+      const [h, m] = v.split(':');
+      const d = new Date(); const ymd = dayStr(d).replace(/-/g, '');
+      const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//3Goal//AR', 'BEGIN:VEVENT', `UID:3goal-reminder-${Date.now()}@lexitube`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`,
+        `DTSTART:${ymd}T${h}${m}00`, 'DURATION:PT10M', 'RRULE:FREQ=DAILY', 'SUMMARY:3Goal — راجع كلماتك 🔥', `URL:${location.origin}`,
+        'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:وقت مراجعة كلماتك', 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
+      a.download = '3goal-reminder.ics';
+      document.body.appendChild(a); a.click(); a.remove();
+    }
+  });
+}
 
 export async function render(view) {
-  const [{ plan, stats }, sources, yesterday] = await Promise.all([api.today(), api.sources(), api.words({ section: 'yesterday' }).catch(() => [])]);
+  const [{ stats }, words] = await Promise.all([api.today(), api.words().catch(() => [])]);
   state.stats = stats;
-  const left = plan.items.filter((i) => !i.completed);
-  const hour = new Date().getHours();
-  const greet = hour >= 4 && hour < 12 ? 'صباح الخير' : hour >= 12 && hour < 17 ? 'هلا' : 'مساء الخير';
-  const name = state.user?.name && state.user.name !== 'Learner' ? `، ${esc(state.user.name)}` : '';
-  const last = sources.find((x) => x.kind === 'youtube' && Number(x.progress_seconds) > 5) || sources.find((x) => x.kind === 'youtube');
-  const parts = [
-    plan.counts.difficult + plan.counts.mistakes ? `${plan.counts.difficult + plan.counts.mistakes} تحتاج تدريب` : '',
-    plan.counts.review ? `${plan.counts.review} مراجعة` : '',
-    plan.counts.new ? `${plan.counts.new} جديدة` : '',
-  ].filter(Boolean).join(' · ');
+  // 🔥 practised today after missing yesterday → the flame comes back
+  if (stats.streak.rescue && stats.streak.studied_today) {
+    try { stats.streak = await api.rescueStreak(); toast(`🔥 رجعت شعلتك — ${stats.streak.current} أيام متتالية`); } catch { /* ignore */ }
+  }
+  const st = stats.streak;
+  const grey = !!st.rescue;
+  const flameN = grey ? st.rescue.lost : st.current;
+  const ld = lastDay(words);
+  const items = newsItems(stats, ld);
+  const unseen = items.length && ls('bell.seen', '') !== newsSig(items);
+  const name = state.user?.name && state.user.name !== 'Learner' ? ` ${esc(state.user.name)}` : '';
 
-  const main = !stats.total
-    ? `<a class="card today-main" href="#/add"><span class="tm-ic">${icon.plus}</span><b>ابدأ بأول كلماتك</b><span class="small ink-2">الصق رابط يوتيوب أو كلمات</span></a>`
-    : left.length
-      ? `<a class="card today-main" href="#/practice?session=today"><span class="tm-ic">${icon.play}</span><b>ابدأ تدريب اليوم (${left.length})</b><span class="small ink-2">${parts}</span></a>
-         ${left.length > 5 ? `<a class="quick-session" href="#/practice?mode=cards&ids=${left.slice(0, 5).map((i) => i.uv_id).join(',')}&exact=1&n=2">⏱ مستعجل؟ جلسة دقيقتين — ٥ كلمات بس</a>` : ''}`
-      : `<div class="card today-main done"><span class="tm-ic">${icon.check}</span><b>أنهيت جلسة اليوم 🎉</b><button class="btn sm" id="more">${icon.plus} 5 كلمات إضافية</button></div>
-         <div class="next-steps"><b class="small">وش بعد؟</b>
-           ${last ? `<a class="ns" href="#/source/${last.id}">▶ كمّل «${esc(last.title.slice(0, 34))}»</a><a class="ns" href="#/practice?mode=quiz&source=${last.id}&size=5&n=3">🎯 اختبار سريع على كلمات آخر مقطع</a>` : ''}
-           <a class="ns" href="#/add">＋ أضف مقطع جديد</a></div>`;
+  const task = ld
+    ? `<div class="card th-task">
+        <div class="row between" style="align-items:flex-start;gap:10px"><b class="th-task-t">مراجعة كلمات آخر يوم</b><span class="th-chip">مهمتك اليوم</span></div>
+        <div class="th-big">${ld.words.length} ${ld.words.length === 1 ? 'كلمة تنتظرك' : 'كلمة تنتظرك'}</div>
+        <p class="ink-2 small">${ld.yesterday ? 'اختبر ذاكرتك واسترجع الكلمات اللي تعلمتها أمس.' : `ما تعلمت أمس — نقترح كلمات آخر يوم تعلمت فيه (${ld.name}).`}</p>
+        <button class="btn th-go" id="rvStart">ابدأ المراجعة ←</button></div>`
+    : `<a class="card th-task" href="#/add"><b class="th-task-t">ابدأ بأول كلماتك</b><div class="th-big">أضف مقطع</div><p class="ink-2 small">الصق رابط يوتيوب، ونجهّز لك كلماته — وبكرة تراجعها هنا.</p><span class="btn th-go">أضف ←</span></a>`;
 
-  view.innerHTML = `
-    <button type="button" class="today-head" id="calBtn" title="تقويم أدائك">
-      <span class="th-greet">${greet}${name}</span>
-      <span class="streak-chip">🔥 ${stats.streak.current} ${stats.streak.current === 1 ? 'يوم' : 'أيام'} ${icon.today}</span>
-    </button>
-    <div class="week-strip" id="weekStrip" aria-label="آخر ٧ أيام"></div>
-    ${(() => { const p = goalProgress(); return `<a class="card goal-bar" href="#/settings" title="غيّر هدفك من الإعدادات"><span class="row between"><b>🎯 هدف اليوم: ${p.short}</b><span class="en-inline">${p.count} / ${p.n} ${p.unit}${p.done ? ' ✓' : ''}</span></span><span class="gb-track"><span class="gb-fill" style="width:${p.pct}%"></span></span></a>`; })()}
-    ${main}
-    <div class="today-two">
-      ${yesterday.length ? `<a class="card t2" href="#/practice?mode=cards&ids=${yesterday.slice(0, 60).map((w) => w.uv_id).join(',')}&yesterday=1&exact=1&n=1"><span class="t2-ic">${icon.sun}</span><b>كلمات أمس</b><span class="tiny muted">${yesterday.length}</span></a>` : `<a class="card t2" href="#/words"><span class="t2-ic">${icon.book}</span><b>كلماتي</b><span class="tiny muted">${stats.total}</span></a>`}
-      ${last ? `<a class="card t2" href="#/source/${last.id}"><span class="t2-ic">${icon.play}</span><b>${Number(last.progress_seconds) > 5 ? 'أكمل المشاهدة' : 'آخر مقطع'}</b><span class="tiny muted en clamp1">${esc(last.title)}</span></a>` : `<a class="card t2" href="#/add"><span class="t2-ic">${icon.youtube}</span><b>أضف مقطع</b><span class="tiny muted">من يوتيوب</span></a>`}
-    </div>`;
+  view.innerHTML = `<div class="th">
+    <div class="th-top"><div><h1 class="th-hi">أهلًا بعودتك${name} 👋</h1><p class="th-sub">رحلة صغيرة اليوم، تقدّم أكبر غدًا.</p></div>
+      <button type="button" class="th-bell${unseen ? ' dot' : ''}" id="bell" aria-label="الجديد والتذكير">${icon.bell}</button></div>
+    <div class="th-streak${grey ? ' has-tip' : ''}">
+      <button type="button" class="th-flame${grey ? ' grey' : ''}" id="flame" aria-label="الأيام المتتالية">
+        ${grey ? '<span class="th-tip">ترجّع حماسك بتدريب بسيط ✨</span>' : ''}
+        <span class="th-fl">🔥</span><b>${flameN}</b><span class="th-fl-t">أيام متتالية</span></button>
+      <div class="th-week" id="week"></div>
+    </div>
+    ${task}
+    <div class="card th-prog"><div class="row between"><b>تقدّمك هذا الأسبوع</b><span class="tiny muted">آخر ٧ أيام</span></div>
+      <div class="th-pn"><b>${stats.week?.saved || 0}</b> <span>كلمة تعلّمتها</span></div>
+      <div class="tiny muted">${icon.clock} ${weekMinutes()} دقيقة تعلّم</div></div>
+  </div>`;
 
-  view.querySelector('#calBtn').addEventListener('click', openCalendar);
-  // 📅 the last 7 days, right on the page (tap = the full calendar)
-  api.calendar().then((r) => {
-    const strip = view.querySelector('#weekStrip');
-    if (!strip) return;
-    const goal = r.goal || 10;
-    const D = ['أحد', 'إثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت'];
+  // this week (Saturday → Friday): ✓ = something done, today ringed
+  const drawWeek = (days = {}) => {
+    const now = new Date(); now.setHours(12, 0, 0, 0);
+    const sat = new Date(now); sat.setDate(now.getDate() - ((now.getDay() + 1) % 7));
     const out = [];
-    for (let i = 6; i >= 0; i -= 1) {
-      const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() - i);
-      const x = (r.days || {})[d.toISOString().slice(0, 10)];
-      const n = x ? x.answers + x.saved + x.seen : 0;
-      out.push(`<button type="button" class="ws-d l${n >= goal ? 2 : n ? 1 : 0}${i === 0 ? ' today' : ''}" title="${n} نشاط"><span>${D[d.getDay()]}</span><i>${n >= goal ? '✓' : n || ''}</i></button>`);
+    for (let i = 0; i < 7; i += 1) {
+      const d = new Date(sat); d.setDate(sat.getDate() + i);
+      const key = d.toISOString().slice(0, 10);
+      const x = days[key];
+      const done = x && x.answers + x.saved + x.seen > 0;
+      const isToday = d.toDateString() === now.toDateString();
+      out.push(`<span class="th-d${done ? ' done' : ''}${isToday ? ' today' : ''}${d > now ? ' future' : ''}" title="${DAY_NAMES[d.getDay()]}">${done ? '✓' : WD[d.getDay()]}</span>`);
     }
-    strip.innerHTML = out.join('');
-    strip.addEventListener('click', openCalendar);
-  }).catch(() => {});
-  view.querySelector('#more')?.addEventListener('click', async () => { await api.extendToday(5); render(view); });
+    view.querySelector('#week').innerHTML = out.join('');
+  };
+  drawWeek();
+  api.calendar().then((r) => drawWeek(r.days || {})).catch(() => {});
+  view.querySelector('#week').addEventListener('click', openCalendar);
+
+  const act = (a) => {
+    if (a === 'rescue') return rescue();
+    if (a === 'review') return ld && openReviewSetup(ld.words);
+    location.hash = a;
+    return null;
+  };
+  const rescue = () => {
+    const pool = shuffle(words.filter((w) => w.uv_id));
+    if (!pool.length) { location.hash = '#/add'; return; }
+    location.hash = `#/practice?mode=quiz&mix=random&rescue=1&exact=1&ids=${pool.slice(0, 5).map((w) => w.uv_id).join(',')}&n=${Date.now()}`;
+  };
+  view.querySelector('#flame').addEventListener('click', () => (grey ? rescue() : openCalendar()));
+  view.querySelector('#bell').addEventListener('click', () => { lsSet('bell.seen', newsSig(items)); view.querySelector('#bell').classList.remove('dot'); openBell(items, act); });
+  view.querySelector('#rvStart')?.addEventListener('click', () => openReviewSetup(ld.words));
   maybeTour('home');
 }
 

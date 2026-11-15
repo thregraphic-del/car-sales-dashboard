@@ -238,6 +238,19 @@ async function start() {
   }
   if (!started) {
     started = true;
+    // ⏰ daily reminder (🔔 on «اليوم»): fires once a day at the chosen time while the site is open
+    setInterval(() => {
+      try {
+        const t = localStorage.getItem('reminder.time'); if (!t) return;
+        const now = new Date(); const day = now.toDateString();
+        const [h, m] = t.split(':').map(Number);
+        if (now.getHours() * 60 + now.getMinutes() < h * 60 + m || localStorage.getItem('reminder.fired') === day) return;
+        localStorage.setItem('reminder.fired', day);
+        const msg = 'وقت مراجعة كلماتك 🔥';
+        if ('Notification' in window && Notification.permission === 'granted') new Notification('3Goal', { body: msg });
+        else toast(`⏰ ${msg}`);
+      } catch { /* ignore */ }
+    }, 30000);
     window.addEventListener('hashchange', route);
     loadCredits(); // once per visit (owner only)
     import('./tour.js').then((m) => m.mountHelp()).catch(() => {});

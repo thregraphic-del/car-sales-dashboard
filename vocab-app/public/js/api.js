@@ -46,6 +46,7 @@ export const api = {
   config: () => request('GET', '/api/config'),
   updateMe: (patch) => request('PATCH', '/api/me', patch),
   today: () => request('GET', '/api/today'),
+  rescueStreak: () => request('POST', '/api/streak/rescue', {}),
   extendToday: (count) => request('POST', '/api/today/extend', { count }),
   stats: () => request('GET', '/api/stats'),
 

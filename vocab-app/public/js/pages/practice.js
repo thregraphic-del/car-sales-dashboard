@@ -59,7 +59,7 @@ export async function render(view, { params }) {
       saveSeen(params.source, seen);
     }
     distractors = r.distractors;
-    if (params.ids) label = params.yesterday ? 'كلمات أمس' : params.replay ? 'الكلمات التي أخطأت فيها' : 'كلمات مختارة';
+    if (params.ids) label = params.review ? 'مراجعة كلمات آخر يوم' : params.rescue ? '🔥 رجّع حماسك' : params.yesterday ? 'كلمات أمس' : params.replay ? 'الكلمات التي أخطأت فيها' : 'كلمات مختارة';
   }
   const groupObj = state.groups.find((g) => g.id === group);
   if (groupObj) label = `مجموعة: ${groupObj.name}`;
@@ -167,6 +167,7 @@ export async function render(view, { params }) {
       words: playable.length ? playable : list,
       distractors,
       type: playable.length ? type : 'mixed',
+      random: params.mix === 'random',
       onProgress: (done, total, score) => {
         const bar = stage.querySelector('#gbar');
         if (!bar) return;
@@ -181,6 +182,7 @@ export async function render(view, { params }) {
 
   function summary({ correct, wrong, missed, points }) {
     const total = correct + wrong;
+    if (params.review || params.rescue) return reviewDone(correct, total);
     const replay = params.replay || params.ids;
     stage.innerHTML = `
       <div class="card done-panel">
@@ -201,6 +203,31 @@ export async function render(view, { params }) {
           <a class="btn ghost" href="#/practice">انتهيت</a>`}
         </div>
       </div>`;
+  }
+
+  // 🎉 the daily review / the streak rescue: a real «well done» screen
+  async function reviewDone(correct, total) {
+    let rest = [];
+    try { rest = JSON.parse(localStorage.getItem('review.rest') || '[]'); } catch { /* ignore */ }
+    let flame = '';
+    if (params.rescue) {
+      try { const st = await api.rescueStreak(); flame = `<p class="rv-flame">🔥 رجعت شعلتك — <b>${st.current}</b> ${st.current === 1 ? 'يوم' : 'أيام'} متتالية</p>`; } catch { /* ignore */ }
+    }
+    const size = Math.max(1, (params.ids || '').split(',').length);
+    stage.innerHTML = `<div class="card rv-done">
+      <div class="rv-check">${icon.check}</div>
+      <h2>أحسنت! 🎉</h2>
+      <p class="ink-2">${params.rescue ? 'رجّعت حماسك بتدريب بسيط.' : 'أنهيت مراجعة كلمات آخر يوم بنجاح.'}</p>
+      ${flame}
+      <div class="rv-score en-inline">${correct} / ${total}</div><p class="tiny muted">إجابات صحيحة</p>
+      <div class="divider"></div>
+      ${params.review && rest.length ? '<button class="btn primary lg rv-btn" id="rvNext">انتقل إلى مجموعة أخرى ←</button>' : ''}
+      <a class="btn lg rv-btn" href="#/">العودة للرئيسية</a></div>`;
+    stage.querySelector('#rvNext')?.addEventListener('click', () => {
+      const next = rest.slice(0, size);
+      try { localStorage.setItem('review.rest', JSON.stringify(rest.slice(size))); } catch { /* ignore */ }
+      location.hash = `#/practice?mode=quiz&mix=random&review=lastday&exact=1&ids=${next.join(',')}&n=${Date.now()}`;
+    });
   }
 
   // End of a round on a video's words: back to the video, 15 more, or the hard ones again.
