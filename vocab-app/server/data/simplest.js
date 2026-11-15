@@ -143,10 +143,14 @@ async function doerVerb(w) {
  * happiness → happy, quickly → quick, dangerous → danger), only when that word is common and has
  * its own card with an Arabic meaning. */
 const ADJ_STOP = new Set('only early likely family supply apply reply rely belly jelly holy ugly silly lonely lovely friendly costly deadly elderly weekly daily monthly yearly fly ally rally bully july italy reality quality usually totally really finally actually generally especially natural normal total final local legal general central mental medical musical animal original official rural royal loyal several individual festival terminal journal signal capital hospital metal pedal crystal brutal vital fatal dental moral literal liberal federal mineral neutral plural spiral tribal oral nervous serious obvious various previous curious anxious jealous famous enormous tremendous gorgeous business witness harness wilderness'.split(' '));
+const Y_STOP = new Set('ready party every body copy story duty heavy busy navy jury candy penny pretty jelly money honey journey country army entry empty energy enemy factory history memory victory theory mystery category company ability agency baby lady boy toy key'.split(' '));
 async function adjBase(w) {
-  if (w.length < 6 || ADJ_STOP.has(w)) return null;
+  if (w.length < 5 || ADJ_STOP.has(w)) return null;
   const tries = [];
   let r;
+  // lucky → luck, cloudy → cloud, healthy → health (5+ letters, a real shorter word)
+  if (/[^aeiouy]y$/.test(w) && !w.endsWith('ly') && !Y_STOP.has(w)) tries.push(w.slice(0, -1));
+  if (w.length < 6) return tryRows(tries);
   if (w.endsWith('ional') || w.endsWith('mental') || w.endsWith('ural')) { r = w.slice(0, -2); tries.push(r, `${r}e`); }
   if (w.endsWith('iness')) tries.push(`${w.slice(0, -5)}y`);
   else if (w.endsWith('ness')) tries.push(w.slice(0, -4));
@@ -154,13 +158,8 @@ async function adjBase(w) {
   else if (w.endsWith('ily')) tries.push(`${w.slice(0, -3)}y`);
   else if (w.endsWith('ly')) tries.push(w.slice(0, -2), `${w.slice(0, -2)}e`);
   if (w.endsWith('ous') && !w.endsWith('ious')) tries.push(w.slice(0, -3), `${w.slice(0, -3)}e`);
-  const rank = await ranks();
-  for (const t of tries) {
-    if (!t || t.length < 4) continue;
-    const row = await findVocabulary(t);
-    // a known word with its own Arabic meaning (common, or already in the site's dictionary)
-    if (row && row.term.toLowerCase() === t && row.arabic && (rank.has(t) || row.level)) return row;
-  }
+  const hit = await tryRows(tries);
+  if (hit) return hit;
   // delusional → «delusion» not in the dictionary yet: its meaning is asked once (cached), then kept
   const strong = /(ional|mental|ural)$/.test(w) ? tries.filter((t) => t && /(ion|ment|ure)$/.test(t)) : [];
   if (strong.length && aiLeft <= 0) aiShort = true; // out of AI calls for this request: come back to it
@@ -176,6 +175,16 @@ async function adjBase(w) {
         return await get('SELECT * FROM vocabulary WHERE id = ?', id);
       }
     } catch { /* keep the long form for now */ }
+  }
+  return null;
+}
+/** The first try that is a known word with its own Arabic meaning (common, or already in the site's dictionary). */
+async function tryRows(tries) {
+  const rank = await ranks();
+  for (const t of tries) {
+    if (!t || t.length < 4) continue;
+    const row = await findVocabulary(t);
+    if (row && row.term.toLowerCase() === t && row.arabic && (rank.has(t) || row.level)) return row;
   }
   return null;
 }
@@ -216,7 +225,7 @@ export async function simpleTerm(term) {
   return lemma !== lower ? { term: lemma, kind: 'inflection' } : { term: t, kind: 'same' };
 }
 
-const VERSION = '9'; // 8: adjectives / adverbs / -ness too
+const VERSION = '10'; // 10: lucky → luck; // 8: adjectives / adverbs / -ness too
 
 /**
  * Point a video's suggested words at their simplest forms (once per video).
@@ -303,7 +312,7 @@ export async function baseVocabId(v) {
     arabic: v.arabic, simple_english: v.simple_english, topic: v.topic, origin: v.origin || 'ai' })).id;
 }
 
-const WORDS_VERSION = '3'; // 2: delusional → delusion, happiness → happy …
+const WORDS_VERSION = '4'; // 4: lucky → luck, runs again on every new word, same word twice merged; // 2: delusional → delusion, happiness → happy …
 
 /**
  * Move the learner's saved words to their simplest forms, a slice at a time
@@ -316,7 +325,7 @@ export async function simplifyUserWords(userId, { limit = 120 } = {}) {
   const key = `words-simplest:${userId}`;
   const state = (await get('SELECT value FROM app_settings WHERE key = ?', key))?.value || '';
   const [ver, last] = state.split(':');
-  if (ver === WORDS_VERSION && last === 'done') return { done: true, changed: 0 };
+  // goes on from the last word looked at — words saved later are simplified too
   const after = ver === WORDS_VERSION ? Number(last) || 0 : 0;
   const rows = await all(
     `SELECT uv.id AS uv_id, uv.state, uv.review_count, v.* FROM user_vocabulary uv JOIN vocabulary v ON v.id = uv.vocabulary_id
@@ -347,9 +356,32 @@ export async function simplifyUserWords(userId, { limit = 120 } = {}) {
     }
     const done = rows.length < limit && !aiShort;
     await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value',
-      key, `${WORDS_VERSION}:${done ? 'done' : lastDone}`);
+      key, `${WORDS_VERSION}:${lastDone}`);
+    if (done) changes.push(...await mergeSameTerm(userId));
   });
   return { done: rows.length < limit && !aiShort, changed: changes.length, changes };
+}
+
+/** «كلماتي» holds each word once: the same spelling saved twice (two dictionary rows) becomes one card. */
+async function mergeSameTerm(userId) {
+  const dups = await all(
+    `SELECT lower(v.term) AS t FROM user_vocabulary uv JOIN vocabulary v ON v.id = uv.vocabulary_id
+     WHERE uv.user_id = ? AND uv.state = 'saved' GROUP BY lower(v.term) HAVING COUNT(*) > 1 LIMIT 200`, userId);
+  const out = [];
+  for (const { t } of dups) {
+    const cards = await all(
+      `SELECT uv.id, uv.review_count FROM user_vocabulary uv JOIN vocabulary v ON v.id = uv.vocabulary_id
+       WHERE uv.user_id = ? AND uv.state = 'saved' AND lower(v.term) = ? ORDER BY uv.review_count DESC, uv.id`, userId, t);
+    const [keep, ...drop] = cards.map((c) => c.id);
+    for (const d of drop) {
+      for (const g of await all('SELECT group_id FROM word_group_items WHERE user_vocabulary_id = ?', d)) {
+        await run('INSERT INTO word_group_items (group_id, user_vocabulary_id) VALUES (?, ?) ON CONFLICT DO NOTHING', g.group_id, keep);
+      }
+      await run('DELETE FROM user_vocabulary WHERE id = ?', d);
+    }
+    out.push(`${t}×${cards.length}→1`);
+  }
+  return out;
 }
 
 /* ------------------------------------- «كلماتي»: words and real expressions only */

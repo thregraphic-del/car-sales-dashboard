@@ -1888,3 +1888,6 @@ html, body { overflow-x: clip; max-width: 100%; overscroll-behavior-x: none; }
   .sidebar { visibility: hidden; transition: transform .3s var(--ease), visibility 0s linear .3s; }
   body.nav-open .sidebar { visibility: visible; transition: transform .3s var(--ease), visibility 0s; }
 }
+/* 🎤 «ردّد معي»: a clear note while the video waits for you to say the line */
+.say-note { position: fixed; bottom: calc(var(--tabbar-h, 64px) + 86px); inset-inline: 0; margin-inline: auto; width: max-content; max-width: 90vw; padding: 10px 18px; border-radius: 999px; background: var(--accent); color: var(--accent-ink, #fff); font-size: 15px; font-weight: 800; z-index: 55; box-shadow: var(--shadow); opacity: 0; transform: translateY(8px); pointer-events: none; transition: opacity .2s, transform .2s; }
+.say-note.on { opacity: 1; transform: none; }

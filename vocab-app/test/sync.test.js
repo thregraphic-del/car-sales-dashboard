@@ -80,7 +80,7 @@ test('highlight only moves forward: overlapping caption times and clock jitter',
     { id: 3, start_seconds: 14, text: 'six seven' },
   ]);
   assert.deepEqual(tl2.map((x) => x.id), [1, 2, 3], 'reading order kept');
-  assert.deepEqual(tl2.map((x) => x.start), [10, 16, 16], 'times never go back');
+  assert.deepEqual(tl2.map((x) => x.start), [10, 16, 16.8], 'times never go back, and line 2 still gets a moment of its own');
   // Walking through time, the line index never decreases.
   let prev = null;
   const seen = [];

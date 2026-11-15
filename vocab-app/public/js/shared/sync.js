@@ -18,7 +18,7 @@ export function buildTimeline(lines) {
       floor = Math.max(floor, l.start_seconds);
       return { ...l, start_seconds: floor };
     });
-  return timed.map((l, i) => {
+  const out = timed.map((l, i) => {
     const next = timed[i + 1];
     const start = l.start_seconds;
     const lastWord = l.words?.length ? l.words[l.words.length - 1][0] / 1000 : null;
@@ -33,6 +33,16 @@ export function buildTimeline(lines) {
       : estimateWords(l.text, start, end);
     return { id: l.id, start, end, words, estimated: !l.words?.length };
   });
+  // Every line is seen in turn: a line squeezed to a blink (overlapping captions) borrows a
+  // little time from the next one, so the highlight never seems to jump over it.
+  const MIN = 0.8;
+  for (let i = 0; i + 1 < out.length; i += 1) {
+    const a = out[i]; const b = out[i + 1];
+    if (a.end - a.start >= MIN) continue;
+    const to = Math.min(a.start + MIN, b.end - 0.4);
+    if (to > a.end) { a.end = to; b.start = Math.max(b.start, to); }
+  }
+  return out;
 }
 
 /**

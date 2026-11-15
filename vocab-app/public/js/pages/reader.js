@@ -363,7 +363,7 @@ export async function render(view, { segments, params }) {
   // ⚙ One settings panel instead of a row of buttons.
   const rset = $('#rset', view);
   // ✕ = back to the video without keeping what was changed since ⚙ was opened
-  const snapReader = () => { const o = {}; try { Object.keys(localStorage).filter((k) => k.startsWith('reader.') && !/^reader\.(saveall|new|newhere)\./.test(k)).forEach((k) => { o[k] = localStorage.getItem(k); }); } catch { /* ignore */ } return o; };
+  const snapReader = () => { const o = {}; try { Object.keys(localStorage).filter((k) => k.startsWith('reader.') && !/^reader\.(saveall|new|new2|newhere)\./.test(k)).forEach((k) => { o[k] = localStorage.getItem(k); }); } catch { /* ignore */ } return o; };
   let setSnap = null;
   const toggleSet = (open) => { if (open) setSnap = snapReader(); rset.classList.toggle('hidden', !open); $('#setBtn', view).setAttribute('aria-expanded', String(open)); $('#setBtn', view).classList.toggle('primary', open); };
   $('#setBtn', view).addEventListener('click', (e) => { e.stopPropagation(); toggleSet(rset.classList.contains('hidden')); });
@@ -1081,7 +1081,7 @@ export async function render(view, { segments, params }) {
   const knownBefore = new Set();
   // 📝 the video's NEW words are fixed the first time it is opened (kept on this device), so the
   // count never drops to 0 after saving them — saved ones stay listed with ✓
-  const newKey = `reader.new.${id}`;
+  const newKey = `reader.new2.${id}`; // v2: the old lists could hold words known before (auto-save bug)
   const firstNew = (() => { try { const v = JSON.parse(localStorage.getItem(newKey) || 'null'); return Array.isArray(v) ? new Set(v) : null; } catch { return null; } })();
   const newSet = firstNew || new Set();
   const noteKnown = () => {
@@ -1091,7 +1091,7 @@ export async function render(view, { segments, params }) {
       seenItems.add(it.vocabulary_id);
       const had = it.user_state === 'saved' || it.user_state === 'dismissed';
       if (newSet.has(it.vocabulary_id)) continue;
-      if (had && !it.saved_here && (firstNew || !autoSaveAll)) knownBefore.add(it.vocabulary_id);
+      if (had && !it.saved_here) knownBefore.add(it.vocabulary_id); // in «كلماتي» before this video: never «new» here
       else { newSet.add(it.vocabulary_id); added = true; }
     }
     if (added) { try { localStorage.setItem(newKey, JSON.stringify([...newSet].slice(-3000))); } catch { /* ignore */ } }
@@ -1550,8 +1550,52 @@ export async function render(view, { segments, params }) {
   let held = false; // the learner stopped the video: no automatic restart
   let prevEntry = null;
   const modeNote = (t) => { const n = $('#modeNote', view); if (n) n.textContent = t; };
+  // 🎤 «ردّد معي»: the mic listens during the pause — once you have said the line (voice, then a
+  // short silence) the video goes on. The mic is open only during the pause (phones keep the
+  // video's sound normal the rest of the time). No mic → a pause the length of the line.
+  let micStop = null;
+  const sayNote = document.createElement('div');
+  sayNote.className = 'say-note';
+  view.appendChild(sayNote);
+  const showSay = (t) => { sayNote.textContent = t; sayNote.classList.toggle('on', !!t); };
+  const stopMic = () => { if (micStop) { micStop(); micStop = null; } showSay(''); };
+  async function listenForRepeat(lineSecs) {
+    if (!navigator.mediaDevices?.getUserMedia) return false;
+    let stream; let ctx;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch { return false; }
+    return new Promise((resolve) => {
+      const an = ctx.createAnalyser(); an.fftSize = 1024;
+      ctx.createMediaStreamSource(stream).connect(an);
+      const buf = new Float32Array(an.fftSize);
+      let base = 0; let n = 0; let spoke = 0; let quiet = 0;
+      const started = Date.now();
+      const need = Math.min(1500, Math.max(400, lineSecs * 300)); // ms of voice before it counts
+      const iv = setInterval(() => {
+        an.getFloatTimeDomainData(buf);
+        let sum = 0; for (let i = 0; i < buf.length; i += 1) sum += buf[i] * buf[i];
+        const rms = Math.sqrt(sum / buf.length);
+        if (n < 4) { base = n ? Math.min(base, rms) : rms; n += 1; return; } // ~0.4 s to learn the room's quiet
+        const loud = rms > Math.max(0.015, base * 3);
+        if (loud) { spoke += 100; quiet = 0; } else if (spoke) quiet += 100;
+        showSay(spoke >= need ? '🎤 ممتاز… كمّل' : '🎤 ردّد الجملة الحين');
+        if ((spoke >= need && quiet >= 700) || Date.now() - started > 30000) done(true);
+      }, 100);
+      const done = (ok) => {
+        clearInterval(iv);
+        stream.getTracks().forEach((tr) => tr.stop());
+        ctx.close().catch(() => {});
+        micStop = null;
+        resolve(ok);
+      };
+      micStop = () => done(false);
+    });
+  }
   const cancelGap = () => {
     const was = Boolean(gapTimer);
+    stopMic();
     clearTimeout(gapTimer);
     clearInterval(gapTick);
     gapTimer = 0;
@@ -1570,7 +1614,7 @@ export async function render(view, { segments, params }) {
     const firstEntry = first && timeline.find((x) => String(x.id) === first.dataset.id);
     return { last, start: firstEntry ? firstEntry.start : entry.start };
   };
-  const pauseHere = (entry) => playMode !== 'shadow' || paraOf(entry).last;
+  const pauseHere = () => true; // ردّد معي: after every line, not the whole paragraph
   function startGap(entry) {
     gapDoneFor = entry.id;
     if (held) return;
@@ -1578,6 +1622,25 @@ export async function render(view, { segments, params }) {
       ? Math.min(25000, Math.max(1500, ((entry.end - paraOf(entry).start) * 1000) / (rate || 1) + 800))
       : gapMs;
     selfPause(); player.pause();
+    if (playMode === 'shadow') {
+      // stay on this line until it has been said
+      gapTimer = setTimeout(() => {}, 600000);
+      showPlayBtn();
+      const lineSecs = Math.max(0.5, (entry.end - entry.start) / (rate || 1));
+      showSay('🎤 ردّد الجملة الحين');
+      listenForRepeat(lineSecs).then((heard) => {
+        if (!gapTimer) return; // stopped / skipped meanwhile
+        if (heard) { showSay('✓'); setTimeout(() => { cancelGap(); if (alive && !isPanelOpen() && !held) player.play(); }, 350); return; }
+        // no mic: a pause the length of the line, then on
+        const wait = Math.min(15000, lineSecs * 1300 + 1200);
+        const until = Date.now() + wait;
+        const tickNote = () => showSay(`🗣 ردّد الجملة… ${Math.max(0, Math.ceil((until - Date.now()) / 1000))}`);
+        tickNote(); gapTick = setInterval(tickNote, 250);
+        clearTimeout(gapTimer);
+        gapTimer = setTimeout(() => { cancelGap(); if (alive && !isPanelOpen() && !held) player.play(); }, wait);
+      });
+      return;
+    }
     const until = Date.now() + ms;
     const show = () => {
       const left = Math.max(0, Math.ceil((until - Date.now()) / 1000));
@@ -1614,7 +1677,7 @@ export async function render(view, { segments, params }) {
   };
   $('#shadowBtn', view)?.addEventListener('click', () => {
     setMode(playMode === 'shadow' ? 'normal' : 'shadow');
-    toast(playMode === 'shadow' ? '🗣 ردّد معي: يقف بعد كل جملة لتعيدها' : 'رجع التشغيل عادي');
+    toast(playMode === 'shadow' ? '🎤 ردّد معي: يقف بعد كل جملة، وأول ما تردّدها يكمّل' : 'رجع التشغيل عادي');
   });
   const modeMenu = $('#mode .speed-menu', view);
   const toggleMode = (open) => {
@@ -1696,7 +1759,7 @@ export async function render(view, { segments, params }) {
   // the learner's data — which words were new in each video, «احفظ الكل» — is kept
   const resetAll = () => {
     if (!confirm('ترجع كل إعدادات المقاطع للأصل؟ (كلماتك ما تتأثر)')) return;
-    try { Object.keys(localStorage).filter((k) => k.startsWith('reader.') && !/^reader\.(saveall|new|newhere)\./.test(k)).forEach((k) => localStorage.removeItem(k)); } catch { /* ignore */ }
+    try { Object.keys(localStorage).filter((k) => k.startsWith('reader.') && !/^reader\.(saveall|new|new2|newhere)\./.test(k)).forEach((k) => localStorage.removeItem(k)); } catch { /* ignore */ }
     toast('رجعت كل الإعدادات للأصل ✓');
     setTimeout(() => location.reload(), 700);
   };
@@ -2337,6 +2400,7 @@ export async function render(view, { segments, params }) {
     stopUnmute();
     document.querySelector('#fontPill')?.remove();
     alive = false;
+    stopMic(); sayNote.remove();
     clearInterval(progressTimer);
     saveProgress(true);
     document.removeEventListener('click', closeSpeed);
