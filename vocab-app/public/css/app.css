@@ -1866,3 +1866,8 @@ body.reader-focus .rs-focus-row { display: none !important; }
 /* 🔥 one flame on «اليوم» — the top-bar and side copies step aside there */
 body:has(.th) #topStreak { visibility: hidden; }
 body:has(.th) .sf-streak { display: none; }
+/* 👁 a change in ⚙ is shown first: the sheet fades away for a moment, a small note says so */
+.rset { transition: opacity .25s ease; }
+.rset.peek { opacity: 0; pointer-events: none; }
+.peek-note { position: fixed; top: 76px; inset-inline: 0; margin-inline: auto; width: max-content; max-width: 90vw; padding: 7px 14px; border-radius: 999px; background: var(--ink); color: var(--surface); font-size: 13px; font-weight: 700; z-index: 60; opacity: 0; pointer-events: none; transition: opacity .2s; }
+.peek-note.on { opacity: 1; }

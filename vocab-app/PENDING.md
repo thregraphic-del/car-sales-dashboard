@@ -113,3 +113,4 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 | 3 | 🔥 One flame on «اليوم»: the copies in the top bar (phone) and in the side panel (iPad/computer) hide on that page | built — on the free preview | in the batch | 0 |
 | 4 | 🌗 «المظهر» in الإعدادات: only فاتح / داكن («تلقائي» removed; an old «تلقائي» becomes what the phone shows now) | built — on the free preview | in the batch | 0 |
 | 5 | 🌗 «الخلفية» in a video's ⚙: only ☀️ فاتح / 🌙 داكن (مثل الموقع · أبيض · بيج removed; an old أبيض/بيج becomes فاتح) | built — on the free preview | in the batch | 0 |
+| 6 | 👁 Video ⚙: every change is shown first — the sheet fades for ~2 s so the video and text show what changed, with a note «👁 هذا شكل التغيير — اضغط للرجوع»; a tap brings the sheet back (tools, search, ✕ and «موافق» do not fade it) | built — on the free preview | in the batch | 0 |

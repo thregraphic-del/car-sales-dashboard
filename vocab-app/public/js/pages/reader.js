@@ -370,6 +370,32 @@ export async function render(view, { segments, params }) {
   const closeSet = (e) => { if (!rset.classList.contains('hidden') && !e.target.closest?.('#rset, #setBtn')) toggleSet(false); };
   document.addEventListener('click', closeSet);
   $('#setOk', view).addEventListener('click', () => toggleSet(false));
+  // 👁 preview: after any change the sheet fades for a moment so the video/text shows what changed
+  // (tools, search, ✕ and «موافق» don't fade it; a tap during the preview just brings the sheet back)
+  let peekT = 0;
+  const peekNote = document.createElement('div');
+  peekNote.className = 'peek-note';
+  peekNote.textContent = '👁 هذا شكل التغيير — اضغط للرجوع';
+  view.appendChild(peekNote);
+  const endPeek = () => { clearTimeout(peekT); rset.classList.remove('peek'); peekNote.classList.remove('on'); };
+  const peek = () => {
+    if (rset.classList.contains('hidden')) return;
+    clearTimeout(peekT);
+    rset.classList.add('peek');
+    peekNote.classList.add('on');
+    peekT = setTimeout(endPeek, 1800);
+  };
+  const NO_PEEK = '#setX, #setOk, .rset-ok, #resetAll, #resetR, #tourR, #colorKey, #retrBtn, #summaryBtn, #listenBtn, #del, a, #trQ, .rset-title';
+  rset.addEventListener('click', (e) => {
+    const b = e.target.closest('button, .tg-switch, .sopt-check');
+    if (!b || e.target.closest(NO_PEEK)) return;
+    setTimeout(peek, 60); // after the change is applied
+  });
+  rset.addEventListener('change', (e) => { if (!e.target.closest(NO_PEEK) && e.target.type !== 'checkbox') setTimeout(peek, 60); });
+  document.addEventListener('click', (e) => {
+    if (!rset.classList.contains('peek') || e.target.closest?.('#rset')) return;
+    e.stopPropagation(); e.preventDefault(); endPeek();
+  }, true);
   $('#setX', view)?.addEventListener('click', () => {
     const now = snapReader();
     const before = setSnap || now;
