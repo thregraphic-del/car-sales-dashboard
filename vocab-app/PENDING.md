@@ -110,3 +110,5 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 |---|--------|--------|-------------|--------------|
 | 1 | 🏠 «اليوم»: the task card says only «مراجعة كلمات آخر يوم» (no word count, so it never feels heavy); the 🔔 line too | built — on the free preview | in the batch | 0 |
 | 2 | 🎲🃏 Review filters: «نوع التدريب» — ألعاب عشوائية or بطاقات (remembered); cards end with «مجموعة أخرى» / «العودة للرئيسية» too | built — on the free preview | in the batch | 0 |
+| 3 | 🔥 One flame on «اليوم»: the copies in the top bar (phone) and in the side panel (iPad/computer) hide on that page | built — on the free preview | in the batch | 0 |
+| 4 | 🌗 «المظهر» in الإعدادات: only فاتح / داكن («تلقائي» removed; an old «تلقائي» becomes what the phone shows now) | built — on the free preview | in the batch | 0 |

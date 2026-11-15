@@ -58,7 +58,7 @@ function renderNav(active) {
   if (top && s) top.innerHTML = `🔥 <b class="en-inline">${s.streak.current}</b>`;
   const guestChip = state.user?.guest ? '<div class="guest-chip">👤 أنت ضيف — <a href="/register"><b>سجّل حسابك المجاني</b></a> وتنحفظ كلماتك. عندك حساب؟ <a href="/login"><b>ادخل</b></a></div>' : '';
   $('#sidebarFoot').innerHTML = s
-    ? `${guestChip}<div class="row between"><span>🔥 أيام متتالية</span><b class="en-inline">${s.streak.current}</b></div>
+    ? `${guestChip}<div class="row between sf-streak"><span>🔥 أيام متتالية</span><b class="en-inline">${s.streak.current}</b></div>
        <div class="tiny muted" style="margin-top:6px">${state.config?.ai?.configured ? '✨ الذكاء الاصطناعي مفعّل' : '📘 القاموس المحلي'}</div>
        ${creditsBell()}
        <button type="button" class="link-btn small" id="feedbackLink" style="display:block;margin-top:8px">💡 اقتراحاتكم — ساعدنا نطوّر الموقع</button>

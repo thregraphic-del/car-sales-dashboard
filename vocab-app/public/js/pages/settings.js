@@ -21,7 +21,9 @@ export async function render(view) {
   const u = cfg.user;
   let theme = 'system';
   try {
-    theme = ['dark', 'auto'].includes(localStorage.getItem('theme')) ? localStorage.getItem('theme') : 'light';
+    theme = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
+    // «تلقائي» is gone: an old «auto» becomes what the phone shows now
+    if (localStorage.getItem('theme') === 'auto') { theme = window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; localStorage.setItem('theme', theme); }
   } catch {
     /* storage unavailable */
   }
@@ -42,7 +44,7 @@ export async function render(view) {
           <input type="range" id="rate" min="0.6" max="1.3" step="0.05" value="${u.speech_rate}" style="accent-color:var(--accent)"></label>
         <div class="row" style="gap:10px;flex-wrap:wrap"><label class="row small" style="gap:8px"><input type="checkbox" class="check" id="ar" ${u.speak_arabic ? 'checked' : ''}> انطق العربي أيضًا</label>
           <button class="btn sm ghost" id="test">${icon.speaker} جرّب الصوت</button></div>
-        <div class="field">المظهر<div class="segmented" id="theme">${[['light', 'فاتح'], ['dark', 'داكن'], ['auto', 'تلقائي']].map(([k, l]) => `<button data-t="${k}" class="${k === theme ? 'active' : ''}">${l}</button>`).join('')}</div></div>
+        <div class="field">المظهر<div class="segmented" id="theme">${[['light', 'فاتح'], ['dark', 'داكن']].map(([k, l]) => `<button data-t="${k}" class="${k === theme ? 'active' : ''}">${l}</button>`).join('')}</div></div>
       </div>
       ${siteCtlHtml()}
       ${feedbackCardHtml()}
