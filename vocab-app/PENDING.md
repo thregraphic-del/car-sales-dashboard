@@ -114,3 +114,4 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 | 4 | 🌗 «المظهر» in الإعدادات: only فاتح / داكن («تلقائي» removed; an old «تلقائي» becomes what the phone shows now) | built — on the free preview | in the batch | 0 |
 | 5 | 🌗 «الخلفية» in a video's ⚙: only ☀️ فاتح / 🌙 داكن (مثل الموقع · أبيض · بيج removed; an old أبيض/بيج becomes فاتح) | built — on the free preview | in the batch | 0 |
 | 6 | 👁 Video ⚙: every change is shown first — the sheet fades for ~2 s so the video and text show what changed, with a note «👁 هذا شكل التغيير — اضغط للرجوع»; a tap brings the sheet back (tools, search, ✕ and «موافق» do not fade it) | built — on the free preview | in the batch | 0 |
+| 7 | ⏱ The time strip (when line times are hidden) is a seek bar: a round knob — touch and drag forward/back (or tap a spot), the time shows while dragging, the video and the text jump there on release | built — on the free preview | in the batch | 0 |

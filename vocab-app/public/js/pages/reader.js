@@ -1802,11 +1802,38 @@ export async function render(view, { segments, params }) {
     else if (k === 'a') toggleHideAr();
   };
   document.addEventListener('keydown', onKey);
+  // ⏱ the time strip is a seek bar: touch it and drag forward / back (RTL: it fills from the right)
+  (() => {
+    const strip = $('#timeStrip', view);
+    const bar = strip?.querySelector('.ts-bar');
+    if (!bar) return;
+    let dragAt = null;
+    const durOf = () => player?.duration?.() || Number(source.duration_seconds) || 0;
+    const at = (x) => { const r = bar.getBoundingClientRect(); return Math.max(0, Math.min(1, (r.right - x) / r.width)); };
+    const show = (ratio) => { const d = durOf(); $('#tsFill', view).style.width = `${ratio * 100}%`; $('#tsNow', view).textContent = fmtTime(ratio * d); };
+    bar.addEventListener('pointerdown', (e) => {
+      if (!durOf()) return;
+      e.preventDefault();
+      bar.setPointerCapture?.(e.pointerId);
+      strip.classList.add('drag');
+      dragAt = at(e.clientX); show(dragAt);
+    });
+    bar.addEventListener('pointermove', (e) => { if (dragAt == null) return; dragAt = at(e.clientX); show(dragAt); });
+    const end = () => {
+      if (dragAt == null) return;
+      const t = dragAt * durOf();
+      dragAt = null;
+      strip.classList.remove('drag');
+      if (player?.seek) { player.seek(t); lastT = null; tick(); }
+    };
+    bar.addEventListener('pointerup', end);
+    bar.addEventListener('pointercancel', end);
+  })();
   const tick = () => {
     if (!player || !timeline.length) return;
     let t = player.time();
     const strip = $('#timeStrip', view);
-    if (strip && !strip.classList.contains('hidden')) {
+    if (strip && !strip.classList.contains('hidden') && !strip.classList.contains('drag')) {
       const d = player.duration?.() || Number(source.duration_seconds) || 0;
       $('#tsNow', view).textContent = fmtTime(t);
       $('#tsDur', view).textContent = d ? fmtTime(d) : '';

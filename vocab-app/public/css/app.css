@@ -1871,3 +1871,10 @@ body:has(.th) .sf-streak { display: none; }
 .rset.peek { opacity: 0; pointer-events: none; }
 .peek-note { position: fixed; top: 76px; inset-inline: 0; margin-inline: auto; width: max-content; max-width: 90vw; padding: 7px 14px; border-radius: 999px; background: var(--ink); color: var(--surface); font-size: 13px; font-weight: 700; z-index: 60; opacity: 0; pointer-events: none; transition: opacity .2s; }
 .peek-note.on { opacity: 1; }
+/* ⏱ the time strip is a seek bar: a bigger touch area, a round knob at the current point */
+.time-strip .ts-bar { position: relative; height: 8px; overflow: visible; cursor: pointer; touch-action: none; }
+.time-strip .ts-bar::before { content: ''; position: absolute; inset: -14px 0; }
+.time-strip .ts-bar span { position: relative; }
+.time-strip .ts-bar span::after { content: ''; position: absolute; inset-inline-end: -8px; top: 50%; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); border: 3px solid var(--surface); box-shadow: 0 1px 4px rgba(0,0,0,.25); transform: translateY(-50%); }
+.time-strip.drag .ts-bar span { transition: none; }
+.time-strip.drag .ts-bar span::after { width: 24px; height: 24px; inset-inline-end: -11px; }
