@@ -1959,3 +1959,21 @@ body:not(.reader-focus) .view.page-reader .transcript { max-height: none; }
   body.nav-mini .sidebar .nav-link .badge { position: absolute; top: 2px; inset-inline-end: 4px; font-size: 10px; padding: 0 5px; }
   body.nav-mini .sidebar .brand { justify-content: center; }
 }
+
+/* ⚙ video settings — clean list: section names plain (icon + bold), every on/off setting has its
+   switch right beside its name (RTL: on the right); green = on and its own choices open under it,
+   grey = off and they fold away. Status words next to switches are dropped (the colour says it). */
+.rset.rs-list .slabel { background: none !important; padding: 0 !important; color: var(--ink) !important; font-size: 15px !important; font-weight: 800; gap: 8px; }
+.rset.rs-list .slabel svg { color: var(--accent); }
+.rset.rs-list .srow { padding: 14px 4px; }
+.rset.rs-list .srow.sw-row { display: grid !important; grid-template-columns: auto 1fr; align-items: center; column-gap: 12px; }
+.rset.rs-list .srow.sw-row > .sopts { display: contents !important; }
+.rset.rs-list .srow.sw-row .tg-switch { grid-column: 1; grid-row: 1; }
+.rset.rs-list .srow.sw-row > .slabel { grid-column: 2; grid-row: 1; justify-self: start; }
+.rset.rs-list .srow.sw-row .sw-sub { grid-column: 1 / -1; grid-row: 2; margin-top: 12px; padding: 12px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 5%, var(--surface)); }
+.rset.rs-list .srow.sw-row:has(.tg-switch input:not(:checked)) > .slabel { color: var(--muted) !important; }
+.rset.rs-list .srow.sw-row:has(.tg-switch input:not(:checked)) > .slabel svg { color: var(--muted); }
+.rset .tg-switch .tiny { display: none; }
+.rset .tg-switch input:checked + .tg-track { background: #34c759; }
+.rset #resetR { display: none; }
+.rset .sopt { border-radius: 12px; }

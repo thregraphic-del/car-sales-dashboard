@@ -329,17 +329,18 @@ export async function render(view, { segments, params }) {
             <span class="sopts" id="recapPause"><span class="tiny">لما يطلع:</span><button type="button" class="sopt" data-rpause="none">يكمّل المقطع</button><button type="button" class="sopt" data-rpause="read">يوقف بقدر قراءته</button><button type="button" class="sopt" data-rpause="5">يوقف ٥ ثواني</button></span></div></div></div>` : ''}
           <div class="sgroup">العرض</div>
           <div id="viewPick" class="rgrp"><button type="button" class="hidden" id="viewBtn"></button><div id="viewMenu" class="rgrp">
-            <div class="srow"><span class="slabel">الترجمة</span><div class="sopts"><label class="sopt-check"><input type="checkbox" class="check" id="arToggle" ${showAr ? 'checked' : ''}> عربي</label><span class="sopts${showAr ? '' : ' hidden'}" id="arLayout"><button type="button" class="sopt" data-layout="side">بجانبه</button><button type="button" class="sopt" data-layout="below">تحته</button></span></div></div>
+            <div class="srow sw-row"><span class="slabel">الترجمة</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="arToggle" ${showAr ? 'checked' : ''}><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label><div class="sw-sub"><span class="sopts" id="arLayout"><button type="button" class="sopt" data-layout="side">بجانبه</button><button type="button" class="sopt" data-layout="below">تحته</button></span></div></div></div>
             <div class="srow"><span class="slabel">شكل الكلمات</span><div class="sopts mk-set">
               <span class="mk-row"><span class="mk-lbl">جديد</span>${MK_NEW.map(([c, n]) => `<button type="button" class="mk-sw" data-mkn="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span>
               <span class="mk-row"><span class="mk-lbl">كلماتي</span>${MK_MINE.map(([c, n]) => `<button type="button" class="mk-sw" data-mkm="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span></div></div>
-            <div class="srow tb-only"><span class="slabel">أزرار تحت</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="tbOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="tbOnTxt"></span></label></div></div>
+            <div class="srow sw-row tb-only"><span class="slabel">أزرار تحت</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="tbOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="tbOnTxt"></span></label></div></div>
             <div class="srow"><span class="slabel">الخلفية</span><div class="sopts" id="rBg">${[['light', '☀️ فاتح'], ['night', '🌙 داكن']].map(([k, l]) => `<button type="button" class="sopt" data-rbg="${k}">${l}</button>`).join('')}</div></div>
-            <div class="srow"><span class="slabel">النص</span><div class="sopts">${hasTimes ? `<label class="sopt-check"><input type="checkbox" class="check" id="followToggle" ${follow ? 'checked' : ''}> متابعة تلقائية</label>` : ''}<span class="sopts fontsize"><button type="button" class="sopt" data-font="-1">A−</button><button type="button" class="sopt" data-font="1">A+</button></span></div></div>
-            ${hasTimes ? '<div class="srow"><span class="slabel">وقت كل سطر</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="timesToggle"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="timesTxt"></span></label></div></div>' : ''}
+            ${hasTimes ? `<div class="srow sw-row"><span class="slabel">متابعة تلقائية</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="followToggle" ${follow ? 'checked' : ''}><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div></div>` : ''}
+            <div class="srow"><span class="slabel">حجم الخط</span><div class="sopts"><span class="sopts fontsize"><button type="button" class="sopt" data-font="-1">A−</button><button type="button" class="sopt" data-font="1">A+</button></span></div></div>
+            ${hasTimes ? '<div class="srow sw-row"><span class="slabel">وقت كل سطر</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="timesToggle"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="timesTxt"></span></label></div></div>' : ''}
           </div></div>
           ${isVideo ? `<div class="srow"><span class="slabel">الفيديو</span><div class="sopts" id="vidPos"><button type="button" class="sopt" data-vpos="top">فوق</button><button type="button" class="sopt" data-vpos="bottom">تحت</button><button type="button" class="sopt" data-vpos="float">عائم</button></div></div>` : ''}
-          ${isVideo ? `<div class="srow"><span class="slabel">شرح التكبير 👆</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="shOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="shTxt"></span></label></div></div>` : ''}
+          ${isVideo ? `<div class="srow sw-row"><span class="slabel">شرح التكبير 👆</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="shOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="shTxt"></span></label></div></div>` : ''}
           <div class="srow"><span class="slabel">بحث</span><div class="sopts tr-search"><input class="input sm" id="trQ" type="search" placeholder="ابحث في النص" aria-label="ابحث في النص"><span class="tiny muted" id="trQn"></span></div></div>
           <div class="sgroup">أدوات</div>
           <div class="srow"><span class="slabel">شرح</span><div class="sopts"><button class="sopt" id="tourR">شرح الأزرار</button><button class="sopt" id="colorKey">🎨 مفتاح الألوان</button><button class="sopt" id="resetR">↺ رجّع كل الإعدادات للأصل</button></div></div>
@@ -829,6 +830,10 @@ export async function render(view, { segments, params }) {
       'أزرار تحت': sv('<rect x="3" y="14" width="18" height="7" rx="2"/><path d="M8 17.5h.01M12 17.5h.01M16 17.5h.01"/>'),
       'الخلفية': sv('<path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/>'),
       'النص': sv('<path d="M5 7V5h14v2M12 5v14M9 19h6"/>'),
+      'حجم الخط': sv('<path d="M5 7V5h14v2M12 5v14M9 19h6"/>'),
+      'متابعة تلقائية': sv('<path d="M12 5v14M6 13l6 6 6-6"/>'),
+      'وقت كل سطر': sv('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'),
+      'شرح التكبير 👆': sv('<path d="M12 4v16M8 8l4-4 4 4M8 16l4 4 4-4"/>'),
       'الفيديو': sv('<rect x="3" y="5" width="18" height="14" rx="3"/><path d="m10 9 5 3-5 3z"/>'),
       'بحث': sv('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>'),
       'شرح': sv('<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01"/>'),
