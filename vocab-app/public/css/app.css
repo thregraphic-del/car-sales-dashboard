@@ -1878,3 +1878,13 @@ body:has(.th) .sf-streak { display: none; }
 .time-strip .ts-bar span::after { content: ''; position: absolute; inset-inline-end: -8px; top: 50%; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); border: 3px solid var(--surface); box-shadow: 0 1px 4px rgba(0,0,0,.25); transform: translateY(-50%); }
 .time-strip.drag .ts-bar span { transition: none; }
 .time-strip.drag .ts-bar span::after { width: 24px; height: 24px; inset-inline-end: -11px; }
+/* 📱 the page never slides sideways (no white gap on the left when swiping by mistake) */
+html, body { overflow-x: clip; max-width: 100%; overscroll-behavior-x: none; }
+@supports not (overflow-x: clip) { html, body { overflow-x: hidden; } }
+.transcript { overflow-x: hidden; overscroll-behavior-x: none; touch-action: pan-y pinch-zoom; }
+.transcript .line { min-width: 0; }
+.transcript .line > * { min-width: 0; overflow-wrap: anywhere; }
+@media (max-width: 900px) {
+  .sidebar { visibility: hidden; transition: transform .3s var(--ease), visibility 0s linear .3s; }
+  body.nav-open .sidebar { visibility: visible; transition: transform .3s var(--ease), visibility 0s; }
+}
