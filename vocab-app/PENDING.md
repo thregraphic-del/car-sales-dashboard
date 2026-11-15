@@ -112,3 +112,4 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 | 2 | 🎲🃏 Review filters: «نوع التدريب» — ألعاب عشوائية or بطاقات (remembered); cards end with «مجموعة أخرى» / «العودة للرئيسية» too | built — on the free preview | in the batch | 0 |
 | 3 | 🔥 One flame on «اليوم»: the copies in the top bar (phone) and in the side panel (iPad/computer) hide on that page | built — on the free preview | in the batch | 0 |
 | 4 | 🌗 «المظهر» in الإعدادات: only فاتح / داكن («تلقائي» removed; an old «تلقائي» becomes what the phone shows now) | built — on the free preview | in the batch | 0 |
+| 5 | 🌗 «الخلفية» in a video's ⚙: only ☀️ فاتح / 🌙 داكن (مثل الموقع · أبيض · بيج removed; an old أبيض/بيج becomes فاتح) | built — on the free preview | in the batch | 0 |
