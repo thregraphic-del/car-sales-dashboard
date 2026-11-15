@@ -331,7 +331,7 @@ async function init() {
   // 👤 a guest went past the free trial → one kind card: create the free account (everything moves with them)
   window.addEventListener('lexitube:guest-limit', (e) => askToRegister(e.detail));
   // 🎯 the chosen daily goal reached outside a video (the video page celebrates by itself)
-  window.addEventListener('lexitube:goal-reached', (e) => { if (!location.hash.startsWith('#/source/')) toast(`🎉 وصلت هدف اليوم — ${goalText(e.detail)}`); });
+  window.addEventListener('lexitube:goal-reached', (e) => { if (!location.hash.startsWith('#/source/') && localStorage.getItem('goal.off') !== '1') toast(`🎉 وصلت هدف اليوم — ${goalText(e.detail)}`); });
   window.addEventListener('offline', () => toast('انقطع الإنترنت — بنكمل أول ما يرجع'));
   window.addEventListener('online', () => toast('رجع الإنترنت ✓'));
   window.addEventListener('lexitube:auth', () => {

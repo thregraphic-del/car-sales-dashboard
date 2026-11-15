@@ -31,22 +31,33 @@ export async function render(view) {
   view.innerHTML = `
     <div class="page-head"><div><div class="eyebrow">Settings</div><h1>الإعدادات</h1></div></div>
     <div class="grid cols-2">
-      <div class="card stack">
-        <b>تفضيلاتك</b>
-        <label class="field">الاسم<input class="input" id="name" value="${esc(u.name)}"></label>
-        <div class="field goal-set"><span>🎯 هدفي اليومي يُحسب على:</span>
-          <div class="goal-types" id="goalTypes">${Object.entries(GOAL_TYPES).map(([k, t]) => `<button type="button" class="goal-type${goalCfg().type === k ? ' on' : ''}" data-gt="${k}"><b>${t.label}</b><span class="tiny muted">${t.note}</span></button>`).join('')}</div>
-          <label class="row" style="gap:8px;align-items:center;margin-top:8px">العدد: <input class="input en-inline" id="goalN" type="number" inputmode="numeric" style="width:96px;text-align:center" value="${goalCfg().n}"> <span id="goalUnit">${goalCfg().unit}</span></label>
-          <span class="tiny muted" id="goalNow"></span></div>
-        <button class="btn primary sm" id="saveProfile" style="justify-self:start">حفظ</button>
-        <div class="divider" style="margin:4px 0"></div>
-        <label class="field">سرعة النطق: <span id="rateVal" class="en-inline">${u.speech_rate}×</span>
-          <input type="range" id="rate" min="0.6" max="1.3" step="0.05" value="${u.speech_rate}" style="accent-color:var(--accent)"></label>
-        <div class="row" style="gap:10px;flex-wrap:wrap"><label class="row small" style="gap:8px"><input type="checkbox" class="check" id="ar" ${u.speak_arabic ? 'checked' : ''}> انطق العربي أيضًا</label>
-          <button class="btn sm ghost" id="test">${icon.speaker} جرّب الصوت</button></div>
-        <div class="field">المظهر<div class="segmented" id="theme">${[['light', 'فاتح'], ['dark', 'داكن']].map(([k, l]) => `<button data-t="${k}" class="${k === theme ? 'active' : ''}">${l}</button>`).join('')}</div></div>
+      <div class="set-list">
+        <section class="set-card">
+          <h3 class="set-h">👤 الملف الشخصي</h3>
+          <div class="set-line"><label class="set-lbl" for="name">الاسم</label><input class="input" id="name" value="${esc(u.name)}"><button class="btn primary sm" id="saveProfile">حفظ</button></div>
+        </section>
+        <section class="set-card">
+          ${swItem('goalOn', '🎯 الهدف اليومي', 'تابع كم سويت اليوم، ونبّهني لما أوصل', `
+            <div class="goal-types" id="goalTypes">${Object.entries(GOAL_TYPES).map(([k, t]) => `<button type="button" class="goal-type${goalCfg().type === k ? ' on' : ''}" data-gt="${k}"><b>${t.label}</b><span class="tiny muted">${t.note}</span></button>`).join('')}</div>
+            <div class="set-line"><span class="set-lbl">العدد</span><input class="input en-inline" id="goalN" type="number" inputmode="numeric" style="width:96px;text-align:center" value="${goalCfg().n}"> <span id="goalUnit" class="small">${goalCfg().unit}</span></div>
+            <span class="tiny muted" id="goalNow"></span>`)}
+        </section>
+        <section class="set-card">
+          <h3 class="set-h">🔊 الصوت</h3>
+          <div class="set-line"><span class="set-lbl">سرعة النطق</span><input type="range" id="rate" min="0.6" max="1.3" step="0.05" value="${u.speech_rate}" style="accent-color:var(--accent);flex:1"><b id="rateVal" class="en-inline">${u.speech_rate}×</b></div>
+          ${swItem('ar', 'انطق العربي أيضًا', 'بعد الكلمة الإنجليزية يقرأ معناها بالعربي', '', u.speak_arabic)}
+          <button class="btn sm ghost" id="test" style="justify-self:start">${icon.speaker} جرّب الصوت</button>
+        </section>
+        <section class="set-card">
+          <h3 class="set-h">🎨 المظهر</h3>
+          ${swItem('darkSw', '🌙 الوضع الداكن', 'خلفية داكنة مريحة للعين في الليل', '', theme === 'dark')}
+        </section>
+        <section class="set-card">
+          <h3 class="set-h">🎬 الفيديو</h3>
+          ${swItem('wideSw', 'يفتح بشاشة موسّعة', 'إذا طفيته يفتح عادي وكل الأزرار ظاهرة', '', ls('app.openWide', '0') === '1')}
+          ${swItem('autoSw', 'حفظ كلمات المقطع تلقائيًا', 'أول ما يفتح المقطع تنحفظ كلماته الجديدة — بدون «حفظ الكل»', '', ls('app.autoSave', '0') === '1')}
+        </section>
       </div>
-      ${siteCtlHtml()}
       ${feedbackCardHtml()}
       ${cfg.auth?.required && u.guest ? `<div class="card stack guest-settings">
         <b>الحساب</b>
@@ -117,7 +128,6 @@ export async function render(view) {
     const p = progress();
     $('#goalNow').textContent = `اليوم: ${p.count} من ${p.n} ${p.unit}${p.done ? ' ✓' : ''}`;
   };
-  wireSiteCtl(view);
   $('#goalTypes').addEventListener('click', (e) => {
     const b = e.target.closest('[data-gt]');
     if (!b) return;
@@ -136,22 +146,17 @@ export async function render(view) {
   $('#rate').addEventListener('change', async (e) => {
     state.user = await api.updateMe({ speech_rate: Number(e.target.value) });
   });
-  $('#ar').addEventListener('change', async (e) => {
-    state.user = await api.updateMe({ speak_arabic: e.target.checked });
-  });
   $('#test').addEventListener('click', () => speak('I was reluctant to ask for help.').catch(() => toast('الصوت غير مدعوم في هذا المتصفح')));
-  $('#theme').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-t]');
-    if (!b) return;
-    const t = b.dataset.t;
-    try {
-      localStorage.setItem('theme', t);
-    } catch {
-      /* ignore */
-    }
-    applyTheme(t);
-    view.querySelectorAll('#theme button').forEach((x) => x.classList.toggle('active', x === b));
+  // 🔘 every switch: green = on (its options open), grey = off (they fold away)
+  const bindSw = (id, onChange) => $(`#${id}`)?.addEventListener('change', (e) => {
+    e.target.closest('.set-item')?.classList.toggle('on', e.target.checked);
+    onChange(e.target.checked);
   });
+  bindSw('darkSw', (on) => { const t = on ? 'dark' : 'light'; try { localStorage.setItem('theme', t); } catch { /* ignore */ } applyTheme(t); });
+  bindSw('wideSw', (on) => lsSet('app.openWide', on ? '1' : '0'));
+  bindSw('autoSw', (on) => lsSet('app.autoSave', on ? '1' : '0'));
+  bindSw('goalOn', (on) => lsSet('goal.off', on ? '0' : '1'));
+  bindSw('ar', async (on) => { state.user = await api.updateMe({ speak_arabic: on }); });
   $('#reset')?.addEventListener('click', async () => {
     if (!confirm('سيتم حذف كل البيانات وإعادة إنشاء البيانات التجريبية. متابعة؟')) return;
     await api.resetDemo();
@@ -383,21 +388,13 @@ function openMyData({ onDone }) {
 }
 
 
-// 🎛 «تحكّم بالموقع»: how the site opens and behaves — saved on this device
-const SITE_CTL = [
-  { k: 'app.openWide', label: '🎬 الفيديو يفتح على', def: '0', opts: [['0', 'عادي'], ['1', 'شاشة موسّعة']] },
-  { k: 'app.autoSave', label: '🔖 حفظ كلمات المقطع', def: '0', opts: [['1', 'تلقائي أول ما يفتح'], ['0', 'أنا أضغط «حفظ الكل»']] },
-];
-const ctlGet = (c) => { try { return localStorage.getItem(c.k) ?? (typeof c.def === 'function' ? c.def() : c.def); } catch { return typeof c.def === 'function' ? c.def() : c.def; } };
-function siteCtlHtml() {
-  return `<div class="card stack site-ctl"><b>🎛 تحكّم بالموقع</b><span class="tiny muted">كيف يفتح الموقع ويشتغل — يتغيّر فورًا ويبقى محفوظ على هذا الجهاز.</span>
-    ${SITE_CTL.map((c, i) => `<div class="sc-row"><span class="sc-label">${c.label}</span><div class="segmented sc-opts" data-sc="${i}">${c.opts.map(([v, l]) => `<button type="button" data-v="${v}" class="${ctlGet(c) === v ? 'active' : ''}">${l}</button>`).join('')}</div></div>`).join('')}</div>`;
-}
-function wireSiteCtl(view) {
-  view.querySelectorAll('[data-sc]').forEach((box) => box.addEventListener('click', (e) => {
-    const b = e.target.closest('button[data-v]'); if (!b) return;
-    const c = SITE_CTL[Number(box.dataset.sc)];
-    try { localStorage.setItem(c.k, b.dataset.v); } catch { /* storage unavailable */ }
-    box.querySelectorAll('button').forEach((x) => x.classList.toggle('active', x === b));
-  }));
+const ls = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage unavailable */ } };
+/** One setting: the switch right next to its name (green = on); its own options open under it only when on. */
+function swItem(id, title, note, sub = '', on = null) {
+  const checked = on === null ? ls('goal.off', '0') !== '1' : !!on;
+  return `<div class="set-item${checked ? ' on' : ''}">
+    <label class="set-top"><input type="checkbox" class="sw" id="${id}" ${checked ? 'checked' : ''}><span class="set-t"><b>${title}</b>${note ? `<small>${note}</small>` : ''}</span></label>
+    ${sub ? `<div class="set-sub"><div class="set-sub-in">${sub}</div></div>` : ''}
+  </div>`;
 }
