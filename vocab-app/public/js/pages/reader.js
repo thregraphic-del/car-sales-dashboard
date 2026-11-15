@@ -16,7 +16,7 @@ import { summaryHtml } from '../summary-view.js';
 import { esc, icon, levelChip, usageDot, usageLegend, fmtTime, fmtDuration, toast, $, emptyState, openModal, closeModal, applyTheme } from '../ui.js';
 import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech, celebrateGoal } from '../components.js';
 import { tokenize, quickTier, normalizeArabic } from '../shared/text.js';
-import { buildTimeline, positionAt, steadyPosition, wordIndexByChar } from '../shared/sync.js';
+import { buildTimeline, positionAt, steadyPosition, wordIndexByChar, dedupeLines } from '../shared/sync.js';
 import { refreshStats } from '../app.js';
 import { APP_CONFIG } from '../config.js';
 import { speak, stop as stopSpeech } from '../audio.js';
@@ -268,7 +268,7 @@ export async function render(view, { segments, params }) {
   const id = Number(segments[1]);
   let data;
   try {
-    data = await api.source(id);
+    data = dedupeLines(await api.source(id));
   } catch (err) {
     view.innerHTML = emptyState('🔎', 'ما لقينا هذا المقطع', err.message, '<a class="btn" href="#/add">أضف مصدرًا</a>');
     return;
@@ -1190,13 +1190,13 @@ export async function render(view, { segments, params }) {
   });
 
   const refresh = async () => {
-    data = await api.source(id);
+    data = dedupeLines(await api.source(id));
     noteKnown?.();
     if (autoSaveAll) {
       const later = data.items.filter((it) => !it.user_state && newSet.has(it.vocabulary_id));
       if (later.length) {
         await api.saveWordsBulk(later.map((it) => ({ vocabulary_id: it.vocabulary_id, occurrence_id: it.occurrence_id }))).catch(() => {});
-        data = await api.source(id);
+        data = dedupeLines(await api.source(id));
       }
     }
     timeline = buildTimeline(data.lines);

@@ -104,3 +104,16 @@ test('server: overlapping captions give lines in time order', async () => {
   ]);
   for (let i = 1; i < lines.length; i += 1) assert.ok(lines[i].start >= lines[i - 1].start, JSON.stringify(lines));
 });
+
+test('dedupeLines drops rolling-caption repeats and repoints their words', async () => {
+  const { dedupeLines } = await import('../public/js/shared/sync.js');
+  const d = { lines: [
+    { id: 1, text: 'that will be providing homes with', start_seconds: 10 },
+    { id: 2, text: 'electricity powered by those', start_seconds: 12 },
+    { id: 3, text: 'That will be providing homes with,', start_seconds: 13 },
+    { id: 4, text: 'that will be providing homes with', start_seconds: 60 },
+  ], items: [{ line_id: 3 }] };
+  const r = dedupeLines(d);
+  assert.deepEqual(r.lines.map((l) => l.id), [1, 2, 4]);
+  assert.equal(r.items[0].line_id, 1);
+});

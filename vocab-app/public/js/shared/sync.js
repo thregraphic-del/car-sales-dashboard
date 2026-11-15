@@ -124,3 +124,27 @@ export function wordIndexByChar(text) {
   }
   return out;
 }
+
+/**
+ * YouTube's rolling captions often repeat a sentence a moment later (same words, overlapping
+ * time). Shown twice, the highlight jumps over the copy and seems to skip a line. Each repeat
+ * of one of the last few lines (same words, within 15 s, 3+ words) is dropped; the words that
+ * pointed at a dropped copy point at the kept line.
+ */
+export function dedupeLines(data) {
+  if (!data?.lines?.length) return data;
+  const norm = (t) => String(t || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const kept = [];
+  const moved = new Map();
+  for (const l of data.lines) {
+    const n = norm(l.text);
+    const dup = n.split(' ').length >= 3 && Number.isFinite(l.start_seconds)
+      ? kept.slice(-4).find((k) => norm(k.text) === n && Math.abs((k.start_seconds ?? -99) - l.start_seconds) < 15)
+      : null;
+    if (dup) { moved.set(l.id, dup.id); continue; }
+    kept.push(l);
+  }
+  if (!moved.size) return data;
+  const items = (data.items || []).map((it) => (moved.has(it.line_id) ? { ...it, line_id: moved.get(it.line_id) } : it));
+  return { ...data, lines: kept, items };
+}
