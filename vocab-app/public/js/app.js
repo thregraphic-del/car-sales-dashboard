@@ -333,7 +333,19 @@ async function init() {
     openFeedback();
   });
   // 👤 a guest went past the free trial → one kind card: create the free account (everything moves with them)
-  window.addEventListener('lexitube:guest-limit', (e) => askToRegister(e.detail));
+  // 👤 guest limit reached: the invitation shows at most once every 10 minutes, and again when a video ends
+  // (not on every blocked save — that was every few seconds)
+  let guestText = '';
+  const guestAsk = (force = false) => {
+    if (!guestText || document.querySelector('.guest-card')) return;
+    let last = 0; try { last = Number(localStorage.getItem('guest.askedAt')) || 0; } catch { /* ignore */ }
+    if (!force && Date.now() - last < 10 * 60 * 1000) return;
+    if (force && Date.now() - last < 60 * 1000) return;
+    try { localStorage.setItem('guest.askedAt', String(Date.now())); } catch { /* ignore */ }
+    askToRegister(guestText);
+  };
+  window.addEventListener('lexitube:guest-limit', (e) => { guestText = e.detail || guestText || ' '; guestAsk(); });
+  window.addEventListener('lexitube:ended', () => guestAsk(true));
   // 🎯 the chosen daily goal reached outside a video (the video page celebrates by itself)
   window.addEventListener('lexitube:goal-reached', (e) => { if (!location.hash.startsWith('#/source/') && localStorage.getItem('goal.off') !== '1') toast(`🎉 وصلت هدف اليوم — ${goalText(e.detail)}`); });
   window.addEventListener('offline', () => toast('انقطع الإنترنت — بنكمل أول ما يرجع'));
