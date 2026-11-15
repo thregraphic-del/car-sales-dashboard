@@ -115,6 +115,18 @@ export async function render(view, { params }) {
     return;
   }
 
+  // 📚 «مراجعة كلمات آخر يوم»: the words of this set leave the waiting rest
+  const reviewNext = (() => {
+    if (!params.review) return null;
+    let rest = [];
+    try { rest = JSON.parse(localStorage.getItem('review.rest') || '[]'); } catch { /* ignore */ }
+    const cur = new Set(String(params.ids || '').split(',').map(Number));
+    rest = rest.filter((x) => !cur.has(Number(x)));
+    try { localStorage.setItem('review.rest', JSON.stringify(rest)); } catch { /* ignore */ }
+    const next = rest.slice(0, Math.max(1, cur.size));
+    return next.length ? `#/practice?mode=${mode}${mode === 'quiz' ? '&mix=random' : ''}&review=lastday&exact=1&ids=${next.join(',')}&n=${Date.now()}` : null;
+  })();
+
   /* ----------------------------------------------------------- games */
   if (mode === 'games' && type === 'mixed') {
     stage.innerHTML = `
@@ -141,7 +153,7 @@ export async function render(view, { params }) {
     if (mode === 'cards') {
       cleanup = runFlashcards(stage, words, {
         source: params.session === 'today' ? 'today' : 'flashcard',
-        doneActions: params.source ? sourceActions() : `<a class="btn" href="${href({ ...base, mode: 'quiz' })}">${icon.game} اختبار على نفس الكلمات</a><a class="btn ghost" href="#/practice">انتهيت</a>`,
+        doneActions: params.review ? `${reviewNext ? `<a class="btn primary" href="${reviewNext}">انتقل إلى مجموعة أخرى ←</a>` : ''}<a class="btn" href="#/">العودة للرئيسية</a>` : params.source ? sourceActions() : `<a class="btn" href="${href({ ...base, mode: 'quiz' })}">${icon.game} اختبار على نفس الكلمات</a><a class="btn ghost" href="#/practice">انتهيت</a>`,
         hardHref: params.source ? (list) => href({ ...base, mode: 'cards', vids: list.map((m) => m.vocabulary_id).join(','), n: Date.now() }) : null,
       });
       return;
@@ -207,13 +219,10 @@ export async function render(view, { params }) {
 
   // 🎉 the daily review / the streak rescue: a real «well done» screen
   async function reviewDone(correct, total) {
-    let rest = [];
-    try { rest = JSON.parse(localStorage.getItem('review.rest') || '[]'); } catch { /* ignore */ }
     let flame = '';
     if (params.rescue) {
       try { const st = await api.rescueStreak(); flame = `<p class="rv-flame">🔥 رجعت شعلتك — <b>${st.current}</b> ${st.current === 1 ? 'يوم' : 'أيام'} متتالية</p>`; } catch { /* ignore */ }
     }
-    const size = Math.max(1, (params.ids || '').split(',').length);
     stage.innerHTML = `<div class="card rv-done">
       <div class="rv-check">${icon.check}</div>
       <h2>أحسنت! 🎉</h2>
@@ -221,13 +230,8 @@ export async function render(view, { params }) {
       ${flame}
       <div class="rv-score en-inline">${correct} / ${total}</div><p class="tiny muted">إجابات صحيحة</p>
       <div class="divider"></div>
-      ${params.review && rest.length ? '<button class="btn primary lg rv-btn" id="rvNext">انتقل إلى مجموعة أخرى ←</button>' : ''}
+      ${reviewNext ? `<a class="btn primary lg rv-btn" href="${reviewNext}">انتقل إلى مجموعة أخرى ←</a>` : ''}
       <a class="btn lg rv-btn" href="#/">العودة للرئيسية</a></div>`;
-    stage.querySelector('#rvNext')?.addEventListener('click', () => {
-      const next = rest.slice(0, size);
-      try { localStorage.setItem('review.rest', JSON.stringify(rest.slice(size))); } catch { /* ignore */ }
-      location.hash = `#/practice?mode=quiz&mix=random&review=lastday&exact=1&ids=${next.join(',')}&n=${Date.now()}`;
-    });
   }
 
   // End of a round on a video's words: back to the video, 15 more, or the hard ones again.

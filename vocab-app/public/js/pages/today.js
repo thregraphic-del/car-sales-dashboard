@@ -38,14 +38,16 @@ function weekMinutes() {
 }
 
 /** Start a review of the given words: random different games, each word once. */
-export function startReview(list, { label = 'lastday', rest = [] } = {}) {
+export function startReview(list, { label = 'lastday', rest = [], kind = 'random' } = {}) {
   lsSet('review.rest', JSON.stringify(rest.map((w) => w.uv_id)));
-  location.hash = `#/practice?mode=quiz&mix=random&review=${label}&exact=1&ids=${list.map((w) => w.uv_id).join(',')}&n=${Date.now()}`;
+  lsSet('review.kind', kind);
+  location.hash = `#/practice?mode=${kind === 'cards' ? 'cards' : 'quiz&mix=random'}&review=${label}&exact=1&ids=${list.map((w) => w.uv_id).join(',')}&n=${Date.now()}`;
 }
 
 function openReviewSetup(words) {
   let count = Math.min(10, words.length) === words.length ? 0 : 10;
   let level = '';
+  let kind = ls('review.kind', 'random');
   const box = openModal('');
   const pick = () => { const l = level ? words.filter((w) => String(w.level || '').startsWith(level)) : words; return shuffle(l); };
   const draw = () => {
@@ -54,17 +56,19 @@ function openReviewSetup(words) {
       <h3 style="margin:0">خصّص مراجعتك</h3>
       <div class="field"><span class="small ink-2">عدد الكلمات</span><div class="segmented rv-seg" id="rvN">${[[5, '5'], [10, '10'], [20, '20'], [0, 'الكل']].map(([v, l]) => `<button type="button" data-n="${v}" class="${count === v ? 'active' : ''}">${l}</button>`).join('')}</div></div>
       <div class="field"><span class="small ink-2">المستوى</span><div class="segmented rv-seg" id="rvL">${[['', 'الكل'], ['A', 'مبتدئ'], ['B', 'متوسط'], ['C', 'متقدم']].map(([v, l]) => `<button type="button" data-l="${v}" class="${level === v ? 'active' : ''}">${l}</button>`).join('')}</div></div>
-      <p class="tiny muted">${n ? `${count && count < n ? count : n} من ${n} كلمة · ألعاب مختلفة عشوائية · كل كلمة مرة وحدة` : 'ما فيه كلمات بهذا المستوى'}</p>
+      <div class="field"><span class="small ink-2">نوع التدريب</span><div class="segmented rv-seg" id="rvK">${[['random', '🎲 ألعاب عشوائية'], ['cards', '🃏 بطاقات']].map(([v, l]) => `<button type="button" data-k="${v}" class="${kind === v ? 'active' : ''}">${l}</button>`).join('')}</div></div>
+      ${n ? '' : '<p class="tiny muted">ما فيه كلمات بهذا المستوى</p>'}
       <button class="btn primary lg" id="rvGo" ${n ? '' : 'disabled'}>ابدأ الاختبار ←</button></div>`;
   };
   box.addEventListener('click', (e) => {
     const nb = e.target.closest('[data-n]'); if (nb) { count = Number(nb.dataset.n); draw(); return; }
     const lb = e.target.closest('[data-l]'); if (lb) { level = lb.dataset.l; draw(); return; }
+    const kb = e.target.closest('[data-k]'); if (kb) { kind = kb.dataset.k; draw(); return; }
     if (e.target.closest('#rvGo')) {
       const all = pick();
       const take = count ? all.slice(0, count) : all;
       closeModal();
-      startReview(take, { rest: all.slice(take.length) });
+      startReview(take, { rest: all.slice(take.length), kind });
     }
   });
   draw();
@@ -74,7 +78,7 @@ function openReviewSetup(words) {
 function newsItems(stats, ld) {
   const out = [];
   if (stats.streak.rescue) out.push(['🔥', `فاتك يوم — تدريب بسيط يرجّع شعلتك (${stats.streak.rescue.lost} ${stats.streak.rescue.lost === 1 ? 'يوم' : 'أيام'})`, 'rescue']);
-  if (ld) out.push(['📚', `${ld.words.length} كلمة من ${ld.yesterday ? 'أمس' : `يوم ${ld.name}`} تنتظر مراجعتك`, 'review']);
+  if (ld) out.push(['📚', `مراجعة كلمات ${ld.yesterday ? 'أمس' : `يوم ${ld.name}`}`, 'review']);
   if (stats.due) out.push(['⏰', `${stats.due} كلمة حان وقت مراجعتها`, '#/practice?mode=quiz&focus=due']);
   if (stats.difficult) out.push(['💪', `${stats.difficult} كلمة صعبة تحتاج تدريب`, '#/practice?mode=quiz&focus=difficult']);
   if (stats.saved_today) out.push(['✨', `حفظت اليوم ${stats.saved_today} كلمة جديدة`, '#/words']);
@@ -138,8 +142,7 @@ export async function render(view) {
 
   const task = ld
     ? `<div class="card th-task">
-        <div class="row between" style="align-items:flex-start;gap:10px"><b class="th-task-t">مراجعة كلمات آخر يوم</b><span class="th-chip">مهمتك اليوم</span></div>
-        <div class="th-big">${ld.words.length} ${ld.words.length === 1 ? 'كلمة تنتظرك' : 'كلمة تنتظرك'}</div>
+        <span class="th-chip" style="justify-self:start">مهمتك اليوم</span><b class="th-task-t th-big">مراجعة كلمات آخر يوم</b>
         <p class="ink-2 small">${ld.yesterday ? 'اختبر ذاكرتك واسترجع الكلمات اللي تعلمتها أمس.' : `ما تعلمت أمس — نقترح كلمات آخر يوم تعلمت فيه (${ld.name}).`}</p>
         <button class="btn th-go" id="rvStart">ابدأ المراجعة ←</button></div>`
     : `<a class="card th-task" href="#/add"><b class="th-task-t">ابدأ بأول كلماتك</b><div class="th-big">أضف مقطع</div><p class="ink-2 small">الصق رابط يوتيوب، ونجهّز لك كلماته — وبكرة تراجعها هنا.</p><span class="btn th-go">أضف ←</span></a>`;

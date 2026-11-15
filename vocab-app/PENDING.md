@@ -103,3 +103,10 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 | 7 | 📐 iPad (landscape and portrait): video options no longer spill onto the page as a jumbled toolbar with giant icons — the ⚙ is back and opens the same tidy list as the phone (✕ and «موافق» always in sight), sized to the screen height on phone, iPad portrait and iPad landscape | deployed 2026-11-15 | in the batch | 0 |
 | 8 | 🎛 Settings → «تحكّم بالموقع» (2 choices, saved on the device): video opens expanded or normal · 🔖 save a video’s words automatically as soon as it opens (no more «حفظ الكل» each time) | deployed 2026-11-15 | in the batch | 0 |
 | 9 | 🏠 New «اليوم» (daily learning home): «أهلًا بعودتك 👋» + line · 🔔 what is new (red dot) + a daily reminder at a chosen hour (in-site alert, or add to the phone calendar) · 🔥 streak with this week's days (Sat→Fri) — missed a day? the flame goes grey with «ترجّع حماسك بتدريب بسيط»; tap → 5 quick words → the streak comes back · main task «مراجعة كلمات آخر يوم» (yesterday, or the last day you learned) → choose 5/10/20/all + level → random different games, each word once → «أحسنت! 🎉» screen with score, «مجموعة أخرى» / «العودة للرئيسية» · «تقدّمك هذا الأسبوع»: words, minutes under it small | deployed 2026-11-15 | in the batch | 0 |
+
+(New batch — collect 20, on the free preview — deploy at 20 or on «ارفع»)
+
+| # | Change | Status | Deploy cost | Running cost |
+|---|--------|--------|-------------|--------------|
+| 1 | 🏠 «اليوم»: the task card says only «مراجعة كلمات آخر يوم» (no word count, so it never feels heavy); the 🔔 line too | built — on the free preview | in the batch | 0 |
+| 2 | 🎲🃏 Review filters: «نوع التدريب» — ألعاب عشوائية or بطاقات (remembered); cards end with «مجموعة أخرى» / «العودة للرئيسية» too | built — on the free preview | in the batch | 0 |

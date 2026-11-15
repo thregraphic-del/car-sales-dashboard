@@ -1862,3 +1862,4 @@ body.reader-focus .rs-focus-row { display: none !important; }
 .rv-done .divider { width: 100%; margin: 10px 0; }
 .rv-btn { width: 100%; justify-content: center; }
 .th-streak.has-tip { padding-top: 34px; }
+.th-task-t.th-big { font-size: clamp(22px, 6.6vw, 30px); line-height: 1.3; }
