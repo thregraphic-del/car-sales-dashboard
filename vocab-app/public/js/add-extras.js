@@ -566,7 +566,7 @@ export function bindFields(view) {
       return `<span class="ch-ava" aria-hidden="true">${k?.logo ? `<img src="${esc(k.logo)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<span>${esc(c[0].slice(0, 1).toUpperCase())}</span></span>`;
     };
     box.innerHTML = `<div class="sopts" style="margin:8px 0">${LV.map(([k, l]) => `<button type="button" class="sopt${k === lv ? ' active' : ''}" data-lv="${k}">${l}</button>`).join('')}</div>
-      ${list.length ? `<div class="fd-grid fd-rows2">${list.map((c) => `<a class="fd-card" href="${esc(chkCache[c[1]]?.url || `https://www.youtube.com/@${encodeURIComponent(c[1])}`)}" target="_blank" rel="noopener" title="${esc(c[0])}">${logo(c)}<b class="en">${esc(c[0])}</b><span class="tiny muted fd-desc">${c[3] ? esc(c[3]) : LV[c[2]][1]}</span></a>`).join('')}</div>` : '<p class="tiny muted">ما فيه قنوات بهذا المستوى هنا.</p>'}
+      ${list.length ? `<div class="fd-grid fd-rows2">${list.map((c) => `<div class="fd-card fd-wrap"><a class="fd-go" href="${esc(chkCache[c[1]]?.url || `https://www.youtube.com/@${encodeURIComponent(c[1])}`)}" target="_blank" rel="noopener" title="${esc(c[0])}">${logo(c)}<b class="en">${esc(c[0])}</b><span class="tiny muted fd-desc">${c[3] ? esc(c[3]) : LV[c[2]][1]}</span></a><button type="button" class="fd-fav" data-fh="${esc(c[1])}" data-fn="${esc(c[0])}" title="أضف للمفضلة">⭐</button></div>`).join('')}</div>` : '<p class="tiny muted">ما فيه قنوات بهذا المستوى هنا.</p>'}
       <div class="more-row"><button type="button" class="btn sm" id="fdMore">${moreBusy ? '<span class="spinner"></span>' : '＋'} المزيد</button></div>`;
   };
   // ask the server only about channels this browser hasn't checked yet (each is checked once for everyone)
@@ -603,6 +603,14 @@ export function bindFields(view) {
   view.addEventListener('click', (e) => {
     if (e.target.closest('#fdMore')) { more(); return; }
     if (e.target.closest('#favChip')) { const on = fav?.classList.contains('hidden'); showFav(on); return; }
+    const fb = e.target.closest('.fd-fav');
+    if (fb && !fb.disabled) {
+      fb.disabled = true;
+      api.channelAction({ action: 'add', handle: fb.dataset.fh, name: fb.dataset.fn }).then(() => {
+        fb.textContent = '✓'; toast(`✓ ${fb.dataset.fn} أُضيفت للمفضلة`);
+      }).catch((err) => { fb.disabled = false; toast(err.message); });
+      return;
+    }
     const f = e.target.closest('[data-fd]');
     if (f && acc.contains(f)) {
       // tapping the open field closes it; tapping another opens it and closes the previous

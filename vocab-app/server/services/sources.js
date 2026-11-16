@@ -10,7 +10,7 @@ import { run, get, all, tx } from '../db/index.js';
 import { config } from '../config.js';
 import { recordTranscript } from './ai.js';
 import { httpError } from '../lib/errors.js';
-import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript, MESSAGES, TranscriptError, externalTranscript } from '../lib/youtube.js';
+import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript, MESSAGES, TranscriptError, externalTranscript, oembed } from '../lib/youtube.js';
 import { extractVocabulary, extractChunkWithAi, toSentences, translateWithAi, suspiciousTranslations, alignWithAi, ExtractionError } from './extractor.js';
 import { chunkRanges, batchRanges } from '../lib/align.js';
 import { aiConfigured, aiAvailable, AiError, OFFLINE_MESSAGE, unavailableMessage } from './ai.js';
@@ -131,6 +131,24 @@ export async function analyzeYoutube({ url, transcript, force, origin }, userId)
   const sourceId = await sources.saveSource({ ...meta, kind: 'youtube', transcript_source: transcriptSource, extractor: engine, word_count }, lines, items, userId);
   mark('saved');
   if (rest.length) await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', `idxrest:${sourceId}`, JSON.stringify(rest));
+  // auto-add the channel to المفضلة (custom channels) if it is new
+  if (meta.channel) {
+    try {
+      const chKey = `channels:${userId}`;
+      const row = await get('SELECT value FROM app_settings WHERE key = ?', chKey);
+      const prefs = row ? JSON.parse(row.value) : { pinned: [], hidden: [], custom: [], known: {} };
+      prefs.custom ??= []; prefs.pinned ??= []; prefs.hidden ??= []; prefs.known ??= {};
+      const handle = meta.channel_handle || '';
+      const id = handle ? `@${handle.toLowerCase()}` : `n:${meta.channel.toLowerCase()}`;
+      const already = prefs.custom.some((c) => (c.handle ? `@${c.handle.toLowerCase()}` : `n:${c.name.toLowerCase()}`) === id);
+      if (!already) {
+        const oe = handle ? null : await oembed(youtubeId).catch(() => null);
+        const h = handle || (oe?.author_url?.match(/youtube\.com\/@([A-Za-z0-9._-]+)/) || [])[1] || '';
+        prefs.custom.push({ name: meta.channel, handle: h, url: h ? '' : (oe?.author_url || ''), field: '' });
+        await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', chKey, JSON.stringify(prefs));
+      }
+    } catch { /* don't block the video over a favorites error */ }
+  }
   return { source_id: sourceId, cached: false, ai: aiAvailable() };
 }
 

@@ -1625,7 +1625,7 @@ export async function render(view, { segments, params }) {
   let micStop = null;
   const sayNote = document.createElement('div');
   sayNote.className = 'say-note';
-  view.appendChild(sayNote);
+  ($('.player-box', view) || $('#vidPin', view) || view).appendChild(sayNote);
   const showSay = (t) => { sayNote.textContent = t; sayNote.classList.toggle('on', !!t); };
   const stopMic = () => { if (micStop) { micStop(); micStop = null; } showSay(''); };
   async function listenForRepeat(lineSecs) {
