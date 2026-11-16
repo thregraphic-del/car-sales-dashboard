@@ -352,9 +352,11 @@ export async function render(view, { segments, params }) {
           <div class="rset-ok-row"><button type="button" class="btn rset-peek" id="setPeek">👁 معاينة</button><button type="button" class="btn primary rset-ok" id="setOk">حفظ</button></div>
         </div>
         <div class="reader-status"><span class="mk-legend" aria-hidden="true"><span class="mk-l mine">كلماتي</span><span class="mk-l new">جديد</span></span><span class="tiny mode-note" id="modeNote"></span><span class="tiny muted" id="trNote"></span></div>
+        <div class="vid-pin" id="vidPin">
         ${isVideo ? '<div class="player-box yt-clean"><div id="player"></div><button type="button" class="yt-shield" id="ytShield" aria-label="أظهر أزرار يوتيوب"></button></div><div class="split" id="split" role="separator" aria-orientation="horizontal" title="اسحب لتكبير الفيديو أو النص"><span></span></div>' : ''}
-        <button type="button" class="btn sm primary back-now hidden" id="backNow">↓ الجملة الحالية</button>
         ${isVideo && hasTimes ? '<div class="time-strip hidden" id="timeStrip" aria-label="وين وصلت في المقطع"><span class="en-inline" id="tsNow">0:00</span><div class="ts-bar"><span id="tsFill"></span></div><span class="en-inline" id="tsDur">0:00</span></div>' : ''}
+        <button type="button" class="btn sm primary back-now hidden" id="backNow">↓ الجملة الحالية</button>
+        </div>
         <div class="transcript ${showAr ? 'bilingual' : 'hide-ar'}${arLayout === 'below' ? ' ar-below' : ''}" id="lines"></div>
         <p class="tiny muted reader-hint">${isVideo && hasTimes ? 'اضغط أي كلمة: يقف الفيديو عندها ويظهر معناها، ويكمل حين تغلقها أو تحفظها. اسحب الفاصل تحت الفيديو لتكبيره أو تصغيره. لوحة المفاتيح: مسافة تشغيل/إيقاف · ← → الجملة السابقة/التالية · R أعد الجملة · L كرّرها · A أخفِ العربي.' : 'اضغط على أي كلمة لترى معناها في هذه الجملة.'} جديدة: <span class="mark s-suggested u-common">شائعة</span> <span class="mark s-suggested u-medium">أقل شيوعًا</span> <span class="mark s-suggested u-rare">نادرة</span> · <span class="mark s-saved">في كلماتي</span></p>
       </div>

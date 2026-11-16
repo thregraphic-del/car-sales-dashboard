@@ -1990,3 +1990,26 @@ body:not(.reader-focus) .view.page-reader .transcript { max-height: none; }
 .rset-ok-row { position: sticky; bottom: 0; z-index: 3; display: grid; grid-template-columns: auto 1fr; gap: 8px; margin: 10px -12px 0; padding: 10px 12px; background: var(--surface); border-top: 1px solid var(--line); border-radius: 0 0 16px 16px; }
 .rset-ok-row .rset-ok { position: static !important; margin: 0 !important; width: 100% !important; border-radius: 12px !important; box-shadow: none !important; }
 .rset-ok-row .rset-peek { border-radius: 12px; }
+
+/* 📌 Video at the top: the video, its resize line and the time strip stay pinned together
+   on a solid background — the text scrolls under them and disappears evenly behind them */
+.vid-pin { display: contents; }
+.page-reader .reader-main:not(.video-bottom):not(.video-float) .vid-pin:has(.player-box) {
+  display: block; position: sticky; top: var(--pin-top, 0px); z-index: 6; background: var(--bg);
+  padding-bottom: 6px; margin-bottom: 0;
+}
+.page-reader .reader-main:not(.video-bottom):not(.video-float) .vid-pin .player-box { position: relative !important; top: auto !important; }
+.page-reader .reader-main:not(.video-bottom):not(.video-float) .vid-pin .time-strip { margin: 0; }
+.page-reader .reader-main:not(.video-bottom):not(.video-float) .vid-pin .back-now {
+  position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%); margin: 0; z-index: 7; white-space: nowrap;
+}
+@media (max-width: 899px) { .page-reader .vid-pin { --pin-top: 98px; } body.reader-focus .page-reader .vid-pin { --pin-top: 46px; } }
+@media (min-width: 900px) { .page-reader .vid-pin { --pin-top: 48px; } body.reader-focus .page-reader .vid-pin { --pin-top: 48px; } }
+/* sideways phone: video beside the text — the pin is not needed there */
+@media (orientation: landscape) and (max-height: 560px) {
+  .page-reader .reader-main .vid-pin, .page-reader .reader-main:not(.video-bottom):not(.video-float) .vid-pin:has(.player-box) { display: contents; }
+  .page-reader .reader-main:not(.video-bottom):not(.video-float) .vid-pin .player-box { position: sticky !important; top: 6px !important; }
+  .page-reader .reader-main .time-strip { grid-column: 2; }
+}
+/* the text box never drags the page (no more page slide that left the video floating) */
+.page-reader .transcript { overscroll-behavior-y: contain; }
