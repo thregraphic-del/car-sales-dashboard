@@ -10,7 +10,7 @@ import { esc, toast, openModal, closeModal } from './ui.js';
 import { GRAMMAR, subInfo } from './shared/grammar-catalog.js';
 import { detectGrammar, findPhrase, setCategories } from './shared/grammar-detect.js';
 import { wordIndexByChar } from './shared/sync.js';
-import { itemIn, wordFocusHtml, othersHtml } from './grammar-word.js';
+import { itemIn, wordFocusHtml, othersHtml, formulaHtml } from './grammar-word.js';
 
 setCategories(GRAMMAR);
 const BATCH = 40;
@@ -153,7 +153,7 @@ export function attachGrammar({ linesEl, getLines, source, isPlaying, pause, pla
         <p class="g-pop-en en" dir="ltr">${esc(sub.en)}</p>
         ${item ? wordFocusHtml(item) : ''}
         ${item ? '<div class="g-sec">📘 القاعدة كاملة</div>' : ''}
-        <div class="g-box"><b>🧩 التكوين</b><p>${esc(sub.form)}</p></div>
+        ${formulaHtml(sub)}
         <div class="g-box"><b>💡 وش تفيد</b><p>${esc(sub.use)}</p></div>
         <div class="g-exs">${ex}</div>
         ${othersHtml(subId, item)}

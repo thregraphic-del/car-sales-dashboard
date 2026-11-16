@@ -42,3 +42,13 @@ test('the exact word of a rule in the line', async () => {
   assert.equal(itemIn('prep_time', 'see you on Monday').word, 'on');
   assert.equal(itemIn('present_simple', 'I work'), null);
 });
+
+test('every rule has clear left-to-right formulas (English|Arabic blocks)', async () => {
+  const { GRAMMAR_FORMS, parseFormula } = await import('../public/js/shared/grammar-forms.js');
+  for (const id of SUB_INDEX.keys()) {
+    const fm = GRAMMAR_FORMS[id];
+    assert.ok(fm && fm.f[0], id);
+    for (const s of fm.f.filter(Boolean)) for (const part of s.split(' + ')) assert.equal(part.split('|').length, 2, `${id}: ${part}`);
+    assert.ok(parseFormula(fm.f[0]).length >= 1);
+  }
+});

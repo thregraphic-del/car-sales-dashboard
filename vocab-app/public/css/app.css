@@ -2116,3 +2116,17 @@ body:not(.reader-focus) .view.page-reader .transcript { max-height: none; }
 .g-others[open] summary::after { content: ' ⌄'; }
 .g-others ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
 .g-others li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: baseline; line-height: 1.6; font-size: 14px; }
+/* 🧩 formulas: blocks read left → right */
+.g-form { display: grid; gap: 8px; }
+.g-f-row { display: grid; gap: 4px; }
+.g-f-k { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+.g-f { display: flex; flex-wrap: wrap; align-items: stretch; gap: 6px 4px; direction: ltr; }
+.g-fp { display: inline-grid; align-content: center; text-align: center; gap: 1px; padding: 5px 9px; border-radius: 10px; min-width: 34px;
+  background: color-mix(in srgb, var(--g, var(--accent)) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--g, var(--accent)) 30%, var(--line)); }
+.g-fp b { font-size: 14px; font-weight: 800; color: var(--ink); white-space: nowrap; }
+.g-fp small { font-size: 11px; color: var(--muted); direction: rtl; white-space: nowrap; }
+.g-arrow { align-self: center; font-weight: 800; color: color-mix(in srgb, var(--g, var(--accent)) 75%, var(--ink)); font-size: 15px; }
+.g-f-note { margin: 2px 0 0; }
+.g-tip { background: color-mix(in srgb, #f5b301 10%, var(--surface)); border-color: color-mix(in srgb, #f5b301 35%, var(--line)); }
+.g-signs .en { word-spacing: 2px; }
+@media (max-width: 600px) { .g-fp b { white-space: normal; } .g-fp { padding: 4px 7px; } }
