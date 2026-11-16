@@ -2102,3 +2102,17 @@ body:not(.reader-focus) .view.page-reader .transcript { max-height: none; }
   .g-sub-body { padding: 4px 10px 12px; }
   .g-exs { grid-template-columns: 1fr; }
 }
+/* 🎯 the exact word of the rule + the others */
+.g-word { border-color: color-mix(in srgb, var(--g, var(--accent)) 45%, var(--line)); background: color-mix(in srgb, var(--g, var(--accent)) 7%, var(--surface)); }
+.g-word p { margin: 4px 0; }
+.g-w { display: inline-block; font-weight: 800; padding: 1px 8px; border-radius: 7px; background: color-mix(in srgb, var(--g, var(--accent)) 18%, transparent); color: var(--ink); }
+.g-lbl { font-weight: 700; color: var(--ink-2, var(--ink)); }
+.g-uses { margin: 6px 0; padding-inline-start: 18px; line-height: 1.7; }
+.g-word .g-ex { margin-top: 6px; background: var(--surface); }
+.g-sec { font-weight: 800; font-size: 13px; color: var(--muted); margin-top: 4px; }
+.g-others summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 6px; }
+.g-others summary::-webkit-details-marker { display: none; }
+.g-others summary::after { content: ' ‹'; color: var(--muted); }
+.g-others[open] summary::after { content: ' ⌄'; }
+.g-others ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.g-others li { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: baseline; line-height: 1.6; font-size: 14px; }

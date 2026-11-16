@@ -10,6 +10,7 @@ import { esc, toast, openModal, closeModal } from './ui.js';
 import { GRAMMAR, subInfo } from './shared/grammar-catalog.js';
 import { detectGrammar, findPhrase, setCategories } from './shared/grammar-detect.js';
 import { wordIndexByChar } from './shared/sync.js';
+import { itemIn, wordFocusHtml, othersHtml } from './grammar-word.js';
 
 setCategories(GRAMMAR);
 const BATCH = 40;
@@ -61,7 +62,7 @@ export function attachGrammar({ linesEl, getLines, source, isPlaying, pause, pla
     tags.className = 'g-tags';
     tags.innerHTML = hits.map((h) => {
       const { sub, cat } = subInfo(h.sub);
-      return `<button type="button" class="g-chip" data-gsub="${esc(h.sub)}" data-ghue="${cat.hue}" title="${esc(cat.ar)} › ${esc(sub.ar)}">${esc(sub.ar)}</button>`;
+      return `<button type="button" class="g-chip" data-gsub="${esc(h.sub)}" data-gs="${h.start}" data-ge="${h.end}" data-ghue="${cat.hue}" title="${esc(cat.ar)} › ${esc(sub.ar)}">${esc(sub.ar)}</button>`;
     }).join('');
     const body = el.querySelector('.line-body');
     (body || el).prepend(tags);
@@ -129,10 +130,10 @@ export function attachGrammar({ linesEl, getLines, source, isPlaying, pause, pla
     e.stopPropagation();
     e.preventDefault();
     const lineEl = chip.closest('.line');
-    openRule(chip.dataset.gsub, byId.get(lineEl?.dataset.id)?.line);
+    openRule(chip.dataset.gsub, byId.get(lineEl?.dataset.id)?.line, Number(chip.dataset.gs), Number(chip.dataset.ge));
   }, true);
 
-  function openRule(subId, line) {
+  function openRule(subId, line, start = -1, end = -1) {
     const info = subInfo(subId);
     if (!info) return;
     const { sub, cat } = info;
@@ -142,15 +143,20 @@ export function attachGrammar({ linesEl, getLines, source, isPlaying, pause, pla
     const ex = [['✅', 'جملة', sub.ex.pos], ['❌', 'نفي', sub.ex.neg], ['❓', 'سؤال', sub.ex.q]]
       .filter(([, , e]) => e && e[0] !== '—')
       .map(([i, label, [en, ar]]) => `<div class="g-ex"><span class="g-ex-k">${i} ${label}</span><p class="en" dir="ltr">${esc(en)}</p><p class="tiny muted">${esc(ar)}</p></div>`).join('');
+    const piece = line && start >= 0 && end > start ? line.text.slice(start, end) : '';
+    const item = line ? itemIn(subId, piece, line.text) : null;
     const ar = line?.text_ar || (line?.align || []).map((x) => x[2]).filter(Boolean).join(' ') || '';
     const box = openModal(`
       <div class="g-pop" data-ghue="${cat.hue}">
         <div class="g-pop-cat">${cat.n}. ${esc(cat.ar)} <span class="en">· ${esc(cat.en)}</span></div>
         <h2>${esc(sub.ar)}</h2>
         <p class="g-pop-en en" dir="ltr">${esc(sub.en)}</p>
+        ${item ? wordFocusHtml(item) : ''}
+        ${item ? '<div class="g-sec">📘 القاعدة كاملة</div>' : ''}
         <div class="g-box"><b>🧩 التكوين</b><p>${esc(sub.form)}</p></div>
         <div class="g-box"><b>💡 وش تفيد</b><p>${esc(sub.use)}</p></div>
         <div class="g-exs">${ex}</div>
+        ${othersHtml(subId, item)}
         ${line ? `<div class="g-box g-here"><b>🎬 من المقطع</b><p class="en" dir="ltr">${esc(line.text)}</p>${ar ? `<p class="tiny muted">${esc(ar)}</p>` : ''}</div>` : ''}
         <div class="g-pop-act">
           ${line ? '<button type="button" class="btn primary" id="gSave">🔖 احفظ المثال</button>' : ''}

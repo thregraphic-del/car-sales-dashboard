@@ -34,3 +34,11 @@ test('one rule per family on the same words; AI phrases are found in the line', 
   assert.ok(!t.includes('present_perfect') && !t.includes('present_continuous'));
   assert.deepEqual(findPhrase("We're Winning the races", 'winning'), { start: 6, end: 13 });
 });
+
+test('the exact word of a rule in the line', async () => {
+  const { itemIn } = await import('../public/js/shared/grammar-items.js');
+  assert.equal(itemIn('prep_place', 'totally outside the box of this?').word, 'outside');
+  assert.equal(itemIn('prep_place', 'standing in front of the house').word, 'in front of');
+  assert.equal(itemIn('prep_time', 'see you on Monday').word, 'on');
+  assert.equal(itemIn('present_simple', 'I work'), null);
+});

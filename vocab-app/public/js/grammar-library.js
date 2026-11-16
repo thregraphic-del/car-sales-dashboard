@@ -5,6 +5,7 @@
 import { api } from './api.js';
 import { esc, toast, emptyState } from './ui.js';
 import { GRAMMAR, subInfo } from './shared/grammar-catalog.js';
+import { othersHtml } from './grammar-word.js';
 
 const STATUS = [['new', 'ما تعلمتها', '⚪'], ['learning', 'أتعلمها', '🟡'], ['mastered', 'أتقنتها', '🟢']];
 const STATUS_AR = Object.fromEntries(STATUS.map(([k, l, i]) => [k, `${i} ${l}`]));
@@ -91,6 +92,7 @@ export async function render(view, { params = {} } = {}) {
       <div class="g-box"><b>🧩 التكوين</b><p>${esc(sub.form)}</p></div>
       <div class="g-box"><b>💡 وش تفيد</b><p>${esc(sub.use)}</p></div>
       <div class="g-exs">${ex.map(([i, l, [en, ar]]) => `<div class="g-ex"><span class="g-ex-k">${i} ${l}</span><p class="en" dir="ltr">${esc(en)}</p><p class="tiny muted">${esc(ar)}</p></div>`).join('')}</div>
+      ${othersHtml(sub.id, null, true)}
     </div>`;
   };
   const exampleHtml = (x, subId) => `<li class="g-saved">
