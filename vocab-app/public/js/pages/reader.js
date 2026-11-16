@@ -20,6 +20,7 @@ import { buildTimeline, positionAt, steadyPosition, wordIndexByChar, dedupeLines
 import { refreshStats } from '../app.js';
 import { APP_CONFIG } from '../config.js';
 import { speak, stop as stopSpeech } from '../audio.js';
+import { attachGrammar } from '../grammar-mode.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -329,6 +330,7 @@ export async function render(view, { segments, params }) {
             <span class="sopts" id="recapPause"><span class="tiny">لما يطلع:</span><button type="button" class="sopt" data-rpause="none">يكمّل المقطع</button><button type="button" class="sopt" data-rpause="read">يوقف بقدر قراءته</button><button type="button" class="sopt" data-rpause="5">يوقف ٥ ثواني</button></span></div></div></div>` : ''}
           <div class="sgroup">العرض</div>
           <div id="viewPick" class="rgrp"><button type="button" class="hidden" id="viewBtn"></button><div id="viewMenu" class="rgrp">
+            <div class="srow sw-row"><span class="slabel">📚 وضع القواعد</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="gramOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label><div class="sw-sub"><span class="tiny">بدل الكلمات: كل سطر يظهر فوقه اسم القاعدة (مثل «الماضي البسيط») — اضغطه تشوف شرحها وأمثلتها وتحفظ المثال.</span></div></div></div>
             <div class="srow sw-row"><span class="slabel">الترجمة</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="arToggle" ${showAr ? 'checked' : ''}><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label><div class="sw-sub"><span class="sopts" id="arLayout"><button type="button" class="sopt" data-layout="side">بجانبه</button><button type="button" class="sopt" data-layout="below">تحته</button></span></div></div></div>
             <div class="srow"><span class="slabel">شكل الكلمات</span><div class="sopts mk-set">
               <span class="mk-row"><span class="mk-lbl">جديد</span>${MK_NEW.map(([c, n]) => `<button type="button" class="mk-sw" data-mkn="${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span>
@@ -364,6 +366,7 @@ export async function render(view, { segments, params }) {
     </div>`;
 
   const linesEl = $('#lines', view);
+  let grammar = null; // 📚 وضع القواعد (set up below)
   // ⚙ One settings panel instead of a row of buttons.
   const rset = $('#rset', view);
   // 📋 wide screens: the words list folds into a slim rail (icon + count) and opens again with a tap — remembered
@@ -1263,6 +1266,15 @@ export async function render(view, { segments, params }) {
 
   drawLines();
   drawSide();
+  // 📚 وضع القواعد: grammar labels instead of the words (⚙ → «وضع القواعد», remembered)
+  grammar = attachGrammar({
+    linesEl, source, getLines: () => data.lines,
+    isPlaying: () => playing, pause: () => { selfPause(); player?.pause?.(); }, play: () => player?.play?.(),
+  });
+  const gramToggle = $('#gramOn', view);
+  if (gramToggle) gramToggle.checked = pref('reader.grammar', '0') === '1';
+  grammar.set(pref('reader.grammar', '0') === '1');
+  gramToggle?.addEventListener('change', (e) => { setPref('reader.grammar', e.target.checked ? '1' : '0'); grammar.set(e.target.checked); });
   // «احفظ الكل» was pressed on an earlier visit: words that arrived since are saved now
   if (autoSaveAll && data.items.some((it) => !it.user_state && newSet.has(it.vocabulary_id))) refresh().catch(() => {});
 
@@ -1543,6 +1555,7 @@ export async function render(view, { segments, params }) {
     linesEl.querySelectorAll('.w-now, .w-said').forEach((w) => w.classList.remove('w-now', 'w-said'));
     currentId = lineId;
     currentWord = -1;
+    grammar?.near(lineId);
     const el = lineId != null && linesEl.querySelector(`.line[data-id="${lineId}"]`);
     if (!el) return;
     el.classList.add('current');
@@ -2472,6 +2485,7 @@ export async function render(view, { segments, params }) {
     document.body.classList.remove('has-thumb-bar');
     window.removeEventListener('resize', placeFloat);
     window.removeEventListener('resize', fitText);
+    grammar?.destroy();
     document.querySelectorAll('.lt-note').forEach((n) => n.remove());
     window.removeEventListener('lexitube:goal-reached', onGoal);
     clearInterval(watchTimer);

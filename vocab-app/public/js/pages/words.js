@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import { state, loadGroups } from '../state.js';
 import { esc, icon, emptyState, toast, openModal, closeModal, num, levelChip } from '../ui.js';
 import { wordRowHtml, bindWordList, openWordCard, bindSpeech } from '../components.js';
+import { libTabs } from '../grammar-library.js';
 import { filterBarHtml, filterBarClick, placeMenus, closeOnOutside, ytThumb, LEVELS, WHEN_OPTS } from '../filter-bar.js';
 
 // ✅ states from the quiz answers (see answerState on the server)
@@ -15,6 +16,8 @@ const FILTERS = [
 ];
 
 export async function render(view, { params }) {
+  // 📚 «القواعد» lives beside the words in the same library
+  if (params.tab === 'grammar') return (await import('../grammar-library.js')).render(view, { params });
   let all = await api.words();
   await loadGroups();
   const f = { filter: params.filter || 'all', group: params.group ? Number(params.group) : null, q: '', levels: [], when: params.when || '', source: params.source ? Number(params.source) : null, sort: 'new', count: 0, view: 'list' };
@@ -33,6 +36,7 @@ export async function render(view, { params }) {
       <div><h1>كلماتي</h1><p id="summary"></p></div>
       <div class="btn-row"><button class="btn" id="exportBtn">${icon.download} تصدير</button></div>
     </div>
+    ${libTabs('words')}
     <div class="words-search"><span class="search-ico">${icon.search}</span><input class="input" id="q" type="search" placeholder="ابحث بالإنجليزية أو العربية…"></div>
     <div class="chip-row" id="filters"></div>
     <div class="chip-row groups-row" id="groups"></div>
