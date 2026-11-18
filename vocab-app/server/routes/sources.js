@@ -43,7 +43,7 @@ router.post('/text', wrap(async (req) => {
   return service.analyzeText(text, req.userId, str(req.body?.title, 200));
 }));
 
-router.get('/', wrap(async (req) => sources.listSources(req.userId)));
+router.get('/', wrap(async (req) => sources.withTextPreviews(await sources.listSources(req.userId))));
 router.get('/:id', wrap(async (req) => sources.sourceView(idParam(req), req.userId)));
 router.delete('/:id', wrap(async (req) => {
   await sources.deleteSource(idParam(req), req.userId);

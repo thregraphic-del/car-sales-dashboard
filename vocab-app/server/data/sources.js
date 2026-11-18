@@ -38,6 +38,19 @@ export async function listSources(userId, limit = 50) {
   );
 }
 
+/** «نصوص»: the first lines of every pasted text (for the 3-line preview) — one small query for all of them. */
+export async function withTextPreviews(rows) {
+  const ids = rows.filter((s) => s.kind === 'text').map((s) => s.id);
+  if (!ids.length) return rows;
+  const lines = await all(
+    `SELECT source_id, text FROM transcript_lines WHERE source_id IN (${ids.map(() => '?').join(',')}) AND idx < 8 ORDER BY source_id, idx`,
+    ...ids,
+  );
+  const by = new Map();
+  for (const l of lines) by.set(Number(l.source_id), `${by.get(Number(l.source_id)) || ''} ${l.text}`.trim());
+  return rows.map((s) => (s.kind === 'text' ? { ...s, preview: (by.get(Number(s.id)) || '').slice(0, 400) } : s));
+}
+
 const parseWords = (json) => {
   if (!json) return null;
   try {

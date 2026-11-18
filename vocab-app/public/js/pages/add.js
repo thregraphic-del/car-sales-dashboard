@@ -1,5 +1,6 @@
 // أضف — one box for everything: a YouTube link, a word list, notes or a text.
 import { bindMyVideos } from '../my-videos.js';
+import { bindMyTexts } from '../my-texts.js';
 import { api } from '../api.js';
 import { speak } from '../audio.js';
 import { state, loadGroups } from '../state.js';
@@ -37,15 +38,21 @@ export async function render(view, { params }) {
     </div>
     <div id="result"></div>
     <div id="sources"></div>
+    <div id="texts" class="tx-sec"></div>
     ${packsHtml()}
     ${suggestWordsHtml()}
     ${fieldsHtml()}
     ${suggestionsHtml()}`;
-  const myVids = bindMyVideos(view.querySelector('#sources'), cached);
-  api.sources().then((list) => {
+  // videos → «مقاطعي», pasted texts → «نصوص» (3 lines each)
+  const videosOf = (l) => l.filter((s) => s.kind !== 'text');
+  const textsOf = (l) => l.filter((s) => s.kind === 'text');
+  const myVids = bindMyVideos(view.querySelector('#sources'), videosOf(cached));
+  const myTexts = bindMyTexts(view.querySelector('#texts'), textsOf(cached));
+  const refreshLists = () => api.sources().then((list) => {
     try { localStorage.setItem(srcKey(), JSON.stringify(list.slice(0, 60))); } catch { /* storage unavailable */ }
-    if (view.isConnected) myVids.update(list);
+    if (view.isConnected) { myVids.update(videosOf(list)); myTexts.update(textsOf(list)); }
   }).catch(() => {});
+  refreshLists();
 
   const input = $('#input', view);
   const go = $('#go', view);
@@ -138,6 +145,7 @@ export async function render(view, { params }) {
       stop();
       status.innerHTML = '';
       renderPreview(preview);
+      if (preview.source) refreshLists(); // a pasted text joins «نصوص» right away
     } catch (err) {
       stop();
       status.innerHTML = `<div class="alert" style="margin-top:14px"><b>${esc(err.message)}</b></div>`;
