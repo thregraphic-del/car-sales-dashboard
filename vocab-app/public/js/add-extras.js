@@ -524,7 +524,7 @@ export function bindChannels(view, { onPick }) {
 
 /* ------------------------------------------- 📚 channels by field (checked once on the server) */
 const LV = [['', 'كل المستويات'], ['1', 'سهل'], ['2', 'متوسط'], ['3', 'صعب']];
-const FIELD_IC = { stories: 'bookOpen', books: 'library', talk: 'chat', beginner: 'sprout', science: 'flask', neuro: 'brain', psych: 'heart', cartoon: 'palette', comedy: 'smile', vlogs: 'video', tech: 'cpu', cooking: 'chef', sport: 'ball', history: 'landmark', health: 'pulse', spirit: 'stars', speakers: 'mic', podcast: 'podcast', self: 'target', news: 'news', business: 'briefcase', kids: 'child', travel: 'plane', adventure: 'compass' };
+const FIELD_IC = { stories: 'bookOpen', books: 'library', talk: 'chat', beginner: 'sprout', science: 'flask', neuro: 'brain', psych: 'heart', cartoon: 'palette', comedy: 'smile', vlogs: 'video', tech: 'cpu', cooking: 'chef', sport: 'ball', history: 'landmark', health: 'pulse', spirit: 'stars', speakers: 'mic', podcast: 'podcast', self: 'target', news: 'news', business: 'briefcase', kids: 'child', travel: 'plane', adventure: 'compass', economy: 'chart', environment: 'sun', geography: 'flag', design: 'pen', animals: 'heart', space: 'sparkle', lifestyle: 'home', philosophy: 'quote', education: 'cards' };
 const fic = (k) => `<span class="ic">${icon[FIELD_IC[k]] || ''}</span>`;
 const CHK_KEY = 'ytch.v1';
 const chkCache = (() => { try { return JSON.parse(localStorage.getItem(CHK_KEY) || '{}'); } catch { return {}; } })();

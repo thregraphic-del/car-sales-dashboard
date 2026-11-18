@@ -32,6 +32,7 @@ export const FIELDS = [
     ['Ali Abdaal', 'aliabdaal', 2], ['Thomas Frank', 'Thomasfrank', 2], ['Matt D\'Avella', 'mattdavella', 2], ['Practical Psychology', 'PracticalPsychology', 1],
     ['Sprouts', 'SproutsSchools', 1], ['Clark Kegley', 'ClarkKegley', 2], ['Einzelgänger', 'Einzelganger', 3], ['Pursuit of Wonder', 'PursuitofWonder', 3],
     ['Academy of Ideas', 'academyofideas', 3], ['The School of Life', 'theschooloflifetv', 3], ['Mark Manson', 'IAmMarkManson', 3], ['TED-Ed', 'TEDEd', 1],
+    ['The Book Leo', 'TheBookLeo', 2, 'الكتب والأدب'], ['Jack Edwards', 'jackedwards', 3, 'مراجعات الكتب والقراءة'],
   ] },
   { k: 'talk', n: 'محادثات', c: [
     ['English with Lucy', 'EnglishwithLucy', 2], ['Speak English With Vanessa', 'SpeakEnglishWithVanessa', 2], ['mmmEnglish', 'mmmEnglish', 2],
@@ -63,6 +64,7 @@ export const FIELDS = [
     ['Sprouts', 'SproutsSchools', 1], ['Psych2Go', 'Psych2go', 1], ['TED-Ed', 'TEDEd', 1], ['Practical Psychology', 'PracticalPsychology', 2],
     ['SciShow Psych', 'SciShowPsych', 2], ['The School of Life', 'theschooloflifetv', 2], ['Charisma on Command', 'Charismaoncommand', 2], ['Dr Tracey Marks', 'DrTraceyMarks', 3],
     ['Big Think', 'bigthink', 3], ['Andrew Huberman', 'hubermanlab', 3], ['Academy of Ideas', 'academyofideas', 3], ['Einzelgänger', 'Einzelganger', 3],
+    ['Therapy in a Nutshell', 'TherapyinaNutshell', 2, 'الصحة النفسية والمهارات العاطفية'], ['HealthyGamerGG', 'HealthyGamerGG', 2, 'علم النفس والعادات والسلوك'],
   ] },
   { k: 'cartoon', n: 'كرتون', c: [
     ['Peppa Pig', 'PeppaPigOfficial', 1], ['Bluey', 'BlueyOfficialChannel', 1], ['Cocomelon', 'CoComelon', 1], ['Pinkfong', 'Pinkfong', 1],
@@ -84,6 +86,7 @@ export const FIELDS = [
     ['Marques Brownlee', 'mkbhd', 2], ['Unbox Therapy', 'unboxtherapy', 1], ['Linus Tech Tips', 'LinusTechTips', 3], ['Mrwhosetheboss', 'Mrwhosetheboss', 2],
     ['Fireship', 'Fireship', 3], ['Tom Scott', 'TomScottGo', 3], ['Computerphile', 'Computerphile', 3], ['Mark Rober', 'MarkRober', 1],
     ['TED-Ed', 'TEDEd', 1], ['Austin Evans', 'austinevans', 2], ['iJustine', 'ijustine', 1], ['Tech Insider', 'TechInsider', 2],
+    ['Google DeepMind', 'googledeepmind', 3, 'أبحاث الذكاء الاصطناعي'],
   ] },
   { k: 'cooking', n: 'طبخ', c: [
     ['Tasty', 'buzzfeedtasty', 1], ['Gordon Ramsay', 'gordonramsay', 2], ['Joshua Weissman', 'JoshuaWeissman', 2], ['Jamie Oliver', 'JamieOliver', 2],
@@ -94,16 +97,19 @@ export const FIELDS = [
     ['Dude Perfect', 'DudePerfect', 1], ['FIFA', 'FIFA', 1], ['Olympics', 'Olympics', 1], ['NBA', 'NBA', 2], ['Premier League', 'premierleague', 2],
     ['Sky Sports Football', 'SkySportsFootball', 2], ['Athlean-X', 'athleanx', 3], ['Jeff Nippard', 'JeffNippard', 3], ['Tifo Football', 'TifoFootball_', 3],
     ['Chloe Ting', 'ChloeTing', 1], ['Red Bull', 'redbull', 2],
+    ['ESPN', 'espn', 2, 'الأخبار والتحليلات الرياضية'], ['Global Cycling Network', 'gcn', 2, 'الدراجات واللياقة'],
   ] },
   { k: 'history', n: 'تاريخ', c: [
     ['Simple History', 'SimpleHistory', 1], ['TED-Ed', 'TEDEd', 1], ['Kings and Generals', 'KingsandGenerals', 3], ['OverSimplified', 'OverSimplified', 2],
     ['Crash Course', 'crashcourse', 2], ['Extra History', 'ExtraHistory', 2], ['History Matters', 'HistoryMatters', 2], ['Epic History TV', 'EpicHistoryTV', 3],
     ['Historia Civilis', 'HistoriaCivilis', 3], ['Geography Now', 'GeographyNow', 2], ['Kurzgesagt', 'kurzgesagt', 3],
+    ['HistoryMarche', 'HistoryMarche', 2, 'المعارك والحضارات'],
   ] },
   { k: 'health', n: 'صحة', c: [
     ['Chloe Ting', 'ChloeTing', 1], ['Yoga With Adriene', 'yogawithadriene', 1], ['SciShow Kids', 'SciShowKids', 1], ['Doctor Mike', 'DoctorMike', 2],
     ['Jeff Nippard', 'JeffNippard', 3], ['Athlean-X', 'athleanx', 3], ['Andrew Huberman', 'hubermanlab', 3], ['Rich Roll', 'richroll', 3],
     ['TED-Ed', 'TEDEd', 2], ['Psych2Go', 'Psych2go', 2], ['Pick Up Limes', 'PickUpLimes', 2],
+    ['Mayo Clinic', 'MayoClinic', 2, 'معلومات صحية وتثقيف طبي'], ['NutritionFacts.org', 'NutritionFactsOrg', 2, 'التغذية والأبحاث الغذائية'],
   ] },
   { k: 'spirit', n: 'روحانيات وتحفيز', c: [
     ['Goalcast', 'Goalcast', 1], ['Mel Robbins', 'melrobbins', 1], ['Jay Shetty', 'JayShettyPodcast', 2], ['Motivation Madness', 'MotivationMadness', 2],
@@ -137,6 +143,7 @@ export const FIELDS = [
     ['Business English Pod', 'BusinessEnglishPod', 1], ['Ali Abdaal', 'aliabdaal', 2], ['Simon Sinek', 'simonsinek', 2], ['Harvard Business Review', 'harvardbusinessreview', 3],
     ['Y Combinator', 'ycombinator', 3], ['Two Cents', 'TwoCentsPBS', 2], ['CNBC Make It', 'CNBCMakeIt', 2], ['Graham Stephan', 'GrahamStephan', 2],
     ['The Futur', 'thefutur', 2], ['Stanford GSB', 'stanfordgsb', 3], ['Company Man', 'companyman', 2], ['Investopedia', 'Investopedia', 1],
+    ['Modern MBA', 'ModernMBA', 3, 'تحليل الشركات ونماذج الأعمال'],
   ] },
   { k: 'kids', n: 'أطفال', c: [
     ['Super Simple Songs', 'SuperSimpleSongs', 1], ['Cocomelon', 'CoComelon', 1], ['Peppa Pig', 'PeppaPigOfficial', 1], ['Bluey', 'BlueyOfficialChannel', 1],
@@ -148,5 +155,32 @@ export const FIELDS = [
     ['Nas Daily', 'NasDaily', 1], ['Rick Steves', 'RickSteves', 2], ['Drew Binsky', 'drewbinsky', 2], ['Kara and Nate', 'KaraandNate', 2],
     ['Mark Wiens', 'MarkWiens', 1], ['Lost LeBlanc', 'LostLeBlanc', 2], ['Yes Theory', 'YesTheory', 2], ['Geography Now', 'GeographyNow', 3],
     ['Wendover Productions', 'Wendoverproductions', 3], ['Best Ever Food Review Show', 'BestEverFoodReviewShow', 2], ['Eva zu Beck', 'EvazuBeck', 3],
+  ] },
+  { k: 'economy', n: 'اقتصاد ومال', c: [
+    ['The Plain Bagel', 'ThePlainBagel', 2, 'الاستثمار والتمويل الشخصي'], ['Economics Explained', 'EconomicsExplained', 3, 'الاقتصاد العالمي'], ['Two Cents', 'TwoCentsPBS', 2, 'الثقافة المالية وإدارة الأموال'],
+  ] },
+  { k: 'environment', n: 'بيئة ومناخ', c: [
+    ['Our Changing Climate', 'OurChangingClimate', 2, 'تغيّر المناخ والبيئة'], ['National Geographic', 'natgeo', 2, 'الطبيعة والتنوع البيئي'], ['PBS Terra', 'pbsterra', 2, 'علوم الأرض والبيئة'],
+  ] },
+  { k: 'geography', n: 'جغرافيا وثقافات', c: [
+    ['Geography Now', 'GeographyNow', 2, 'التعرف على دول العالم'], ['Wendover Productions', 'Wendoverproductions', 3, 'الجغرافيا والنقل والأنظمة العالمية'], ['RealLifeLore', 'RealLifeLore', 2, 'الجغرافيا والحقائق العالمية'],
+  ] },
+  { k: 'design', n: 'تصميم وموضة', c: [
+    ['Vogue', 'Vogue', 2, 'الموضة والجمال والمقابلات'], ['The Futur', 'thefutur', 2, 'التصميم والهوية البصرية'], ['Architectural Digest', 'Archdigest', 2, 'التصميم الداخلي والعمارة'],
+  ] },
+  { k: 'animals', n: 'حيوانات', c: [
+    ['BBC Earth', 'bbcearth', 2, 'الحياة البرية والطبيعة'], ['Brave Wilderness', 'BraveWilderness', 1, 'استكشاف الحيوانات'], ['Animalogic', 'Animalogic', 2, 'عالم الحيوانات وخصائصها'],
+  ] },
+  { k: 'space', n: 'فضاء وفلك', c: [
+    ['NASA', 'NASA', 2, 'استكشاف الفضاء والبعثات'], ['Dr. Becky', 'DrBecky', 3, 'الفلك والكون'], ['Astrum', 'astrum', 2, 'الكواكب والمجرات والفضاء'],
+  ] },
+  { k: 'lifestyle', n: 'حياة وعلاقات', c: [
+    ['Matt D\'Avella', 'mattdavella', 2, 'العادات والإنتاجية والحياة البسيطة'], ['The Sorry Girls', 'TheSorryGirls', 2, 'المنزل والتصميم والأعمال اليدوية'], ['The School of Life', 'theschooloflifetv', 2, 'العلاقات وفهم الذات والحياة'],
+  ] },
+  { k: 'philosophy', n: 'فلسفة وتفكير', c: [
+    ['Wireless Philosophy', 'WirelessPhilosophy', 3, 'المفاهيم والنظريات الفلسفية'], ['Pursuit of Wonder', 'PursuitofWonder', 3, 'الفلسفة والقصص والأفكار'], ['Philosophy Tube', 'PhilosophyTube', 3, 'الفلسفة والقضايا الفكرية'],
+  ] },
+  { k: 'education', n: 'تعليم ووظائف', c: [
+    ['Khan Academy', 'khanacademy', 2, 'التعليم والعلوم والرياضيات'], ['Crash Course', 'crashcourse', 2, 'دورات تعليمية متنوعة'], ['TED', 'TED', 2, 'محاضرات وأفكار وتجارب مهنية'],
   ] },
 ];
