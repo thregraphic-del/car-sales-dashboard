@@ -536,6 +536,7 @@ export const fieldsHtml = () => `
     <button type="button" class="fav-chip" id="favChip"><span class="ic">${icon.star}</span> المفضلة</button></div>
   <div class="segmented fd-kind" id="fdKind"><button type="button" class="active" data-fk="channels">📺 قنوات</button><button type="button" data-fk="sites">🌐 مواقع</button></div>
   ${channelsHtml()}
+  <div id="siteFavBox" class="fav-box hidden"></div>
   <div class="fd-acc" id="fdAcc">${CH_FIELDS.map((f) => `<section class="fd-item" data-fdi="${f.k}">
     <button type="button" class="fd-head" data-fd="${f.k}" aria-expanded="false">${fic(f.k)}<b>${f.n}</b><span class="tiny muted fd-n" data-ch="${f.c.length}" data-st="${(SITES[f.k] || []).length}">${f.c.length} قناة</span><span class="fd-caret" aria-hidden="true">▾</span></button>
     <div class="fd-body"></div></section>`).join('')}</div>`;
@@ -555,14 +556,43 @@ export function bindFields(view) {
   try { kind = localStorage.getItem('fields.kind') === 'sites' ? 'sites' : 'channels'; } catch { /* ignore */ }
   const siteShown = {}; // field -> how many websites are on show («عرض المزيد» adds 6)
   const STEP = 6;
+  // ⭐ «المفضلة» follows the tab: favourite channels on 📺, favourite websites on 🌐
   const fav = $('#favBox', view);
-  const showFav = (on) => { fav?.classList.toggle('hidden', !on); $('#favChip', view)?.classList.toggle('on', on); if (on) fav?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
+  const sbox = $('#siteFavBox', view);
+  const SITE_BY_URL = new Map(Object.values(SITES).flat().map((s) => [s[1], s]));
+  const sfKey = () => `sitefavs.${state.user?.id || 'me'}`;
+  let siteFavs = new Set();
+  try { siteFavs = new Set(JSON.parse(localStorage.getItem(sfKey()) || '[]')); } catch { /* none yet */ }
+  const keepSiteFavs = () => { try { localStorage.setItem(sfKey(), JSON.stringify([...siteFavs])); } catch { /* ignore */ } };
+  const siteCard = (s) => `<div class="fd-card fd-wrap"><a class="fd-go" href="${esc(s[1])}" target="_blank" rel="noopener noreferrer" title="${esc(s[0])}"><span class="ch-ava" aria-hidden="true"><span>${esc(s[0].slice(0, 1).toUpperCase())}</span></span><b class="en">${esc(s[0])}</b><span class="tiny muted fd-desc">${esc(s[3])}</span><span class="tiny fd-type">${esc(s[4])} · ${LV[s[2]][1]}</span></a><button type="button" class="fd-fav${siteFavs.has(s[1]) ? ' on' : ''}" data-sf="${esc(s[1])}" aria-pressed="${siteFavs.has(s[1])}" title="${siteFavs.has(s[1]) ? 'إزالة من المفضلة' : 'أضف للمفضلة'}">${siteFavs.has(s[1]) ? '★' : '⭐'}</button></div>`;
+  const drawSiteFavs = () => {
+    const list = [...siteFavs].map((u) => SITE_BY_URL.get(u)).filter(Boolean);
+    sbox.innerHTML = `<div style="margin-bottom:8px"><b>⭐ مواقعي المفضلة</b> <span class="tiny muted">(${list.length})</span></div>
+      ${list.length ? `<div class="fd-grid fd-rows2">${list.map(siteCard).join('')}</div>` : '<p class="tiny muted">اضغط ⭐ على أي موقع وبيظهر هنا.</p>'}`;
+  };
+  const showFav = (on) => {
+    const sites = kind === 'sites';
+    fav?.classList.toggle('hidden', sites || !on);
+    sbox?.classList.toggle('hidden', !sites || !on);
+    if (sites && on) drawSiteFavs();
+    $('#favChip', view)?.classList.toggle('on', on);
+    if (on) (sites ? sbox : fav)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  };
+  api.siteFavs().then((r) => {
+    if (!Array.isArray(r?.favs)) return;
+    siteFavs = new Set(r.favs);
+    keepSiteFavs();
+    draw();
+    if (!sbox.classList.contains('hidden')) drawSiteFavs();
+  }).catch(() => {});
+  // a picture that does not load leaves the first letter
+  view.addEventListener('error', (e) => { if (e.target.matches?.('.ch-ava img')) e.target.remove(); }, true);
   const draw = () => {
     const sites = kind === 'sites';
     $('#fdTitle', view).textContent = sites ? 'مواقع للقراءة وتعلّم الإنجليزي' : 'قنوات لتعلّم الإنجليزي';
     view.querySelectorAll('#fdKind [data-fk]').forEach((b) => b.classList.toggle('active', b.dataset.fk === kind));
-    $('#favChip', view)?.classList.toggle('hidden', sites);
-    if (sites) fav?.classList.add('hidden');
+    const chip = $('#favChip', view);
+    if (chip) chip.innerHTML = `<span class="ic">${icon.star}</span> المفضلة${sites && siteFavs.size ? ` (${siteFavs.size})` : ''}`;
     if (sites && !SITES[field?.k]) field = CH_FIELDS.find((x) => x.k === 'travel') || CH_FIELDS[0];
     acc.querySelectorAll('.fd-item').forEach((it) => {
       it.classList.toggle('hidden', sites && !SITES[it.dataset.fdi]);
@@ -581,9 +611,8 @@ export function bindFields(view) {
       const all = (SITES[field.k] || []).filter((s) => !lv || String(s[2]) === lv);
       const shown = siteShown[field.k] || STEP;
       const part = all.slice(0, shown);
-      const card = (s) => `<div class="fd-card fd-wrap"><a class="fd-go" href="${esc(s[1])}" target="_blank" rel="noopener noreferrer" title="${esc(s[0])}"><span class="ch-ava" aria-hidden="true"><span>${esc(s[0].slice(0, 1).toUpperCase())}</span></span><b class="en">${esc(s[0])}</b><span class="tiny muted fd-desc">${esc(s[3])}</span><span class="tiny fd-type">${esc(s[4])} · ${LV[s[2]][1]}</span></a></div>`;
       box.innerHTML = `<div class="sopts" style="margin:8px 0">${LV.map(([k, l]) => `<button type="button" class="sopt${k === lv ? ' active' : ''}" data-lv="${k}">${l}</button>`).join('')}</div>
-        ${part.length ? `<div class="fd-grid fd-rows2">${part.map(card).join('')}</div>` : '<p class="tiny muted">ما فيه مواقع بهذا المستوى هنا.</p>'}
+        ${part.length ? `<div class="fd-grid fd-rows2">${part.map(siteCard).join('')}</div>` : '<p class="tiny muted">ما فيه مواقع بهذا المستوى هنا.</p>'}
         ${all.length > shown ? `<div class="more-row"><button type="button" class="btn sm" id="fdMore">＋ عرض المزيد (${all.length - shown})</button></div>`
     : part.length ? '<p class="tiny muted" style="text-align:center;margin-top:8px">هذي كل المواقع المتوفرة في هذا المجال — جرّب مجالًا أو مستوى ثاني.</p>' : ''}`;
       return;
@@ -592,7 +621,8 @@ export function bindFields(view) {
     const list = [...field.c, ...extra].filter((c) => (!lv || String(c[2]) === lv) && chkCache[c[1]]?.ok !== false);
     const logo = (c) => {
       const k = chkCache[c[1]];
-      return `<span class="ch-ava" aria-hidden="true">${k?.logo ? `<img src="${esc(k.logo)}" alt="" loading="lazy" onerror="this.remove()">` : ''}<span>${esc(c[0].slice(0, 1).toUpperCase())}</span></span>`;
+      const src = k?.logo || `https://unavatar.io/youtube/${encodeURIComponent(c[1])}?fallback=false`;
+      return `<span class="ch-ava" aria-hidden="true"><img src="${esc(src)}" alt="" loading="lazy"><span>${esc(c[0].slice(0, 1).toUpperCase())}</span></span>`;
     };
     box.innerHTML = `<div class="sopts" style="margin:8px 0">${LV.map(([k, l]) => `<button type="button" class="sopt${k === lv ? ' active' : ''}" data-lv="${k}">${l}</button>`).join('')}</div>
       ${list.length ? `<div class="fd-grid fd-rows2">${list.map((c) => `<div class="fd-card fd-wrap"><a class="fd-go" href="${esc(chkCache[c[1]]?.url || `https://www.youtube.com/@${encodeURIComponent(c[1])}`)}" target="_blank" rel="noopener" title="${esc(c[0])}">${logo(c)}<b class="en">${esc(c[0])}</b><span class="tiny muted fd-desc">${c[3] ? esc(c[3]) : LV[c[2]][1]}</span></a><button type="button" class="fd-fav" data-fh="${esc(c[1])}" data-fn="${esc(c[0])}" title="أضف للمفضلة">⭐</button></div>`).join('')}</div>` : '<p class="tiny muted">ما فيه قنوات بهذا المستوى هنا.</p>'}
@@ -634,6 +664,7 @@ export function bindFields(view) {
     if (fk) {
       kind = fk.dataset.fk;
       try { localStorage.setItem('fields.kind', kind); } catch { /* ignore */ }
+      fav?.classList.add('hidden'); sbox?.classList.add('hidden'); $('#favChip', view)?.classList.remove('on'); // the open favourites belong to the other tab
       draw();
       if (kind === 'channels' && field) check(field);
       return;
@@ -643,7 +674,17 @@ export function bindFields(view) {
       more();
       return;
     }
-    if (e.target.closest('#favChip')) { const on = fav?.classList.contains('hidden'); showFav(on); return; }
+    if (e.target.closest('#favChip')) { const on = (kind === 'sites' ? sbox : fav)?.classList.contains('hidden'); showFav(on); return; }
+    const sf = e.target.closest('[data-sf]');
+    if (sf) {
+      const u = sf.dataset.sf;
+      if (siteFavs.has(u)) siteFavs.delete(u); else siteFavs.add(u);
+      keepSiteFavs();
+      api.saveSiteFavs([...siteFavs]).catch((err) => toast(err.message));
+      draw();
+      if (!sbox.classList.contains('hidden')) drawSiteFavs();
+      return;
+    }
     const fb = e.target.closest('.fd-fav');
     if (fb && !fb.disabled) {
       fb.disabled = true;

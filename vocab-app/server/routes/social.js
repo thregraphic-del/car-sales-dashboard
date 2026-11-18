@@ -161,6 +161,15 @@ router.post('/vidprefs', wrap(async (req) => {
   return { ok: true };
 }));
 
+/* --------------------------------------------- favourite websites (one small list per learner) */
+router.get('/sitefavs', wrap(async (req) => ({ favs: await kvGet(`sitefavs:${req.userId}`, null) })));
+router.post('/sitefavs', wrap(async (req) => {
+  const list = Array.isArray(req.body?.favs) ? req.body.favs : [];
+  const favs = [...new Set(list.filter((u) => typeof u === 'string' && /^https:\/\/[^\s]{4,200}$/.test(u)))].slice(0, 300);
+  await kvSet(`sitefavs:${req.userId}`, favs);
+  return { ok: true };
+}));
+
 /* --------------------------------------------------- share my progress */
 router.post('/share', wrap(async (req) => {
   let token = await kvGet(`share-of:${req.userId}`, null);
