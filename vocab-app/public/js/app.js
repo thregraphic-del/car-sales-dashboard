@@ -175,8 +175,20 @@ async function route() {
   } catch (err) {
     if (err.status === 401) return; // the login screen takes over
     console.error(err);
+    // a tab left open across an update still holds the OLD scripts in memory while the new page asks for newer ones:
+    // reload once by itself (never in a loop) so the person never sees this
+    const stale = /is not a function|is not a constructor|does not provide an export|importing a module script failed|error loading dynamically imported module|failed to fetch dynamically imported/i.test(String(err?.message || ''));
+    if (stale) {
+      let last = 0;
+      try { last = Number(sessionStorage.getItem('lx.autoReload') || 0); } catch { /* ignore */ }
+      if (Date.now() - last > 60000) {
+        try { sessionStorage.setItem('lx.autoReload', String(Date.now())); } catch { /* ignore */ }
+        location.reload();
+        return;
+      }
+    }
     view.innerHTML = `<div class="card empty"><div class="icon">⚠️</div><h3>ما قدرنا نحمّل الصفحة</h3><p>${esc(err.message)}</p><div style="margin-top:16px"><button type="button" class="btn primary" id="retryPage">حاول مرة ثانية</button></div></div>`;
-    $('#retryPage')?.addEventListener('click', route);
+    $('#retryPage')?.addEventListener('click', () => (stale ? location.reload() : route()));
   }
   refreshStats({ lazy: true });
 }
