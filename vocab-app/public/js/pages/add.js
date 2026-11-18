@@ -37,8 +37,12 @@ export async function render(view, { params }) {
       <div id="status"></div>
     </div>
     <div id="result"></div>
+    <div class="src-tabs hidden" id="srcTabs">
+      <div class="segmented" id="srcKind"><button type="button" class="active" data-sk="videos">🎬 مقاطعي <span class="tiny" id="cV"></span></button><button type="button" data-sk="texts">📄 نصوص <span class="tiny" id="cT"></span></button></div>
+      <button type="button" class="fav-chip" id="srcFav"><span class="ic">${icon.star}</span> المفضلة</button>
+    </div>
     <div id="sources"></div>
-    <div id="texts" class="tx-sec"></div>
+    <div id="texts" class="tx-sec hidden"></div>
     ${packsHtml()}
     ${suggestWordsHtml()}
     ${fieldsHtml()}
@@ -46,11 +50,36 @@ export async function render(view, { params }) {
   // videos → «مقاطعي», pasted texts → «نصوص» (3 lines each)
   const videosOf = (l) => l.filter((s) => s.kind !== 'text');
   const textsOf = (l) => l.filter((s) => s.kind === 'text');
-  const myVids = bindMyVideos(view.querySelector('#sources'), videosOf(cached));
-  const myTexts = bindMyTexts(view.querySelector('#texts'), textsOf(cached));
+  // one box, two tabs: 🎬 مقاطعي | 📄 نصوص — and «المفضلة» shows the favourites of the tab you are on
+  let srcKind = 'videos';
+  try { srcKind = localStorage.getItem('add.srcKind') === 'texts' ? 'texts' : 'videos'; } catch { /* ignore */ }
+  const favOn = { videos: false, texts: false };
+  let myTexts = null;
+  const myVids = bindMyVideos(view.querySelector('#sources'), videosOf(cached), { onPrefs: () => myTexts?.redraw() });
+  myTexts = bindMyTexts(view.querySelector('#texts'), textsOf(cached), { isFav: (id) => myVids.isFav(id), toggleFav: (id) => myVids.toggleFav(id) });
+  let counts = [videosOf(cached).length, textsOf(cached).length];
+  const drawTabs = () => {
+    view.querySelector('#srcTabs').classList.toggle('hidden', !counts[0] && !counts[1]);
+    view.querySelector('#cV').textContent = `(${counts[0]})`;
+    view.querySelector('#cT').textContent = `(${counts[1]})`;
+    view.querySelectorAll('#srcKind [data-sk]').forEach((b) => b.classList.toggle('active', b.dataset.sk === srcKind));
+    view.querySelector('#sources').classList.toggle('hidden', srcKind !== 'videos');
+    view.querySelector('#texts').classList.toggle('hidden', srcKind !== 'texts');
+    view.querySelector('#srcFav').classList.toggle('on', favOn[srcKind]);
+  };
+  view.querySelector('#srcTabs').addEventListener('click', (e) => {
+    const k = e.target.closest('[data-sk]');
+    if (k) { srcKind = k.dataset.sk; try { localStorage.setItem('add.srcKind', srcKind); } catch { /* ignore */ } drawTabs(); return; }
+    if (e.target.closest('#srcFav')) {
+      favOn[srcKind] = !favOn[srcKind];
+      (srcKind === 'videos' ? myVids : myTexts).setFavOnly(favOn[srcKind]);
+      drawTabs();
+    }
+  });
+  drawTabs();
   const refreshLists = () => api.sources().then((list) => {
     try { localStorage.setItem(srcKey(), JSON.stringify(list.slice(0, 60))); } catch { /* storage unavailable */ }
-    if (view.isConnected) { myVids.update(videosOf(list)); myTexts.update(textsOf(list)); }
+    if (view.isConnected) { myVids.update(videosOf(list)); myTexts.update(textsOf(list)); counts = [videosOf(list).length, textsOf(list).length]; drawTabs(); }
   }).catch(() => {});
   refreshLists();
 

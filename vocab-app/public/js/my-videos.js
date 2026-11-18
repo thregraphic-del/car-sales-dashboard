@@ -8,18 +8,19 @@ import { esc, toast, thumbHtml, relDate, fmtTime } from './ui.js';
 const P0 = { fav: [], order: [], hidden: [], mark: {}, sec: {} };
 const lsKey = () => `vidprefs.${state.user?.id || 'me'}`;
 
-export function bindMyVideos(box, list) {
+export function bindMyVideos(box, list, { onPrefs } = {}) {
   let P = { ...P0 };
   try { P = { ...P0, ...JSON.parse(localStorage.getItem(lsKey()) || '{}') }; } catch { /* none */ }
   let open = false;
   let picking = false;
   let tab = ''; // '' all · section name · '__hidden'
+  let favOnly = false; // the shared «المفضلة» button of the tab bar
   const sel = new Set();
   const save = () => {
     try { localStorage.setItem(lsKey(), JSON.stringify(P)); } catch { /* ignore */ }
     api.saveVidPrefs(P).catch(() => {});
   };
-  api.vidPrefs().then((r) => { if (r?.prefs) { P = { ...P0, ...r.prefs }; try { localStorage.setItem(lsKey(), JSON.stringify(P)); } catch { /* ignore */ } draw(); } }).catch(() => {});
+  api.vidPrefs().then((r) => { if (r?.prefs) { P = { ...P0, ...r.prefs }; try { localStorage.setItem(lsKey(), JSON.stringify(P)); } catch { /* ignore */ } draw(); onPrefs?.(); } }).catch(() => {});
 
   const sorted = () => {
     const pos = new Map(P.order.map((id, i) => [id, i]));
@@ -27,14 +28,14 @@ export function bindMyVideos(box, list) {
       || ((pos.get(a.id) ?? 1e9) - (pos.get(b.id) ?? 1e9))
       || String(b.analyzed_at).localeCompare(String(a.analyzed_at)));
   };
-  const shown = () => sorted().filter((s) => (tab === '__hidden' ? P.hidden.includes(s.id) : !P.hidden.includes(s.id) && (!tab || P.sec[s.id] === tab)));
+  const shown = () => sorted().filter((s) => (tab === '__hidden' ? P.hidden.includes(s.id) : !P.hidden.includes(s.id) && (!tab || P.sec[s.id] === tab) && (!favOnly || P.fav.includes(s.id))));
   const sections = () => [...new Set(Object.values(P.sec).filter(Boolean))];
 
   function draw() {
     if (!list.length) { box.innerHTML = ''; return; }
     const items = shown();
     const secs = sections();
-    box.innerHTML = `<div class="section-title row between wrap" style="gap:8px"><h2>🎬 مقاطعي <span class="tiny muted en-inline">(${list.length})</span></h2>
+    box.innerHTML = `<div class="row" style="justify-content:flex-end;margin-bottom:6px">
         <button type="button" class="btn sm ${picking ? 'primary' : 'ghost'}" data-mv="pick">${picking ? '✓ تم' : '☑ تحديد'}</button></div>
       ${secs.length || P.hidden.length ? `<div class="chip-row">${[['', 'الكل'], ...secs.map((x) => [x, `📁 ${x}`]), ...(P.hidden.length ? [['__hidden', `🙈 المخفية (${P.hidden.length})`]] : [])].map(([k, l]) => `<button type="button" class="gchip ${tab === k ? 'on' : ''}" data-tab="${esc(k)}">${esc(l)}</button>`).join('')}</div>` : ''}
       ${picking ? `<div class="mv-bar"><span class="tiny">${sel.size} محدد</span>
@@ -44,6 +45,7 @@ export function bindMyVideos(box, list) {
         <a class="video-mini mv ${sel.has(s.id) ? 'sel' : ''} mark-${P.mark[s.id] || 'none'}" href="#/source/${s.id}" data-id="${s.id}">${thumbHtml(s, { duration: s.duration_seconds })}
           <div style="min-width:0"><div class="en small clamp2" style="font-weight:600">${P.fav.includes(s.id) ? '⭐ ' : ''}${P.mark[s.id] === 'ok' ? '✅ ' : P.mark[s.id] === 'review' ? '🟡 ' : ''}${esc(s.title)}</div>
           <div class="tiny muted">${s.saved_count} محفوظة من ${s.item_count} · ${esc(relDate(s.analyzed_at))}${s.progress_seconds > 5 ? ` · <span class="resume-chip">▶ ${fmtTime(s.progress_seconds)}</span>` : ''}${P.sec[s.id] ? ` · 📁 ${esc(P.sec[s.id])}` : ''}</div></div></a>`).join('')}</div></div>
+      ${favOnly && !items.length ? '<p class="tiny muted" style="text-align:center">ما عندك مقاطع مفضلة — اضغط «تحديد» ثم ⭐ على المقطع.</p>' : ''}
       ${items.length > 1 ? `<button type="button" class="link-btn mv-more" data-mv="more">${open ? 'أقل ▴' : `المزيد ▾ (${items.length})`}</button>` : ''}`;
     // collapsed: the first row only; open: about three rows, scrolling inside
     requestAnimationFrame(() => {
@@ -103,5 +105,10 @@ export function bindMyVideos(box, list) {
     }
   };
   draw();
-  return { update: (next) => { list = next; draw(); } };
+  return {
+    update: (next) => { list = next; draw(); },
+    setFavOnly: (on) => { favOnly = on; draw(); },
+    isFav: (id) => P.fav.includes(id),
+    toggleFav: (id) => { P.fav = P.fav.includes(id) ? P.fav.filter((i) => i !== id) : [...P.fav, id]; save(); draw(); },
+  };
 }

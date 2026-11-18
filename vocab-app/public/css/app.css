@@ -1176,9 +1176,13 @@ a.ch-card { text-decoration: none; color: inherit; }
 .mv-wrap.open { overflow-y: auto; }
 .mv-more { display: block; margin: 6px auto 0; }
 /* 📄 نصوص: 3 lines always visible; the text or the words scroll inside a 3-line box */
-.tx-sec { margin-top: 22px; }
+.tx-sec { margin-top: 6px; }
+.src-tabs { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 20px 0 10px; }
+.tx-top { display: flex; align-items: center; gap: 6px; }
+.tx-star { flex: none; min-width: 36px; min-height: 36px; border: 0; background: none; font-size: 22px; line-height: 1; color: var(--ink-3, #9a9a9a); cursor: pointer; }
+.tx-star.on { color: #d9a21b; }
 .tx-card { padding: 12px 14px; margin-top: 10px; }
-.tx-head { display: flex; align-items: center; gap: 8px; width: 100%; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: start; cursor: pointer; min-height: 36px; }
+.tx-head { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 0; padding: 0; border: 0; background: none; font: inherit; color: inherit; text-align: start; cursor: pointer; min-height: 36px; }
 .tx-head b { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tx-prev { margin: 4px 0 0; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .tx-seg { margin: 6px 0 8px; }

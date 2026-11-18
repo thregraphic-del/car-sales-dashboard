@@ -4,8 +4,9 @@ import { api } from './api.js';
 import { esc, toast, relDate } from './ui.js';
 import { openWordPanel } from './components.js';
 
-export function bindMyTexts(box, list) {
+export function bindMyTexts(box, list, { isFav, toggleFav } = {}) {
   let texts = list;
+  let favOnly = false;
   const open = new Set();
   const mode = new Map(); // id -> 'text' | 'words'
   const data = new Map(); // id -> { source, lines, items } | 'loading' | 'error'
@@ -41,13 +42,17 @@ export function bindMyTexts(box, list) {
   }
 
   function draw() {
-    if (!texts.length) { box.innerHTML = ''; return; }
+    const shown = favOnly ? texts.filter((s) => isFav?.(s.id)) : texts;
+    if (!shown.length) {
+      box.innerHTML = `<p class="tiny muted" style="text-align:center;margin:10px 0">${favOnly ? 'ما عندك نصوص مفضلة — اضغط ⭐ على أي نص.' : 'ما عندك نصوص بعد — الصق نصًا إنجليزيًا في المربع فوق وبينحفظ هنا.'}</p>`;
+      return;
+    }
     // keep each 3-line box where the learner scrolled it (ticking a word redraws the card)
     const keep = new Map([...box.querySelectorAll('[data-card]')].map((c) => [c.dataset.card, c.querySelector('.tx-box')?.scrollTop || 0]));
-    box.innerHTML = `<div class="section-title"><h2>📄 نصوص <span class="tiny muted en-inline">(${texts.length})</span></h2></div>
-      ${texts.map((s) => `<div class="card tx-card" data-card="${s.id}">
-        <button type="button" class="tx-head" data-tx="toggle" data-id="${s.id}" aria-expanded="${open.has(s.id)}">
+    box.innerHTML = `${shown.map((s) => `<div class="card tx-card" data-card="${s.id}">
+        <div class="tx-top"><button type="button" class="tx-head" data-tx="toggle" data-id="${s.id}" aria-expanded="${open.has(s.id)}">
           <b class="en" dir="auto">${esc(s.title)}</b><span class="tiny muted">${esc(relDate(s.analyzed_at))}</span><span aria-hidden="true">${open.has(s.id) ? '▴' : '▾'}</span></button>
+          <button type="button" class="tx-star${isFav?.(s.id) ? ' on' : ''}" data-tx="fav" data-id="${s.id}" aria-pressed="${Boolean(isFav?.(s.id))}" title="${isFav?.(s.id) ? 'إزالة من المفضلة' : 'أضف للمفضلة'}">${isFav?.(s.id) ? '★' : '☆'}</button></div>
         ${open.has(s.id) ? bodyHtml(s) : `<p class="tx-prev en small ink-2" dir="auto">${esc(s.preview || '')}</p>`}
       </div>`).join('')}`;
     box.querySelectorAll('[data-card]').forEach((c) => {
@@ -102,6 +107,7 @@ export function bindMyTexts(box, list) {
       draw();
       return;
     }
+    if (k === 'fav') { toggleFav?.(id); draw(); return; }
     if (k === 'toggle') {
       if (open.has(id)) open.delete(id); else { open.add(id); if (!data.has(id)) load(id); }
       draw();
@@ -150,5 +156,5 @@ export function bindMyTexts(box, list) {
     }
   };
   draw();
-  return { update: (next) => { texts = next; draw(); } };
+  return { update: (next) => { texts = next; draw(); }, redraw: draw, setFavOnly: (on) => { favOnly = on; draw(); } };
 }

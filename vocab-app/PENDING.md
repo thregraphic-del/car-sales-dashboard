@@ -152,3 +152,4 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
 | 1 | ▶ A video opens at speed 0.75 automatically | recorded — not built yet | in the batch | 0 |
+| 2 | 🎬📄 «أضف»: «مقاطعي» and «نصوص» are now ONE box with a switch (🎬 مقاطعي (n) | 📄 نصوص (n), remembered) instead of two blocks one under the other; the «⭐ المفضلة» button beside the switch follows the tab — on مقاطعي it shows only the favourite videos, on نصوص only the favourite texts (each tab keeps its own on/off); every text has a ★ (tap to add/remove; kept with the videos' favourites, same small per-learner value, nothing new on the server); empty states say what to do | built — on the free preview | in the batch | 0 |
