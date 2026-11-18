@@ -4,6 +4,7 @@ import { state, loadGroups } from './state.js';
 import { esc, toast, openModal, closeModal, $, icon } from './ui.js';
 import { PACKS, packSummary } from './packs-data.js';
 import { FIELDS as CH_FIELDS } from './channel-fields.js';
+import { SITES } from './site-fields.js';
 
 /* ------------------------------------------------- attach a file or photo */
 
@@ -531,11 +532,12 @@ const chkCache = (() => { try { return JSON.parse(localStorage.getItem(CHK_KEY) 
 const saveChk = () => { try { localStorage.setItem(CHK_KEY, JSON.stringify(chkCache)); } catch { /* ignore */ } };
 
 export const fieldsHtml = () => `
-  <div class="section-title row between" style="gap:8px"><h2>قنوات لتعلّم الإنجليزي</h2>
+  <div class="section-title row between" style="gap:8px"><h2 id="fdTitle">قنوات لتعلّم الإنجليزي</h2>
     <button type="button" class="fav-chip" id="favChip"><span class="ic">${icon.star}</span> المفضلة</button></div>
+  <div class="segmented fd-kind" id="fdKind"><button type="button" class="active" data-fk="channels">📺 قنوات</button><button type="button" data-fk="sites">🌐 مواقع</button></div>
   ${channelsHtml()}
   <div class="fd-acc" id="fdAcc">${CH_FIELDS.map((f) => `<section class="fd-item" data-fdi="${f.k}">
-    <button type="button" class="fd-head" data-fd="${f.k}" aria-expanded="false">${fic(f.k)}<b>${f.n}</b><span class="tiny muted fd-n">${f.c.length} قناة</span><span class="fd-caret" aria-hidden="true">▾</span></button>
+    <button type="button" class="fd-head" data-fd="${f.k}" aria-expanded="false">${fic(f.k)}<b>${f.n}</b><span class="tiny muted fd-n" data-ch="${f.c.length}" data-st="${(SITES[f.k] || []).length}">${f.c.length} قناة</span><span class="fd-caret" aria-hidden="true">▾</span></button>
     <div class="fd-body"></div></section>`).join('')}</div>`;
 
 export function bindFields(view) {
@@ -548,9 +550,25 @@ export function bindFields(view) {
   field ??= CH_FIELDS.find((x) => x.k === 'adventure') || CH_FIELDS[0];
   let lv = '';
   try { lv = localStorage.getItem('fields.level') || ''; } catch { /* ignore */ }
+  // 📺 channels or 🌐 websites (the same fields, the same level filter)
+  let kind = 'channels';
+  try { kind = localStorage.getItem('fields.kind') === 'sites' ? 'sites' : 'channels'; } catch { /* ignore */ }
+  const siteShown = {}; // field -> how many websites are on show («عرض المزيد» adds 6)
+  const STEP = 6;
   const fav = $('#favBox', view);
   const showFav = (on) => { fav?.classList.toggle('hidden', !on); $('#favChip', view)?.classList.toggle('on', on); if (on) fav?.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); };
   const draw = () => {
+    const sites = kind === 'sites';
+    $('#fdTitle', view).textContent = sites ? 'مواقع للقراءة وتعلّم الإنجليزي' : 'قنوات لتعلّم الإنجليزي';
+    view.querySelectorAll('#fdKind [data-fk]').forEach((b) => b.classList.toggle('active', b.dataset.fk === kind));
+    $('#favChip', view)?.classList.toggle('hidden', sites);
+    if (sites) fav?.classList.add('hidden');
+    if (sites && !SITES[field?.k]) field = CH_FIELDS.find((x) => x.k === 'travel') || CH_FIELDS[0];
+    acc.querySelectorAll('.fd-item').forEach((it) => {
+      it.classList.toggle('hidden', sites && !SITES[it.dataset.fdi]);
+      const n = it.querySelector('.fd-n');
+      if (n) n.textContent = sites ? `${n.dataset.st} موقع` : `${n.dataset.ch} قناة`;
+    });
     acc.querySelectorAll('.fd-item').forEach((it) => {
       const open = it.dataset.fdi === field?.k;
       it.classList.toggle('open', open);
@@ -559,6 +577,17 @@ export function bindFields(view) {
     });
     box = field ? acc.querySelector(`[data-fdi="${field.k}"] .fd-body`) : null;
     if (!box) return;
+    if (sites) {
+      const all = (SITES[field.k] || []).filter((s) => !lv || String(s[2]) === lv);
+      const shown = siteShown[field.k] || STEP;
+      const part = all.slice(0, shown);
+      const card = (s) => `<div class="fd-card fd-wrap"><a class="fd-go" href="${esc(s[1])}" target="_blank" rel="noopener noreferrer" title="${esc(s[0])}"><span class="ch-ava" aria-hidden="true"><span>${esc(s[0].slice(0, 1).toUpperCase())}</span></span><b class="en">${esc(s[0])}</b><span class="tiny muted fd-desc">${esc(s[3])}</span><span class="tiny fd-type">${esc(s[4])} · ${LV[s[2]][1]}</span></a></div>`;
+      box.innerHTML = `<div class="sopts" style="margin:8px 0">${LV.map(([k, l]) => `<button type="button" class="sopt${k === lv ? ' active' : ''}" data-lv="${k}">${l}</button>`).join('')}</div>
+        ${part.length ? `<div class="fd-grid fd-rows2">${part.map(card).join('')}</div>` : '<p class="tiny muted">ما فيه مواقع بهذا المستوى هنا.</p>'}
+        ${all.length > shown ? `<div class="more-row"><button type="button" class="btn sm" id="fdMore">＋ عرض المزيد (${all.length - shown})</button></div>`
+    : part.length ? '<p class="tiny muted" style="text-align:center;margin-top:8px">هذي كل المواقع المتوفرة في هذا المجال — جرّب مجالًا أو مستوى ثاني.</p>' : ''}`;
+      return;
+    }
     const extra = (moreOf[field.k] || []).filter((c) => !lv || String(c[2]) === lv);
     const list = [...field.c, ...extra].filter((c) => (!lv || String(c[2]) === lv) && chkCache[c[1]]?.ok !== false);
     const logo = (c) => {
@@ -601,7 +630,19 @@ export function bindFields(view) {
     draw();
   };
   view.addEventListener('click', (e) => {
-    if (e.target.closest('#fdMore')) { more(); return; }
+    const fk = e.target.closest('#fdKind [data-fk]');
+    if (fk) {
+      kind = fk.dataset.fk;
+      try { localStorage.setItem('fields.kind', kind); } catch { /* ignore */ }
+      draw();
+      if (kind === 'channels' && field) check(field);
+      return;
+    }
+    if (e.target.closest('#fdMore')) {
+      if (kind === 'sites') { siteShown[field.k] = (siteShown[field.k] || STEP) + STEP; draw(); return; }
+      more();
+      return;
+    }
     if (e.target.closest('#favChip')) { const on = fav?.classList.contains('hidden'); showFav(on); return; }
     const fb = e.target.closest('.fd-fav');
     if (fb && !fb.disabled) {
@@ -619,12 +660,12 @@ export function bindFields(view) {
       field = CH_FIELDS.find((x) => x.k === f.dataset.fd);
       if (field) { try { localStorage.setItem('fields.last', field.k); } catch { /* ignore */ } }
       draw();
-      if (field) { check(field); f.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+      if (field) { if (kind === 'channels') check(field); f.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
       return;
     }
     const l = e.target.closest('[data-lv]');
     if (l && box?.contains(l)) { lv = l.dataset.lv; try { localStorage.setItem('fields.level', lv); } catch { /* ignore */ } draw(); }
   });
   draw();
-  check(field);
+  if (kind === 'channels') check(field);
 }
