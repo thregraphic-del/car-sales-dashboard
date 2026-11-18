@@ -32,7 +32,7 @@ export const FIELDS = [
     ['Ali Abdaal', 'aliabdaal', 2], ['Thomas Frank', 'Thomasfrank', 2], ['Matt D\'Avella', 'mattdavella', 2], ['Practical Psychology', 'PracticalPsychology', 1],
     ['Sprouts', 'SproutsSchools', 1], ['Clark Kegley', 'ClarkKegley', 2], ['Einzelgänger', 'Einzelganger', 3], ['Pursuit of Wonder', 'PursuitofWonder', 3],
     ['Academy of Ideas', 'academyofideas', 3], ['The School of Life', 'theschooloflifetv', 3], ['Mark Manson', 'IAmMarkManson', 3], ['TED-Ed', 'TEDEd', 1],
-    ['The Book Leo', 'TheBookLeo', 2, 'الكتب والأدب'], ['Jack Edwards', 'jackedwards', 3, 'مراجعات الكتب والقراءة'],
+    ['The Book Leo', 'TheBookLeo', 2, 'الكتب والأدب'], ['Jack Edwards', 'jack_edwards', 3, 'مراجعات الكتب والقراءة'],
   ] },
   { k: 'talk', n: 'محادثات', c: [
     ['English with Lucy', 'EnglishwithLucy', 2], ['Speak English With Vanessa', 'SpeakEnglishWithVanessa', 2], ['mmmEnglish', 'mmmEnglish', 2],
@@ -142,7 +142,7 @@ export const FIELDS = [
   { k: 'business', n: 'أعمال', c: [
     ['Business English Pod', 'BusinessEnglishPod', 1], ['Ali Abdaal', 'aliabdaal', 2], ['Simon Sinek', 'simonsinek', 2], ['Harvard Business Review', 'harvardbusinessreview', 3],
     ['Y Combinator', 'ycombinator', 3], ['Two Cents', 'TwoCentsPBS', 2], ['CNBC Make It', 'CNBCMakeIt', 2], ['Graham Stephan', 'GrahamStephan', 2],
-    ['The Futur', 'thefutur', 2], ['Stanford GSB', 'stanfordgsb', 3], ['Company Man', 'companyman', 2], ['Investopedia', 'Investopedia', 1],
+    ['The Futur', 'TheFuturIsHere', 2], ['Stanford GSB', 'stanfordgsb', 3], ['Company Man', 'companyman', 2], ['Investopedia', 'Investopedia', 1],
     ['Modern MBA', 'ModernMBA', 3, 'تحليل الشركات ونماذج الأعمال'],
   ] },
   { k: 'kids', n: 'أطفال', c: [
@@ -158,29 +158,38 @@ export const FIELDS = [
   ] },
   { k: 'economy', n: 'اقتصاد ومال', c: [
     ['The Plain Bagel', 'ThePlainBagel', 2, 'الاستثمار والتمويل الشخصي'], ['Economics Explained', 'EconomicsExplained', 3, 'الاقتصاد العالمي'], ['Two Cents', 'TwoCentsPBS', 2, 'الثقافة المالية وإدارة الأموال'],
+    ['Patrick Boyle', 'PBoyle', 3, 'الأسواق والتمويل بتحليل هادئ'], ['Ben Felix', 'BenFelixCSI', 3, 'الاستثمار المبني على الأدلة'], ['CNBC', 'CNBC', 2, 'أخبار الأسواق والمال'], ['Graham Stephan', 'GrahamStephan', 2, 'المال الشخصي والعقار'], ['Investopedia', 'Investopedia', 1, 'شرح مفاهيم المال'],
   ] },
   { k: 'environment', n: 'بيئة ومناخ', c: [
     ['Our Changing Climate', 'OurChangingClimate', 2, 'تغيّر المناخ والبيئة'], ['National Geographic', 'natgeo', 2, 'الطبيعة والتنوع البيئي'], ['PBS Terra', 'pbsterra', 2, 'علوم الأرض والبيئة'],
+    ['Just Have a Think', 'justhaveathink', 2, 'المناخ والطاقة والحلول'], ['Climate Town', 'ClimateTown', 2, 'المناخ بأسلوب ساخر'], ['Kurzgesagt', 'kurzgesagt', 2, 'علوم وبيئة برسوم متحركة'], ['TED-Ed', 'TEDEd', 1, 'دروس قصيرة عن الأرض'],
   ] },
   { k: 'geography', n: 'جغرافيا وثقافات', c: [
     ['Geography Now', 'GeographyNow', 2, 'التعرف على دول العالم'], ['Wendover Productions', 'Wendoverproductions', 3, 'الجغرافيا والنقل والأنظمة العالمية'], ['RealLifeLore', 'RealLifeLore', 2, 'الجغرافيا والحقائق العالمية'],
+    ['Johnny Harris', 'johnnyharris', 2, 'الخرائط والسياسة والتاريخ'], ['CGP Grey', 'CGPGrey', 2, 'كيف يعمل العالم برسوم بسيطة'], ['Caspian Report', 'CaspianReport', 3, 'الجغرافيا السياسية'], ['Nas Daily', 'NasDaily', 1, 'قصص من حول العالم'],
   ] },
   { k: 'design', n: 'تصميم وموضة', c: [
-    ['Vogue', 'Vogue', 2, 'الموضة والجمال والمقابلات'], ['The Futur', 'thefutur', 2, 'التصميم والهوية البصرية'], ['Architectural Digest', 'Archdigest', 2, 'التصميم الداخلي والعمارة'],
+    ['Vogue', 'Vogue', 2, 'الموضة والجمال والمقابلات'], ['The Futur', 'TheFuturIsHere', 2, 'التصميم والهوية البصرية'], ['Architectural Digest', 'Archdigest', 2, 'التصميم الداخلي والعمارة'],
+    ['Dezeen', 'dezeen', 3, 'العمارة والتصميم'], ['Harper\'s BAZAAR', 'harpersbazaar', 2, 'الموضة والجمال'], ['Marques Brownlee', 'mkbhd', 2, 'تصميم الأجهزة والتقنية'],
   ] },
   { k: 'animals', n: 'حيوانات', c: [
     ['BBC Earth', 'bbcearth', 2, 'الحياة البرية والطبيعة'], ['Brave Wilderness', 'BraveWilderness', 1, 'استكشاف الحيوانات'], ['Animalogic', 'Animalogic', 2, 'عالم الحيوانات وخصائصها'],
+    ['Nat Geo Wild', 'natgeowild', 2, 'الحياة البرية'], ['San Diego Zoo', 'sandiegozoo', 1, 'حيوانات حديقة الحيوان'], ['Nat Geo Kids', 'NatGeoKids', 1, 'حيوانات للأطفال'], ['Mark Rober', 'MarkRober', 1, 'تجارب وعلوم ممتعة'],
   ] },
   { k: 'space', n: 'فضاء وفلك', c: [
-    ['NASA', 'NASA', 2, 'استكشاف الفضاء والبعثات'], ['Dr. Becky', 'DrBecky', 3, 'الفلك والكون'], ['Astrum', 'astrum', 2, 'الكواكب والمجرات والفضاء'],
+    ['NASA', 'NASA', 2, 'استكشاف الفضاء والبعثات'], ['Dr. Becky', 'DrBecky', 3, 'الفلك والكون'], ['Astrum', 'astrumspace', 2, 'الكواكب والمجرات والفضاء'],
+    ['PBS Space Time', 'pbsspacetime', 3, 'فيزياء الكون'], ['Scott Manley', 'scottmanley', 2, 'الفضاء والصواريخ'], ['SpaceX', 'SpaceX', 2, 'إطلاقات ومهمات'], ['Kurzgesagt', 'kurzgesagt', 2, 'الكون برسوم متحركة'], ['Vsauce', 'vsauce', 2, 'أسئلة عن الكون'],
   ] },
   { k: 'lifestyle', n: 'حياة وعلاقات', c: [
     ['Matt D\'Avella', 'mattdavella', 2, 'العادات والإنتاجية والحياة البسيطة'], ['The Sorry Girls', 'TheSorryGirls', 2, 'المنزل والتصميم والأعمال اليدوية'], ['The School of Life', 'theschooloflifetv', 2, 'العلاقات وفهم الذات والحياة'],
+    ['Ali Abdaal', 'aliabdaal', 2, 'الإنتاجية والدراسة'], ['Thomas Frank', 'Thomasfrank', 2, 'التنظيم والدراسة'], ['Mark Manson', 'IAmMarkManson', 3, 'الحياة والعلاقات'], ['Jordan Harbinger', 'JordanHarbinger', 3, 'مقابلات وعلاقات'], ['Charisma on Command', 'Charismaoncommand', 2, 'التأثير والثقة'],
   ] },
   { k: 'philosophy', n: 'فلسفة وتفكير', c: [
     ['Wireless Philosophy', 'WirelessPhilosophy', 3, 'المفاهيم والنظريات الفلسفية'], ['Pursuit of Wonder', 'PursuitofWonder', 3, 'الفلسفة والقصص والأفكار'], ['Philosophy Tube', 'PhilosophyTube', 3, 'الفلسفة والقضايا الفكرية'],
+    ['Academy of Ideas', 'academyofideas', 3, 'أفكار الفلاسفة'], ['Einzelgänger', 'Einzelganger', 3, 'فلسفة وأدب'], ['Big Think', 'bigthink', 3, 'مقابلات وأفكار'], ['The School of Life', 'theschooloflifetv', 2, 'فلسفة للحياة'],
   ] },
   { k: 'education', n: 'تعليم ووظائف', c: [
     ['Khan Academy', 'khanacademy', 2, 'التعليم والعلوم والرياضيات'], ['Crash Course', 'crashcourse', 2, 'دورات تعليمية متنوعة'], ['TED', 'TED', 2, 'محاضرات وأفكار وتجارب مهنية'],
+    ['TED-Ed', 'TEDEd', 1, 'دروس قصيرة'], ['MIT OpenCourseWare', 'mitocw', 3, 'محاضرات جامعية'], ['Coursera', 'coursera', 2, 'دورات جامعية'], ['Stanford', 'stanford', 3, 'محاضرات جامعة ستانفورد'], ['Big Think', 'bigthink', 3, 'أفكار وخبراء'],
   ] },
 ];
