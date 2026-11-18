@@ -340,6 +340,7 @@ export async function render(view, { segments, params }) {
             ${hasTimes ? `<div class="srow sw-row"><span class="slabel">متابعة تلقائية</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="followToggle" ${follow ? 'checked' : ''}><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div></div>` : ''}
             <div class="srow"><span class="slabel">حجم الخط</span><div class="sopts"><span class="sopts fontsize"><button type="button" class="sopt" data-font="-1">A−</button><button type="button" class="sopt" data-font="1">A+</button></span></div></div>
             ${hasTimes ? '<div class="srow sw-row"><span class="slabel">وقت كل سطر</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="timesToggle"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="timesTxt"></span></label></div></div>' : ''}
+            ${isVideo && hasTimes ? '<div class="srow sw-row"><span class="slabel">شريط الوقت</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="stripToggle"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="stripTxt"></span></label></div></div>' : ''}
           </div></div>
           ${isVideo ? `<div class="srow"><span class="slabel">الفيديو</span><div class="sopts" id="vidPos"><button type="button" class="sopt" data-vpos="top">فوق</button><button type="button" class="sopt" data-vpos="bottom">تحت</button><button type="button" class="sopt" data-vpos="float">عائم</button></div></div>` : ''}
           ${isVideo ? `<div class="srow sw-row"><span class="slabel">شرح التكبير 👆</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="shOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="shTxt"></span></label></div></div>` : ''}
@@ -2306,8 +2307,13 @@ export async function render(view, { segments, params }) {
   });
   // ⏱ line times: hidden by default on phones (more room for the text), shown on bigger screens
   let showTimes = pref('reader.times', window.innerWidth < 700 ? '0' : '1') === '1';
-  const applyTimes = () => { linesEl.classList.toggle('no-times', !showTimes); const c = $('#timesToggle', view); if (c) c.checked = showTimes; const t = $('#timesTxt', view); if (t) t.textContent = showTimes ? 'ظاهر' : 'مخفي'; $('#timeStrip', view)?.classList.toggle('hidden', showTimes); };
+  const applyTimes = () => { linesEl.classList.toggle('no-times', !showTimes); const c = $('#timesToggle', view); if (c) c.checked = showTimes; const t = $('#timesTxt', view); if (t) t.textContent = showTimes ? 'ظاهر' : 'مخفي'; };
   applyTimes();
+  // ⏱ the time strip under the video: always there by default (so you know where you are), its own switch — separate from the line times
+  let showStrip = pref('reader.strip', '1') === '1';
+  const applyStrip = () => { $('#timeStrip', view)?.classList.toggle('hidden', !showStrip); const c = $('#stripToggle', view); if (c) c.checked = showStrip; const s = $('#stripTxt', view); if (s) s.textContent = showStrip ? 'ظاهر' : 'مخفي'; };
+  applyStrip();
+  $('#stripToggle', view)?.addEventListener('change', (e) => { showStrip = e.target.checked; setPref('reader.strip', showStrip ? '1' : '0'); applyStrip(); });
   $('#timesToggle', view)?.addEventListener('change', (e) => { showTimes = e.target.checked; setPref('reader.times', showTimes ? '1' : '0'); applyTimes(); });
   $('#followToggle', view)?.addEventListener('change', (e) => {
     follow = e.target.checked;
