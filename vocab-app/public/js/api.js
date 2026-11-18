@@ -52,6 +52,7 @@ export const api = {
   stats: () => request('GET', '/api/stats'),
 
   analyzeYoutube: (body) => request('POST', '/api/sources/youtube', body),
+  analyzeArticle: (url) => request('POST', '/api/sources/article', { url }),
   analyzeText: (text, title) => request('POST', '/api/sources/text', { text, title }),
   sources: () => request('GET', '/api/sources'),
   source: (id) => request('GET', `/api/sources/${id}`),

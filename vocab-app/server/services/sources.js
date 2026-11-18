@@ -11,6 +11,7 @@ import { config } from '../config.js';
 import { recordTranscript } from './ai.js';
 import { httpError } from '../lib/errors.js';
 import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript, MESSAGES, TranscriptError, externalTranscript, oembed } from '../lib/youtube.js';
+import { readArticle } from '../lib/article.js';
 import { extractVocabulary, extractChunkWithAi, toSentences, translateWithAi, suspiciousTranslations, alignWithAi, ExtractionError } from './extractor.js';
 import { chunkRanges, batchRanges } from '../lib/align.js';
 import { aiConfigured, aiAvailable, AiError, OFFLINE_MESSAGE, unavailableMessage } from './ai.js';
@@ -153,7 +154,7 @@ export async function analyzeYoutube({ url, transcript, force, origin }, userId)
 }
 
 /** Turn pasted English text into a readable source with suggested words. */
-export async function analyzeText(text, userId, title) {
+export async function analyzeText(text, userId, title, url = null) {
   const clean = String(text || '').trim();
   const sentences = clean.split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
   const lines = sentences.map((s, idx) => ({ idx, start: null, text: s }));
@@ -169,11 +170,19 @@ export async function analyzeText(text, userId, title) {
     if (!(err instanceof ExtractionError) || err.status !== 422) throw err; // very short text: keep it readable anyway
   }
   const sourceId = await sources.saveSource(
-    { kind: 'text', title: title || `${firstWords}${words.length > 7 ? '…' : ''}`, transcript_source: 'text', extractor: engine, word_count: wordCount },
+    { kind: 'text', title: title || `${firstWords}${words.length > 7 ? '…' : ''}`, url, transcript_source: 'text', extractor: engine, word_count: wordCount },
     lines, items, userId,
   );
   if (rest.length) await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', `idxrest:${sourceId}`, JSON.stringify(rest));
   return { source_id: sourceId, ai: aiAvailable() };
+}
+
+/** 📰 An article address: read the page, keep it as a text, mark every dictionary word right away (no AI for that step). */
+export async function analyzeArticle(address, userId, { fetcher } = {}) {
+  const { title, text, url } = await readArticle(address, { fetcher });
+  const r = await analyzeText(text, userId, title, url);
+  await sources.addDictionaryWords(r.source_id).catch(() => {}); // the reader and «نصوص» finish the rest (simplest forms) step by step
+  return { ...r, title };
 }
 
 /** ⚡ One short step: add up to 30 more words from the site index to an opened video. */

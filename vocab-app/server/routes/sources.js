@@ -43,6 +43,14 @@ router.post('/text', wrap(async (req) => {
   return service.analyzeText(text, req.userId, str(req.body?.title, 200));
 }));
 
+// 📰 a link to an article page: the page is read here and kept as a text
+router.post('/article', wrap(async (req) => {
+  const url = str(req.body?.url, 500);
+  if (!url) throw httpError(400, 'الصق رابط المقال.');
+  await guardGuest(req.user, 'sources');
+  return service.analyzeArticle(url, req.userId);
+}));
+
 router.get('/', wrap(async (req) => sources.withTextPreviews(await sources.listSources(req.userId))));
 router.get('/:id', wrap(async (req) => sources.sourceView(idParam(req), req.userId)));
 router.delete('/:id', wrap(async (req) => {

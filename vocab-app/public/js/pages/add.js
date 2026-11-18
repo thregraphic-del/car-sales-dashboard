@@ -8,6 +8,8 @@ import { esc, icon, levelChip, thumbHtml, relDate, toast, fmtTime, $ } from '../
 import { groupPickerHtml, bindGroupPicker } from '../components.js';
 import { attachButtonHtml, bindAttach, packsHtml, bindPacks, suggestionsHtml, bindSuggestions, suggestWordsHtml, bindSuggestWords, channelsHtml, bindChannels, fieldsHtml, bindFields } from '../add-extras.js';
 
+// a link to a normal page (an article), not YouTube
+const isArticle = (s) => /^\s*https?:\/\/[^\s]+\s*$/i.test(s) && !isYoutube(s);
 const isYoutube = (s) => /^\s*(https?:\/\/)?((www|m|music)\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)\/\S+\s*$/i.test(s);
 // Pasting the transcript is offered for every reason except a bad link.
 const PASTE_HELP = new Set(['no_captions', 'blocked', 'service_limit', 'fetch_failed', 'age_restricted', 'region_blocked', 'transcript_fetch_failed']);
@@ -92,10 +94,11 @@ export async function render(view, { params }) {
   const update = () => {
     const v = input.value.trim();
     go.disabled = !v;
-    $('#goLabel', view).textContent = isYoutube(v) ? 'افتح الفيديو' : 'تحليل';
+    $('#goLabel', view).textContent = isYoutube(v) ? 'افتح الفيديو' : isArticle(v) ? 'افتح المقال' : 'تحليل';
     $('#hint', view).textContent = isYoutube(v)
       ? 'بنقرأ نص المقطع كامل ونجهّز الترجمة والكلمات المفيدة.'
-      : 'لا تحتاج تنسيقًا معيّنًا — سنفهم الكلمات والمعاني والأمثلة تلقائيًا.';
+      : isArticle(v) ? 'بنقرأ المقال كامل ونستخرج كلماته — يحفظ في «نصوص».'
+        : 'لا تحتاج تنسيقًا معيّنًا — سنفهم الكلمات والمعاني والأمثلة تلقائيًا.';
     if (!isYoutube(v)) manual.classList.add('hidden');
   };
   input.addEventListener('input', update);
@@ -181,7 +184,20 @@ export async function render(view, { params }) {
     }
   }
 
-  go.addEventListener('click', () => (isYoutube(input.value.trim()) ? openVideo() : analyzeInput()));
+  // 📰 an article link: the site reads the page and opens it like a text (new words in teal, yours in purple)
+  async function openArticle() {
+    const stop = steps(['فتح الصفحة', 'قراءة المقال', 'استخراج الكلمات', 'تجهيز النص']);
+    try {
+      const r = await api.analyzeArticle(input.value.trim());
+      stop();
+      status.innerHTML = '';
+      location.hash = `#/source/${r.source_id}`;
+    } catch (err) {
+      stop();
+      status.innerHTML = `<div class="alert" style="margin-top:14px" role="alert"><b>${esc(err.message)}</b></div>`;
+    }
+  }
+  go.addEventListener('click', () => { const v = input.value.trim(); return isYoutube(v) ? openVideo() : isArticle(v) ? openArticle() : analyzeInput(); });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !go.disabled) go.click();
   });
