@@ -5,6 +5,8 @@ import { stop as stopAudio, speak } from './audio.js';
 import { closeWordPanel, openWordPanel } from './components.js';
 import { icon, $, closeModal, esc, openModal, toast, applyTheme } from './ui.js';
 import { startIcons } from './emoji-icons.js';
+import { BUILD_ID } from './build-id.js';
+import { watchForUpdates } from './update-check.js';
 import { openFeedback } from './feedback.js';
 import { goalText } from './goal.js';
 
@@ -31,14 +33,14 @@ const LEGACY = {
 };
 
 const pages = {
-  today: () => import('./pages/today.js'),
-  add: () => import('./pages/add.js'),
-  reader: () => import('./pages/reader.js'),
-  words: () => import('./pages/words.js'),
-  practice: () => import('./pages/practice.js'),
-  settings: () => import('./pages/settings.js'),
-  friends: () => import('./pages/friends.js'),
-  notes: () => import('./pages/notes.js'),
+  today: () => import(`./pages/today.js?v=${BUILD_ID}`),
+  add: () => import(`./pages/add.js?v=${BUILD_ID}`),
+  reader: () => import(`./pages/reader.js?v=${BUILD_ID}`),
+  words: () => import(`./pages/words.js?v=${BUILD_ID}`),
+  practice: () => import(`./pages/practice.js?v=${BUILD_ID}`),
+  settings: () => import(`./pages/settings.js?v=${BUILD_ID}`),
+  friends: () => import(`./pages/friends.js?v=${BUILD_ID}`),
+  notes: () => import(`./pages/notes.js?v=${BUILD_ID}`),
 };
 
 function parseHash() {
@@ -138,7 +140,7 @@ async function route() {
     return;
   }
   if (base === '/p' && segments[1]) {
-    const { renderPublic } = await import('./pages/friends.js');
+    const { renderPublic } = await import(`./pages/friends.js?v=${BUILD_ID}`);
     return renderPublic($('#view'), segments[1].replace(/[^a-f0-9]/g, ''));
   }
   if (base !== '/' && !ROUTES[base]) {
@@ -194,6 +196,7 @@ async function route() {
   refreshStats({ lazy: true });
 }
 
+watchForUpdates();
 startIcons(); // every emoji on buttons and titles becomes a line icon in the site's style
 let started = false;
 
@@ -229,7 +232,7 @@ function guestReminder(base) {
 /** Login / registration, shown instead of the app when needed (also at /login and /register). */
 async function showAuth(status) {
   document.body.classList.add('auth-mode');
-  const { render } = await import('./pages/login.js');
+  const { render } = await import(`./pages/login.js?v=${BUILD_ID}`);
   await render($('#view'), {
     status,
     mode: /^\/register\/?$/.test(location.pathname) ? 'register' : 'login',
@@ -376,7 +379,7 @@ async function init() {
   // a shared progress link opens without login
   const pub = location.hash.match(/^#\/p\/([a-f0-9]+)/);
   if (pub) {
-    const { renderPublic } = await import('./pages/friends.js');
+    const { renderPublic } = await import(`./pages/friends.js?v=${BUILD_ID}`);
     document.body.classList.add('auth-mode');
     await renderPublic($('#view'), pub[1]);
     return;

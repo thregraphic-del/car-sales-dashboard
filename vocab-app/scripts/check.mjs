@@ -22,4 +22,11 @@ if (bad.length) {
   console.error('Possible secret in published files:', bad);
   process.exit(1);
 }
+// On Netlify: stamp this build, so an open tab can tell it is behind (see public/js/update-check.js)
+if (process.env.NETLIFY) {
+  const id = String(process.env.COMMIT_REF || process.env.DEPLOY_ID || Date.now()).slice(0, 12);
+  fs.writeFileSync(path.join(root, 'public/js/build-id.js'), `export const BUILD_ID = '${id}';\n`);
+  fs.writeFileSync(path.join(root, 'public/version.json'), JSON.stringify({ v: id }));
+  console.log(`build stamped ${id}`);
+}
 console.log('build check ok: API loads, no secrets in public/');

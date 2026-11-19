@@ -1444,6 +1444,7 @@ body.reader-focus .reader-grid[data-tab="words"] .reader-main { display: none !i
 .fd-grid.fd-rows2 { grid-auto-flow: column; grid-template-columns: none; grid-template-rows: repeat(2, auto); grid-auto-columns: 128px; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x proximity; }
 .fd-rows2 .fd-card { scroll-snap-align: start; align-content: start; }
 .fd-kind { margin: 4px 0 10px; }
+.update-note { position: fixed; z-index: 200; top: 10px; inset-inline: 0; margin-inline: auto; width: max-content; max-width: 92vw; padding: 9px 16px; border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-ink, #fff); font: 700 13.5px var(--font-ar, inherit); box-shadow: var(--shadow); cursor: pointer; }
 .ch-ava.site-ava { background: #fff; border: 1px solid var(--line); }
 .ch-ava.site-ava img { object-fit: contain; padding: 9px; box-sizing: border-box; background: #fff; }
 .ch-ava.site-ava > span { color: var(--accent); }
