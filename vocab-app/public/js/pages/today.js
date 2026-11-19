@@ -13,6 +13,12 @@ const WD = ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س']; // Sun..Sat
 const DAY_NAMES = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 const shuffle = (a) => { const x = [...a]; for (let i = x.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [x[i], x[j]] = [x[j], x[i]]; } return x; };
 
+/** What the dashboard measures: time watched on this device, or words learned (saved). */
+const metricPref = () => (ls('today.metric', 'time') === 'words' ? 'words' : 'time');
+const watchMin = (d) => Math.round((Number(ls(`lt.watch.${dayStr(d)}`, 0)) || 0) / 60);
+const dayValue = (d, days, metric) => (metric === 'time' ? watchMin(d) : Number(days[d.toISOString().slice(0, 10)]?.saved || 0));
+const dayActive = (d, days) => { const x = days[d.toISOString().slice(0, 10)]; return watchMin(d) > 0 || !!(x && x.answers + x.saved + x.seen > 0); };
+
 /** The words of the last day something was saved (yesterday if any, else the latest earlier day). */
 function lastDay(words) {
   const today = dayStr();
@@ -154,7 +160,8 @@ export async function render(view) {
       <button type="button" class="th-flame${grey ? ' grey' : ''}" id="flame" aria-label="الأيام المتتالية">
         ${grey ? '<span class="th-tip">ترجّع حماسك بتدريب بسيط ✨</span>' : ''}
         <span class="th-fl">🔥</span><b>${flameN}</b><span class="th-fl-t">أيام متتالية</span></button>
-      <div class="th-week" id="week"></div>
+      <div class="th-weekwrap"><div class="th-week" id="week"></div>
+        <div class="segmented th-metric" id="wkMetric"><button type="button" data-wm="time">⏱ الوقت</button><button type="button" data-wm="words">📚 الكلمات</button></div></div>
     </div>
     ${task}
     <div class="card th-prog"><div class="row between"><b>تقدّمك هذا الأسبوع</b><span class="tiny muted">آخر ٧ أيام</span></div>
@@ -162,24 +169,36 @@ export async function render(view) {
       <div class="tiny muted">${icon.clock} ${weekMinutes()} دقيقة تعلّم</div></div>
   </div>`;
 
-  // this week (Saturday → Friday): ✓ = something done, today ringed
-  const drawWeek = (days = {}) => {
+  // this week (Saturday → Friday): each day is a column filled by the chosen measure — time watched (this device)
+  // or words learned — so the days are never silent squares; today is ringed, tap = the dashboard
+  let weekDays = {};
+  const drawWeek = (days = weekDays) => {
+    weekDays = days;
+    const metric = metricPref();
     const now = new Date(); now.setHours(12, 0, 0, 0);
     const sat = new Date(now); sat.setDate(now.getDate() - ((now.getDay() + 1) % 7));
-    const out = [];
+    const cols = [];
     for (let i = 0; i < 7; i += 1) {
       const d = new Date(sat); d.setDate(sat.getDate() + i);
-      const key = d.toISOString().slice(0, 10);
-      const x = days[key];
-      const done = x && x.answers + x.saved + x.seen > 0;
-      const isToday = d.toDateString() === now.toDateString();
-      out.push(`<span class="th-d${done ? ' done' : ''}${isToday ? ' today' : ''}${d > now ? ' future' : ''}" title="${DAY_NAMES[d.getDay()]}">${done ? '✓' : WD[d.getDay()]}</span>`);
+      cols.push({ d, key: d.toISOString().slice(0, 10), v: dayValue(d, days, metric), act: dayActive(d, days) });
     }
-    view.querySelector('#week').innerHTML = out.join('');
+    const max = Math.max(metric === 'time' ? 10 : 5, ...cols.map((c) => c.v));
+    view.querySelector('#week').innerHTML = cols.map((c) => {
+      const pct = c.v ? Math.max(12, Math.round((100 * c.v) / max)) : (c.act ? 7 : 0);
+      const isToday = c.d.toDateString() === now.toDateString();
+      return `<span class="th-col${isToday ? ' today' : ''}${c.d > now ? ' future' : ''}${c.act ? ' act' : ''}" title="${DAY_NAMES[c.d.getDay()]}${c.v ? ` · ${c.v} ${metric === 'time' ? 'دقيقة' : 'كلمة'}` : ''}"><em class="th-val">${c.v || ''}</em><i class="th-bar"><b style="height:${pct}%"></b></i><span class="th-l">${WD[c.d.getDay()]}</span></span>`;
+    }).join('');
+    view.querySelectorAll('#wkMetric [data-wm]').forEach((b) => b.classList.toggle('active', b.dataset.wm === metric));
   };
   drawWeek();
   api.calendar().then((r) => drawWeek(r.days || {})).catch(() => {});
   view.querySelector('#week').addEventListener('click', openCalendar);
+  view.querySelector('#wkMetric').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-wm]');
+    if (!b) return;
+    lsSet('today.metric', b.dataset.wm);
+    drawWeek();
+  });
 
   const act = (a) => {
     if (a === 'rescue') return rescue();
@@ -198,45 +217,119 @@ export async function render(view) {
   maybeTour('home');
 }
 
-/* 📅 A full calendar since the first day: colour = how much was done, tap a day for its numbers. */
+/* 📅 The dashboard: the days as squares, columns or a curve — filled by the time watched or the words learned
+   (switch beside it) — and a tap on any day shows its numbers. */
+const SHAPE_IC = {
+  squares: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>',
+  bars: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M10 20V5M15 20V9M20 20V15"/></svg>',
+  line: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c3-1 4-9 8-9s4 8 10 3"/></svg>',
+};
 async function openCalendar() {
-  const box = openModal('<p class="tiny muted"><span class="spinner"></span></p>');
+  const box = openModal('<p class="tiny muted"><span class="spinner"></span></p>', { wide: true });
   let r;
   try { r = await api.calendar(); } catch (err) { box.innerHTML = `<p>${esc(err.message)}</p>`; return; }
   const days = r.days || {};
-  const goal = r.goal || 10;
   const keys = Object.keys(days).sort();
   const first = keys[0] ? new Date(`${keys[0]}T12:00:00`) : new Date();
-  const now = new Date();
+  const now = new Date(); now.setHours(12, 0, 0, 0);
   let y = now.getFullYear();
   let m = now.getMonth();
-  const fmt = (d) => d.toISOString().slice(0, 10);
-  const level = (d) => { const x = days[d]; if (!x) return 0; const n = x.answers + x.saved + x.seen; return n >= goal ? 2 : n ? 1 : 0; };
+  let metric = metricPref();
+  let shape = ['squares', 'bars', 'line'].includes(ls('today.shape', 'squares')) ? ls('today.shape', 'squares') : 'squares';
+  let pick = now.toISOString().slice(0, 10);
   const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-  const draw = (pick = null) => {
+  const at = (n) => { const d = new Date(now); d.setDate(now.getDate() - n); return d; };
+  const key = (d) => d.toISOString().slice(0, 10);
+  const val = (d) => dayValue(d, days, metric);
+  const unit = () => (metric === 'time' ? 'دقيقة' : 'كلمة');
+  const lvl = (v, max) => { if (!v) return 0; const p = v / max; return p >= 0.75 ? 4 : p >= 0.5 ? 3 : p >= 0.25 ? 2 : 1; };
+  const maxOf = (list) => Math.max(metric === 'time' ? 10 : 5, ...list.map(val));
+  const rangeDays = (n) => Array.from({ length: n }, (_, i) => at(n - 1 - i));
+
+  const squares = () => {
     const start = new Date(y, m, 1, 12);
     const count = new Date(y, m + 1, 0).getDate();
+    const list = Array.from({ length: count }, (_, i) => new Date(y, m, i + 1, 12));
+    const mx = maxOf(list);
     const cells = [];
     for (let i = 0; i < start.getDay(); i += 1) cells.push('<span></span>');
-    for (let d = 1; d <= count; d += 1) {
-      const key = fmt(new Date(y, m, d, 12));
-      cells.push(`<button type="button" class="cal-d l${level(key)} ${pick === key ? 'pick' : ''} ${key === fmt(now) ? 'today' : ''}" data-d="${key}">${d}</button>`);
-    }
-    const x = pick && days[pick];
-    const active = keys.length;
-    box.innerHTML = `<div class="cal">
-      <div class="row between"><button class="btn icon sm ghost" data-m="1" ${new Date(y, m + 1, 1) > now ? 'disabled' : ''}>${icon.next}</button><b>${MONTHS[m]} ${y}</b><button class="btn icon sm ghost" data-m="-1" ${new Date(y, m, 1) <= new Date(first.getFullYear(), first.getMonth(), 1) ? 'disabled' : ''}>${icon.prev}</button></div>
+    list.forEach((d) => {
+      const v = val(d);
+      const k = key(d);
+      cells.push(`<button type="button" class="cal-d l${lvl(v, mx)}${dayActive(d, days) && !v ? ' act' : ''} ${pick === k ? 'pick' : ''} ${k === key(now) ? 'today' : ''}" data-d="${k}"><b>${d.getDate()}</b><small>${v || ''}</small></button>`);
+    });
+    return `<div class="row between"><button class="btn icon sm ghost" data-m="1" ${new Date(y, m + 1, 1) > now ? 'disabled' : ''} aria-label="الشهر التالي">${icon.next}</button><b>${MONTHS[m]} ${y}</b><button class="btn icon sm ghost" data-m="-1" ${new Date(y, m, 1) <= new Date(first.getFullYear(), first.getMonth(), 1) ? 'disabled' : ''} aria-label="الشهر السابق">${icon.prev}</button></div>
       <div class="cal-w">${['أحد', 'إثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت'].map((d) => `<span>${d}</span>`).join('')}</div>
-      <div class="cal-g">${cells.join('')}</div>
-      <div class="cal-key tiny"><i class="l0"></i> ما سويت شي <i class="l1"></i> شوي <i class="l2"></i> وصلت هدفك</div>
-      <div class="cal-info">${pick ? (x ? `<b>${pick}</b> · مرّت ${x.seen} · حفظت ${x.saved} · ✅ ${x.right} · ❌ ${x.answers - x.right}` : `<b>${pick}</b> · ما فيه نشاط`) : `<span class="tiny muted">${active} يوم فيه نشاط منذ ${keys[0] || 'اليوم'} — اضغط أي يوم لأرقامه</span>`}</div>
+      <div class="cal-g">${cells.join('')}</div>`;
+  };
+  const bars = () => {
+    const list = rangeDays(14);
+    const mx = maxOf(list);
+    return `<div class="cal-bars">${list.map((d) => {
+      const v = val(d); const k = key(d);
+      const pct = v ? Math.max(8, Math.round((100 * v) / mx)) : 0;
+      return `<button type="button" class="cb${pick === k ? ' pick' : ''}${k === key(now) ? ' today' : ''}" data-d="${k}"><em>${v || ''}</em><i><b class="l${lvl(v, mx)}" style="height:${pct}%"></b></i><span>${d.getDate()}</span><small>${WD[d.getDay()]}</small></button>`;
+    }).join('')}</div>`;
+  };
+  const line = () => {
+    const list = rangeDays(30);
+    const mx = maxOf(list);
+    const W = 320; const H = 130; const px = 14; const py = 14;
+    const X = (i) => W - px - (i * (W - 2 * px)) / 29; // oldest at the right, like the columns and the week (Arabic reads right to left)
+    const Y = (v) => H - py - ((H - 2 * py) * v) / mx;
+    const pts = list.map((d, i) => [X(i), Y(val(d))]);
+    const path = pts.map((q, i) => `${i ? 'L' : 'M'}${q[0].toFixed(1)} ${q[1].toFixed(1)}`).join(' ');
+    const area = `${path} L${X(29).toFixed(1)} ${H - py} L${X(0).toFixed(1)} ${H - py} Z`;
+    const lab = (i) => `${list[i].getDate()}/${list[i].getMonth() + 1}`;
+    return `<svg class="cal-line" viewBox="0 0 ${W} ${H + 16}" role="img" aria-label="منحنى آخر ٣٠ يوم">
+      <path d="M${px} ${H - py} H${W - px}" class="cl-axis"/><path class="cl-area" d="${area}"/><path class="cl-path" d="${path}"/>
+      ${list.map((d, i) => `<circle class="cl-dot${key(d) === pick ? ' pick' : ''}${val(d) ? ' on' : ''}" cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="${key(d) === pick ? 5 : 3}"/><circle class="cl-hit" data-d="${key(d)}" cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="9"/>`).join('')}
+      <text class="cl-t" x="${X(0)}" y="${H + 12}" text-anchor="end">${lab(0)}</text><text class="cl-t" x="${X(15)}" y="${H + 12}" text-anchor="middle">${lab(15)}</text><text class="cl-t" x="${X(29)}" y="${H + 12}" text-anchor="start">${lab(29)}</text></svg>`;
+  };
+  const shapeHtml = () => (shape === 'bars' ? bars() : shape === 'line' ? line() : squares());
+  const rangeNote = () => {
+    const list = shape === 'bars' ? rangeDays(14) : shape === 'line' ? rangeDays(30) : Array.from({ length: new Date(y, m + 1, 0).getDate() }, (_, i) => new Date(y, m, i + 1, 12));
+    const mins = list.reduce((s, d) => s + watchMin(d), 0);
+    const words = list.reduce((s, d) => s + Number(days[key(d)]?.saved || 0), 0);
+    const act = list.filter((d) => dayActive(d, days)).length;
+    return `${shape === 'bars' ? 'آخر ١٤ يوم' : shape === 'line' ? 'آخر ٣٠ يوم' : `${MONTHS[m]}`} · ${act} يوم نشاط · ${mins} دقيقة · ${words} كلمة`;
+  };
+  const dash = () => {
+    const d = new Date(`${pick}T12:00:00`);
+    const x = days[pick] || { answers: 0, right: 0, saved: 0, seen: 0 };
+    const min = watchMin(d);
+    const rate = x.answers ? Math.round((100 * x.right) / x.answers) : 0;
+    const nothing = !min && !x.answers && !x.saved && !x.seen;
+    return `<div class="cal-dash"><div class="cd-head"><b>${DAY_NAMES[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}</b>${pick === key(now) ? '<span class="th-chip">اليوم</span>' : ''}</div>
+      ${nothing ? '<p class="tiny muted" style="margin:6px 0 0">ما فيه نشاط هذا اليوم.</p>' : ''}
+      <div class="cd-grid">
+        <div class="cd-card"><span class="cd-i">⏱</span><b>${min}</b><small>دقيقة مشاهدة</small></div>
+        <div class="cd-card"><span class="cd-i">📚</span><b>${x.saved}</b><small>كلمة تعلّمتها</small></div>
+        <div class="cd-card"><span class="cd-i">👁</span><b>${x.seen}</b><small>كلمة مرّت عليك</small></div>
+        <div class="cd-card"><span class="cd-i">🎮</span><b>${x.answers}</b><small>إجابة تدريب${x.answers ? ` · ${rate}٪ صح` : ''}</small>${x.answers ? `<i class="cd-meter"><b style="width:${rate}%"></b></i>` : ''}</div>
+      </div></div>`;
+  };
+  const draw = () => {
+    box.innerHTML = `<div class="cal">
+      <div class="cal-ctl">
+        <div class="segmented" id="calMetric"><button type="button" data-cm="time" class="${metric === 'time' ? 'active' : ''}">⏱ الوقت</button><button type="button" data-cm="words" class="${metric === 'words' ? 'active' : ''}">📚 الكلمات</button></div>
+        <div class="segmented" id="calShape">${[['squares', 'مربعات'], ['bars', 'أعمدة'], ['line', 'منحنى']].map(([k, l]) => `<button type="button" data-cs="${k}" class="${shape === k ? 'active' : ''}" aria-label="${l}" title="${l}"><span class="cs-i">${SHAPE_IC[k]}</span><span class="cs-t">${l}</span></button>`).join('')}</div>
+      </div>
+      <div class="cal-shape">${shapeHtml()}</div>
+      <div class="cal-key tiny"><span>أقل</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>أكثر</span><span class="muted">· ${metric === 'time' ? 'دقائق مشاهدة (على هذا الجهاز)' : 'كلمات تعلّمتها'}</span></div>
+      ${dash()}
+      <p class="cal-range tiny muted">${rangeNote()}</p>
       <div class="btn-row" style="justify-content:center"><button class="btn ghost" data-close>إغلاق</button></div></div>`;
   };
   box.addEventListener('click', (e) => {
+    const cm = e.target.closest('[data-cm]');
+    if (cm) { metric = cm.dataset.cm; lsSet('today.metric', metric); draw(); return; }
+    const cs = e.target.closest('[data-cs]');
+    if (cs) { shape = cs.dataset.cs; lsSet('today.shape', shape); draw(); return; }
     const nav = e.target.closest('[data-m]');
     if (nav && !nav.disabled) { m -= Number(nav.dataset.m) * -1; if (m < 0) { m = 11; y -= 1; } if (m > 11) { m = 0; y += 1; } draw(); return; }
     const d = e.target.closest('[data-d]');
-    if (d) draw(d.dataset.d);
+    if (d) { pick = d.dataset.d; draw(); }
   });
   draw();
 }
