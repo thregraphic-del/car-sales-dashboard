@@ -40,8 +40,9 @@ export async function render(view, { params }) {
     </div>
     <div id="result"></div>
     <div class="src-tabs hidden" id="srcTabs">
-      <div class="segmented" id="srcKind"><button type="button" class="active" data-sk="videos">🎬 مقاطعي <span class="tiny" id="cV"></span></button><button type="button" data-sk="texts">📄 نصوص <span class="tiny" id="cT"></span></button></div>
-      <button type="button" class="fav-chip" id="srcFav"><span class="ic">${icon.star}</span> المفضلة</button>
+      <div class="section-title row between" style="gap:8px"><h2>نشاطي</h2>
+        <button type="button" class="fav-chip" id="srcFav"><span class="ic">${icon.star}</span> المفضلة</button></div>
+      <div class="segmented fd-kind" id="srcKind"><button type="button" class="active" data-sk="videos">🎬 مقاطعي <span class="tiny" id="cV"></span></button><button type="button" data-sk="texts">📄 نصوص <span class="tiny" id="cT"></span></button></div>
     </div>
     <div id="sources"></div>
     <div id="texts" class="tx-sec hidden"></div>

@@ -1181,7 +1181,7 @@ a.ch-card { text-decoration: none; color: inherit; }
 .mv-more { display: block; margin: 6px auto 0; }
 /* 📄 نصوص: 3 lines always visible; the text or the words scroll inside a 3-line box */
 .tx-sec { margin-top: 6px; }
-.src-tabs { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin: 20px 0 10px; }
+.src-tabs { margin: 22px 0 6px; }
 .tx-top { display: flex; align-items: center; gap: 6px; }
 .tx-star { flex: none; min-width: 36px; min-height: 36px; border: 0; background: none; font-size: 22px; line-height: 1; color: var(--ink-3, #9a9a9a); cursor: pointer; }
 .tx-star.on { color: #d9a21b; }
