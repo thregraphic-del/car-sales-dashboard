@@ -13,7 +13,7 @@ import { startTour, maybeTour } from '../tour.js';
 import { state } from '../state.js';
 import { notePassed, noteWatched } from '../goal.js';
 import { summaryHtml } from '../summary-view.js';
-import { esc, icon, levelChip, usageDot, usageLegend, fmtTime, fmtDuration, toast, $, emptyState, openModal, closeModal, applyTheme } from '../ui.js';
+import { esc, icon, levelChip, usageDot, usageLegend, fmtTime, fmtDuration, toast, $, emptyState, openModal, closeModal, applyTheme, copyText } from '../ui.js';
 import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech, celebrateGoal } from '../components.js';
 import { tokenize, quickTier, normalizeArabic } from '../shared/text.js';
 import { buildTimeline, positionAt, steadyPosition, wordIndexByChar, dedupeLines } from '../shared/sync.js';
@@ -77,7 +77,7 @@ async function youtubePlayer(el, videoId, start, onState = () => {}) {
       events: {
         onReady: () => {
           // ▶ starts by itself; if the phone blocks sound, it plays muted and offers «شغّل الصوت»
-          try { p.playVideo(); } catch { /* ignore */ }
+          try { p.playVideo(); p.unMute?.(); p.setVolume?.(100); } catch { /* ignore */ }
           // 🔇 phones may block the sound start, or start the video muted on their own (iPhone):
           // either way the reader is told, and the first real tap turns the sound on
           const flagMuted = () => { window.__ytMuted = true; window.dispatchEvent(new CustomEvent('lexitube:muted')); };
@@ -348,7 +348,7 @@ export async function render(view, { segments, params }) {
           <div class="sgroup">أدوات</div>
           <div class="srow"><span class="slabel">شرح</span><div class="sopts"><button class="sopt" id="tourR">شرح الأزرار</button><button class="sopt" id="colorKey">🎨 مفتاح الألوان</button><button class="sopt" id="resetR">↺ رجّع كل الإعدادات للأصل</button></div></div>
           <div class="srow"><span class="slabel">أدوات</span><div class="sopts">
-            <button class="sopt" id="retrBtn">ترجمة أدق</button><button class="sopt" id="summaryBtn">📝 ملخص المقطع كامل</button><button class="sopt" id="listenBtn">🎧 استماع</button>
+            <button class="sopt" id="retrBtn">ترجمة أدق</button><button class="sopt" id="summaryBtn">📝 ملخص المقطع كامل</button><button class="sopt" id="copyAll">📋 نسخ كل النص</button><button class="sopt" id="listenBtn">🎧 استماع</button>
             ${source.youtube_id && !source.is_demo ? `<a class="sopt" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">يوتيوب ↗</a>` : ''}
             <button class="sopt" id="del" style="color:var(--bad)">🗑 حذف</button></div></div>
           <button type="button" class="btn rset-reset" id="resetAll">↺ رجّع كل الإعدادات للأصل</button>
@@ -411,7 +411,7 @@ export async function render(view, { segments, params }) {
     peekNote.classList.add('on');
     peekT = setTimeout(endPeek, 2500);
   };
-  const NO_PEEK = '#setX, #setOk, .rset-ok, #resetAll, #resetR, #tourR, #colorKey, #retrBtn, #summaryBtn, #listenBtn, #del, a, #trQ, .rset-title';
+  const NO_PEEK = '#setX, #setOk, .rset-ok, #resetAll, #resetR, #tourR, #colorKey, #retrBtn, #summaryBtn, #copyAll, #listenBtn, #del, a, #trQ, .rset-title';
   void NO_PEEK;
   // 👁 «معاينة»: the sheet steps aside for a moment to show the video/text with the new choices
   $('#setPeek', view)?.addEventListener('click', (e) => { e.stopPropagation(); peek(); });
@@ -2074,12 +2074,25 @@ export async function render(view, { segments, params }) {
   // 🔊 the phone allowed only a muted start: the first touch anywhere on the page turns the sound on (no button)
   // (iPhone counts a sound-allowing tap only on the finished touch — «click» / «touchend», not «pointerdown» —
   // and it keeps listening until the sound is really on)
-  const stopUnmute = () => { ['click', 'touchend'].forEach((ev) => document.removeEventListener(ev, unmuteOnTouch, true)); };
+  // a visible hint on the video while it is muted (browsers never allow sound before a touch — so the touch is asked for)
+  const UNMUTE_EVENTS = ['click', 'touchend', 'pointerup', 'keydown'];
+  let soundNote = null;
+  const showSoundNote = (on) => {
+    if (on && !soundNote) {
+      soundNote = document.createElement('button');
+      soundNote.type = 'button';
+      soundNote.className = 'sound-note';
+      soundNote.textContent = '🔇 المس هنا لتشغيل الصوت';
+      ($('.player-box', view) || $('#vidPin', view) || view).appendChild(soundNote);
+    }
+    soundNote?.classList.toggle('hidden', !on);
+  };
+  const stopUnmute = () => { UNMUTE_EVENTS.forEach((ev) => document.removeEventListener(ev, unmuteOnTouch, true)); showSoundNote(false); };
   const unmuteOnTouch = () => {
     player?.unmute?.();
     setTimeout(() => { if (!player?.muted || !player.muted()) { stopUnmute(); window.__ytMuted = false; toast('🔊 الصوت شغّال'); } }, 400);
   };
-  const onMuted = () => ['click', 'touchend'].forEach((ev) => document.addEventListener(ev, unmuteOnTouch, true));
+  const onMuted = () => { UNMUTE_EVENTS.forEach((ev) => document.addEventListener(ev, unmuteOnTouch, true)); showSoundNote(true); };
   window.addEventListener('lexitube:muted', onMuted);
   if (window.__ytMuted) onMuted(); // it may have been flagged before this listener was ready
   if (params.line) {
@@ -2356,6 +2369,12 @@ export async function render(view, { segments, params }) {
     box.querySelector('#sumDone')?.addEventListener('click', () => { closeModal(true); done(); });
   };
   $('#summaryBtn', view)?.addEventListener('click', () => showSummary());
+  // 📋 the whole text (title + every sentence) to paste into ChatGPT or anywhere
+  $('#copyAll', view)?.addEventListener('click', async () => {
+    const text = `${source.title}\n\n${data.lines.map((l) => l.text).join('\n')}`;
+    if (await copyText(text)) toast(`✓ نُسخ كل النص (${data.lines.length} جملة) — الصقه في ChatGPT`);
+    else toast('ما قدرنا ننسخ — حدّد النص وانسخه يدويًا');
+  });
 
   // 🏁 the video ended: its summary, then «أحسنت» 🎉 with practice on its words (not a test) or finish
   const finishVideo = () => {

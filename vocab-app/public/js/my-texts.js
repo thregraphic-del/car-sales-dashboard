@@ -1,7 +1,7 @@
 // 📄 نصوص — every pasted text: 3 lines visible, tap to open it. Inside: the text, or its extracted words
 // (new ones ticked → save them fast; a tap on a word opens its details). Both stay in a 3-line box that scrolls.
 import { api } from './api.js';
-import { esc, toast, relDate } from './ui.js';
+import { esc, toast, relDate, copyText } from './ui.js';
 import { openWordPanel } from './components.js';
 
 export function bindMyTexts(box, list, { isFav, toggleFav } = {}) {
@@ -26,7 +26,7 @@ export function bindMyTexts(box, list, { isFav, toggleFav } = {}) {
     const seg = `<div class="segmented tx-seg"><button type="button" data-tx="text" data-id="${s.id}" class="${m === 'text' ? 'active' : ''}">📄 النص</button><button type="button" data-tx="words" data-id="${s.id}" class="${m === 'words' ? 'active' : ''}">🔤 الكلمات المستخرجة (${d.items.length})</button></div>`;
     if (m === 'text') {
       return `${seg}<div class="tx-box en" dir="auto">${esc(d.lines.map((l) => l.text).join(' '))}</div>
-        <div class="row between wrap" style="margin-top:8px;gap:8px"><a class="btn sm ghost" href="#/source/${s.id}">📖 اقرأه كامل</a><button type="button" class="btn sm ghost bad" data-tx="del" data-id="${s.id}">🗑</button></div>`;
+        <div class="row between wrap" style="margin-top:8px;gap:8px"><span class="row" style="gap:6px"><a class="btn sm ghost" href="#/source/${s.id}">📖 اقرأه كامل</a><button type="button" class="btn sm ghost" data-tx="copy" data-id="${s.id}">📋 نسخ النص</button></span><button type="button" class="btn sm ghost bad" data-tx="del" data-id="${s.id}">🗑</button></div>`;
     }
     const set = ticked.get(s.id) || new Set();
     const chips = [...d.items].sort((a, b) => isOld(a) - isOld(b)).map((it) => { // new words first
@@ -108,6 +108,13 @@ export function bindMyTexts(box, list, { isFav, toggleFav } = {}) {
       return;
     }
     if (k === 'fav') { toggleFav?.(id); draw(); return; }
+    if (k === 'copy') {
+      const d = data.get(id);
+      if (!d || d === 'loading' || d === 'error') return;
+      const ok = await copyText(`${d.source.title}\n\n${d.lines.map((l) => l.text).join('\n')}`);
+      toast(ok ? '✓ نُسخ كل النص — الصقه في ChatGPT' : 'ما قدرنا ننسخ — افتح النص وانسخه يدويًا');
+      return;
+    }
     if (k === 'toggle') {
       if (open.has(id)) open.delete(id); else { open.add(id); if (!data.has(id)) load(id); }
       draw();

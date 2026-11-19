@@ -149,6 +149,23 @@ export function applyTheme(t) {
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0E1522' : '#F5F3EF');
 }
 
+/** Copy text to the clipboard (call it straight from a tap). Falls back to the old way on browsers without the new API. */
+export async function copyText(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch { /* try the old way */ }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch { return false; }
+}
+
 export function toast(msg, ms = 0) {
   // stays long enough to read: short notes ~2.6 s, long ones up to 8 s
   if (!ms) ms = Math.max(2600, Math.min(8000, String(msg).split(/\s+/).length * 380 + 1200));

@@ -1917,6 +1917,10 @@ html, body { overflow-x: clip; max-width: 100%; overscroll-behavior-x: none; }
 /* 🎤 «ردّد معي»: a clear note while the video waits for you to say the line */
 .say-note { position: absolute; top: 6px; inset-inline-start: 8px; width: max-content; max-width: 50%; padding: 3px 10px; border-radius: 999px; background: rgba(0,0,0,.55); color: #fff; font-size: 12px; font-weight: 700; z-index: 56; opacity: 0; pointer-events: none; transition: opacity .2s; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
 .say-note.on { opacity: 1; }
+.sound-note { position: absolute; bottom: 10px; inset-inline: 0; margin-inline: auto; width: max-content; max-width: 90%; z-index: 58; padding: 7px 14px; border: 0; border-radius: 999px; background: rgba(0,0,0,.72); color: #fff; font: 700 13px var(--font-ar, inherit); cursor: pointer; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); animation: sn-pulse 1.8s ease-in-out infinite; }
+.sound-note.hidden { display: none; }
+@keyframes sn-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .72; } }
+@media (prefers-reduced-motion: reduce) { .sound-note { animation: none; } }
 /* 👆 resize hint on the line under the video: a finger goes up and down while the video shrinks / grows */
 .split { position: relative; overflow: visible !important; }
 .size-hint { position: absolute; top: calc(100% + 6px); inset-inline: 0; margin-inline: auto; width: max-content; display: flex; align-items: center; gap: 8px; padding: 6px 12px 6px 10px; border-radius: 999px; background: var(--ink); color: var(--surface); font-size: 13px; font-weight: 700; z-index: 30; pointer-events: none; box-shadow: var(--shadow); animation: shIn .25s ease; }
