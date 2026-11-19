@@ -2187,3 +2187,16 @@ body:has(.page-reader #rset:not(.hidden)) .help-fab { display: none !important; 
 .modal .modal-close svg { width: 20px; height: 20px; stroke-width: 2.2; }
 .modal .modal-close + h2, .modal .modal-close + .modal-title { padding-inline-end: 0; padding-inline-start: 0; margin-inline-end: 52px; }
 body:has(.modal-root.open) .help-fab { display: none !important; }
+
+/* ⏱ «السالفة باختصار» in the summary: a clear button that opens all the parts */
+.rc-head { width: 100%; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1.5px solid var(--accent); border-radius: 14px; background: color-mix(in srgb, var(--accent) 9%, var(--surface)); color: var(--ink); font: inherit; text-align: start; cursor: pointer; min-height: 56px; }
+.rc-head .ico-wrap { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 12px; background: var(--accent); color: var(--accent-ink, #fff); font-size: 20px; }
+.rc-head .ico-wrap .ico { width: 22px; height: 22px; vertical-align: 0; }
+.rc-t { flex: 1; min-width: 0; display: grid; gap: 2px; }
+.rc-t b { font-size: 16px; }
+.rc-n { flex: none; padding: 3px 9px; border-radius: 99px; background: var(--surface); border: 1px solid var(--line); font-weight: 700; direction: ltr; }
+.rc-caret { flex: none; transition: transform .2s; }
+.rc-head[aria-expanded="true"] .rc-caret { transform: rotate(180deg); }
+.rc-body { margin-top: 8px; }
+.rc-note { margin: 0 0 6px; }
+.rc-wait { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; opacity: .8; }

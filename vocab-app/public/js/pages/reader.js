@@ -784,12 +784,67 @@ export async function render(view, { segments, params }) {
     all.sort((a, b) => a.from - b.from);
     try { localStorage.setItem(recapKey, JSON.stringify(all.slice(-80))); } catch { /* ignore */ }
   };
+  // ⏱ «السالفة باختصار» in the summary: a clear button; tapping it opens EVERY part of the video (not only the ones that
+  // already popped up) and prepares the missing ones — one short AI answer per part, saved for everyone and kept here
+  const recapParts = () => {
+    const span = recapMin * 60;
+    const dur = Number(source.duration_seconds) || player?.duration?.() || 0;
+    const out = [];
+    for (let from = 0; dur && from < dur - 20; from += span) out.push({ from, to: from + span, end: Math.min(dur, from + span) });
+    return out;
+  };
+  const rcRows = () => {
+    const saved = savedRecaps();
+    const parts = recapParts();
+    const rows = parts.length ? parts : saved.map((r) => ({ from: r.from, to: r.to, end: r.to }));
+    return rows.map((p) => ({ ...p, hit: saved.find((r) => r.from === p.from && r.to === p.to) })).filter((p) => p.hit?.text !== '');
+  };
+  const rcCount = () => { const rows = rcRows(); return `${rows.filter((p) => p.hit?.text).length}/${rows.length}`; };
   const recapsSection = () => {
     if (!isVideo) return '';
-    const all = savedRecaps();
-    return `<div class="sum-sec rc-sec"><b>⏱ السالفة باختصار</b>${all.length
-      ? all.map((r) => `<details class="rc-item"><summary><span class="en-inline">${fmtTime(r.from)} – ${fmtTime(r.to)}</span>${r.title === 'الجاي باختصار' ? '<span class="tiny muted">الجاي</span>' : ''}</summary><p>${esc(r.text)}</p></details>`).join('')
-      : '<p class="tiny muted">ما ظهرت سوالف بعد — تطلع مع تقدّم المقطع (إعداد «ملخص كل فترة») وتنحفظ هنا لتقرأها لاحقًا.</p>'}</div>`;
+    return `<div class="sum-sec rc-sec"><button type="button" class="rc-head" id="rcHead" aria-expanded="false"><span class="ico-wrap">⏱</span><span class="rc-t"><b>السالفة باختصار</b><span class="tiny muted">كل أجزاء المقطع — اضغط لعرضها</span></span><span class="rc-n tiny" id="rcN">${rcCount()}</span><span class="rc-caret" aria-hidden="true">▾</span></button><div class="rc-body hidden" id="rcBody"></div></div>`;
+  };
+  let rcRunning = false;
+  const bindRecaps = (box) => {
+    const head = box.querySelector('#rcHead');
+    const body = box.querySelector('#rcBody');
+    if (!head || !body) return;
+    const draw = (note = '') => {
+      if (!box.isConnected) return;
+      const rows = rcRows();
+      box.querySelector('#rcN').textContent = rcCount();
+      body.innerHTML = `${note ? `<p class="tiny muted rc-note">${note}</p>` : ''}${rows.length ? rows.map((p) => (p.hit?.text
+        ? `<details class="rc-item"><summary><span class="en-inline">${fmtTime(p.from)} – ${fmtTime(p.end)}</span></summary><p>${esc(p.hit.text)}</p></details>`
+        : `<div class="rc-item rc-wait"><span class="en-inline">${fmtTime(p.from)} – ${fmtTime(p.end)}</span><span class="tiny muted">${rcRunning ? '⏳ نجهّزها…' : 'ما انجهزت بعد'}</span></div>`)).join('')
+        : '<p class="tiny muted">ما عرفنا مدة المقطع — شغّله شوي وارجع.</p>'}`;
+    };
+    const fill = async () => {
+      if (rcRunning) return;
+      if (!state.config.ai.available) { draw('الذكاء الاصطناعي غير مفعّل على هذا الموقع، فنعرض فقط السوالف اللي ظهرت لك.'); return; }
+      const todo = rcRows().filter((p) => !p.hit);
+      if (!todo.length) return;
+      rcRunning = true;
+      draw(`نجهّز سوالف المقطع كله… (${todo.length} جزء، مرة وحدة وبعدها تنحفظ)`);
+      const worker = async () => {
+        while (todo.length && alive && box.isConnected) {
+          const p = todo.shift();
+          try {
+            const r = await api.recap(id, p.from, p.to);
+            keepRecap(p.from, p.to, 'السالفة باختصار', r.ok && r.text ? r.text : '');
+          } catch { /* left for the next tap */ }
+          draw(`نجهّز سوالف المقطع كله… (باقي ${todo.length})`);
+        }
+      };
+      await Promise.all([worker(), worker()]);
+      rcRunning = false;
+      draw();
+    };
+    head.addEventListener('click', () => {
+      const open = body.classList.contains('hidden');
+      body.classList.toggle('hidden', !open);
+      head.setAttribute('aria-expanded', String(open));
+      if (open) { draw(); fill(); }
+    });
   };
   const showRecapNote = (from, to, title) => {
     if (!state.config.ai.available || recapBusy) return;
@@ -2372,6 +2427,7 @@ export async function render(view, { segments, params }) {
         ${recapsSection()}
         <div class="btn-row" style="justify-content:center;margin-top:12px"><button type="button" class="btn" id="sumKeep">${icon.bookmark} احفظ في «أفكار»</button></div>${doneBtn}`;
       bindSpeech(box);
+      bindRecaps(box);
       box.querySelector('#sumKeep')?.addEventListener('click', async (e) => {
         const b = e.currentTarget;
         b.disabled = true;
@@ -2379,6 +2435,7 @@ export async function render(view, { segments, params }) {
       });
     } catch (err) {
       box.innerHTML = `<button class="btn icon sm ghost modal-close" data-close aria-label="إغلاق">${icon.x}</button><h2>📝 ملخص المقطع</h2><div class="alert">${esc(err.message)}</div>${recapsSection()}${doneBtn}`;
+      bindRecaps(box);
     }
     box.querySelector('#sumDone')?.addEventListener('click', () => { closeModal(true); done(); });
   };
