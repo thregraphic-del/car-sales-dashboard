@@ -537,9 +537,9 @@ export const fieldsHtml = () => `
   <div class="segmented fd-kind" id="fdKind"><button type="button" class="active" data-fk="channels">📺 قنوات</button><button type="button" data-fk="sites">🌐 مواقع</button></div>
   ${channelsHtml()}
   <div id="siteFavBox" class="fav-box hidden"></div>
-  <div class="fd-acc" id="fdAcc">${CH_FIELDS.map((f) => `<section class="fd-item" data-fdi="${f.k}">
+  <div class="fd-acc" id="fdAcc"><div class="fd-chips" id="fdChips">${CH_FIELDS.map((f) => `<section class="fd-item" data-fdi="${f.k}">
     <button type="button" class="fd-head" data-fd="${f.k}" aria-expanded="false">${fic(f.k)}<b>${f.n}</b><span class="tiny muted fd-n" data-ch="${f.c.length}" data-st="${(SITES[f.k] || []).length}">${f.c.length} قناة</span><span class="fd-caret" aria-hidden="true">▾</span></button>
-    <div class="fd-body"></div></section>`).join('')}</div>`;
+    <div class="fd-body"></div></section>`).join('')}</div><div class="fd-slot" id="fdSlot"></div></div>`;
 
 export function bindFields(view) {
   const acc = $('#fdAcc', view);
@@ -589,6 +589,11 @@ export function bindFields(view) {
   }).catch(() => {});
   // a picture that does not load leaves the first letter
   view.addEventListener('error', (e) => { if (e.target.matches?.('.ch-ava img')) e.target.remove(); }, true);
+  const ITEMS = [...acc.querySelectorAll('.fd-item')]; // their fixed order
+  const fdChips = $('#fdChips', view);
+  const fdSlot = $('#fdSlot', view);
+  const chipsEnd = () => fdChips.classList.toggle('at-end', fdChips.scrollTop + fdChips.clientHeight >= fdChips.scrollHeight - 3);
+  fdChips.addEventListener('scroll', chipsEnd, { passive: true });
   const draw = () => {
     const sites = kind === 'sites';
     view.querySelectorAll('#fdKind [data-fk]').forEach((b) => b.classList.toggle('active', b.dataset.fk === kind));
@@ -606,6 +611,9 @@ export function bindFields(view) {
       it.querySelector('.fd-head').setAttribute('aria-expanded', String(open));
       if (!open) it.querySelector('.fd-body').innerHTML = '';
     });
+    // the chips scroll inside a box of three rows; the chosen field opens full width right under it
+    ITEMS.forEach((it) => (it.classList.contains('open') ? fdSlot : fdChips).appendChild(it));
+    chipsEnd();
     box = field ? acc.querySelector(`[data-fdi="${field.k}"] .fd-body`) : null;
     if (!box) return;
     if (sites) {

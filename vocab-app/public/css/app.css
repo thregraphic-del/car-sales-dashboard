@@ -2200,3 +2200,13 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .rc-body { margin-top: 8px; }
 .rc-note { margin: 0 0 6px; }
 .rc-wait { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 40px; opacity: .8; }
+
+/* the field chips take only three rows and scroll inside (a soft fade at the bottom says there is more); the open field sits under them */
+.fd-acc { display: block !important; }
+.fd-chips { display: flex; flex-wrap: wrap; gap: 6px; max-height: 124px; overflow-y: auto; overscroll-behavior: contain; padding: 2px 2px 0; scrollbar-width: thin; -webkit-overflow-scrolling: touch;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent); }
+.fd-chips.at-end { -webkit-mask-image: none; mask-image: none; }
+.fd-chips .fd-item { flex: 0 0 auto; }
+.fd-slot { margin-top: 6px; }
+.fd-slot .fd-item.open { flex: none; margin-top: 0; }
+.fd-slot:empty { display: none; }
