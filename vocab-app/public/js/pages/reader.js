@@ -310,7 +310,9 @@ export async function render(view, { segments, params }) {
     <div class="reader-grid" data-tab="text">
       <div class="reader-main">
         <div class="rset hidden" id="rset">
+          <div class="rset-grip" id="rsetGrip" role="separator" aria-orientation="horizontal" tabindex="0" aria-label="اسحب لتكبير القائمة أو تصغيرها"><span></span></div>
           <div class="rset-title row between"><span>إعدادات المقطع</span><button type="button" class="btn icon sm ghost rset-x" id="setX" title="رجوع بدون حفظ" aria-label="رجوع بدون حفظ">✕</button></div>
+          <p class="tiny muted rset-hint">غيّر أي إعداد وشوف أثره فوق مباشرة — اسحب الخط الرمادي لتكبير القائمة أو تصغيرها، ثم اضغط «اعتمد».</p>
           ${isVideo && hasTimes ? `<div class="sgroup">التشغيل</div><div id="mode" class="rgrp">
             <div class="srow"><span class="slabel">السرعة</span><div class="sopts" id="speed">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" class="sopt en-inline" data-rate="${r}">${r}×</button>`).join('')}</div></div>
             <div class="srow"><span class="slabel">بعد كل جملة</span><div class="sopts am-list" id="amList">
@@ -338,7 +340,7 @@ export async function render(view, { segments, params }) {
             <div class="srow sw-row tb-only"><span class="slabel">أزرار تحت</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="tbOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="tbOnTxt"></span></label></div></div>
             <div class="srow"><span class="slabel">الخلفية</span><div class="sopts" id="rBg">${[['light', '☀️ فاتح'], ['night', '🌙 داكن']].map(([k, l]) => `<button type="button" class="sopt" data-rbg="${k}">${l}</button>`).join('')}</div></div>
             ${hasTimes ? `<div class="srow sw-row"><span class="slabel">متابعة تلقائية</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="followToggle" ${follow ? 'checked' : ''}><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div></div>` : ''}
-            <div class="srow"><span class="slabel">حجم الخط</span><div class="sopts"><span class="sopts fontsize"><button type="button" class="sopt" data-font="-1">A−</button><button type="button" class="sopt" data-font="1">A+</button></span></div></div>
+            <div class="srow"><span class="slabel">حجم الخط</span><div class="sopts"><span class="sopts fontsize"><button type="button" class="sopt" data-font="-1">A−</button><b class="en-inline fontnow" id="fontNow"></b><button type="button" class="sopt" data-font="1">A+</button></span></div></div>
             ${hasTimes ? '<div class="srow sw-row"><span class="slabel">وقت كل سطر</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="timesToggle"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="timesTxt"></span></label></div></div>' : ''}
             ${isVideo && hasTimes ? '<div class="srow sw-row"><span class="slabel">شريط الوقت</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="stripToggle"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="stripTxt"></span></label></div></div>' : ''}
           </div></div>
@@ -352,7 +354,7 @@ export async function render(view, { segments, params }) {
             ${source.youtube_id && !source.is_demo ? `<a class="sopt" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">يوتيوب ↗</a>` : ''}
             <button class="sopt" id="del" style="color:var(--bad)">🗑 حذف</button></div></div>
           <button type="button" class="btn rset-reset" id="resetAll">↺ رجّع كل الإعدادات للأصل</button>
-          <div class="rset-ok-row"><button type="button" class="btn rset-peek" id="setPeek">👁 معاينة</button><button type="button" class="btn primary rset-ok" id="setOk">حفظ</button></div>
+          <div class="rset-ok-row"><button type="button" class="btn primary rset-ok" id="setOk">اعتمد</button></div>
         </div>
         <div class="reader-status"><span class="mk-legend" aria-hidden="true"><span class="mk-l mine">كلماتي</span><span class="mk-l new">جديد</span></span><span class="tiny mode-note" id="modeNote"></span><span class="tiny muted" id="trNote"></span></div>
         <div class="vid-pin" id="vidPin">
@@ -393,32 +395,33 @@ export async function render(view, { segments, params }) {
     toast('رجعنا بدون حفظ التغييرات');
     setTimeout(() => location.reload(), 400); // the video goes on from where it was
   };
-  const closeSet = (e) => { if (!rset.classList.contains('hidden') && !e.target.closest?.('#rset, #setBtn, .peek-note')) discardSet(); };
-  document.addEventListener('click', closeSet);
-  $('#setOk', view).addEventListener('click', () => { toggleSet(false); toast('✓ انحفظت الإعدادات'); });
-  // 👁 preview: after any change the sheet fades for a moment so the video/text shows what changed
-  // (tools, search, ✕ and «موافق» don't fade it; a tap during the preview just brings the sheet back)
-  let peekT = 0;
-  const peekNote = document.createElement('div');
-  peekNote.className = 'peek-note';
-  peekNote.textContent = '👁 هذا شكل التغيير — اضغط للرجوع';
-  view.appendChild(peekNote);
-  const endPeek = () => { clearTimeout(peekT); rset.classList.remove('peek'); peekNote.classList.remove('on'); };
-  const peek = () => {
-    if (rset.classList.contains('hidden')) return;
-    clearTimeout(peekT);
-    rset.classList.add('peek');
-    peekNote.classList.add('on');
-    peekT = setTimeout(endPeek, 2500);
-  };
-  const NO_PEEK = '#setX, #setOk, .rset-ok, #resetAll, #resetR, #tourR, #colorKey, #retrBtn, #summaryBtn, #copyAll, #listenBtn, #del, a, #trQ, .rset-title';
-  void NO_PEEK;
-  // 👁 «معاينة»: the sheet steps aside for a moment to show the video/text with the new choices
-  $('#setPeek', view)?.addEventListener('click', (e) => { e.stopPropagation(); peek(); });
-  document.addEventListener('click', (e) => {
-    if (!rset.classList.contains('peek') || e.target.closest?.('#rset')) return;
-    e.stopPropagation(); e.preventDefault(); endPeek();
-  }, true);
+  // the sheet stays at the bottom while the video/text above shows every choice live; only «اعتمد» keeps them
+  // (✕ or ⚙ again = back without saving). A tap elsewhere no longer discards, so the learner can look and touch the page.
+  $('#setOk', view).addEventListener('click', () => { toggleSet(false); toast('✓ تم اعتماد الإعدادات'); });
+  // ↕ pull the sheet's top edge up or down (remembered on this device, not part of the video settings)
+  (() => {
+    const grip = $('#rsetGrip', view);
+    if (!grip) return;
+    const MIN = 150;
+    const maxH = () => Math.max(MIN, window.innerHeight - 110);
+    const setH = (h) => rset.style.setProperty('--rset-h', `${Math.round(Math.max(MIN, Math.min(maxH(), h)))}px`);
+    const stored = Number((() => { try { return localStorage.getItem('rset.h'); } catch { return 0; } })());
+    if (stored) setH(stored);
+    const keep = () => { try { localStorage.setItem('rset.h', String(Math.round(rset.getBoundingClientRect().height))); } catch { /* ignore */ } };
+    let from = null;
+    grip.addEventListener('pointerdown', (e) => { e.preventDefault(); grip.setPointerCapture?.(e.pointerId); from = { y: e.clientY, h: rset.getBoundingClientRect().height }; });
+    grip.addEventListener('pointermove', (e) => { if (from) setH(from.h + (from.y - e.clientY)); });
+    const end = () => { if (from) { from = null; keep(); } };
+    grip.addEventListener('pointerup', end);
+    grip.addEventListener('pointercancel', end);
+    grip.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+      e.preventDefault();
+      setH(rset.getBoundingClientRect().height + (e.key === 'ArrowUp' ? 40 : -40));
+      keep();
+    });
+    window.addEventListener('resize', () => { if (rset.style.getPropertyValue('--rset-h')) setH(rset.getBoundingClientRect().height); });
+  })();
   $('#setX', view)?.addEventListener('click', discardSet);
   // Video above the text, below it, or floating in a corner (drag it anywhere, it snaps to a corner).
   // 🎬 The video sits above the text by default; when the learner picks «عائم» it floats, large, over the lower half; it can be moved
@@ -928,27 +931,12 @@ export async function render(view, { segments, params }) {
     setPref('reader.font', String(fontPx));
     applyFont();
     recenter();
-    const n = document.querySelector('#fontPill b');
+    const n = document.querySelector('#fontNow');
     if (n) n.textContent = String(fontPx);
   };
-  // 🔠 A−/A+ close the settings sheet and show a small pill, so the text is seen while resizing
-  const fontPill = () => {
-    document.querySelector('#fontPill')?.remove();
-    const p = document.createElement('div');
-    p.id = 'fontPill';
-    p.className = 'font-pill';
-    p.innerHTML = `<button type="button" data-f="-1">A−</button><b class="en-inline">${fontPx}</b><button type="button" data-f="1">A+</button><button type="button" data-f="ok">✓</button>`;
-    document.body.appendChild(p);
-    p.addEventListener('click', (e) => {
-      const f = e.target.closest('[data-f]')?.dataset.f;
-      if (f === 'ok') p.remove(); else if (f) stepFont(Number(f));
-    });
-  };
+  { const n0 = $('#fontNow', view); if (n0) n0.textContent = String(fontPx); }
   view.querySelectorAll('[data-font]').forEach((b) => b.addEventListener('click', () => {
-    stepFont(Number(b.dataset.font));
-    $('#rset', view)?.classList.add('hidden');
-    $('#setBtn', view)?.classList.remove('primary');
-    fontPill();
+    stepFont(Number(b.dataset.font)); // live: the sheet stays at the bottom, the text above changes at once
   }));
   // "العرض" menu: Arabic, layout, hide Arabic, follow, font size — all in one place.
   const viewMenu = $('#viewMenu', view);
@@ -2518,14 +2506,12 @@ export async function render(view, { segments, params }) {
     window.removeEventListener('pagehide', onLeave);
     window.removeEventListener('lexitube:muted', onMuted);
     stopUnmute();
-    document.querySelector('#fontPill')?.remove();
     alive = false;
     stopMic(); sayNote.remove();
     clearInterval(progressTimer);
     saveProgress(true);
     document.removeEventListener('click', closeSpeed);
     document.removeEventListener('click', closeMode);
-    document.removeEventListener('click', closeSet);
     document.removeEventListener('click', closeView);
     document.removeEventListener('keydown', onKey);
     stopListening();

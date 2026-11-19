@@ -1221,10 +1221,6 @@ a.ch-card { text-decoration: none; color: inherit; }
 .bg-dot { width: 32px; height: 32px; border-radius: 50%; border: 2px solid rgba(255,255,255,.5); background: var(--bgc); cursor: pointer; }
 .bg-dot.on { border-color: #fff; outline: 3px solid rgba(0,0,0,.35); }
 .me-card .input { color: var(--ink); background: var(--surface); }
-.font-pill { position: fixed; z-index: 90; bottom: 92px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 999px; background: var(--surface); border: 1px solid var(--accent); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
-.font-pill button { border: 0; border-radius: 999px; min-width: 44px; height: 40px; font: inherit; font-weight: 800; background: var(--surface-2); color: var(--ink); cursor: pointer; }
-.font-pill button[data-f="ok"] { background: var(--accent); color: var(--accent-ink, #fff); }
-.font-pill b { min-width: 28px; text-align: center; }
 @media (max-width: 899px) { .page-reader .reader-tabs { display: none; } }
 body.reader-focus .reader-grid[data-tab="words"] .reader-side { display: block !important; }
 body.reader-focus .reader-grid[data-tab="words"] .reader-main { display: none !important; }
@@ -1898,9 +1894,6 @@ body:has(.th) #topStreak { visibility: hidden; }
 body:has(.th) .sf-streak { display: none; }
 /* 👁 a change in ⚙ is shown first: the sheet fades away for a moment, a small note says so */
 .rset { transition: opacity .25s ease; }
-.rset.peek { opacity: 0; pointer-events: none; }
-.peek-note { position: fixed; top: 76px; inset-inline: 0; margin-inline: auto; width: max-content; max-width: 90vw; padding: 7px 14px; border-radius: 999px; background: var(--ink); color: var(--surface); font-size: 13px; font-weight: 700; z-index: 60; opacity: 0; pointer-events: none; transition: opacity .2s; }
-.peek-note.on { opacity: 1; }
 /* ⏱ the time strip is a seek bar: a bigger touch area, a round knob at the current point */
 .time-strip .ts-bar { position: relative; height: 8px; overflow: visible; cursor: pointer; touch-action: none; }
 .time-strip .ts-bar::before { content: ''; position: absolute; inset: -14px 0; }
@@ -2021,9 +2014,8 @@ body:not(.reader-focus) .view.page-reader .transcript { max-height: none; }
 /* Tiffany switches (the site colour), not green */
 .rset .tg-switch input:checked + .tg-track, .sw:checked { background: #0ABAB5 !important; }
 /* «معاينة» + «حفظ» at the bottom of the sheet */
-.rset-ok-row { position: sticky; bottom: 0; z-index: 3; display: grid; grid-template-columns: auto 1fr; gap: 8px; margin: 10px -12px 0; padding: 10px 12px; background: var(--surface); border-top: 1px solid var(--line); border-radius: 0 0 16px 16px; }
+.rset-ok-row { position: sticky; bottom: 0; z-index: 3; display: grid; grid-template-columns: 1fr; gap: 8px; margin: 10px -12px 0; padding: 10px 12px; background: var(--surface); border-top: 1px solid var(--line); border-radius: 0 0 16px 16px; }
 .rset-ok-row .rset-ok { position: static !important; margin: 0 !important; width: 100% !important; border-radius: 12px !important; box-shadow: none !important; }
-.rset-ok-row .rset-peek { border-radius: 12px; }
 
 /* 📌 Video at the top: the video, its resize line and the time strip stay pinned together
    on a solid background — the text scrolls under them and disappears evenly behind them */
@@ -2164,3 +2156,13 @@ body:not(.reader-focus) .view.page-reader .transcript { max-height: none; }
 .g-tip { background: color-mix(in srgb, #f5b301 10%, var(--surface)); border-color: color-mix(in srgb, #f5b301 35%, var(--line)); }
 .g-signs .en { word-spacing: 2px; }
 @media (max-width: 600px) { .g-fp b { white-space: normal; } .g-fp { padding: 4px 7px; } }
+
+/* ⚙ video settings sheet — docked at the bottom, never over the video: every choice shows live above it.
+   Pull its top edge up or down to make it bigger or smaller; «اعتمد» keeps the choices. */
+.page-reader #rset { position: fixed; top: auto; bottom: 0; inset-inline: 0; margin-inline: auto; width: min(100%, 680px); height: var(--rset-h, 44dvh); max-height: calc(100dvh - 110px); z-index: 70; border-radius: 18px 18px 0 0; box-shadow: 0 -10px 30px rgba(0,0,0,.24); padding: 0 14px calc(0px + env(safe-area-inset-bottom)); }
+.rset-grip { position: sticky; top: 0; z-index: 5; display: grid; place-items: center; height: 28px; margin: 0 -14px; background: var(--surface); border-radius: 18px 18px 0 0; cursor: ns-resize; touch-action: none; outline-offset: -3px; }
+.rset-grip span { width: 46px; height: 5px; border-radius: 99px; background: color-mix(in srgb, var(--ink) 28%, var(--surface)); }
+.page-reader #rset .rset-title { position: sticky; top: 28px; z-index: 4; margin: 0 -14px 6px; padding: 4px 14px 8px; background: var(--surface); border-radius: 0; border-bottom: 1px solid var(--line); }
+.page-reader #rset .rset-ok-row { margin: 10px -14px 0; padding-bottom: calc(10px + env(safe-area-inset-bottom)); border-radius: 0; }
+.rset-hint { margin: 2px 0 6px; line-height: 1.5; }
+.fontnow { min-width: 30px; text-align: center; font-size: 15px; }
