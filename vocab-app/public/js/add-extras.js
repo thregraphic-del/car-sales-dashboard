@@ -532,7 +532,7 @@ const chkCache = (() => { try { return JSON.parse(localStorage.getItem(CHK_KEY) 
 const saveChk = () => { try { localStorage.setItem(CHK_KEY, JSON.stringify(chkCache)); } catch { /* ignore */ } };
 
 export const fieldsHtml = () => `
-  <div class="section-title row between" style="gap:8px"><h2 id="fdTitle">قنوات لتعلّم الإنجليزي</h2>
+  <div class="section-title row between" style="gap:8px"><h2 id="fdTitle">مصادر لتعلّم الإنجليزي</h2>
     <button type="button" class="fav-chip" id="favChip"><span class="ic">${icon.star}</span> المفضلة</button></div>
   <div class="segmented fd-kind" id="fdKind"><button type="button" class="active" data-fk="channels">📺 قنوات</button><button type="button" data-fk="sites">🌐 مواقع</button></div>
   ${channelsHtml()}
@@ -591,7 +591,6 @@ export function bindFields(view) {
   view.addEventListener('error', (e) => { if (e.target.matches?.('.ch-ava img')) e.target.remove(); }, true);
   const draw = () => {
     const sites = kind === 'sites';
-    $('#fdTitle', view).textContent = sites ? 'مواقع للقراءة وتعلّم الإنجليزي' : 'قنوات لتعلّم الإنجليزي';
     view.querySelectorAll('#fdKind [data-fk]').forEach((b) => b.classList.toggle('active', b.dataset.fk === kind));
     const chip = $('#favChip', view);
     if (chip) chip.innerHTML = `<span class="ic">${icon.star}</span> المفضلة${sites && siteFavs.size ? ` (${siteFavs.size})` : ''}`;
