@@ -2275,3 +2275,25 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .th-lost-bar { display: block; height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--ink) 9%, var(--surface)); overflow: hidden; }
 .th-lost-bar b { display: block; height: 100%; border-radius: 99px; background: linear-gradient(to left, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--gold, #CBA55E))); transition: width .35s; }
 #lostQuick { justify-self: start; }
+
+/* ⚙ sheet: opens big enough to read; after a change it shrinks to that one setting so the page above shows what changed */
+.page-reader #rset { height: var(--rset-h, min(62dvh, 560px)); }
+.rset-fbar { display: none; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px; padding: 8px 0 4px; }
+.rset-fbar .fb-t { font-weight: 700; font-size: 14px; } .rset-fbar .fb-t b { color: var(--accent); }
+.rset-fbar .fb-note { flex-basis: 100%; }
+.page-reader #rset.focus { height: auto; max-height: min(40dvh, 340px); }
+#rset.focus .rset-fbar { display: flex; }
+#rset.focus .rset-hint, #rset.focus .sgroup, #rset.focus .rset-reset, #rset.focus .srow:not(.focus-row) { display: none !important; }
+#rset.focus .srow.focus-row { display: block !important; border-bottom: 0; }
+.rset-q { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-inline-start: 7px; padding: 0; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--ink) 14%, var(--surface)); color: var(--ink-2); font: 800 11px var(--font-en, inherit); line-height: 1; cursor: pointer; vertical-align: middle; }
+.rset-q[aria-expanded="true"] { background: var(--ink-2); color: var(--surface); }
+.rset-qa { margin: 8px 0 0; padding: 8px 12px; border-radius: 12px; background: var(--surface-2); color: var(--ink-2); font-size: 13px; line-height: 1.6; text-align: start; }
+.rset-qa.hidden { display: none; }
+.pv-flash { outline: 3px solid var(--gold, #CBA55E); outline-offset: 2px; border-radius: 8px; animation: pvPulse 1s ease-in-out 3; }
+@keyframes pvPulse { 0%, 100% { outline-color: var(--gold, #CBA55E); } 50% { outline-color: transparent; } }
+/* compact focus mode: title, the changed setting and «اعتمد» all fit without scrolling */
+.page-reader #rset.focus { max-height: min(48dvh, 400px); }
+.fb-note:empty { display: none; }
+#rset.focus .rset-fbar { padding: 2px 0 0; }
+#rset.focus .srow.focus-row { padding: 6px 0 4px; }
+#rset.focus .rset-title { padding-bottom: 4px; }

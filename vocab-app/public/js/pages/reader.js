@@ -312,7 +312,8 @@ export async function render(view, { segments, params }) {
         <div class="rset hidden" id="rset">
           <div class="rset-grip" id="rsetGrip" role="separator" aria-orientation="horizontal" tabindex="0" aria-label="اسحب لتكبير القائمة أو تصغيرها"><span></span></div>
           <div class="rset-title row between"><span>إعدادات المقطع</span><button type="button" class="btn icon sm ghost rset-x" id="setX" title="رجوع بدون حفظ" aria-label="رجوع بدون حفظ">✕</button></div>
-          <p class="tiny muted rset-hint">غيّر أي إعداد وشوف أثره فوق مباشرة — اسحب الخط الرمادي لتكبير القائمة أو تصغيرها، ثم اضغط «اعتمد».</p>
+          <div class="rset-fbar"><span class="fb-t">👁 شوف التغيير فوق: <b id="fbName"></b></span><button type="button" class="btn sm ghost" id="fbAll">↩ كل الإعدادات</button><span class="tiny muted fb-note" id="fbNote"></span></div>
+          <p class="tiny muted rset-hint">غيّر أي إعداد وبتنقلك الصفحة للجزء اللي تغيّر عشان تشوف أثره، ثم اضغط «اعتمد». علامة ؟ تشرح لك كل ميزة.</p>
           ${isVideo && hasTimes ? `<div class="sgroup">التشغيل</div><div id="mode" class="rgrp">
             <div class="srow"><span class="slabel">السرعة</span><div class="sopts" id="speed">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" class="sopt en-inline" data-rate="${r}">${r}×</button>`).join('')}</div></div>
             <div class="srow"><span class="slabel">بعد كل جملة</span><div class="sopts am-list" id="amList">
@@ -382,7 +383,7 @@ export async function render(view, { segments, params }) {
   // ✕ = back to the video without keeping what was changed since ⚙ was opened
   const snapReader = () => { const o = {}; try { Object.keys(localStorage).filter((k) => k.startsWith('reader.') && !/^reader\.(saveall|new|new2|newhere)\./.test(k)).forEach((k) => { o[k] = localStorage.getItem(k); }); } catch { /* ignore */ } return o; };
   let setSnap = null;
-  const toggleSet = (open) => { if (open) setSnap = snapReader(); rset.classList.toggle('hidden', !open); $('#setBtn', view).setAttribute('aria-expanded', String(open)); $('#setBtn', view).classList.toggle('primary', open); };
+  const toggleSet = (open) => { if (open) setSnap = snapReader(); rset.classList.remove('focus'); rset.querySelectorAll('.focus-row').forEach((r) => r.classList.remove('focus-row')); rset.classList.toggle('hidden', !open); if (open) rset.scrollTop = 0; $('#setBtn', view).setAttribute('aria-expanded', String(open)); $('#setBtn', view).classList.toggle('primary', open); };
   $('#setBtn', view).addEventListener('click', (e) => { e.stopPropagation(); if (rset.classList.contains('hidden')) toggleSet(true); else discardSet(); });
   // closing without «حفظ» (✕, a tap outside, ⚙ again) = nothing changed is kept
   const discardSet = () => {
@@ -421,6 +422,99 @@ export async function render(view, { segments, params }) {
       keep();
     });
     window.addEventListener('resize', () => { if (rset.style.getPropertyValue('--rset-h')) setH(rset.getBoundingClientRect().height); });
+  })();
+  // 👁 every change is shown: the sheet shrinks to the setting that changed, the page goes to the part that changed and
+  // flashes it, then «اعتمد». A grey ? beside each setting says in one line what it is for.
+  (() => {
+    const T = [
+      ['#speed', 'سرعة الفيديو: أبطأ تفهم أوضح، وأسرع توفّر وقتك.', '.player-box', ''],
+      ['#amList', 'وش يصير بعد كل جملة: يكمّل، أو يوقف شوي، أو يوقف عشان تردّد — يعلّمك النطق.', '.player-box', 'يظهر أثره وأنت تشغّل المقطع.'],
+      ['#wbOn', 'يعرض لك كلمات جديدة قبل ما تجي أو بعدها، عشان تتجهّز لها وما تفوتك.', '.reader-side', 'القائمة تظهر أثناء التشغيل.'],
+      ['#recapOn', 'كل فترة يلخّص لك اللي مرّ بجملتين، عشان ما تضيع في المقطع.', '', 'يظهر الملخص وأنت تشغّل المقطع.'],
+      ['#gramOn', 'يكتب فوق كل جملة قاعدتها، وتضغط تشوف الشرح — تتعلّم القواعد من المقطع نفسه.', '#lines', ''],
+      ['#arToggle', 'يظهر معنى كل جملة بالعربي بجنبها أو تحتها، عشان تفهم أسرع.', '.line-ar', ''],
+      ['.mk-set', 'لون الكلمات الجديدة وكلماتك، عشان تعرف بنظرة اللي تحتاج تتعلّمه.', '.mark', ''],
+      ['#tbOn', 'أزرار التشغيل والتنقل تحت الشاشة، سهلة لإبهامك.', '', 'تظهر تحت بعد ما تقفل القائمة.'],
+      ['#rBg', 'يبدّل خلفية القراءة فاتح أو داكن — يريّح عينك.', '', ''],
+      ['#followToggle', 'النص يمشي مع الفيديو ويثبّتك على الجملة الحالية.', '.line.current, .line.active, #lines', ''],
+      ['[data-font]', 'يكبّر خط النص أو يصغّره عشان تقرأ براحة — اضغط وشوف الفرق فوق.', '#lines .line-en, #lines .c-en, #lines', ''],
+      ['#timesToggle', 'يكتب وقت كل جملة جنبها، وتضغطه تروح لنفس اللحظة.', '.ts', ''],
+      ['#stripToggle', 'شريط صغير تحت الفيديو يوريك وين وصلت وكم باقي، وتسحبه للتنقل.', '#timeStrip', ''],
+      ['#vidPos', 'مكان الفيديو: فوق النص، أو تحته، أو عائم في زاوية.', '.player-box', ''],
+      ['#shOn', 'يوريك طريقة تكبير الفيديو وتصغيره بالخط اللي تحته.', '#split', ''],
+    ];
+    const fbName = $('#fbName', view);
+    const fbNote = $('#fbNote', view);
+    const build = () => T.forEach(([sel, help, target, note], i) => {
+      const row = rset.querySelector(sel)?.closest('.srow');
+      if (!row) return;
+      row.dataset.pv = String(i);
+      row.dataset.pvTarget = target;
+      row.dataset.pvNote = note;
+      const label = row.querySelector('.slabel');
+      if (!label || label.querySelector('.rset-q')) return;
+      row.dataset.pvName = (label.textContent || '').replace(/\s+/g, ' ').trim();
+      row.querySelector('.rset-qa')?.remove();
+      const q = document.createElement('button');
+      q.type = 'button';
+      q.className = 'rset-q';
+      q.textContent = '?';
+      q.setAttribute('aria-label', `وش هو «${row.dataset.pvName}»؟`);
+      q.setAttribute('aria-expanded', 'false');
+      label.appendChild(q);
+      const a = document.createElement('p');
+      a.className = 'rset-qa hidden';
+      a.textContent = help;
+      row.appendChild(a);
+      q.addEventListener('click', (e) => { e.stopPropagation(); const open = a.classList.contains('hidden'); a.classList.toggle('hidden', !open); q.setAttribute('aria-expanded', String(open)); });
+    });
+    build();
+    rset.addEventListener('lx:labels', build);
+    const topEdge = () => {
+      const pin = $('#vidPin', view)?.getBoundingClientRect();
+      const head = $('.reader-head', view)?.getBoundingClientRect();
+      return Math.max(pin ? pin.bottom : 0, head ? head.bottom : 0, 60) + 6;
+    };
+    const flash = (sel) => {
+      const all = sel ? [...view.querySelectorAll(sel)] : [];
+      const sheetTop = rset.getBoundingClientRect().top;
+      const inView = (e) => { const r = e.getBoundingClientRect(); return r.height > 0 && r.width > 0 && r.bottom > 0 && r.top < sheetTop; };
+      let picks = all.filter(inView).slice(0, 6);
+      if (!picks.length) picks = all.filter((e) => e.getBoundingClientRect().height > 0).slice(0, 6); // not on screen yet → go to it
+      if (!picks.length) { const l = $('#lines', view); if (l) picks = [l]; }
+      if (!picks.length) return;
+      const first = picks[0];
+      const inPin = !!first.closest('#vidPin, .player-box');
+      first.scrollIntoView({ block: 'nearest' });
+      const r = first.getBoundingClientRect();
+      if (!inPin && (r.bottom > sheetTop - 8 || r.top < topEdge())) window.scrollBy({ top: r.top - topEdge() - 12, behavior: 'smooth' });
+      picks.forEach((e) => { e.classList.add('pv-flash'); setTimeout(() => e.classList.remove('pv-flash'), 2800); });
+    };
+    let pvT = 0;
+    const preview = (row) => {
+      rset.classList.add('focus');
+      rset.querySelectorAll('.focus-row').forEach((r) => r.classList.remove('focus-row'));
+      row.classList.add('focus-row');
+      fbName.textContent = row.dataset.pvName;
+      fbNote.textContent = row.dataset.pvNote || '';
+      rset.scrollTop = 0;
+      requestAnimationFrame(() => requestAnimationFrame(() => flash(row.dataset.pvTarget)));
+    };
+    const changed = (e) => {
+      if (rset.classList.contains('hidden') || e.target.closest('.rset-q, .rset-qa, #setX, #setOk, #fbAll, .rset-grip, .rset-title')) return;
+      const row = e.target.closest('.srow[data-pv]');
+      if (!row) return;
+      clearTimeout(pvT);
+      pvT = setTimeout(() => preview(row), 60); // after the setting itself has been applied
+    };
+    rset.addEventListener('click', changed);
+    rset.addEventListener('change', changed);
+    $('#fbAll', view)?.addEventListener('click', () => {
+      const row = rset.querySelector('.focus-row');
+      rset.classList.remove('focus');
+      row?.classList.remove('focus-row');
+      requestAnimationFrame(() => row?.scrollIntoView({ block: 'center' }));
+    });
   })();
   $('#setX', view)?.addEventListener('click', discardSet);
   // Video above the text, below it, or floating in a corner (drag it anywhere, it snaps to a corner).
@@ -920,9 +1014,10 @@ export async function render(view, { segments, params }) {
       'أدوات': sv('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/>'),
     };
     rset.querySelectorAll('.slabel').forEach((l) => {
-      const name = l.textContent.trim();
+      const name = l.textContent.replace(/\?$/, '').trim(); // (a ? help button may already be inside)
       l.innerHTML = `${IC[name] || ''}<span>${esc(name)}</span>`;
     });
+    rset.dispatchEvent(new CustomEvent('lx:labels')); // the ? marks (built earlier) are added again after this rewrite
     rset.classList.add('rs-list');
     // 🔲 expanded mode keeps only ⏯ 📝 ⚙ on top — the rest lives here
     const fr = document.createElement('div');
