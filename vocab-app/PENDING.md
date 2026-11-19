@@ -170,3 +170,4 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
 | 1 | ▶ A video opens at speed 0.75 automatically | recorded — not built yet | in the batch | 0 |
+| – | ✕ (fix, rides along) Windows (summary, notes…): the close ✕ sat at the right edge — where the Arabic title and its icon start — so it was hidden behind the icon. It is now a clear round button on the opposite (left) side, the title keeps clear of it, and the floating «!» help bubble hides while any window is open | built — on the free preview | in the batch | 0 |
