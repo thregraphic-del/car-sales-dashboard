@@ -6,6 +6,7 @@ import { maybeTour } from '../tour.js';
 import { state } from '../state.js';
 import { esc, icon, openModal, closeModal, toast } from '../ui.js';
 import { dayStr } from '../goal.js';
+import { setPending, checkDouble, doubleInfo } from '../streak-rescue.js';
 
 const ls = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage off */ } };
@@ -83,7 +84,7 @@ function openReviewSetup(words) {
 /* 🔔 what's new + a daily reminder */
 function newsItems(stats, ld) {
   const out = [];
-  if (stats.streak.rescue) out.push(['🔥', `فاتك يوم — تدريب بسيط يرجّع شعلتك (${stats.streak.rescue.lost} ${stats.streak.rescue.lost === 1 ? 'يوم' : 'أيام'})`, 'rescue']);
+  if (stats.streak.rescue) out.push(['🔥', 'فاتك أمس؟ عادي — ضاعف هدف اليوم ويرجع كأنه ما فاتك، أو سوّ تدريب سريع', 'rescue']);
   if (ld) out.push(['📚', `مراجعة كلمات ${ld.yesterday ? 'أمس' : `يوم ${ld.name}`}`, 'review']);
   if (stats.due) out.push(['⏰', `${stats.due} كلمة حان وقت مراجعتها`, '#/practice?mode=quiz&focus=due']);
   if (stats.difficult) out.push(['💪', `${stats.difficult} كلمة صعبة تحتاج تدريب`, '#/practice?mode=quiz&focus=difficult']);
@@ -138,6 +139,8 @@ export async function render(view) {
   if (stats.streak.rescue && stats.streak.studied_today) {
     try { stats.streak = await api.rescueStreak(); toast(`🔥 رجعت شعلتك — ${stats.streak.current} أيام متتالية`); } catch { /* ignore */ }
   }
+  setPending(stats.streak);
+  await checkDouble(); // the goal may already be doubled (the result lands in stats.streak)
   const st = stats.streak;
   const grey = !!st.rescue;
   const flameN = grey ? st.rescue.lost : st.current;
@@ -153,16 +156,23 @@ export async function render(view) {
         <button class="btn th-go" id="rvStart">ابدأ المراجعة ←</button></div>`
     : `<a class="card th-task" href="#/add"><b class="th-task-t">ابدأ بأول كلماتك</b><div class="th-big">أضف مقطع</div><p class="ink-2 small">الصق رابط يوتيوب، ونجهّز لك كلماته — وبكرة تراجعها هنا.</p><span class="btn th-go">أضف ←</span></a>`;
 
+  const dbl = doubleInfo();
+  const lostCard = grey ? `<div class="card th-lost" id="lostCard"><div class="th-lost-h"><span class="th-lost-i">🔥</span><b>شعلتك طفت — بس عادي!</b></div>
+      <p class="th-lost-p">ضاعف هدف اليوم وأمس يتصحح كأنه ما فاتك.</p>
+      <div class="th-lost-m"><span>هدفك <b class="en-inline">${dbl.n}</b> ${esc(dbl.unit)} — المطلوب اليوم <b class="en-inline">${dbl.target}</b></span><span class="en-inline th-lost-c">${dbl.count}/${dbl.target}</span></div>
+      <i class="th-lost-bar"><b style="width:${dbl.pct}%"></b></i>
+      <button type="button" class="btn sm ghost" id="lostQuick">أو سوّ تدريب سريع (٥ كلمات) ←</button></div>` : '';
   view.innerHTML = `<div class="th">
     <div class="th-top"><div><h1 class="th-hi">أهلًا بعودتك${name} 👋</h1><p class="th-sub">رحلة صغيرة اليوم، تقدّم أكبر غدًا.</p></div>
       <button type="button" class="th-bell${unseen ? ' dot' : ''}" id="bell" aria-label="الجديد والتذكير">${icon.bell}</button></div>
     <div class="th-streak${grey ? ' has-tip' : ''}">
       <button type="button" class="th-flame${grey ? ' grey' : ''}" id="flame" aria-label="الأيام المتتالية">
-        ${grey ? '<span class="th-tip">ترجّع حماسك بتدريب بسيط ✨</span>' : ''}
+        ${grey ? '<span class="th-tip">ضاعف الهدف أو تدريب سريع ✨</span>' : ''}
         <span class="th-fl">🔥</span><b>${flameN}</b><span class="th-fl-t">أيام متتالية</span></button>
       <div class="th-weekwrap"><div class="th-week" id="week"></div>
         <div class="segmented th-metric" id="wkMetric"><button type="button" data-wm="time">⏱ الوقت</button><button type="button" data-wm="words">📚 الكلمات</button></div></div>
     </div>
+    ${lostCard}
     ${task}
     <div class="card th-prog"><div class="row between"><b>تقدّمك هذا الأسبوع</b><span class="tiny muted">آخر ٧ أيام</span></div>
       <div class="th-pn"><b>${stats.week?.saved || 0}</b> <span>كلمة تعلّمتها</span></div>
@@ -212,6 +222,7 @@ export async function render(view) {
     location.hash = `#/practice?mode=quiz&mix=random&rescue=1&exact=1&ids=${pool.slice(0, 5).map((w) => w.uv_id).join(',')}&n=${Date.now()}`;
   };
   view.querySelector('#flame').addEventListener('click', () => (grey ? rescue() : openCalendar()));
+  view.querySelector('#lostQuick')?.addEventListener('click', rescue);
   view.querySelector('#bell').addEventListener('click', () => { lsSet('bell.seen', newsSig(items)); view.querySelector('#bell').classList.remove('dot'); openBell(items, act); });
   view.querySelector('#rvStart')?.addEventListener('click', () => openReviewSetup(ld.words));
   maybeTour('home');

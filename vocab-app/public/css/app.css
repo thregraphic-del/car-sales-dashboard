@@ -2264,3 +2264,14 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .cd-meter b { display: block; height: 100%; border-radius: 99px; background: var(--accent); font-size: 0; }
 .cal-range { text-align: center; margin: 10px 0 8px; }
 @media (min-width: 700px) { .cd-grid { grid-template-columns: repeat(4, 1fr); } }
+
+/* 🔥 the flame went out: a short, kind notice with how far today's doubled goal is */
+.th-lost { display: grid; gap: 8px; padding: 16px 18px; border-radius: 20px; border: 1.5px solid color-mix(in srgb, var(--gold, #CBA55E) 70%, var(--line)); background: color-mix(in srgb, var(--gold, #CBA55E) 11%, var(--surface)); }
+.th-lost-h { display: flex; align-items: center; gap: 10px; font-size: 17px; }
+.th-lost-i { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; background: color-mix(in srgb, var(--gold, #CBA55E) 28%, var(--surface)); color: var(--ink); font-size: 18px; }
+.th-lost-p { margin: 0; line-height: 1.6; color: var(--ink-2); }
+.th-lost-m { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.th-lost-c { font-weight: 800; color: var(--ink); }
+.th-lost-bar { display: block; height: 8px; border-radius: 99px; background: color-mix(in srgb, var(--ink) 9%, var(--surface)); overflow: hidden; }
+.th-lost-bar b { display: block; height: 100%; border-radius: 99px; background: linear-gradient(to left, var(--accent), color-mix(in srgb, var(--accent) 60%, var(--gold, #CBA55E))); transition: width .35s; }
+#lostQuick { justify-self: start; }

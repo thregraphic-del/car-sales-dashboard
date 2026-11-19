@@ -7,6 +7,7 @@ import { icon, $, closeModal, esc, openModal, toast, applyTheme } from './ui.js'
 import { startIcons } from './emoji-icons.js';
 import { BUILD_ID } from './build-id.js';
 import { watchForUpdates } from './update-check.js';
+import { setPending, checkDouble, remindOnce } from './streak-rescue.js';
 import { openFeedback } from './feedback.js';
 import { goalText } from './goal.js';
 
@@ -121,6 +122,9 @@ export async function refreshStats({ lazy = false } = {}) {
   statsAt = Date.now();
   try {
     state.stats = await api.stats();
+    setPending(state.stats.streak);
+    checkDouble();
+    remindOnce(state.stats.streak);
     renderNav(activeNav(parseHash().base));
   } catch {
     /* non-fatal */
@@ -197,6 +201,7 @@ async function route() {
 }
 
 watchForUpdates();
+window.addEventListener('lexitube:goal-progress', () => checkDouble()); // doubling the goal anywhere gives yesterday back
 startIcons(); // every emoji on buttons and titles becomes a line icon in the site's style
 let started = false;
 

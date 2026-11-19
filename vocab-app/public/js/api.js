@@ -47,7 +47,7 @@ export const api = {
   tourSeen: (tour) => request('POST', '/api/me/tours', { tour }),
   updateMe: (patch) => request('PATCH', '/api/me', patch),
   today: () => request('GET', '/api/today'),
-  rescueStreak: () => request('POST', '/api/streak/rescue', {}),
+  rescueStreak: (doubled = false) => request('POST', '/api/streak/rescue', doubled ? { doubled: true } : {}),
   extendToday: (count) => request('POST', '/api/today/extend', { count }),
   stats: () => request('GET', '/api/stats'),
 

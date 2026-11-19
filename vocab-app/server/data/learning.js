@@ -189,11 +189,11 @@ export async function streak(userId) {
   return { current: count, studied_today: studied.has(today), rescue: lost ? { day: yesterday, lost } : null };
 }
 
-/** Give yesterday back once today's practice is done. */
-export async function rescueStreak(userId) {
+/** Give yesterday back once today's practice is done — or once the learner doubled today's goal (checked on their device). */
+export async function rescueStreak(userId, { doubled = false } = {}) {
   const st = await streak(userId);
   if (!st.rescue) return st;
-  if (!st.studied_today) throw httpError(400, 'تدرّب أولًا ثم ترجع شعلتك');
+  if (!st.studied_today && !doubled) throw httpError(400, 'تدرّب أولًا ثم ترجع شعلتك');
   const list = (await rescuedDays(userId)).filter((d) => d >= localDate(startOfDay(400)));
   list.push(st.rescue.day);
   await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', `streak_rescue:${userId}`, JSON.stringify(list));
