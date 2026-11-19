@@ -884,6 +884,10 @@ a.day-tile:hover { border-color: var(--accent); }
 .listen-bar { position: sticky; top: 8px; z-index: 30; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; margin: 0 0 10px; padding: 8px 12px; border-radius: 14px; background: var(--accent); color: var(--accent-ink); box-shadow: var(--shadow-lg); }
 .listen-bar .segmented button { color: inherit; }
 .sum-sec { margin-bottom: 14px; }
+.rc-item { margin-top: 8px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.rc-item summary { display: flex; align-items: center; gap: 8px; min-height: 34px; cursor: pointer; font-weight: 700; }
+.rc-item[open] { border-color: var(--accent); }
+.rc-item p { margin: 6px 0 4px; line-height: 1.8; }
 .sum-sec p, .sum-sec li { line-height: 1.8; }
 .sum-sec ul, .sum-sec ol { margin: 6px 0 0; padding-inline-start: 22px; }
 .sum-quote { margin: 8px 0; padding: 10px 14px; border-inline-start: 3px solid var(--accent); background: var(--surface-2); border-radius: 10px; }

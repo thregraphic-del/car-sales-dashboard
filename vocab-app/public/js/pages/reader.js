@@ -772,11 +772,28 @@ export async function render(view, { segments, params }) {
   let lastPart = null;
   let recapBusy = false;
   const readMs = (text) => Math.max(5000, Math.min(12000, String(text).split(/\s+/).length * 330 + 1500));
+  // every recap that was shown is kept on this device, to read again from the summary (📝)
+  const recapKey = `recaps.${id}`;
+  const savedRecaps = () => { try { return JSON.parse(localStorage.getItem(recapKey) || '[]'); } catch { return []; } };
+  const keepRecap = (from, to, title, text) => {
+    const all = savedRecaps().filter((r) => !(r.from === from && r.to === to));
+    all.push({ from, to, title, text });
+    all.sort((a, b) => a.from - b.from);
+    try { localStorage.setItem(recapKey, JSON.stringify(all.slice(-80))); } catch { /* ignore */ }
+  };
+  const recapsSection = () => {
+    if (!isVideo) return '';
+    const all = savedRecaps();
+    return `<div class="sum-sec rc-sec"><b>⏱ السالفة باختصار</b>${all.length
+      ? all.map((r) => `<details class="rc-item"><summary><span class="en-inline">${fmtTime(r.from)} – ${fmtTime(r.to)}</span>${r.title === 'الجاي باختصار' ? '<span class="tiny muted">الجاي</span>' : ''}</summary><p>${esc(r.text)}</p></details>`).join('')
+      : '<p class="tiny muted">ما ظهرت سوالف بعد — تطلع مع تقدّم المقطع (إعداد «ملخص كل فترة») وتنحفظ هنا لتقرأها لاحقًا.</p>'}</div>`;
+  };
   const showRecapNote = (from, to, title) => {
     if (!state.config.ai.available || recapBusy) return;
     recapBusy = true;
     api.recap(id, from, to).then((r) => {
       if (!alive || !r.ok || !r.text) return;
+      keepRecap(from, to, title, r.text);
       // stays up as long as it takes to read it (5–12 s), then hides by itself
       const ms = readMs(r.text);
       popNote(`<div class="lt-title">${title}</div><p class="lt-text">${esc(r.text)}</p>`, { ms, cls: 'lt-recap' });
@@ -2088,11 +2105,19 @@ export async function render(view, { segments, params }) {
     soundNote?.classList.toggle('hidden', !on);
   };
   const stopUnmute = () => { UNMUTE_EVENTS.forEach((ev) => document.removeEventListener(ev, unmuteOnTouch, true)); showSoundNote(false); };
+  let soundSaid = false; // one touch fires several events (touchend, pointerup, click): say it once
   const unmuteOnTouch = () => {
     player?.unmute?.();
-    setTimeout(() => { if (!player?.muted || !player.muted()) { stopUnmute(); window.__ytMuted = false; toast('🔊 الصوت شغّال'); } }, 400);
+    setTimeout(() => {
+      if (soundSaid || (player?.muted && player.muted())) return;
+      soundSaid = true;
+      stopUnmute();
+      window.__ytMuted = false;
+      toast('🔊 الصوت شغّال');
+    }, 400);
   };
-  const onMuted = () => { UNMUTE_EVENTS.forEach((ev) => document.addEventListener(ev, unmuteOnTouch, true)); showSoundNote(true); };
+  const onMuted = () => {
+    soundSaid = false; UNMUTE_EVENTS.forEach((ev) => document.addEventListener(ev, unmuteOnTouch, true)); showSoundNote(true); };
   window.addEventListener('lexitube:muted', onMuted);
   if (window.__ytMuted) onMuted(); // it may have been flagged before this listener was ready
   if (params.line) {
@@ -2356,6 +2381,7 @@ export async function render(view, { segments, params }) {
       box.innerHTML = `<button class="btn icon sm ghost modal-close" data-close aria-label="إغلاق">${icon.x}</button>
         <h2 style="margin-bottom:4px">📝 ملخص المقطع</h2><div class="tiny muted en" style="margin-bottom:12px">${esc(source.title)}</div>
         ${summaryHtml(s)}
+        ${recapsSection()}
         <div class="btn-row" style="justify-content:center;margin-top:12px"><button type="button" class="btn" id="sumKeep">${icon.bookmark} احفظ في «أفكار»</button></div>${doneBtn}`;
       bindSpeech(box);
       box.querySelector('#sumKeep')?.addEventListener('click', async (e) => {
@@ -2364,7 +2390,7 @@ export async function render(view, { segments, params }) {
         try { await api.keepNote(id, s); b.innerHTML = `${icon.check} محفوظ في <a href="#/notes" data-close>أفكار</a>`; } catch (err) { b.disabled = false; toast(err.message); }
       });
     } catch (err) {
-      box.innerHTML = `<button class="btn icon sm ghost modal-close" data-close aria-label="إغلاق">${icon.x}</button><h2>📝 ملخص المقطع</h2><div class="alert">${esc(err.message)}</div>${doneBtn}`;
+      box.innerHTML = `<button class="btn icon sm ghost modal-close" data-close aria-label="إغلاق">${icon.x}</button><h2>📝 ملخص المقطع</h2><div class="alert">${esc(err.message)}</div>${recapsSection()}${doneBtn}`;
     }
     box.querySelector('#sumDone')?.addEventListener('click', () => { closeModal(true); done(); });
   };

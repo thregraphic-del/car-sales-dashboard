@@ -170,6 +170,7 @@ export function toast(msg, ms = 0) {
   // stays long enough to read: short notes ~2.6 s, long ones up to 8 s
   if (!ms) ms = Math.max(2600, Math.min(8000, String(msg).split(/\s+/).length * 380 + 1200));
   const root = $('#toastRoot');
+  if ([...root.children].some((c) => c.textContent === msg && c.style.opacity !== '0')) return; // already on screen
   const el = document.createElement('div');
   el.className = 'toast';
   el.textContent = msg;
