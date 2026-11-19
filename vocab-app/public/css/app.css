@@ -2166,3 +2166,18 @@ body:not(.reader-focus) .view.page-reader .transcript { max-height: none; }
 .page-reader #rset .rset-ok-row { margin: 10px -14px 0; padding-bottom: calc(10px + env(safe-area-inset-bottom)); border-radius: 0; }
 .rset-hint { margin: 2px 0 6px; line-height: 1.5; }
 .fontnow { min-width: 30px; text-align: center; font-size: 15px; }
+
+/* one icon style: emoji turned into line icons (see emoji-icons.js) — they follow the text colour, so the theme and dark mode */
+.ico { display: inline-flex; flex: none; width: 1.18em; height: 1.18em; vertical-align: -0.22em; }
+.ico svg { width: 100%; height: 100%; stroke-width: 1.9; }
+.ico.fill svg { fill: currentColor; stroke: none; }
+.fd-fav .ico, .tx-star .ico { width: 1em; height: 1em; }
+.fd-fav.on, .tx-star.on { color: #d9a21b; }
+.celebrate-emoji .ico { width: 1em; height: 1em; color: var(--accent); }
+.empty .icon .ico, .card.empty .icon .ico { width: 1em; height: 1em; color: var(--accent); }
+/* the floating help bubble steps aside while the video settings are open (it used to cover the sheet) */
+body:has(.page-reader #rset:not(.hidden)) .help-fab { display: none !important; }
+/* the help bubble: smaller and a little see-through so it covers less of the page; its ✕ sits clear of the «!» */
+.help-fab .hf-go { width: 38px; height: 38px; font-size: 19px; opacity: .88; }
+.help-fab .hf-x { width: 22px; height: 22px; margin-inline-start: -6px; margin-top: -10px; font-size: 12px; display: grid; place-items: center; }
+.help-fab .hf-x .ico { width: 12px; height: 12px; }

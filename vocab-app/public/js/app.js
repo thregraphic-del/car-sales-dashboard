@@ -4,6 +4,7 @@ import { state, loadGroups } from './state.js';
 import { stop as stopAudio, speak } from './audio.js';
 import { closeWordPanel, openWordPanel } from './components.js';
 import { icon, $, closeModal, esc, openModal, toast, applyTheme } from './ui.js';
+import { startIcons } from './emoji-icons.js';
 import { openFeedback } from './feedback.js';
 import { goalText } from './goal.js';
 
@@ -193,6 +194,7 @@ async function route() {
   refreshStats({ lazy: true });
 }
 
+startIcons(); // every emoji on buttons and titles becomes a line icon in the site's style
 let started = false;
 
 /** 👤 Kind invitation for guests: register (same data, nothing lost) or later. */
