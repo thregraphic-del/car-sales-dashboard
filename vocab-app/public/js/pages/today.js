@@ -88,6 +88,9 @@ function openReviewSetup(words) {
 }
 
 /* 🔔 what's new + a daily reminder */
+// a day that reached its goal: a small orange flame (warm, motivating) instead of the old spark
+const ORANGE_FLAME = '<svg class="th-flame-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 22.5c4.2 0 7.2-2.8 7.2-7.1 0-3.1-2-5.7-3.6-7.3-.3 2.1-1.5 3.2-2.6 3.2 0-3.1-1.5-6.2-4.2-8.3.2 3.1-1.7 5.2-3.1 6.9-1.3 1.6-1.8 3.4-1.8 5.5 0 4.3 3.1 7.1 8.1 7.1z" fill="#FF7A1A" stroke="none"/><path d="M12 22.5c2.4 0 4-1.5 4-3.8 0-1.8-1.1-3.1-2.2-4.1-.2 1.2-.9 1.8-1.6 1.8 0-1.8-.8-3.4-2.2-4.6.1 1.8-.9 3-1.7 3.9-.7.9-1 1.8-1 3 0 2.3 1.7 3.8 4.7 3.8z" fill="#FFC83D" stroke="none"/></svg>';
+
 function newsItems(stats, ld) {
   const out = [];
   if (stats.streak.rescue) out.push(['🔥', 'فاتك أمس؟ عادي — ضاعف هدف اليوم ويرجع كأنه ما فاتك، أو سوّ تدريب سريع', 'rescue']);
@@ -207,7 +210,7 @@ export async function render(view) {
       const d = new Date(sat); d.setDate(sat.getDate() + i);
       const done = d <= now && reachedOn(d, days);
       const isToday = d.toDateString() === now.toDateString();
-      out.push(`<span class="th-box${done ? ' done' : ''}${isToday ? ' today' : ''}${d > now ? ' future' : ''}" title="${DAY_NAMES[d.getDay()]}${done ? ' · حققت هدفك' : ''}">${done ? icon.sparkle : WD[d.getDay()]}</span>`);
+      out.push(`<span class="th-box${done ? ' done' : ''}${isToday ? ' today' : ''}${d > now ? ' future' : ''}" title="${DAY_NAMES[d.getDay()]}${done ? ' · حققت هدفك' : ''}">${done ? ORANGE_FLAME : WD[d.getDay()]}</span>`);
     }
     view.querySelector('#week').innerHTML = out.join('');
   };

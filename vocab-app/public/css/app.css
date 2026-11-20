@@ -2366,3 +2366,4 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .sad-badge { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-inline-start: 4px; color: var(--gold, #CBA55E); vertical-align: -3px; animation: lostSway 3.2s ease-in-out infinite; }
 .sad-badge svg { width: 100%; height: 100%; }
 .nav-link { position: relative; }
+.th-box .th-flame-ic { width: 24px; height: 24px; fill: none; stroke: none; filter: drop-shadow(0 1px 3px rgba(255, 122, 26, .45)); }
