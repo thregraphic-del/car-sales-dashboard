@@ -183,3 +183,4 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
+| 1 | ⏱ «اليوم» → under «تقدّمك هذا الأسبوع»: one plain grey line «اليوم ١٢ دقيقة 💪» — the minutes watched TODAY (counted on this device; «أقل من دقيقة» under a minute, «٠ دقيقة» before any), so the learner knows exactly how long they stayed today | built — on the free preview | in the batch | 0 |

@@ -2297,3 +2297,7 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 #rset.focus .rset-fbar { padding: 2px 0 0; }
 #rset.focus .srow.focus-row { padding: 6px 0 4px; }
 #rset.focus .rset-title { padding-bottom: 4px; }
+
+.th-today { margin-top: 4px; font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+.th-today b { font-weight: 700; color: var(--muted); }
+.th-today .ico { color: var(--muted); }

@@ -14,6 +14,12 @@ const WD = ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س']; // Sun..Sat
 const DAY_NAMES = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 const shuffle = (a) => { const x = [...a]; for (let i = x.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [x[i], x[j]] = [x[j], x[i]]; } return x; };
 
+/** Minutes watched today, counted on this device: «أقل من دقيقة» until a full minute. */
+function todayMinutes() {
+  const sec = Number(ls(`lt.watch.${dayStr()}`, 0)) || 0;
+  return sec >= 60 ? `${Math.floor(sec / 60)} دقيقة` : sec > 0 ? 'أقل من دقيقة' : '٠ دقيقة';
+}
+
 /** What the dashboard measures: time watched on this device, or words learned (saved). */
 const metricPref = () => (ls('today.metric', 'time') === 'words' ? 'words' : 'time');
 const watchMin = (d) => Math.round((Number(ls(`lt.watch.${dayStr(d)}`, 0)) || 0) / 60);
@@ -176,7 +182,8 @@ export async function render(view) {
     ${task}
     <div class="card th-prog"><div class="row between"><b>تقدّمك هذا الأسبوع</b><span class="tiny muted">آخر ٧ أيام</span></div>
       <div class="th-pn"><b>${stats.week?.saved || 0}</b> <span>كلمة تعلّمتها</span></div>
-      <div class="tiny muted">${icon.clock} ${weekMinutes()} دقيقة تعلّم</div></div>
+      <div class="tiny muted">${icon.clock} ${weekMinutes()} دقيقة تعلّم</div>
+      <div class="th-today">اليوم <b class="en-inline">${todayMinutes()}</b> 💪</div></div>
   </div>`;
 
   // this week (Saturday → Friday): each day is a column filled by the chosen measure — time watched (this device)
