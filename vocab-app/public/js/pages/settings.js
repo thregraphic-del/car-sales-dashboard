@@ -5,6 +5,7 @@ import { esc, icon, toast, num, openModal, closeModal, applyTheme } from '../ui.
 import { refreshStats } from '../app.js';
 import { readDataFiles, importSnapshot, countsOf, TABLES } from '../data-transfer.js';
 import { feedbackCardHtml, bindFeedbackCard } from '../feedback.js';
+import { costReportHtml, bindCostReport } from '../cost-report.js';
 import { GOAL_TYPES, goalCfg, setGoal, progress } from '../goal.js';
 
 const TABLE_LABELS = {
@@ -82,6 +83,7 @@ export async function render(view) {
         </form>
         <button class="btn ghost" id="logout" style="justify-self:start">تسجيل الخروج</button>
       </div>` : ''}
+      ${!cfg.auth?.required || u.role === 'admin' ? costReportHtml() : ''}
       <div class="card stack" style="grid-column:1/-1">
         <b>بياناتك</b>
         <div id="counts" class="small muted">…</div>
@@ -196,6 +198,7 @@ export async function render(view) {
   });
 
   bindFeedbackCard(view);
+  bindCostReport(view);
 
   /* ---------------------------------------------------------- data */
   let current = {};

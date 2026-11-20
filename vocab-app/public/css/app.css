@@ -2379,3 +2379,13 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .gpt-pill-x { all: unset; cursor: pointer; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; opacity: .8; }
 .gpt-save textarea { min-height: 180px; }
 @media (min-width: 900px) { .gpt-pill { top: 14px; } }
+
+/* 📊 the owner's month report */
+.cost-rep .cr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.cost-rep .cr-grid > div { display: grid; gap: 2px; padding: 10px 8px; border-radius: 14px; background: color-mix(in srgb, var(--accent) 7%, var(--surface)); text-align: center; }
+.cost-rep .cr-grid b { font-size: 20px; }
+.cost-rep .cr-grid span { font-size: 12px; color: var(--ink-2); }
+.cost-rep .cr-cost { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; border-radius: 14px; background: color-mix(in srgb, var(--gold, #CBA55E) 18%, var(--surface)); }
+.cost-rep .cr-cost b { font-size: 22px; }
+.cost-rep .cr-tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.cost-rep .cr-tbl th, .cost-rep .cr-tbl td { padding: 8px 6px; border-bottom: 1px solid color-mix(in srgb, var(--ink) 10%, transparent); text-align: start; }

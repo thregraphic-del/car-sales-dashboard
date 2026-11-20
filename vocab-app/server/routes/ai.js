@@ -24,6 +24,21 @@ router.get('/status', wrap(async (req) => {
 
 router.get('/usage', wrap(async (req) => usageReport(req.userId, { admin: req.user?.role === 'admin' || !config.auth.required })));
 
+/** 📊 The owner's own month: what the AI cost, and how much was added (clips, minutes). Read once when the owner opens the report. */
+router.get('/my-month', wrap(async (req) => {
+  if (!(req.user?.role === 'admin' || !config.auth.required)) return { admin: false };
+  const now = new Date();
+  const month = `${now.toISOString().slice(0, 7)}-01`;
+  const u = await get('SELECT COALESCE(SUM(calls),0) AS calls, COALESCE(SUM(prompt_tokens),0) AS pt, COALESCE(SUM(completion_tokens),0) AS ct, COALESCE(SUM(cost),0) AS cost, COALESCE(SUM(transcripts),0) AS transcripts, COUNT(*) AS days FROM ai_usage WHERE user_id = ? AND day >= ?', req.userId, month);
+  const s = await get("SELECT COALESCE(SUM(CASE WHEN kind = 'youtube' THEN 1 ELSE 0 END),0) AS videos, COALESCE(SUM(CASE WHEN kind = 'text' THEN 1 ELSE 0 END),0) AS texts, COALESCE(SUM(CASE WHEN kind = 'youtube' THEN duration_seconds ELSE 0 END),0) AS secs FROM sources WHERE user_id = ? AND is_demo = 0 AND created_at >= ?", req.userId, month);
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  return {
+    admin: true, month: month.slice(0, 7), day_of_month: now.getDate(), days_in_month: daysInMonth,
+    calls: Number(u?.calls || 0), prompt_tokens: Number(u?.pt || 0), completion_tokens: Number(u?.ct || 0), cost: Number(u?.cost || 0), transcripts: Number(u?.transcripts || 0), active_days: Number(u?.days || 0),
+    videos: Number(s?.videos || 0), texts: Number(s?.texts || 0), minutes: Math.round(Number(s?.secs || 0) / 60),
+  };
+}));
+
 router.post('/explain', wrap(async (req, res) => {
   const text = String(req.body?.text || '').replace(/\s+/g, ' ').trim();
   if (!text) throw httpError(400, 'حدّد كلمة أو جملة أولًا.');
