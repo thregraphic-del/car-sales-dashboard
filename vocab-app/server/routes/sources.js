@@ -1,4 +1,5 @@
 // /api/sources — YouTube videos and texts: analysis, reader view, AI chunks.
+import { requirePaid } from '../lib/paid.js';
 import { simplifySourceWords, simplestFor } from '../data/simplest.js';
 import { Router } from 'express';
 import { config } from '../config.js';
@@ -66,6 +67,7 @@ router.post('/:id/index-step', wrap(async (req) => sources.indexStep(idParam(req
 router.post('/:id/retranslate', wrap(async (req) => sources.retranslate(idParam(req), req.userId)));
 
 router.post('/:id/recap', wrap(async (req, res) => {
+  await requirePaid(req, 'recap'); // owner-only, off by default (costs AI credit)
   const id = idParam(req);
   const src = await sources.getSource(id, req.userId);
   if (!src) throw httpError(404, 'المقطع غير موجود.');
@@ -87,6 +89,7 @@ router.post('/:id/translation', wrap(async (req) => service.translateSource(idPa
 router.post('/:id/align', wrap(async (req) => service.alignSource(idParam(req), req.userId, req.body?.from, req.body?.skip)));
 
 router.post('/:id/summary', wrap(async (req, res) => {
+  await requirePaid(req, 'summary'); // owner-only, off by default (costs AI credit)
   const id = idParam(req);
   const src = await sources.getSource(id, req.userId);
   if (!src) throw httpError(404, 'المقطع غير موجود.');

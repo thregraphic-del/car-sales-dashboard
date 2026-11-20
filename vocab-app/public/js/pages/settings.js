@@ -83,6 +83,12 @@ export async function render(view) {
         </form>
         <button class="btn ghost" id="logout" style="justify-self:start">تسجيل الخروج</button>
       </div>` : ''}
+      ${cfg.can_set_paid ? `<div class="card stack" style="grid-column:1/-1" id="paidCard">
+        <b>🔒 ميزات مدفوعة — لك أنتِ فقط</b>
+        <p class="tiny muted" style="margin:0">تستهلك رصيد الذكاء الاصطناعي، فهي <b>مطفية</b> عندك وغير موجودة أصلًا عند غيرك. شغّليها للضرورة وأطفيها بعدها. (البديل المجاني: زر ChatGPT.)</p>
+        <div class="row between small"><span>📝 ملخص المقطع كامل</span><label class="tg-switch"><input type="checkbox" data-paid="summary" ${cfg.paid?.summary ? 'checked' : ''}><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div>
+        <div class="row between small"><span>السوالف باختصار (كل فترة داخل الفيديو)</span><label class="tg-switch"><input type="checkbox" data-paid="recap" ${cfg.paid?.recap ? 'checked' : ''}><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div>
+      </div>` : ''}
       ${!cfg.auth?.required || u.role === 'admin' ? costReportHtml() : ''}
       <div class="card stack" style="grid-column:1/-1">
         <b>بياناتك</b>
@@ -199,6 +205,13 @@ export async function render(view) {
 
   bindFeedbackCard(view);
   bindCostReport(view);
+  view.querySelectorAll('[data-paid]').forEach((box) => box.addEventListener('change', async () => {
+    try {
+      const r = await api.setPaid({ [box.dataset.paid]: box.checked });
+      state.config = { ...(state.config || cfg), paid: r.paid };
+      toast(box.checked ? 'شغّلتها — تستهلك رصيد الذكاء الاصطناعي، لا تنسين تطفينها' : 'انطفت ✓');
+    } catch (err) { box.checked = !box.checked; toast(err.message); }
+  }));
 
   /* ---------------------------------------------------------- data */
   let current = {};

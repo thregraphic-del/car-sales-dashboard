@@ -275,6 +275,8 @@ function lineHtml(line, marks) {
 }
 
 export async function render(view, { segments, params }) {
+  // 🔒 the full summary and the periodic recaps are owner-only and off unless she switched them on (they spend AI credit)
+  const paid = (state.config || await api.config().catch(() => null))?.paid || { summary: false, recap: false };
   const id = Number(segments[1]);
   let data;
   try {
@@ -307,7 +309,7 @@ export async function render(view, { segments, params }) {
       <div class="reader-title-sm en" dir="auto" title="${esc(source.title)}">${esc(source.title)}</div>
       ${isVideo ? `<button type="button" class="rb-btn rb-ic play-btn" id="playBtn" title="تشغيل / إيقاف (مسافة)" aria-label="تشغيل أو إيقاف">${icon.play}</button>` : ''}
       ${isVideo && hasTimes ? `<button type="button" class="rb-btn rb-ic" id="againBtn" aria-pressed="false" title="كل جملة تُعاد مرتين تلقائيًا">${icon.repeat}<span class="rb-x">×2</span></button><button type="button" class="rb-btn rb-ic" id="shadowBtn" aria-pressed="false" title="ردّد معي: يقف بعد كل جملة لتعيدها">${icon.mic}<span>ردّد</span></button>` : ''}
-      ${isVideo || data.lines.length ? `<button type="button" class="rb-btn sum-top" id="sumTop" title="ملخص المقطع كامل: أبرز الأفكار، خطوات عملية، الحكم والرسالة">${icon.doc}<span>ملخص المقطع</span></button>` : ''}
+      ${paid.summary && (isVideo || data.lines.length) ? `<button type="button" class="rb-btn sum-top" id="sumTop" title="ملخص المقطع كامل: أبرز الأفكار، خطوات عملية، الحكم والرسالة">${icon.doc}<span>ملخص المقطع</span></button>` : ''}
       ${data.lines.length ? `<button type="button" class="rb-btn rb-ic" id="gptTop" title="اسأل ChatGPT عن المقطع: ينسخ رسالة تلخيص جاهزة مع النص ويفتح ChatGPT" aria-label="اسأل ChatGPT">${icon.gpt}</button>` : ''}
       <button type="button" class="rb-btn words-btn" id="wordsBtn" aria-pressed="false" title="الكلمات الجديدة في المقطع">${icon.list}<span>الكلمات</span> <b id="wcount2">${data.items.length}</b></button>
       <button type="button" class="rb-btn rb-ic" id="focusBtn" aria-pressed="false" title="توسيع الشاشة">${icon.expand}</button>
@@ -337,10 +339,10 @@ export async function render(view, { segments, params }) {
           <div class="srow sw-row"><span class="slabel">قائمة الكلمات</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="wbOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label>
             <div class="sw-sub"><span class="sopts">كل <input class="input sopt-num" id="wbN" type="number" min="3" max="300" inputmode="numeric"> <span class="tiny">كلمة</span></span>
             <span class="sopts" id="wbWhen"><button type="button" class="sopt" data-when="before">قبلها</button><button type="button" class="sopt" data-when="after">بعدها</button></span></div></div></div>
-          <div class="srow sw-row"><span class="slabel">ملخص كل فترة</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="recapOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label>
+          ${paid.recap ? `<div class="srow sw-row"><span class="slabel">ملخص كل فترة</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="recapOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label>
             <div class="sw-sub"><span class="sopts" id="recapMin"><span class="tiny">كل</span>${[3, 6].map((m) => `<button type="button" class="sopt en-inline" data-rmin="${m}">${m}د</button>`).join('')}<input class="input sopt-num" id="recapMinN" type="number" min="1" max="60" inputmode="numeric" placeholder="اكتب" aria-label="كل كم دقيقة"></span>
             <span class="sopts" id="recapWhen"><button type="button" class="sopt" data-rwhen="before">قبل</button><button type="button" class="sopt" data-rwhen="after">بعد</button></span>
-            <span class="sopts" id="recapPause"><span class="tiny">لما يطلع:</span><button type="button" class="sopt" data-rpause="none">يكمّل المقطع</button><button type="button" class="sopt" data-rpause="read">يوقف بقدر قراءته</button><button type="button" class="sopt" data-rpause="5">يوقف ٥ ثواني</button></span></div></div></div>` : ''}
+            <span class="sopts" id="recapPause"><span class="tiny">لما يطلع:</span><button type="button" class="sopt" data-rpause="none">يكمّل المقطع</button><button type="button" class="sopt" data-rpause="read">يوقف بقدر قراءته</button><button type="button" class="sopt" data-rpause="5">يوقف ٥ ثواني</button></span></div></div></div>` : ''}` : ''}
           <div class="sgroup">العرض</div>
           <div id="viewPick" class="rgrp"><button type="button" class="hidden" id="viewBtn"></button><div id="viewMenu" class="rgrp">
             <div class="srow sw-row"><span class="slabel">📚 وضع القواعد</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="gramOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label><div class="sw-sub"><span class="tiny">بدل الكلمات: كل سطر يظهر فوقه اسم القاعدة (مثل «الماضي البسيط») — اضغطه تشوف شرحها وأمثلتها وتحفظ المثال.</span></div></div></div>
@@ -361,7 +363,7 @@ export async function render(view, { segments, params }) {
           <div class="sgroup">أدوات</div>
           <div class="srow"><span class="slabel">شرح</span><div class="sopts"><button class="sopt" id="tourR">شرح الأزرار</button><button class="sopt" id="colorKey">🎨 مفتاح الألوان</button><button class="sopt" id="resetR">↺ رجّع كل الإعدادات للأصل</button></div></div>
           <div class="srow"><span class="slabel">أدوات</span><div class="sopts">
-            <button class="sopt" id="retrBtn">ترجمة أدق</button><button class="sopt" id="summaryBtn">📝 ملخص المقطع كامل</button><button class="sopt" id="copyAll">📋 نسخ كل النص</button><button class="sopt" id="saveGpt">💾 احفظ ملخص ChatGPT</button><button class="sopt" id="askGpt"><span class="ico" aria-hidden="true">${icon.gpt}</span> اسأل ChatGPT</button><button class="sopt" id="listenBtn">🎧 استماع</button>
+            <button class="sopt" id="retrBtn">ترجمة أدق</button>${paid.summary ? '<button class="sopt" id="summaryBtn">📝 ملخص المقطع كامل</button>' : ''}<button class="sopt" id="copyAll">📋 نسخ كل النص</button><button class="sopt" id="saveGpt">💾 احفظ ملخص ChatGPT</button><button class="sopt" id="askGpt"><span class="ico" aria-hidden="true">${icon.gpt}</span> اسأل ChatGPT</button><button class="sopt" id="listenBtn">🎧 استماع</button>
             ${source.youtube_id && !source.is_demo ? `<a class="sopt" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">يوتيوب ↗</a>` : ''}
             <button class="sopt" id="del" style="color:var(--bad)">🗑 حذف</button></div></div>
           <button type="button" class="btn rset-reset" id="resetAll">↺ رجّع كل الإعدادات للأصل</button>
@@ -851,7 +853,7 @@ export async function render(view, { segments, params }) {
   view.addEventListener('click', (e) => { if (e.target.closest('#pfOpen')) openPracticeFilter(); });
 
   // 📝 What it is about, in a few words of everyday Saudi Arabic — when and how often the learner chooses.
-  let recapOn = pref('reader.recap3', '1') === '1' && !params.jump; // on by default
+  let recapOn = paid.recap && pref('reader.recap3', '1') === '1' && !params.jump; // owner-only and off unless she switches it on in the settings
   const recapBox = $('#recapOn', view);
   if (recapBox) {
     recapBox.checked = recapOn;
@@ -2598,7 +2600,7 @@ export async function render(view, { segments, params }) {
         <button type="button" class="btn" id="endExit">إنهاء</button></div></div>`);
     box.querySelector('#endExit')?.addEventListener('click', () => { closeModal(); location.hash = '#/add'; });
   };
-  endedFlow = () => showSummary(finishVideo);
+  endedFlow = () => (paid.summary ? showSummary(finishVideo) : finishVideo());
 
   /* 🎧 Listen: each sentence read aloud, Arabic then English (or the other way) — follow by ear */
   let listenRun = 0;

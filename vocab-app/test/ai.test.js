@@ -499,6 +499,7 @@ test('video: dictionary words become suggestions, practice from the video, goal 
 
 test('summary and channels', async () => {
   reply = ok({ idea: 'فكرة', benefit: 'فائدة', points: ['نقطة'], steps: ['خطوة'], quotes: [{ en: 'Hi everyone', ar: 'مرحبًا' }] });
+  await postJson('/api/paid', { summary: true, recap: true }); // owner switches the paid features on
   const s = await postJson('/api/sources/1/summary', {});
   assert.equal(s.status, 200);
   assert.equal(s.body.steps[0], 'خطوة');

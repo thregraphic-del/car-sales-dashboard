@@ -6,6 +6,7 @@ import { aiStatus, checkModel } from '../services/ai.js';
 import { ttsInfo } from '../services/tts.js';
 import { ensureUser, updateUser, publicUser } from '../data/users.js';
 import { dialect, get, run } from '../db/index.js';
+import { paidFor, setPaid, isOwner } from '../lib/paid.js';
 
 const router = Router();
 const STARTED = new Date().toISOString();
@@ -22,8 +23,13 @@ router.get('/config', wrap(async (req) => ({
   database: { engine: await dialect() },
   auth: { required: config.auth.required },
   features: { demo_reset: config.features.demoReset },
+  paid: await paidFor(req),
+  can_set_paid: isOwner(req),
   limits: { daily_goal_min: config.limits.dailyGoalMin, daily_goal_max: config.limits.dailyGoalMax, import_chunk_rows: config.limits.importChunkRows },
 })));
+
+/** 🔒 the owner switches the paid AI features (summary, recaps) on or off for herself. */
+router.post('/paid', wrap(async (req) => ({ ok: true, paid: await setPaid(req, req.body) })));
 
 router.patch('/me', wrap(async (req) => {
   const b = req.body || {};
