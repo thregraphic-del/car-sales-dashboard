@@ -2326,3 +2326,12 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .cb span { height: 15px; line-height: 15px; }
 .cb small { height: 13px; line-height: 13px; }
 .cl-gt { paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+
+/* «اليوم»: the week from the outside — only «reached the goal or not» */
+.th-box { display: grid; place-items: center; flex: none; width: clamp(34px, 9.4vw, 46px); aspect-ratio: 1; border-radius: 14px; font-size: 14px; font-weight: 700; background: color-mix(in srgb, var(--ink) 7%, var(--surface)); color: var(--muted); }
+.th-box.done { background: linear-gradient(150deg, var(--accent), color-mix(in srgb, var(--accent) 72%, #000)); color: var(--gold, #CBA55E); box-shadow: 0 4px 10px color-mix(in srgb, var(--accent) 30%, transparent); }
+.th-box svg { width: 22px; height: 22px; fill: currentColor; stroke: currentColor; }
+.th-box.today:not(.done) { box-shadow: inset 0 0 0 2px var(--accent); color: var(--accent); }
+.th-box.today.done { outline: 2px solid var(--gold, #CBA55E); outline-offset: 2px; }
+.th-box.future { opacity: .55; }
+.th-week { align-items: center; }

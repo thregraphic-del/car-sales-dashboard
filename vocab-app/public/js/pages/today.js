@@ -5,7 +5,7 @@ import { api } from '../api.js';
 import { maybeTour } from '../tour.js';
 import { state } from '../state.js';
 import { esc, icon, openModal, closeModal, toast } from '../ui.js';
-import { dayStr, goalFor } from '../goal.js';
+import { dayStr, goalFor, goalCfg } from '../goal.js';
 import { setPending, checkDouble, doubleInfo } from '../streak-rescue.js';
 
 const ls = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
@@ -175,8 +175,7 @@ export async function render(view) {
       <button type="button" class="th-flame${grey ? ' grey' : ''}" id="flame" aria-label="الأيام المتتالية">
         ${grey ? '<span class="th-tip">ضاعف الهدف أو تدريب سريع ✨</span>' : ''}
         <span class="th-fl">🔥</span><b>${flameN}</b><span class="th-fl-t">أيام متتالية</span></button>
-      <div class="th-weekwrap"><div class="th-week" id="week"></div>
-        <div class="segmented th-metric" id="wkMetric"><button type="button" data-wm="time">⏱ الوقت</button><button type="button" data-wm="words">📚 الكلمات</button></div></div>
+      <div class="th-weekwrap"><div class="th-week" id="week" role="button" tabindex="0" aria-label="تفاصيل الأسبوع"></div></div>
     </div>
     ${lostCard}
     ${task}
@@ -186,36 +185,35 @@ export async function render(view) {
       <div class="th-today">اليوم <b class="en-inline">${todayMinutes()}</b> 💪</div></div>
   </div>`;
 
-  // this week (Saturday → Friday): each day is a column filled by the chosen measure — time watched (this device)
-  // or words learned — so the days are never silent squares; today is ringed, tap = the dashboard
+  // this week (Saturday → Friday): from the outside only one answer per day — did the learner reach the goal?
+  // A coloured box with a spark = yes; a plain box with the day's letter = not yet. Tap = the full dashboard.
   let weekDays = {};
+  const reachedOn = (d, days) => {
+    const cfg = goalCfg();
+    const k = dayStr(d);
+    let n = 0;
+    if (cfg.type === 'watch') n = Math.floor((Number(ls(`lt.watch.${k}`, 0)) || 0) / 60);
+    else if (cfg.type === 'practice') n = Math.max(Number(ls(`lt.answers.${k}`, 0)) || 0, Number(days[d.toISOString().slice(0, 10)]?.answers || 0));
+    else { try { n = JSON.parse(ls(`lt.passed.${k}`, '[]')).length; } catch { n = 0; } }
+    return n >= cfg.n;
+  };
   const drawWeek = (days = weekDays) => {
     weekDays = days;
-    const metric = metricPref();
     const now = new Date(); now.setHours(12, 0, 0, 0);
     const sat = new Date(now); sat.setDate(now.getDate() - ((now.getDay() + 1) % 7));
-    const cols = [];
+    const out = [];
     for (let i = 0; i < 7; i += 1) {
       const d = new Date(sat); d.setDate(sat.getDate() + i);
-      cols.push({ d, key: d.toISOString().slice(0, 10), v: dayValue(d, days, metric), act: dayActive(d, days) });
+      const done = d <= now && reachedOn(d, days);
+      const isToday = d.toDateString() === now.toDateString();
+      out.push(`<span class="th-box${done ? ' done' : ''}${isToday ? ' today' : ''}${d > now ? ' future' : ''}" title="${DAY_NAMES[d.getDay()]}${done ? ' · حققت هدفك' : ''}">${done ? icon.sparkle : WD[d.getDay()]}</span>`);
     }
-    const max = Math.max(metric === 'time' ? 10 : 5, ...cols.map((c) => c.v));
-    view.querySelector('#week').innerHTML = cols.map((c) => {
-      const pct = c.v ? Math.max(12, Math.round((100 * c.v) / max)) : (c.act ? 7 : 0);
-      const isToday = c.d.toDateString() === now.toDateString();
-      return `<span class="th-col${isToday ? ' today' : ''}${c.d > now ? ' future' : ''}${c.act ? ' act' : ''}" title="${DAY_NAMES[c.d.getDay()]}${c.v ? ` · ${c.v} ${metric === 'time' ? 'دقيقة' : 'كلمة'}` : ''}"><em class="th-val">${c.v || ''}</em><i class="th-bar"><b style="height:${pct}%"></b></i><span class="th-l">${WD[c.d.getDay()]}</span></span>`;
-    }).join('');
-    view.querySelectorAll('#wkMetric [data-wm]').forEach((b) => b.classList.toggle('active', b.dataset.wm === metric));
+    view.querySelector('#week').innerHTML = out.join('');
   };
   drawWeek();
   api.calendar().then((r) => drawWeek(r.days || {})).catch(() => {});
   view.querySelector('#week').addEventListener('click', openCalendar);
-  view.querySelector('#wkMetric').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-wm]');
-    if (!b) return;
-    lsSet('today.metric', b.dataset.wm);
-    drawWeek();
-  });
+  view.querySelector('#week').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCalendar(); } });
 
   const act = (a) => {
     if (a === 'rescue') return rescue();
