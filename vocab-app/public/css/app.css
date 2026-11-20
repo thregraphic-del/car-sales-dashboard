@@ -2344,3 +2344,25 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .gpt-mark { display: inline-block; width: 18px; height: 18px; flex: none; background-color: currentColor; vertical-align: -3px;
   -webkit-mask: url('/img/gpt-mark.png') center / contain no-repeat; mask: url('/img/gpt-mark.png') center / contain no-repeat; }
 .rb-btn .gpt-mark { width: 17px; height: 17px; vertical-align: middle; }
+
+/* 😢 the flame went out: a moving sad face "saying" what to do, and a small sad mark on the «اليوم» icon */
+.th-lost { gap: 10px; }
+.lost-row { display: flex; align-items: center; gap: 22px; }
+.lost-face { flex: none; width: 72px; height: 72px; color: var(--gold, #CBA55E); display: grid; place-items: center; }
+.lost-svg { width: 100%; height: 100%; overflow: visible; }
+.lost-head { transform-box: fill-box; transform-origin: 50% 90%; animation: lostSway 3.2s ease-in-out infinite; }
+.lost-tear { color: var(--accent); transform-box: fill-box; animation: lostTear 2.4s ease-in infinite; }
+.lost-wave path { opacity: 0; animation: lostWave 2s ease-out infinite; }
+.lost-wave path:nth-child(2) { animation-delay: .35s; }
+.lost-bubble { position: relative; flex: 1; min-width: 0; display: grid; gap: 3px; padding: 11px 14px; border-radius: 16px; background: color-mix(in srgb, var(--gold, #CBA55E) 16%, var(--surface)); border: 1.5px solid color-mix(in srgb, var(--gold, #CBA55E) 45%, transparent); }
+.lost-bubble b { font-size: 16px; }
+.lost-bubble span { color: var(--ink-2); line-height: 1.55; font-size: 14px; }
+.lost-bubble::before { content: ''; position: absolute; top: 50%; inset-inline-start: -8px; width: 14px; height: 14px; margin-top: -7px; transform: rotate(45deg); background: inherit; border: inherit; border-top-color: transparent; border-inline-end-color: transparent; }
+[dir="rtl"] .lost-bubble::before { border-inline-end-color: inherit; border-inline-start-color: transparent; border-top-color: transparent; border-right-color: inherit; border-left-color: transparent; border-bottom-color: inherit; }
+@keyframes lostSway { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg) translateY(1px); } }
+@keyframes lostTear { 0% { transform: translateY(-3px); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(14px); opacity: 0; } }
+@keyframes lostWave { 0% { opacity: 0; transform: translateX(3px); } 40% { opacity: .9; } 100% { opacity: 0; transform: translateX(-3px); } }
+@media (prefers-reduced-motion: reduce) { .lost-head, .lost-tear, .lost-wave path { animation: none; } .lost-wave path { opacity: .7; } }
+.sad-badge { display: inline-grid; place-items: center; width: 16px; height: 16px; margin-inline-start: 4px; color: var(--gold, #CBA55E); vertical-align: -3px; animation: lostSway 3.2s ease-in-out infinite; }
+.sad-badge svg { width: 100%; height: 100%; }
+.nav-link { position: relative; }

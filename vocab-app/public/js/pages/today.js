@@ -163,21 +163,22 @@ export async function render(view) {
     : `<a class="card th-task" href="#/add"><b class="th-task-t">ابدأ بأول كلماتك</b><div class="th-big">أضف مقطع</div><p class="ink-2 small">الصق رابط يوتيوب، ونجهّز لك كلماته — وبكرة تراجعها هنا.</p><span class="btn th-go">أضف ←</span></a>`;
 
   const dbl = doubleInfo();
-  const lostCard = grey ? `<div class="card th-lost" id="lostCard"><div class="th-lost-h"><span class="th-lost-i">🔥</span><b>شعلتك طفت — بس عادي!</b></div>
-      <p class="th-lost-p">ضاعف هدف اليوم وأمس يتصحح كأنه ما فاتك.</p>
+  const sadFace = '<svg class="lost-svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="lost-head"><circle cx="30" cy="34" r="21"/><path d="M19.5 30.5l5.5-2.6M40.5 30.5l-5.5-2.6" stroke-width="2.2"/><circle cx="23" cy="34" r="1.7" fill="currentColor" stroke="none"/><circle cx="37" cy="34" r="1.7" fill="currentColor" stroke="none"/><path d="M22.5 46c2.2-3.6 12.8-3.6 15 0"/></g><path class="lost-tear" d="M42 38c-2 2.6-2.2 4.4-.6 5.3 1.6.9 3-.9 .6-5.3z" fill="currentColor" stroke="none"/><g class="lost-wave" stroke-width="2.2"><path d="M6 25c-2 3.2-2 7.8 0 11"/><path d="M1 21c-3.4 5.4-3.4 13.6 0 19"/></g></svg>';
+  const lostCard = grey ? `<div class="card th-lost" id="lostCard"><div class="lost-row"><span class="lost-face">${sadFace}</span>
+      <div class="lost-bubble"><b>شعلتك طفت — بس عادي!</b><span>يمكنك مضاعفة هدف اليوم ليتعدّل أمس</span></div></div>
       <div class="th-lost-m"><span>هدفك <b class="en-inline">${dbl.n}</b> ${esc(dbl.unit)} — المطلوب اليوم <b class="en-inline">${dbl.target}</b></span><span class="en-inline th-lost-c">${dbl.count}/${dbl.target}</span></div>
       <i class="th-lost-bar"><b style="width:${dbl.pct}%"></b></i>
       <button type="button" class="btn sm ghost" id="lostQuick">أو سوّ تدريب سريع (٥ كلمات) ←</button></div>` : '';
   view.innerHTML = `<div class="th">
     <div class="th-top"><div><h1 class="th-hi">أهلًا بعودتك${name} 👋</h1><p class="th-sub">رحلة صغيرة اليوم، تقدّم أكبر غدًا.</p></div>
       <button type="button" class="th-bell${unseen ? ' dot' : ''}" id="bell" aria-label="الجديد والتذكير">${icon.bell}</button></div>
+    ${lostCard}
     <div class="th-streak${grey ? ' has-tip' : ''}">
       <button type="button" class="th-flame${grey ? ' grey' : ''}" id="flame" aria-label="الأيام المتتالية">
         ${grey ? '<span class="th-tip">ضاعف الهدف أو تدريب سريع ✨</span>' : ''}
         <span class="th-fl">🔥</span><b>${flameN}</b><span class="th-fl-t">أيام متتالية</span></button>
       <div class="th-weekwrap"><div class="th-week" id="week" role="button" tabindex="0" aria-label="تفاصيل الأسبوع"></div></div>
     </div>
-    ${lostCard}
     ${task}
     <div class="card th-prog"><div class="row between"><b>تقدّمك هذا الأسبوع</b><span class="tiny muted">آخر ٧ أيام</span></div>
       <div class="th-pn"><b>${stats.week?.saved || 0}</b> <span>كلمة تعلّمتها</span></div>

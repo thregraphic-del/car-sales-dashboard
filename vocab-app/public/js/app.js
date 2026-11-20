@@ -51,15 +51,17 @@ function parseHash() {
   return { base: `/${segments[0] || ''}`, segments, params: Object.fromEntries(new URLSearchParams(query)) };
 }
 
+// a small sad face on the «اليوم» icon (and on the flame chip) while yesterday can still be given back — a quiet reminder every time the learner comes in
+const SAD_BADGE = '<span class="sad-badge" title="شعلتك طفت — ضاعف هدف اليوم وأمس يتصحح" aria-label="شعلتك طفت"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><circle cx="8.8" cy="10" r=".9" fill="currentColor" stroke="none"/><circle cx="15.2" cy="10" r=".9" fill="currentColor" stroke="none"/><path d="M8 16.4c1.2-2.2 6.8-2.2 8 0"/></svg></span>';
 function renderNav(active) {
   const s = state.stats;
   const left = s ? Math.max(0, s.plan.total - s.plan.completed) : 0;
-  const links = NAV.map((n) => `<a class="nav-link ${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? `<span class="badge">${left}</span>` : ''}</a>`).join('');
+  const links = NAV.map((n) => `<a class="nav-link ${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? `<span class="badge">${left}</span>` : ''}${n.path === '/' && s?.streak?.rescue ? SAD_BADGE : ''}</a>`).join('');
   $('#nav').innerHTML = `${links}<div class="nav-sep"></div><a class="nav-link ${active === '/friends' ? 'active' : ''}" href="#/friends">${icon.users}<span>أصدقائي</span></a><a class="nav-link ${active === '/notes' ? 'active' : ''}" href="#/notes">${icon.bookOpen}<span>أفكار</span></a><a class="nav-link ${active === '/settings' ? 'active' : ''}" href="#/settings">${icon.settings}<span>الإعدادات</span></a>`;
   // bottom bar on phones: only the three working pages (اليوم · الإعدادات · أصدقائي live in the ☰ menu)
   $('#tabbar').innerHTML = NAV.filter((n) => n.path !== '/').map((n) => `<a class="${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span></a>`).join('');
   const top = $('#topStreak');
-  if (top && s) top.innerHTML = `🔥 <b class="en-inline">${s.streak.current}</b>`;
+  if (top && s) top.innerHTML = `🔥 <b class="en-inline">${s.streak.current}</b>${s.streak.rescue ? SAD_BADGE : ''}`;
   const guestChip = state.user?.guest ? '<div class="guest-chip">👤 أنت ضيف — <a href="/register"><b>سجّل حسابك المجاني</b></a> وتنحفظ كلماتك. عندك حساب؟ <a href="/login"><b>ادخل</b></a></div>' : '';
   $('#sidebarFoot').innerHTML = s
     ? `${guestChip}<div class="row between sf-streak"><span>🔥 أيام متتالية</span><b class="en-inline">${s.streak.current}</b></div>
