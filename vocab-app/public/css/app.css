@@ -2339,3 +2339,8 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 /* ChatGPT help window (long texts) */
 .gpt-help .gpt-step { margin: 0; line-height: 1.7; }
 .gpt-help .btn { justify-content: center; text-decoration: none; }
+
+/* ChatGPT mark: the logo shape filled with the current text colour (follows light / dark) */
+.gpt-mark { display: inline-block; width: 18px; height: 18px; flex: none; background-color: currentColor; vertical-align: -3px;
+  -webkit-mask: url('/img/gpt-mark.png') center / contain no-repeat; mask: url('/img/gpt-mark.png') center / contain no-repeat; }
+.rb-btn .gpt-mark { width: 17px; height: 17px; vertical-align: middle; }
