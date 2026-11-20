@@ -307,7 +307,7 @@ export async function render(view, { segments, params }) {
       ${isVideo ? `<button type="button" class="rb-btn rb-ic play-btn" id="playBtn" title="تشغيل / إيقاف (مسافة)" aria-label="تشغيل أو إيقاف">${icon.play}</button>` : ''}
       ${isVideo && hasTimes ? `<button type="button" class="rb-btn rb-ic" id="againBtn" aria-pressed="false" title="كل جملة تُعاد مرتين تلقائيًا">${icon.repeat}<span class="rb-x">×2</span></button><button type="button" class="rb-btn rb-ic" id="shadowBtn" aria-pressed="false" title="ردّد معي: يقف بعد كل جملة لتعيدها">${icon.mic}<span>ردّد</span></button>` : ''}
       ${isVideo || data.lines.length ? `<button type="button" class="rb-btn sum-top" id="sumTop" title="ملخص المقطع كامل: أبرز الأفكار، خطوات عملية، الحكم والرسالة">${icon.doc}<span>ملخص المقطع</span></button>` : ''}
-      ${data.lines.length ? `<button type="button" class="rb-btn rb-ic" id="gptTop" title="اسأل ChatGPT عن المقطع: ينسخ رسالة تلخيص جاهزة مع النص ويفتح ChatGPT" aria-label="اسأل ChatGPT">${icon.brain}</button>` : ''}
+      ${data.lines.length ? `<button type="button" class="rb-btn rb-ic" id="gptTop" title="اسأل ChatGPT عن المقطع: ينسخ رسالة تلخيص جاهزة مع النص ويفتح ChatGPT" aria-label="اسأل ChatGPT">${icon.gpt}</button>` : ''}
       <button type="button" class="rb-btn words-btn" id="wordsBtn" aria-pressed="false" title="الكلمات الجديدة في المقطع">${icon.list}<span>الكلمات</span> <b id="wcount2">${data.items.length}</b></button>
       <button type="button" class="rb-btn rb-ic" id="focusBtn" aria-pressed="false" title="توسيع الشاشة">${icon.expand}</button>
       <button type="button" class="btn icon sm ghost set-btn" id="setBtn" aria-expanded="false" title="إعدادات المقطع">${icon.settings}</button>
@@ -360,7 +360,7 @@ export async function render(view, { segments, params }) {
           <div class="sgroup">أدوات</div>
           <div class="srow"><span class="slabel">شرح</span><div class="sopts"><button class="sopt" id="tourR">شرح الأزرار</button><button class="sopt" id="colorKey">🎨 مفتاح الألوان</button><button class="sopt" id="resetR">↺ رجّع كل الإعدادات للأصل</button></div></div>
           <div class="srow"><span class="slabel">أدوات</span><div class="sopts">
-            <button class="sopt" id="retrBtn">ترجمة أدق</button><button class="sopt" id="summaryBtn">📝 ملخص المقطع كامل</button><button class="sopt" id="copyAll">📋 نسخ كل النص</button><button class="sopt" id="askGpt">🧠 اسأل ChatGPT</button><button class="sopt" id="listenBtn">🎧 استماع</button>
+            <button class="sopt" id="retrBtn">ترجمة أدق</button><button class="sopt" id="summaryBtn">📝 ملخص المقطع كامل</button><button class="sopt" id="copyAll">📋 نسخ كل النص</button><button class="sopt" id="askGpt"><span class="ico" aria-hidden="true">${icon.gpt}</span> اسأل ChatGPT</button><button class="sopt" id="listenBtn">🎧 استماع</button>
             ${source.youtube_id && !source.is_demo ? `<a class="sopt" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">يوتيوب ↗</a>` : ''}
             <button class="sopt" id="del" style="color:var(--bad)">🗑 حذف</button></div></div>
           <button type="button" class="btn rset-reset" id="resetAll">↺ رجّع كل الإعدادات للأصل</button>
@@ -2562,7 +2562,7 @@ export async function render(view, { segments, params }) {
     // a long text: say first that it takes about a minute, copy the full message, and give one clear button
     const ok = await copyText(full);
     openModal(`<div class="stack gpt-help">
-        <h2 style="margin:0">🧠 لخّص المقطع في ChatGPT</h2>
+        <h2 style="margin:0">لخّص المقطع في ChatGPT</h2>
         <p class="gpt-step">⏳ <b>النص طويل، فتجهيزه في ChatGPT ياخذ نحو دقيقة</b> قبل ما يشتغل زر الإرسال — انتظر لين يخلص الشريط «جارٍ إضافة النص».</p>
         <p class="gpt-step">${ok ? '✓' : '⚠'} <b>${ok ? 'نُسخت الرسالة كاملة' : 'ما قدرنا ننسخ'}</b> (طلب «لخّص بالعربي، الزبدة فقط» ومعه النص كله)${ok ? '' : ' — استخدم «نسخ كل النص» من الإعدادات'}.</p>
         <a class="btn primary" href="${url}" target="_blank" rel="noopener" data-close>افتح ChatGPT ↗</a>

@@ -249,6 +249,7 @@ Object.assign(icon, {
   chat: svg('<path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.2A8 8 0 1 1 21 12z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/>'),
   sprout: svg('<path d="M12 21v-9"/><path d="M12 12C12 7 8 5 4 5c0 4 3 7 8 7z"/><path d="M12 10c0-4 3-6 8-6 0 4-3 6-8 6z"/>'),
   flask: svg('<path d="M9 3h6M10 3v6L4.5 18.5A1.7 1.7 0 0 0 6 21h12a1.7 1.7 0 0 0 1.5-2.5L14 9V3"/><path d="M7 15h10"/>'),
+  gpt: svg('<g stroke-width="1.4"><rect x="8.6" y="2.6" width="6.8" height="10.4" rx="3.4" transform="rotate(0 12 12)"/><rect x="8.6" y="2.6" width="6.8" height="10.4" rx="3.4" transform="rotate(60 12 12)"/><rect x="8.6" y="2.6" width="6.8" height="10.4" rx="3.4" transform="rotate(120 12 12)"/><rect x="8.6" y="2.6" width="6.8" height="10.4" rx="3.4" transform="rotate(180 12 12)"/><rect x="8.6" y="2.6" width="6.8" height="10.4" rx="3.4" transform="rotate(240 12 12)"/><rect x="8.6" y="2.6" width="6.8" height="10.4" rx="3.4" transform="rotate(300 12 12)"/></g>'),
   brain: svg('<path d="M12 5a3 3 0 0 0-5.8-1A3 3 0 0 0 4 9a3.5 3.5 0 0 0 1 6.5A3 3 0 0 0 12 19z"/><path d="M12 5a3 3 0 0 1 5.8-1A3 3 0 0 1 20 9a3.5 3.5 0 0 1-1 6.5A3 3 0 0 1 12 19z"/>'),
   heart: svg('<path d="M20.8 5.6a5 5 0 0 0-7.6-.6L12 6.2 10.8 5a5 5 0 0 0-7.1 7.1L12 20.5l8.3-8.4a5 5 0 0 0 .5-6.5z"/>'),
   palette: svg('<circle cx="12" cy="12" r="9"/><circle cx="8" cy="10" r="1.2" fill="currentColor"/><circle cx="12" cy="7.5" r="1.2" fill="currentColor"/><circle cx="16" cy="10" r="1.2" fill="currentColor"/><path d="M12 21a2.5 2.5 0 0 1 0-5h2a3 3 0 0 0 3-3"/>'),
