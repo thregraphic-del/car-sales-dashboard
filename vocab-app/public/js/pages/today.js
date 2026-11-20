@@ -5,7 +5,7 @@ import { api } from '../api.js';
 import { maybeTour } from '../tour.js';
 import { state } from '../state.js';
 import { esc, icon, openModal, closeModal, toast } from '../ui.js';
-import { dayStr, goalFor, goalCfg } from '../goal.js';
+import { dayStr, goalFor, reachedOn as goalReachedOn } from '../goal.js';
 import { setPending, checkDouble, doubleInfo } from '../streak-rescue.js';
 
 const ls = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
@@ -169,7 +169,7 @@ export async function render(view) {
   const sadFace = '<svg class="lost-svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="lost-head"><circle cx="30" cy="34" r="21"/><path d="M19.5 30.5l5.5-2.6M40.5 30.5l-5.5-2.6" stroke-width="2.2"/><circle cx="23" cy="34" r="1.7" fill="currentColor" stroke="none"/><circle cx="37" cy="34" r="1.7" fill="currentColor" stroke="none"/><path d="M22.5 46c2.2-3.6 12.8-3.6 15 0"/></g><path class="lost-tear" d="M42 38c-2 2.6-2.2 4.4-.6 5.3 1.6.9 3-.9 .6-5.3z" fill="currentColor" stroke="none"/><g class="lost-wave" stroke-width="2.2"><path d="M6 25c-2 3.2-2 7.8 0 11"/><path d="M1 21c-3.4 5.4-3.4 13.6 0 19"/></g></svg>';
   const lostCard = grey ? `<div class="card th-lost" id="lostCard"><div class="lost-row"><span class="lost-face">${sadFace}</span>
       <div class="lost-bubble"><b>شعلتك طفت — بس عادي!</b><span>يمكنك مضاعفة هدف اليوم ليتعدّل أمس</span></div></div>
-      <div class="th-lost-m"><span>هدفك <b class="en-inline">${dbl.n}</b> ${esc(dbl.unit)} — المطلوب اليوم <b class="en-inline">${dbl.target}</b></span><span class="en-inline th-lost-c">${dbl.count}/${dbl.target}</span></div>
+      <div class="th-lost-m"><span>${esc(dbl.line)}</span><span class="en-inline th-lost-c">${dbl.combo ? `${dbl.count}/${dbl.target}` : `${dbl.count}/${dbl.target}`}</span></div>
       <i class="th-lost-bar"><b style="width:${dbl.pct}%"></b></i>
       <button type="button" class="btn sm ghost" id="lostQuick">أو سوّ تدريب سريع (٥ كلمات) ←</button></div>` : '';
   view.innerHTML = `<div class="th">
@@ -192,15 +192,7 @@ export async function render(view) {
   // this week (Saturday → Friday): from the outside only one answer per day — did the learner reach the goal?
   // A coloured box with a spark = yes; a plain box with the day's letter = not yet. Tap = the full dashboard.
   let weekDays = {};
-  const reachedOn = (d, days) => {
-    const cfg = goalCfg();
-    const k = dayStr(d);
-    let n = 0;
-    if (cfg.type === 'watch') n = Math.floor((Number(ls(`lt.watch.${k}`, 0)) || 0) / 60);
-    else if (cfg.type === 'practice') n = Math.max(Number(ls(`lt.answers.${k}`, 0)) || 0, Number(days[d.toISOString().slice(0, 10)]?.answers || 0));
-    else { try { n = JSON.parse(ls(`lt.passed.${k}`, '[]')).length; } catch { n = 0; } }
-    return n >= cfg.n;
-  };
+  const reachedOn = (d, days) => goalReachedOn(dayStr(d), { practice: days[d.toISOString().slice(0, 10)]?.answers });
   const drawWeek = (days = weekDays) => {
     weekDays = days;
     const now = new Date(); now.setHours(12, 0, 0, 0);

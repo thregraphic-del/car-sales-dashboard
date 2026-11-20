@@ -2399,3 +2399,40 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .cc-cost { flex: none; font-size: 15px; color: var(--accent); }
 .cc-steps { display: grid; gap: 6px; padding: 8px 12px 12px; border-top: 1px dashed color-mix(in srgb, var(--ink) 14%, transparent); }
 .cc-steps[hidden] { display: none; }
+
+/* 🎯 daily goal: one or several goals, each with its own number */
+.goal-rows { display: grid; gap: 8px; margin-top: 6px; }
+.goal-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 12px; background: var(--surface); }
+.goal-row.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 9%, var(--surface)); }
+.goal-pick { display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0; cursor: pointer; }
+.goal-pick > span { display: grid; gap: 2px; min-width: 0; }
+.goal-num { display: flex; align-items: center; gap: 6px; flex: none; }
+.goal-num .input { width: 74px; text-align: center; padding: 8px 6px; }
+.goal-num .input:disabled { opacity: .45; }
+
+/* 📚 grammar practice: games that teach the rule */
+.gp-home { gap: 12px; }
+.gp-filters { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.gp-filters .field { display: grid; gap: 4px; }
+.gp-games { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.gp-game { display: grid; gap: 4px; justify-items: start; text-align: start; padding: 12px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--surface); cursor: pointer; color: inherit; font: inherit; }
+.gp-game:hover, .gp-game:focus-visible { border-color: var(--accent); }
+.gp-ic { font-size: 22px; line-height: 1; }
+.gp-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.gp-bar { flex: 1; margin: 0; }
+.q-use { font-size: 17px; line-height: 1.7; padding: 10px 12px; border-radius: 12px; background: color-mix(in srgb, var(--accent) 8%, var(--surface)); margin: 6px 0 4px; }
+.g-teach { text-align: start; display: grid; gap: 6px; margin-top: 8px; padding: 10px 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); color: var(--ink); font-weight: 400; }
+.g-teach-h { font-size: 16px; }
+.g-teach-p { margin: 0; line-height: 1.7; font-size: 14px; }
+.g-teach .g-ex p { margin: 0; line-height: 1.6; }
+.gp-built { min-height: 48px; display: flex; flex-wrap: wrap; gap: 6px; padding: 10px; border: 1.5px dashed var(--line); border-radius: 12px; margin: 10px 0; }
+.gp-built.ok { border-color: var(--good); background: var(--good-soft); }
+.gp-built.no { border-color: var(--bad); background: var(--bad-soft); }
+.gp-bank { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.gp-tok { padding: 8px 12px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--surface); font: inherit; font-size: 16px; color: inherit; cursor: pointer; }
+.gp-tok.on { background: color-mix(in srgb, var(--accent) 12%, var(--surface)); border-color: var(--accent); cursor: default; }
+.gp-tok:disabled { opacity: .35; }
+.gp-end { text-align: center; }
+.gp-missed { text-align: start; display: grid; gap: 6px; margin-top: 10px; }
+.gp-missed details { border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; background: var(--surface); }
+.gp-missed summary { cursor: pointer; font-weight: 600; }

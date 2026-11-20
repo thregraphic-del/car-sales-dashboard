@@ -6,7 +6,7 @@ import { refreshStats } from '../app.js';
 import { readDataFiles, importSnapshot, countsOf, TABLES } from '../data-transfer.js';
 import { feedbackCardHtml, bindFeedbackCard } from '../feedback.js';
 import { costReportHtml, bindCostReport } from '../cost-report.js';
-import { GOAL_TYPES, goalCfg, setGoal, progress } from '../goal.js';
+import { GOAL_TYPES, goalTypes, setGoalTypes, setGoalN, goalFor, progress } from '../goal.js';
 
 const TABLE_LABELS = {
   sources: 'مصادر', transcript_lines: 'أسطر نص', vocabulary: 'مفردات', examples: 'أمثلة', occurrences: 'سياقات', user_vocabulary: 'كلماتك',
@@ -39,8 +39,10 @@ export async function render(view) {
         </section>
         <section class="set-card">
           ${swItem('goalOn', '🎯 الهدف اليومي', 'تابع كم سويت اليوم، ونبّهني لما أوصل', `
-            <div class="goal-types" id="goalTypes">${Object.entries(GOAL_TYPES).map(([k, t]) => `<button type="button" class="goal-type${goalCfg().type === k ? ' on' : ''}" data-gt="${k}"><b>${t.label}</b><span class="tiny muted">${t.note}</span></button>`).join('')}</div>
-            <div class="set-line"><span class="set-lbl">العدد</span><input class="input en-inline" id="goalN" type="number" inputmode="numeric" style="width:96px;text-align:center" value="${goalCfg().n}"> <span id="goalUnit" class="small">${goalCfg().unit}</span></div>
+            <p class="tiny muted" style="margin:0">اختر هدفًا واحدًا أو أكثر. لو اخترت أكثر من واحد يصير <b>هدفك مركّب</b>: يكتمل اليوم لما تحقق كلها، ولكل هدف عدده.</p>
+            <div class="goal-rows" id="goalRows">${Object.entries(GOAL_TYPES).map(([k, g]) => `<div class="goal-row${goalTypes().includes(k) ? ' on' : ''}" data-gt="${k}">
+              <label class="goal-pick"><input type="checkbox" class="check" data-gc="${k}" ${goalTypes().includes(k) ? 'checked' : ''}><span><b>${g.label}</b><span class="tiny muted">${g.note}</span></span></label>
+              <span class="goal-num"><input class="input en-inline" data-gn="${k}" type="number" inputmode="numeric" min="${g.min}" max="${g.max}" value="${goalFor(k)}"> <span class="small">${g.unit}</span></span></div>`).join('')}</div>
             <span class="tiny muted" id="goalNow"></span>`)}
         </section>
         <section class="set-card">
@@ -126,28 +128,33 @@ export async function render(view) {
     </div>`;
 
   const $ = (s) => view.querySelector(s);
-  // 🎯 pick what counts (words that go by / minutes watched / practice answers) and how many
+  // 🎯 pick what counts (one or several: words that go by · word practice · minutes watched · grammar rules) and how many of each
   const drawGoal = () => {
-    const g = goalCfg();
-    view.querySelectorAll('[data-gt]').forEach((b) => b.classList.toggle('on', b.dataset.gt === g.type));
-    $('#goalN').value = g.n;
-    $('#goalN').min = g.min; $('#goalN').max = g.max;
-    $('#goalUnit').textContent = g.unit;
+    const sel = goalTypes();
+    view.querySelectorAll('[data-gt]').forEach((row) => {
+      const on = sel.includes(row.dataset.gt);
+      row.classList.toggle('on', on);
+      row.querySelector('[data-gc]').checked = on;
+      row.querySelector('[data-gn]').disabled = !on;
+    });
     const p = progress();
-    $('#goalNow').textContent = `اليوم: ${p.count} من ${p.n} ${p.unit}${p.done ? ' ✓' : ''}`;
+    $('#goalNow').innerHTML = `${p.combo ? '<b>هدف مركّب</b> — ' : ''}اليوم: ${p.items.map((i) => `${i.short} <b class="en-inline">${i.count}/${i.n}</b>${i.done ? ' ✓' : ''}`).join(' · ')}${p.combo && p.done ? ' — كملت كلها 🎉' : ''}`;
   };
-  $('#goalTypes').addEventListener('click', (e) => {
-    const b = e.target.closest('[data-gt]');
-    if (!b) return;
-    setGoal(b.dataset.gt, Number(localStorage.getItem(`goal.n.${b.dataset.gt}`)) || GOAL_TYPES[b.dataset.gt].def);
+  $('#goalRows').addEventListener('change', (e) => {
+    const c = e.target.closest('[data-gc]');
+    const n = e.target.closest('[data-gn]');
+    if (c) {
+      const now = new Set(goalTypes());
+      if (c.checked) now.add(c.dataset.gc); else now.delete(c.dataset.gc);
+      if (!now.size) { toast('لازم يبقى هدف واحد على الأقل'); drawGoal(); return; }
+      setGoalTypes([...now]);
+    }
+    if (n) setGoalN(n.dataset.gn, Number(n.value));
     drawGoal();
   });
-  $('#goalN').addEventListener('change', () => { setGoal(goalCfg().type, Number($('#goalN').value)); drawGoal(); });
   drawGoal();
   $('#rate').addEventListener('input', (e) => ($('#rateVal').textContent = `${e.target.value}×`));
   $('#saveProfile').addEventListener('click', async () => {
-    setGoal(goalCfg().type, Number($('#goalN').value));
-    drawGoal();
     state.user = await api.updateMe({ name: $('#name').value });
     toast('تم الحفظ');
   });

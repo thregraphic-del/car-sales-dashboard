@@ -17,11 +17,17 @@ export function setPending(streak) {
   write(KEY, streak?.rescue ? JSON.stringify({ day: dayStr(), lost: streak.rescue.lost }) : null);
 }
 
-/** Today's goal doubled: what is needed and how far the learner is. */
+/** Today's goal doubled: what is needed and how far the learner is. For a combined goal EVERY part is doubled. */
 export function doubleInfo() {
   const p = progress();
-  const target = p.n * 2;
-  return { ...p, target, left: Math.max(0, target - p.count), pct: Math.min(100, Math.round((100 * p.count) / target)) };
+  const parts = p.items.map((i) => ({ ...i, target: i.n * 2, pct2: Math.min(100, Math.round((100 * i.count) / (i.n * 2))) }));
+  if (!p.combo) {
+    const i = parts[0];
+    return { ...p, target: i.target, left: Math.max(0, i.target - i.count), pct: i.pct2, line: `هدفك ${i.n} ${i.unit} — المطلوب اليوم ${i.target}`, ask: `${i.target} ${i.unit} بدل ${i.n}`, parts };
+  }
+  const doneN = parts.filter((i) => i.count >= i.target).length;
+  const names = parts.map((i) => `${i.target} ${i.unit}`).join(' + ');
+  return { ...p, count: doneN, n: parts.length, target: parts.length, unit: 'هدف', left: parts.length - doneN, pct: Math.round(parts.reduce((a, i) => a + i.pct2, 0) / parts.length), line: `أهدافك مضاعفة: ${names}`, ask: `كل أهدافك مضاعفة (${names})`, parts };
 }
 
 let healing = false;
@@ -47,5 +53,5 @@ export function remindOnce(streak) {
   write(TOLD, dayStr());
   if (/^#\/(today)?$|^$|^#\/today/.test(location.hash)) return; // the home page already shows the full notice
   const d = doubleInfo();
-  toast(`🔥 شعلتك طفت — بس عادي! ضاعف هدف اليوم (${d.target} ${d.unit} بدل ${d.n}) وأمس يتصحح كأنه ما فاتك.`, 7000);
+  toast(`🔥 شعلتك طفت — بس عادي! ضاعف هدف اليوم (${d.ask}) وأمس يتصحح كأنه ما فاتك.`, 7000);
 }

@@ -10,6 +10,7 @@ import { runListening } from '../listen.js';
 import { runStory } from '../story.js';
 import { refreshStats } from '../app.js';
 import { renderBuilder } from '../practice-builder.js';
+import { renderGrammarSection } from '../grammar-practice.js';
 
 // البطاقات والقصة صارت ضمن الألعاب (وفي اختيار التدريب)، وروابطها القديمة تعمل.
 const FOCUS = [
@@ -88,6 +89,15 @@ export async function render(view, { params }) {
 
   // No exact list asked for: the learner builds the session with the five filters.
   if (!label && mode !== 'story' && !params.focus && !params.type) {
+    // two areas on one page: 🔤 الكلمات | 📚 القواعد (the grammar one has its own games that also TEACH the rule)
+    const area = params.area === 'grammar' ? 'grammar' : 'words';
+    stage.insertAdjacentHTML('beforebegin', `<div class="lib-tabs segmented" role="tablist" id="areaTabs"><a href="${href({})}" role="tab" class="${area === 'words' ? 'active' : ''}">🔤 الكلمات</a><a href="${href({ area: 'grammar' })}" role="tab" class="${area === 'grammar' ? 'active' : ''}">📚 القواعد</a></div>`);
+    if (area === 'grammar') {
+      view.querySelector('.page-head .btn')?.remove();
+      const stopGrammar = renderGrammarSection(stage);
+      cleanup = stopGrammar;
+      return () => cleanup?.();
+    }
     const all = await api.words();
     if (!all.length) {
       stage.innerHTML = emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`);

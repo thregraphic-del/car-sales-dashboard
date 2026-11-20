@@ -5,6 +5,7 @@
 // Spotting: patterns first (free, instant); lines they cannot place go to the AI once,
 // 40 lines at a time and only around where the learner is (cached for everyone on the server,
 // and on this device).
+import { noteRule } from './goal.js';
 import { api } from './api.js';
 import { esc, toast, openModal, closeModal } from './ui.js';
 import { GRAMMAR, subInfo } from './shared/grammar-catalog.js';
@@ -140,6 +141,7 @@ export function attachGrammar({ linesEl, getLines, source, isPlaying, pause, pla
     const wasPlaying = isPlaying();
     if (wasPlaying) pause();
     api.grammarSeen(subId).catch(() => {});
+    noteRule(`${subId}:open`); // opening a rule counts toward the «قواعد وأمثلة» goal
     const ex = [['✅', 'جملة', sub.ex.pos], ['❌', 'نفي', sub.ex.neg], ['❓', 'سؤال', sub.ex.q]]
       .filter(([, , e]) => e && e[0] !== '—')
       .map(([i, label, [en, ar]]) => `<div class="g-ex"><span class="g-ex-k">${i} ${label}</span><p class="en" dir="ltr">${esc(en)}</p><p class="tiny muted">${esc(ar)}</p></div>`).join('');

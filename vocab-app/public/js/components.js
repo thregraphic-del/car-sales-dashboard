@@ -481,6 +481,6 @@ export { $ };
 export function celebrateGoal(goal, practiceHref = '#/practice?session=today') {
   openModal(`<div class="celebrate"><div class="celebrate-emoji">🎉</div>
     <h2>مبروك! حققت هدف اليوم</h2>
-    <p class="ink-2">${goal.type === 'watch' ? `شاهدت <b class="en-inline">${goal.count}</b> دقيقة اليوم` : goal.type === 'practice' ? `جاوبت <b class="en-inline">${goal.count}</b> سؤال اليوم` : `مرّت عليك <b class="en-inline">${goal.count}</b> كلمة جديدة اليوم`} (الهدف ${goal.n ?? goal.goal}).</p>
+    <p class="ink-2">${(goal.items || [goal]).map((g) => (g.type === 'watch' ? `شاهدت <b class="en-inline">${g.count}</b> دقيقة` : g.type === 'practice' ? `جاوبت <b class="en-inline">${g.count}</b> سؤال` : g.type === 'rules' ? `مرّيت على <b class="en-inline">${g.count}</b> قاعدة ومثال` : `مرّت عليك <b class="en-inline">${g.count}</b> كلمة جديدة`) + ` (الهدف ${g.n})`).join(' · ')} اليوم.</p>
     <div class="btn-row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-close>▶ أكمل</button><a class="btn" href="${practiceHref}" data-close>🎯 تدرّب الحين</a></div></div>`);
 }
