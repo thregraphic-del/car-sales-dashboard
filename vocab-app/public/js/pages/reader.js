@@ -359,7 +359,7 @@ export async function render(view, { segments, params }) {
           <div class="sgroup">أدوات</div>
           <div class="srow"><span class="slabel">شرح</span><div class="sopts"><button class="sopt" id="tourR">شرح الأزرار</button><button class="sopt" id="colorKey">🎨 مفتاح الألوان</button><button class="sopt" id="resetR">↺ رجّع كل الإعدادات للأصل</button></div></div>
           <div class="srow"><span class="slabel">أدوات</span><div class="sopts">
-            <button class="sopt" id="retrBtn">ترجمة أدق</button><button class="sopt" id="summaryBtn">📝 ملخص المقطع كامل</button><button class="sopt" id="copyAll">📋 نسخ كل النص</button><button class="sopt" id="listenBtn">🎧 استماع</button>
+            <button class="sopt" id="retrBtn">ترجمة أدق</button><button class="sopt" id="summaryBtn">📝 ملخص المقطع كامل</button><button class="sopt" id="copyAll">📋 نسخ كل النص</button><button class="sopt" id="askGpt">🧠 اسأل ChatGPT</button><button class="sopt" id="listenBtn">🎧 استماع</button>
             ${source.youtube_id && !source.is_demo ? `<a class="sopt" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">يوتيوب ↗</a>` : ''}
             <button class="sopt" id="del" style="color:var(--bad)">🗑 حذف</button></div></div>
           <button type="button" class="btn rset-reset" id="resetAll">↺ رجّع كل الإعدادات للأصل</button>
@@ -2538,6 +2538,17 @@ export async function render(view, { segments, params }) {
     const text = `${source.title}\n\n${data.lines.map((l) => l.text).join('\n')}`;
     if (await copyText(text)) toast(`✓ نُسخ كل النص (${data.lines.length} جملة) — الصقه في ChatGPT`);
     else toast('ما قدرنا ننسخ — حدّد النص وانسخه يدويًا');
+  });
+
+  // 🧠 ChatGPT: a ready message («لخّص لي النص») with the whole text attached is copied, and ChatGPT opens in a new tab
+  // (the learner is already signed in there): paste, send, then ask anything about the video. Nothing is sent from our side.
+  $('#askGpt', view)?.addEventListener('click', async () => {
+    const win = window.open('https://chatgpt.com/', '_blank'); // opened first, inside the tap, so the browser allows it
+    if (win) win.opener = null;
+    const text = `لخّص لي النص التالي (نص مقطع فيديو بعنوان «${source.title}») تلخيصًا قويًا: الفكرة الرئيسية، ثم أهم النقاط، ثم الدروس المستفادة. بعدها أجب عن أسئلتي عنه.\n\n${data.lines.map((l) => l.text).join('\n')}`;
+    const ok = await copyText(text);
+    toast(ok ? '✓ نُسخت الرسالة مع النص — الصقها في ChatGPT وأرسل' : 'ما قدرنا ننسخ — استخدم «نسخ كل النص» ثم الصقه');
+    if (!win) toast('المتصفح منع فتح ChatGPT — افتحه بنفسك والصق');
   });
 
   // 🏁 the video ended: its summary, then «أحسنت» 🎉 with practice on its words (not a test) or finish
