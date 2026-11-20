@@ -307,6 +307,7 @@ export async function render(view, { segments, params }) {
       ${isVideo ? `<button type="button" class="rb-btn rb-ic play-btn" id="playBtn" title="تشغيل / إيقاف (مسافة)" aria-label="تشغيل أو إيقاف">${icon.play}</button>` : ''}
       ${isVideo && hasTimes ? `<button type="button" class="rb-btn rb-ic" id="againBtn" aria-pressed="false" title="كل جملة تُعاد مرتين تلقائيًا">${icon.repeat}<span class="rb-x">×2</span></button><button type="button" class="rb-btn rb-ic" id="shadowBtn" aria-pressed="false" title="ردّد معي: يقف بعد كل جملة لتعيدها">${icon.mic}<span>ردّد</span></button>` : ''}
       ${isVideo || data.lines.length ? `<button type="button" class="rb-btn sum-top" id="sumTop" title="ملخص المقطع كامل: أبرز الأفكار، خطوات عملية، الحكم والرسالة">${icon.doc}<span>ملخص المقطع</span></button>` : ''}
+      ${data.lines.length ? `<button type="button" class="rb-btn rb-ic" id="gptTop" title="اسأل ChatGPT عن المقطع: ينسخ رسالة تلخيص جاهزة مع النص ويفتح ChatGPT" aria-label="اسأل ChatGPT">${icon.brain}</button>` : ''}
       <button type="button" class="rb-btn words-btn" id="wordsBtn" aria-pressed="false" title="الكلمات الجديدة في المقطع">${icon.list}<span>الكلمات</span> <b id="wcount2">${data.items.length}</b></button>
       <button type="button" class="rb-btn rb-ic" id="focusBtn" aria-pressed="false" title="توسيع الشاشة">${icon.expand}</button>
       <button type="button" class="btn icon sm ghost set-btn" id="setBtn" aria-expanded="false" title="إعدادات المقطع">${icon.settings}</button>
@@ -2542,14 +2543,14 @@ export async function render(view, { segments, params }) {
 
   // 🧠 ChatGPT: a ready message («لخّص لي النص») with the whole text attached is copied, and ChatGPT opens in a new tab
   // (the learner is already signed in there): paste, send, then ask anything about the video. Nothing is sent from our side.
-  $('#askGpt', view)?.addEventListener('click', async () => {
+  view.querySelectorAll('#askGpt, #gptTop').forEach((btn) => btn.addEventListener('click', async () => {
     const win = window.open('https://chatgpt.com/', '_blank'); // opened first, inside the tap, so the browser allows it
     if (win) win.opener = null;
     const text = `لخّص لي النص التالي (نص مقطع فيديو بعنوان «${source.title}») تلخيصًا قويًا: الفكرة الرئيسية، ثم أهم النقاط، ثم الدروس المستفادة. بعدها أجب عن أسئلتي عنه.\n\n${data.lines.map((l) => l.text).join('\n')}`;
     const ok = await copyText(text);
     toast(ok ? '✓ نُسخت الرسالة مع النص — الصقها في ChatGPT وأرسل' : 'ما قدرنا ننسخ — استخدم «نسخ كل النص» ثم الصقه');
     if (!win) toast('المتصفح منع فتح ChatGPT — افتحه بنفسك والصق');
-  });
+  }));
 
   // 🏁 the video ended: its summary, then «أحسنت» 🎉 with practice on its words (not a test) or finish
   const finishVideo = () => {
