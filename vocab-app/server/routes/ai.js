@@ -10,7 +10,7 @@ import { aiStatus, checkModel, usageToday, usageReport, AiError } from '../servi
 import { explainWithAi, formsWithAi, extractFromFileWithAi, storyWithAi, suggestVideosWithAi, suggestWordsWithAi, ladderWithAi, synonymsWithAi, sayArabicWithAi, simpleExamplesWithAi } from '../services/extractor.js';
 import { matchKey } from '../../public/js/shared/text.js';
 import { listWords } from '../data/words.js';
-import { get, run } from '../db/index.js';
+import { all, get, run } from '../db/index.js';
 import { listSources } from '../data/sources.js';
 import { oembed } from '../lib/youtube.js';
 import { getLine, getSource } from '../data/sources.js';
@@ -37,6 +37,29 @@ router.get('/my-month', wrap(async (req) => {
     calls: Number(u?.calls || 0), prompt_tokens: Number(u?.pt || 0), completion_tokens: Number(u?.ct || 0), cost: Number(u?.cost || 0), transcripts: Number(u?.transcripts || 0), active_days: Number(u?.days || 0),
     videos: Number(s?.videos || 0), texts: Number(s?.texts || 0), minutes: Math.round(Number(s?.secs || 0) / 60),
   };
+}));
+
+/** 🧾 What every clip cost the owner (last 90 days): total, and each step (translation, summary, words…). */
+router.get('/clip-costs', wrap(async (req) => {
+  if (!(req.user?.role === 'admin' || !config.auth.required)) return { admin: false };
+  const since = new Date(Date.now() - 90 * 86400000).toISOString().slice(0, 10);
+  const rows = await all('SELECT source_id, task, COUNT(*) AS calls, COALESCE(SUM(prompt_tokens),0) AS pt, COALESCE(SUM(completion_tokens),0) AS ct, COALESCE(SUM(cost),0) AS cost, COALESCE(SUM(transcripts),0) AS tr FROM ai_cost_items WHERE user_id = ? AND day >= ? GROUP BY source_id, task', req.userId, since);
+  const byId = new Map();
+  for (const r of rows) {
+    const k = r.source_id == null ? 0 : Number(r.source_id);
+    const e = byId.get(k) || { source_id: k, cost: 0, calls: 0, transcripts: 0, steps: [] };
+    e.cost += Number(r.cost); e.calls += Number(r.calls) - Number(r.tr); e.transcripts += Number(r.tr);
+    if (Number(r.calls) - Number(r.tr) > 0 || Number(r.cost) > 0) e.steps.push({ task: r.task, calls: Number(r.calls), cost: Number(r.cost), tokens: Number(r.pt) + Number(r.ct) });
+    byId.set(k, e);
+  }
+  const ids = [...byId.keys()].filter(Boolean);
+  const info = new Map();
+  if (ids.length) for (const s of await all(`SELECT id, kind, youtube_id, title, channel, thumbnail_url, duration_seconds, created_at FROM sources WHERE user_id = ? AND id IN (${ids.map(() => '?').join(',')})`, req.userId, ...ids)) info.set(Number(s.id), s);
+  const clips = [...byId.values()].map((e) => {
+    const s = info.get(e.source_id);
+    return { ...e, steps: e.steps.sort((a, b) => b.cost - a.cost), title: s?.title || '', kind: s?.kind || '', youtube_id: s?.youtube_id || null, thumbnail_url: s?.thumbnail_url || null, minutes: s?.duration_seconds ? Math.round(s.duration_seconds / 60) : 0, created_at: s?.created_at || null, deleted: e.source_id !== 0 && !s };
+  }).sort((a, b) => b.cost - a.cost);
+  return { admin: true, since, total: clips.reduce((n, c) => n + c.cost, 0), clips };
 }));
 
 router.post('/explain', wrap(async (req, res) => {

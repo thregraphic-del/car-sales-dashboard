@@ -164,6 +164,7 @@ export const api = {
   aiStatus: () => request('GET', '/api/ai/status'),
   aiUsage: () => request('GET', '/api/ai/usage'),
   myMonth: () => request('GET', '/api/ai/my-month'),
+  clipCosts: () => request('GET', '/api/ai/clip-costs'),
   extractWords: (kind, data, name) => request('POST', '/api/ai/extract', { kind, data, name }),
   channels: () => request('GET', '/api/channels'),
   channelAction: (body) => request('POST', '/api/channels', body),

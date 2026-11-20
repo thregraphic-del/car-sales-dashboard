@@ -3,6 +3,7 @@
 import socialRoutes from './routes/social.js';
 import { recordDeploy, creditStatus, saveCreditSettings } from './data/credits.js';
 import express from 'express';
+import { randomUUID } from 'node:crypto';
 import { config } from './config.js';
 import { DEFAULT_USER_ID, ensureUser } from './data/users.js';
 import { userFromToken } from './services/auth.js';
@@ -60,16 +61,19 @@ async function authenticate(req, res, next) {
       });
       await localUserReady;
       req.userId = DEFAULT_USER_ID;
-      return aiContext.run({ userId: req.userId }, next);
+      return aiContext.run(aiCtx(req), next);
     }
     req.user = await userFromToken(readCookie(req, config.auth.cookieName));
     if (req.user) req.userId = req.user.id;
-    if (req.user || PUBLIC_PATHS.has(req.originalUrl.split('?')[0]) || (req.method === 'GET' && /^\/api\/social\/share\/[a-f0-9]+$/.test(req.originalUrl.split('?')[0]))) return aiContext.run({ userId: req.userId }, next);
+    if (req.user || PUBLIC_PATHS.has(req.originalUrl.split('?')[0]) || (req.method === 'GET' && /^\/api\/social\/share\/[a-f0-9]+$/.test(req.originalUrl.split('?')[0]))) return aiContext.run(aiCtx(req), next);
     return res.status(401).json({ error: 'سجّل الدخول أولًا.', code: 'auth' });
   } catch (err) {
     return next(err);
   }
 }
+
+// who is asking, which request this is, and (when the path names one) which clip it is for — so AI cost can be kept per clip
+const aiCtx = (req) => ({ userId: req.userId, reqId: randomUUID(), sourceId: Number(/^\/api\/sources\/(\d+)(?:[/?]|$)/.exec(req.originalUrl || '')?.[1]) || null });
 
 export function createApp() {
   const app = express();

@@ -102,15 +102,29 @@ async function useQuota(task) {
   }
 }
 
-/** Add tokens and cost (USD, reported by OpenRouter) to the learner's day. */
-async function recordUsage(usage) {
-  const userId = aiContext.getStore()?.userId;
+/** Add tokens and cost (USD, reported by OpenRouter) to the learner's day — and keep one row per request with its clip and step. */
+async function recordUsage(usage, task = 'other') {
+  const store = aiContext.getStore();
+  const userId = store?.userId;
   if (!userId || !usage) return;
+  const pt = Number(usage.prompt_tokens) || 0;
+  const ct = Number(usage.completion_tokens) || 0;
+  const cost = Number(usage.cost) || 0;
   await run(
     `INSERT INTO ai_usage (user_id, day, calls, prompt_tokens, completion_tokens, cost) VALUES (?, ?, 0, ?, ?, ?)
      ON CONFLICT (user_id, day) DO UPDATE SET prompt_tokens = ai_usage.prompt_tokens + ?, completion_tokens = ai_usage.completion_tokens + ?, cost = ai_usage.cost + ?`,
-    userId, today(), ...[0, 1].flatMap(() => [Number(usage.prompt_tokens) || 0, Number(usage.completion_tokens) || 0, Number(usage.cost) || 0]),
+    userId, today(), pt, ct, cost, pt, ct, cost,
   ).catch(() => {});
+  await run('INSERT INTO ai_cost_items (user_id, source_id, req_id, task, day, prompt_tokens, completion_tokens, cost) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    userId, store.sourceId || null, store.reqId || null, String(task).slice(0, 60), today(), pt, ct, cost).catch(() => {});
+}
+
+/** A clip was just created in this request: the AI work done for it so far (before it had an id) now belongs to it. */
+export async function attachUsage(sourceId) {
+  const store = aiContext.getStore();
+  if (!store?.userId || !sourceId) return;
+  store.sourceId = sourceId;
+  if (store.reqId) await run('UPDATE ai_cost_items SET source_id = ? WHERE req_id = ? AND user_id = ? AND source_id IS NULL', sourceId, store.reqId, store.userId).catch(() => {});
 }
 
 /** One video fetched through the paid transcript service. */
@@ -118,6 +132,8 @@ export async function recordTranscript() {
   const userId = aiContext.getStore()?.userId;
   if (!userId) return;
   await run('INSERT INTO ai_usage (user_id, day, calls, transcripts) VALUES (?, ?, 0, 1) ON CONFLICT (user_id, day) DO UPDATE SET transcripts = ai_usage.transcripts + 1', userId, today()).catch(() => {});
+  const store = aiContext.getStore();
+  await run("INSERT INTO ai_cost_items (user_id, source_id, req_id, task, day, transcripts) VALUES (?, ?, ?, 'transcript', ?, 1)", userId, store?.sourceId || null, store?.reqId || null, today()).catch(() => {});
 }
 
 const SUMS = 'COALESCE(SUM(calls),0) AS calls, COALESCE(SUM(prompt_tokens),0) AS prompt_tokens, COALESCE(SUM(completion_tokens),0) AS completion_tokens, COALESCE(SUM(cost),0) AS cost, COALESCE(SUM(transcripts),0) AS transcripts';
@@ -319,7 +335,7 @@ export async function jsonCall({ task, system, user, attachments = null, extra =
     throw new AiError('أعاد الذكاء الاصطناعي نتيجة غير متوقعة — نستخدم القاموس المحلي.', 502);
   }
   lastError = null;
-  await recordUsage(data.usage);
+  await recordUsage(data.usage, task);
   if (cache) await writeCache(key, task, parsed);
   return parsed;
 }

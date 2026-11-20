@@ -5,6 +5,7 @@
 // contexts belong to that learner through their source. Functions that take
 // an id coming from a request also take the userId and only find the
 // learner's own rows — another learner's id behaves exactly like a missing one.
+import { attachUsage } from '../services/ai.js';
 import { isSimplified } from './simplest.js';
 import { usageOf } from '../lib/usage.js';
 import { all, get, run, insert, tx } from '../db/index.js';
@@ -237,6 +238,7 @@ export async function saveSource(meta, lines, items, userId) {
       );
       source = await getSource(id, userId);
     }
+    await attachUsage(source.id); // the AI work done for this clip before it had an id (and the transcript) now belongs to it
     // Arabic subtitles already made for this video (by anyone — they hold no personal
     // data) are reused for identical sentences, so a video is never translated twice.
     const known = new Map();

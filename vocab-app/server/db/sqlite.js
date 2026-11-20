@@ -229,6 +229,11 @@ function migrateV5(d) {
       CREATE UNIQUE INDEX IF NOT EXISTS uq_sources_user_youtube ON sources(user_id, youtube_id);
       CREATE INDEX IF NOT EXISTS idx_sources_user ON sources(user_id, analyzed_at);
       CREATE UNIQUE INDEX IF NOT EXISTS uq_users_username ON users(lower(username));
+      CREATE TABLE IF NOT EXISTS ai_cost_items (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        source_id INTEGER REFERENCES sources(id) ON DELETE SET NULL, req_id TEXT, task TEXT NOT NULL, day TEXT NOT NULL,
+        prompt_tokens INTEGER NOT NULL DEFAULT 0, completion_tokens INTEGER NOT NULL DEFAULT 0, cost REAL NOT NULL DEFAULT 0, transcripts INTEGER NOT NULL DEFAULT 0);
+      CREATE INDEX IF NOT EXISTS ai_cost_items_user_source ON ai_cost_items (user_id, source_id);
+      CREATE INDEX IF NOT EXISTS ai_cost_items_req ON ai_cost_items (req_id);
       CREATE TABLE IF NOT EXISTS ai_usage (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, day TEXT NOT NULL,
         calls INTEGER NOT NULL DEFAULT 0, PRIMARY KEY (user_id, day));
       CREATE TABLE IF NOT EXISTS import_map (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, tbl TEXT NOT NULL,
