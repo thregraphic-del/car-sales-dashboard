@@ -5,7 +5,7 @@ import { api } from '../api.js';
 import { maybeTour } from '../tour.js';
 import { state } from '../state.js';
 import { esc, icon, openModal, closeModal, toast } from '../ui.js';
-import { dayStr } from '../goal.js';
+import { dayStr, goalFor } from '../goal.js';
 import { setPending, checkDouble, doubleInfo } from '../streak-rescue.js';
 
 const ls = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
@@ -261,7 +261,9 @@ async function openCalendar() {
   const val = (d) => dayValue(d, days, metric);
   const unit = () => (metric === 'time' ? 'دقيقة' : 'كلمة');
   const lvl = (v, max) => { if (!v) return 0; const p = v / max; return p >= 0.75 ? 4 : p >= 0.5 ? 3 : p >= 0.25 ? 2 : 1; };
-  const maxOf = (list) => Math.max(metric === 'time' ? 10 : 5, ...list.map(val));
+  const goalN = () => goalFor(metric === 'time' ? 'watch' : 'pass'); // the learner's own number (or the default)
+  const goalTxt = () => `${goalN()} ${unit()}`;
+  const maxOf = (list) => Math.max(metric === 'time' ? 10 : 5, goalN(), ...list.map(val));
   const rangeDays = (n) => Array.from({ length: n }, (_, i) => at(n - 1 - i));
 
   const squares = () => {
@@ -274,7 +276,7 @@ async function openCalendar() {
     list.forEach((d) => {
       const v = val(d);
       const k = key(d);
-      cells.push(`<button type="button" class="cal-d l${lvl(v, mx)}${dayActive(d, days) && !v ? ' act' : ''} ${pick === k ? 'pick' : ''} ${k === key(now) ? 'today' : ''}" data-d="${k}"><b>${d.getDate()}</b><small>${v || ''}</small></button>`);
+      cells.push(`<button type="button" class="cal-d l${lvl(v, mx)}${dayActive(d, days) && !v ? ' act' : ''}${v >= goalN() ? ' hit' : ''} ${pick === k ? 'pick' : ''} ${k === key(now) ? 'today' : ''}" data-d="${k}"><b>${d.getDate()}</b><small>${v || ''}</small></button>`);
     });
     return `<div class="row between"><button class="btn icon sm ghost" data-m="1" ${new Date(y, m + 1, 1) > now ? 'disabled' : ''} aria-label="الشهر التالي">${icon.next}</button><b>${MONTHS[m]} ${y}</b><button class="btn icon sm ghost" data-m="-1" ${new Date(y, m, 1) <= new Date(first.getFullYear(), first.getMonth(), 1) ? 'disabled' : ''} aria-label="الشهر السابق">${icon.prev}</button></div>
       <div class="cal-w">${['أحد', 'إثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت'].map((d) => `<span>${d}</span>`).join('')}</div>
@@ -283,10 +285,10 @@ async function openCalendar() {
   const bars = () => {
     const list = rangeDays(14);
     const mx = maxOf(list);
-    return `<div class="cal-bars">${list.map((d) => {
+    return `<div class="cal-bars" style="--g:${(goalN() / mx).toFixed(3)}"><div class="cb-goal" aria-hidden="true"><span>الهدف ${goalTxt()}</span></div>${list.map((d) => {
       const v = val(d); const k = key(d);
       const pct = v ? Math.max(8, Math.round((100 * v) / mx)) : 0;
-      return `<button type="button" class="cb${pick === k ? ' pick' : ''}${k === key(now) ? ' today' : ''}" data-d="${k}"><em>${v || ''}</em><i><b class="l${lvl(v, mx)}" style="height:${pct}%"></b></i><span>${d.getDate()}</span><small>${WD[d.getDay()]}</small></button>`;
+      return `<button type="button" class="cb${pick === k ? ' pick' : ''}${k === key(now) ? ' today' : ''}${v >= goalN() ? ' hit' : ''}" data-d="${k}"><em>${v || ''}</em><i><b class="l${lvl(v, mx)}" style="height:${pct}%"></b></i><span>${d.getDate()}</span><small>${WD[d.getDay()]}</small></button>`;
     }).join('')}</div>`;
   };
   const line = () => {
@@ -300,8 +302,10 @@ async function openCalendar() {
     const area = `${path} L${X(29).toFixed(1)} ${H - py} L${X(0).toFixed(1)} ${H - py} Z`;
     const lab = (i) => `${list[i].getDate()}/${list[i].getMonth() + 1}`;
     return `<svg class="cal-line" viewBox="0 0 ${W} ${H + 16}" role="img" aria-label="منحنى آخر ٣٠ يوم">
-      <path d="M${px} ${H - py} H${W - px}" class="cl-axis"/><path class="cl-area" d="${area}"/><path class="cl-path" d="${path}"/>
-      ${list.map((d, i) => `<circle class="cl-dot${key(d) === pick ? ' pick' : ''}${val(d) ? ' on' : ''}" cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="${key(d) === pick ? 5 : 3}"/><circle class="cl-hit" data-d="${key(d)}" cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="9"/>`).join('')}
+      <path d="M${px} ${H - py} H${W - px}" class="cl-axis"/><path class="cl-area" d="${area}"/>
+      <path class="cl-goal" d="M${px} ${Y(goalN()).toFixed(1)} H${W - px}"/><text class="cl-gt" x="${px}" y="${(Y(goalN()) - 4).toFixed(1)}" text-anchor="start">الهدف ${goalTxt()}</text>
+      <path class="cl-path" d="${path}"/>
+      ${list.map((d, i) => `<circle class="cl-dot${key(d) === pick ? ' pick' : ''}${val(d) ? ' on' : ''}${val(d) >= goalN() ? ' hit' : ''}" cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="${key(d) === pick ? 5 : 3}"/><circle class="cl-hit" data-d="${key(d)}" cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="9"/>`).join('')}
       <text class="cl-t" x="${X(0)}" y="${H + 12}" text-anchor="end">${lab(0)}</text><text class="cl-t" x="${X(15)}" y="${H + 12}" text-anchor="middle">${lab(15)}</text><text class="cl-t" x="${X(29)}" y="${H + 12}" text-anchor="start">${lab(29)}</text></svg>`;
   };
   const shapeHtml = () => (shape === 'bars' ? bars() : shape === 'line' ? line() : squares());
@@ -318,7 +322,11 @@ async function openCalendar() {
     const min = watchMin(d);
     const rate = x.answers ? Math.round((100 * x.right) / x.answers) : 0;
     const nothing = !min && !x.answers && !x.saved && !x.seen;
+    const got = val(d);
+    const gl = goalN();
+    const goalLine = `<div class="cd-goal${got >= gl ? ' ok' : ''}"><span>🎯 الهدف <b class="en-inline">${gl}</b> ${unit()} · ${metric === 'time' ? 'مشاهدة' : 'كلمات'}</span><span class="cd-goal-s">${got >= gl ? `✓ حققته (${got})` : `${got} — باقي ${gl - got}`}</span><i class="cd-meter"><b style="width:${Math.min(100, Math.round((100 * got) / gl))}%"></b></i></div>`;
     return `<div class="cal-dash"><div class="cd-head"><b>${DAY_NAMES[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}</b>${pick === key(now) ? '<span class="th-chip">اليوم</span>' : ''}</div>
+      ${goalLine}
       ${nothing ? '<p class="tiny muted" style="margin:6px 0 0">ما فيه نشاط هذا اليوم.</p>' : ''}
       <div class="cd-grid">
         <div class="cd-card"><span class="cd-i">⏱</span><b>${min}</b><small>دقيقة مشاهدة</small></div>
@@ -334,7 +342,7 @@ async function openCalendar() {
         <div class="segmented" id="calShape">${[['squares', 'مربعات'], ['bars', 'أعمدة'], ['line', 'منحنى']].map(([k, l]) => `<button type="button" data-cs="${k}" class="${shape === k ? 'active' : ''}" aria-label="${l}" title="${l}"><span class="cs-i">${SHAPE_IC[k]}</span><span class="cs-t">${l}</span></button>`).join('')}</div>
       </div>
       <div class="cal-shape">${shapeHtml()}</div>
-      <div class="cal-key tiny"><span>أقل</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>أكثر</span><span class="muted">· ${metric === 'time' ? 'دقائق مشاهدة (على هذا الجهاز)' : 'كلمات تعلّمتها'}</span></div>
+      <div class="cal-key tiny"><span>أقل</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>أكثر</span><span class="muted">· ${metric === 'time' ? 'دقائق مشاهدة (على هذا الجهاز)' : 'كلمات تعلّمتها'}</span><span class="cal-gkey"><i></i> الهدف ${goalTxt()}</span></div>
       ${dash()}
       <p class="cal-range tiny muted">${rangeNote()}</p>
       <div class="btn-row" style="justify-content:center"><button class="btn ghost" data-close>إغلاق</button></div></div>`;

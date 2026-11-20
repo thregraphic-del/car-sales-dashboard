@@ -2301,3 +2301,28 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .th-today { margin-top: 4px; font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
 .th-today b { font-weight: 700; color: var(--muted); }
 .th-today .ico { color: var(--muted); }
+
+/* 🎯 the goal line on the dashboard: a dashed gold line across the chart; days that reached it are marked */
+.cal-bars { position: relative; padding: 0 !important; }
+.cb-goal { position: absolute; inset-inline: 0; bottom: calc(32px + (100% - 48px) * var(--g)); height: 0; border-top: 2px dashed var(--gold, #CBA55E); pointer-events: none; z-index: 2; }
+.cb-goal span { position: absolute; top: -20px; inset-inline-start: 0; padding: 1px 8px; border-radius: 99px; background: var(--gold, #CBA55E); color: #fff; font: 700 10.5px var(--font-ar, inherit); white-space: nowrap; }
+.cb.hit em::after { content: ' ✓'; color: var(--gold, #CBA55E); }
+.cb.hit i b { background: linear-gradient(to top, var(--accent), color-mix(in srgb, var(--gold, #CBA55E) 65%, var(--accent))); }
+.cl-goal { fill: none; stroke: var(--gold, #CBA55E); stroke-width: 1.6; stroke-dasharray: 5 4; }
+.cl-gt { font: 700 9px var(--font-ar, inherit); fill: var(--gold, #CBA55E); }
+.cl-dot.hit { fill: var(--gold, #CBA55E); stroke: var(--gold, #CBA55E); }
+.cal-d.hit { position: relative; }
+.cal-d.hit::after { content: ''; position: absolute; top: 4px; inset-inline-end: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--gold, #CBA55E); }
+.cal-gkey { display: inline-flex; align-items: center; gap: 5px; margin-inline-start: 8px; }
+.cal-gkey i { display: inline-block; width: 16px; border-top: 2px dashed var(--gold, #CBA55E); background: none !important; height: 0 !important; }
+.cd-goal { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; margin-top: 10px; padding: 10px 12px; border-radius: 14px; background: color-mix(in srgb, var(--gold, #CBA55E) 11%, var(--surface)); border: 1px solid color-mix(in srgb, var(--gold, #CBA55E) 55%, var(--line)); font-size: 13px; }
+.cd-goal.ok { background: color-mix(in srgb, var(--accent) 11%, var(--surface)); border-color: var(--accent); }
+.cd-goal-s { font-weight: 800; color: var(--ink); }
+.cd-goal.ok .cd-goal-s { color: var(--accent); }
+.cd-goal .cd-meter { grid-column: 1 / -1; margin-top: 2px; }
+.cd-goal .cd-meter b { background: var(--gold, #CBA55E); }
+.cd-goal.ok .cd-meter b { background: var(--accent); }
+.cb { grid-template-rows: 14px 1fr 15px 13px; }
+.cb span { height: 15px; line-height: 15px; }
+.cb small { height: 13px; line-height: 13px; }
+.cl-gt { paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }

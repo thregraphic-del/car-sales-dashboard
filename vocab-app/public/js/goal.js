@@ -23,6 +23,12 @@ export function goalCfg() {
   return { type, n, ...t };
 }
 
+/** The number the learner set (or the default) for one kind of goal — used by the dashboard's goal line. */
+export function goalFor(type) {
+  const t = GOAL_TYPES[type];
+  return Math.max(t.min, Math.min(t.max, Math.round(Number(get(`goal.n.${type}`, t.def))) || t.def));
+}
+
 export function setGoal(type, n) {
   if (!GOAL_TYPES[type]) return;
   const t = GOAL_TYPES[type];
