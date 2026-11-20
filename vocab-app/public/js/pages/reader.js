@@ -2544,11 +2544,17 @@ export async function render(view, { segments, params }) {
   // 🧠 ChatGPT: a ready message («لخّص لي النص») with the whole text attached is copied, and ChatGPT opens in a new tab
   // (the learner is already signed in there): paste, send, then ask anything about the video. Nothing is sent from our side.
   view.querySelectorAll('#askGpt, #gptTop').forEach((btn) => btn.addEventListener('click', async () => {
-    const win = window.open('https://chatgpt.com/', '_blank'); // opened first, inside the tap, so the browser allows it
+    const body = data.lines.map((l) => l.text).join('\n');
+    const head = 'لخّص لي بالعربي النص التالي، الفكرة الرئيسية ثم أهم النقاط:';
+    const full = `${head}\n\n${body}`;
+    // the message goes INTO the ChatGPT box through the link (?q=) when it is short enough for a link; a long text goes to the clipboard as well
+    const fits = encodeURIComponent(full).length <= 7000;
+    const url = `https://chatgpt.com/?q=${encodeURIComponent(fits ? full : head)}`;
+    const win = window.open(url, '_blank'); // opened first, inside the tap, so the browser allows it
     if (win) win.opener = null;
-    const text = `لخّص لي النص التالي (نص مقطع فيديو بعنوان «${source.title}») تلخيصًا قويًا: الفكرة الرئيسية، ثم أهم النقاط، ثم الدروس المستفادة. بعدها أجب عن أسئلتي عنه.\n\n${data.lines.map((l) => l.text).join('\n')}`;
-    const ok = await copyText(text);
-    toast(ok ? '✓ نُسخت الرسالة مع النص — الصقها في ChatGPT وأرسل' : 'ما قدرنا ننسخ — استخدم «نسخ كل النص» ثم الصقه');
+    const ok = fits ? true : await copyText(full);
+    if (fits) toast('✓ فتحنا ChatGPT والرسالة جاهزة فيه — اضغط إرسال');
+    else toast(ok ? '✓ النص طويل — الصق النص كامل بعد الرسالة في ChatGPT وأرسل' : 'ما قدرنا ننسخ — استخدم «نسخ كل النص» ثم الصقه');
     if (!win) toast('المتصفح منع فتح ChatGPT — افتحه بنفسك والصق');
   }));
 
