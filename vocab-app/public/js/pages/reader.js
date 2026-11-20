@@ -2547,15 +2547,23 @@ export async function render(view, { segments, params }) {
     const body = data.lines.map((l) => l.text).join('\n');
     const head = 'لخّص لي بالعربي النص التالي، الفكرة الرئيسية ثم أهم النقاط:';
     const full = `${head}\n\n${body}`;
-    // the message goes INTO the ChatGPT box through the link (?q=) when it is short enough for a link; a long text goes to the clipboard as well
-    const fits = encodeURIComponent(full).length <= 7000;
-    const url = `https://chatgpt.com/?q=${encodeURIComponent(fits ? full : head)}`;
-    const win = window.open(url, '_blank'); // opened first, inside the tap, so the browser allows it
-    if (win) win.opener = null;
-    const ok = fits ? true : await copyText(full);
-    if (fits) toast('✓ فتحنا ChatGPT والرسالة جاهزة فيه — اضغط إرسال');
-    else toast(ok ? '✓ النص طويل — الصق النص كامل بعد الرسالة في ChatGPT وأرسل' : 'ما قدرنا ننسخ — استخدم «نسخ كل النص» ثم الصقه');
-    if (!win) toast('المتصفح منع فتح ChatGPT — افتحه بنفسك والصق');
+    // short enough for a link: the whole message goes INTO the ChatGPT box (?q=), and is copied too in case the box stays empty
+    if (encodeURIComponent(full).length <= 7000) {
+      const win = window.open(`https://chatgpt.com/?q=${encodeURIComponent(full)}`, '_blank'); // opened first, inside the tap
+      if (win) win.opener = null;
+      copyText(full);
+      toast(win ? '✓ فتحنا ChatGPT والرسالة جاهزة فيه — اضغط إرسال' : 'المتصفح منع فتح ChatGPT — افتحه والصق (الرسالة منسوخة)');
+      return;
+    }
+    // too long for a link: the whole message is copied, and one clear window says what to do (no empty page, no guessing)
+    const ok = await copyText(full);
+    const box = openModal(`<div class="stack gpt-help">
+        <h2 style="margin:0">🧠 لخّص المقطع في ChatGPT</h2>
+        <p class="gpt-step">${ok ? '✓' : '⚠'} <b>${ok ? 'نُسخت الرسالة كاملة' : 'ما قدرنا ننسخ'}</b> — «لخّص لي بالعربي…» ومعها نص المقطع كله${ok ? '' : ' (استخدم «نسخ كل النص» من الإعدادات)'}.</p>
+        <a class="btn primary" href="https://chatgpt.com/" target="_blank" rel="noopener" data-close>افتح ChatGPT ↗</a>
+        <p class="gpt-step"><b>بعدها:</b> المس مربع الكتابة مطوّلًا ← «لصق» ← إرسال.</p>
+      </div>`);
+    void box;
   }));
 
   // 🏁 the video ended: its summary, then «أحسنت» 🎉 with practice on its words (not a test) or finish

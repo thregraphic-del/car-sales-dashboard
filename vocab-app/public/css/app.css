@@ -2335,3 +2335,7 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .th-box.today.done { outline: 2px solid var(--gold, #CBA55E); outline-offset: 2px; }
 .th-box.future { opacity: .55; }
 .th-week { align-items: center; }
+
+/* ChatGPT help window (long texts) */
+.gpt-help .gpt-step { margin: 0; line-height: 1.7; }
+.gpt-help .btn { justify-content: center; text-decoration: none; }
