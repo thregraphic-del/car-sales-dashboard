@@ -199,3 +199,4 @@ after a word's meaning closes, a clear «خدمة النصوص وصلت حدها
 | # | Change | Status | Deploy cost | Running cost |
 |---|--------|--------|-------------|--------------|
 | 1 | ▶ A video opens at speed 0.75 automatically | recorded — not built yet | in the batch | 0 |
+| 2 | 🎬 «أفكار» → «+ أضف ملخص ChatGPT»: اختيار المقطع صار بنفس قائمة «تدرّب» — زر «المقطع» ينفتح تحته قائمة فيها كل مقطع بصورته المصغّرة وعنوانه (بدل القائمة البسيطة) | built — on the free preview | in the batch | 0 |
