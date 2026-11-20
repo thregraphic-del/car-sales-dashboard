@@ -13,6 +13,7 @@ import { startTour, maybeTour } from '../tour.js';
 import { state } from '../state.js';
 import { notePassed, noteWatched } from '../goal.js';
 import { summaryHtml } from '../summary-view.js';
+import { openGptNote } from '../gpt-note.js';
 import { esc, icon, levelChip, usageDot, usageLegend, fmtTime, fmtDuration, toast, $, emptyState, openModal, closeModal, applyTheme, copyText } from '../ui.js';
 import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech, celebrateGoal } from '../components.js';
 import { tokenize, quickTier, normalizeArabic } from '../shared/text.js';
@@ -360,7 +361,7 @@ export async function render(view, { segments, params }) {
           <div class="sgroup">أدوات</div>
           <div class="srow"><span class="slabel">شرح</span><div class="sopts"><button class="sopt" id="tourR">شرح الأزرار</button><button class="sopt" id="colorKey">🎨 مفتاح الألوان</button><button class="sopt" id="resetR">↺ رجّع كل الإعدادات للأصل</button></div></div>
           <div class="srow"><span class="slabel">أدوات</span><div class="sopts">
-            <button class="sopt" id="retrBtn">ترجمة أدق</button><button class="sopt" id="summaryBtn">📝 ملخص المقطع كامل</button><button class="sopt" id="copyAll">📋 نسخ كل النص</button><button class="sopt" id="askGpt"><span class="ico" aria-hidden="true">${icon.gpt}</span> اسأل ChatGPT</button><button class="sopt" id="listenBtn">🎧 استماع</button>
+            <button class="sopt" id="retrBtn">ترجمة أدق</button><button class="sopt" id="summaryBtn">📝 ملخص المقطع كامل</button><button class="sopt" id="copyAll">📋 نسخ كل النص</button><button class="sopt" id="saveGpt">💾 احفظ ملخص ChatGPT</button><button class="sopt" id="askGpt"><span class="ico" aria-hidden="true">${icon.gpt}</span> اسأل ChatGPT</button><button class="sopt" id="listenBtn">🎧 استماع</button>
             ${source.youtube_id && !source.is_demo ? `<a class="sopt" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">يوتيوب ↗</a>` : ''}
             <button class="sopt" id="del" style="color:var(--bad)">🗑 حذف</button></div></div>
           <button type="button" class="btn rset-reset" id="resetAll">↺ رجّع كل الإعدادات للأصل</button>
@@ -2543,12 +2544,27 @@ export async function render(view, { segments, params }) {
 
   // 🧠 ChatGPT: a ready message («لخّص لي النص») with the whole text attached is copied, and ChatGPT opens in a new tab
   // (the learner is already signed in there): paste, send, then ask anything about the video. Nothing is sent from our side.
+  // 💾 back from ChatGPT: a small pill (appears after the tap, nothing runs in the background) opens the paste-and-keep window for THIS video
+  let gptPill = null;
+  const dropGptPill = () => { gptPill?.remove(); gptPill = null; };
+  const keepGpt = () => openGptNote({ sourceId: id, title: source.title, onSaved: dropGptPill });
+  const showGptPill = () => {
+    if (gptPill?.isConnected) return;
+    gptPill = document.createElement('div');
+    gptPill.className = 'gpt-pill';
+    gptPill.innerHTML = '<button type="button" class="gpt-pill-go">رجعت من ChatGPT؟ <b>الصق الملخص واحفظه</b></button><button type="button" class="gpt-pill-x" aria-label="إغلاق">✕</button>';
+    gptPill.querySelector('.gpt-pill-go').addEventListener('click', keepGpt);
+    gptPill.querySelector('.gpt-pill-x').addEventListener('click', dropGptPill);
+    document.body.appendChild(gptPill);
+  };
+  $('#saveGpt', view)?.addEventListener('click', keepGpt);
   view.querySelectorAll('#askGpt, #gptTop').forEach((btn) => btn.addEventListener('click', async () => {
     const body = data.lines.map((l) => l.text).join('\n');
     const head = 'أنت خبير تلخيص. لخّص لي النص التالي بالعربي بأسلوب علمي واضح وعملي، وبأقصر شكل: الزبدة فقط، بدون مقدمات ولا حشو ولا إعادة للنص.\n'
       + 'أعطني: (١) الفكرة الأساسية في جملتين. (٢) أهم ٣ إلى ٥ نقاط. (٣) كيف أطبّقها عمليًا من اليوم.\n'
       + 'لا تتجاوز نحو ١٥٠ كلمة، وأجب عن أسئلتي عن النص بعدها بنفس الأسلوب المختصر.';
     const full = `${head}\n\n${body}`;
+    showGptPill();
     const fits = encodeURIComponent(full).length <= 7000; // short enough to travel inside the link (?q=) → the box arrives filled
     const url = fits ? `https://chatgpt.com/?q=${encodeURIComponent(full)}` : 'https://chatgpt.com/';
     if (fits && body.length <= 3500) {
@@ -2687,7 +2703,7 @@ export async function render(view, { segments, params }) {
     window.removeEventListener('lexitube:muted', onMuted);
     stopUnmute();
     alive = false;
-    stopMic(); sayNote.remove(); clearResumeTouch(); resumeNote?.remove();
+    stopMic(); sayNote.remove(); clearResumeTouch(); resumeNote?.remove(); dropGptPill?.();
     clearInterval(progressTimer);
     saveProgress(true);
     document.removeEventListener('click', closeSpeed);

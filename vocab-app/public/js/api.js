@@ -69,6 +69,7 @@ export const api = {
   notes: () => request('GET', '/api/notes'),
   keepNote: (source_id, summary) => request('POST', '/api/notes', { source_id, summary }),
   editNote: (source_id, note, refs) => request('PUT', `/api/notes/${source_id}`, { note, refs }),
+  keepGpt: (source_id, text) => request('PUT', `/api/notes/${source_id}/gpt`, { text }),
   dropNote: (source_id) => request('DELETE', `/api/notes/${source_id}`),
   keepClip: (source_id, t, en, ar) => request('POST', '/api/notes/clip', { source_id, t, en, ar }),
   dropClip: (source_id, t, en) => request('DELETE', `/api/notes/${source_id}/clip`, { t, en }),

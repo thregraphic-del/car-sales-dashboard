@@ -94,12 +94,30 @@ router.post('/clip', wrap(async (req) => {
   return { ok: true, clip };
 }));
 
+/** 🧠 the summary the learner got from ChatGPT, pasted and kept under the video's name (entry made if missing; empty text removes it). */
+router.put('/:sourceId/gpt', wrap(async (req) => {
+  const id = Number(req.params.sourceId);
+  const s = await get('SELECT id, youtube_id, title, channel, thumbnail_url FROM sources WHERE id = ? AND user_id = ?', id, req.userId);
+  if (!s) throw httpError(404, 'المقطع غير موجود.');
+  const text = clean(req.body?.text, 20000).trim();
+  const list = await load(req.userId);
+  let item = list.find((n) => Number(n.source_id) === id);
+  if (!item) {
+    if (!text) return { ok: true, note: null };
+    item = { source_id: id, title: s.title, channel: s.channel || '', youtube_id: s.youtube_id || null, thumbnail_url: s.thumbnail_url || null, saved_at: new Date().toISOString(), summary: null, note: '', refs: [], clips: [] };
+  }
+  if (text) { item.gpt = text; item.gpt_at = new Date().toISOString(); } else { delete item.gpt; delete item.gpt_at; }
+  const rest = list.filter((n) => Number(n.source_id) !== id);
+  await save(req.userId, (item.summary || item.note || item.clips?.length || item.gpt) ? [item, ...rest] : rest);
+  return { ok: true, note: item };
+}));
+
 router.delete('/:sourceId/clip', wrap(async (req) => {
   const id = Number(req.params.sourceId);
   const list = await load(req.userId);
   const item = list.find((n) => Number(n.source_id) === id);
   if (item) item.clips = (item.clips || []).filter((c) => !(c.t === Number(req.body?.t) && c.en === String(req.body?.en || '')));
-  await save(req.userId, list.filter((n) => n.summary || n.note || n.clips?.length));
+  await save(req.userId, list.filter((n) => n.summary || n.note || n.clips?.length || n.gpt));
   return { ok: true };
 }));
 

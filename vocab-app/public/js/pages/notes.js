@@ -4,6 +4,7 @@
 import { api } from '../api.js';
 import { esc, icon, toast, emptyState } from '../ui.js';
 import { summaryHtml } from '../summary-view.js';
+import { openGptNote } from '../gpt-note.js';
 
 const fmt = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const TOKEN = /@(\d{1,3})(?::(\d{1,2}))?/g;
@@ -23,10 +24,13 @@ const clipsHtml = (n) => (n.clips?.length ? `<div class="nt-clips"><b>📌 مق�
   <div class="nt-clip"><a class="nt-clip-go" href="#/source/${n.source_id}?t=${c.t}"><span class="nt-t en-inline">⏱ ${fmt(c.t)}</span><mark class="en" dir="ltr">${esc(c.en)}</mark>${c.ar ? `<span class="tiny muted">${esc(c.ar)}</span>` : ''}</a>
   <button type="button" class="btn icon sm ghost" data-delclip="${i}" aria-label="احذف المقتطف">✕</button></div>`).join('')}</div>` : '');
 
+// 🧠 the summary pasted from ChatGPT, kept under the video's name
+const gptHtml = (n) => (n.gpt ? `<div class="nt-gpt"><div class="row between"><b><span class="gpt-mark" aria-hidden="true"></span> ملخص ChatGPT</b><button type="button" class="btn sm ghost" data-gpt>تعديل</button></div><div class="nt-gpt-t" dir="auto">${esc(n.gpt).replace(/\n/g, '<br>')}</div></div>` : '');
+
 // one short line about the video: the summary's first sentence, else the first passage or the note
 const blurbOf = (n) => {
   const first = (t) => String(t || '').split(/(?<=[.!؟?])\s/)[0].slice(0, 140);
-  return first(n.summary?.idea) || (n.clips?.[0] ? `“${n.clips[0].en.slice(0, 120)}”` : '') || first(n.note);
+  return first(n.summary?.idea) || first(n.gpt) || (n.clips?.[0] ? `“${n.clips[0].en.slice(0, 120)}”` : '') || first(n.note);
 };
 // closed: cover + name + one line (tap to open); open: the note, passages and summary
 const cardHtml = (n) => `
@@ -35,22 +39,23 @@ const cardHtml = (n) => `
       ${thumbOf(n) ? `<img class="nt-thumb" src="${esc(thumbOf(n))}" alt="" loading="lazy" onerror="this.remove()">` : '<span class="nt-thumb nt-noimg">📄</span>'}
       <div class="nt-meta"><b class="nt-title en clamp2">${esc(n.title || '')}</b>
         <span class="tiny muted clamp2 nt-blurb">${esc(blurbOf(n))}</span>
-        <span class="tiny nt-counts">${n.summary ? '<span>📝 ملخص</span>' : ''}${n.clips?.length ? `<span>📌 ${n.clips.length}</span>` : ''}${n.note ? '<span>✍️ ملاحظة</span>' : ''}<span class="en-inline muted">${esc(n.channel || '')}</span></span></div>
+        <span class="tiny nt-counts">${n.summary ? '<span>📝 ملخص</span>' : ''}${n.gpt ? '<span><span class="gpt-mark" aria-hidden="true"></span> ChatGPT</span>' : ''}${n.clips?.length ? `<span>📌 ${n.clips.length}</span>` : ''}${n.note ? '<span>✍️ ملاحظة</span>' : ''}<span class="en-inline muted">${esc(n.channel || '')}</span></span></div>
       <span class="nt-caret" aria-hidden="true">▾</span>
     </header>
     <div class="nt-body">
       <div class="nt-tools"><a class="btn sm" href="#/source/${n.source_id}" ${n.exists ? '' : 'aria-disabled="true"'}>▶ افتح المقطع</a><button type="button" class="btn sm ghost" data-edit>${icon.edit} ملاحظة</button><button type="button" class="btn icon sm ghost" data-del title="احذف من «أفكار»" aria-label="احذف">${icon.trash}</button></div>
-      ${noteHtml(n)}${clipsHtml(n)}${n.summary ? summaryHtml(n.summary) : ''}</div>
+      ${gptHtml(n)}${noteHtml(n)}${clipsHtml(n)}${n.summary ? summaryHtml(n.summary) : ''}</div>
   </article>`;
 
 export async function render(view) {
-  view.innerHTML = `<div class="page-head"><div><div class="eyebrow">Insights</div><h1>أفكار</h1><p class="muted small">ملخصات المقاطع والمقاطع اللي ظلّلتها، مع ملاحظاتك عليها.</p></div></div>
+  view.innerHTML = `<div class="page-head"><div><div class="eyebrow">Insights</div><h1>أفكار</h1><p class="muted small">ملخصات المقاطع والمقاطع اللي ظلّلتها، مع ملاحظاتك عليها.</p></div>
+      <button type="button" class="btn sm" id="ntAddGpt"><span class="gpt-mark" aria-hidden="true"></span> أضف ملخص ChatGPT</button></div>
     <div class="stack" id="ntList"><p class="tiny muted"><span class="spinner"></span></p></div>`;
   const listEl = view.querySelector('#ntList');
   let notes = [];
   const draw = () => {
     listEl.innerHTML = notes.length ? notes.map(cardHtml).join('')
-      : emptyState?.('📒', 'ما حفظت خلاصات للحين', 'افتح «📝 ملخص المقطع» في أي فيديو واضغط «احفظ في «أفكار»».') || '<div class="card empty"><h3>ما حفظت خلاصات للحين</h3><p>افتح «📝 ملخص المقطع» في أي فيديو واضغط «احفظ في «أفكار»».</p></div>';
+      : emptyState?.('📒', 'ما حفظت خلاصات للحين', 'افتح «📝 ملخص المقطع» في أي فيديو واضغط «احفظ في «أفكار»»، أو اضغط «أضف ملخص ChatGPT» فوق والصق ملخصك.') || '<div class="card empty"><h3>ما حفظت خلاصات للحين</h3><p>افتح «📝 ملخص المقطع» في أي فيديو واضغط «احفظ في «أفكار»».</p></div>';
   };
   try { notes = (await api.notes()).notes; } catch (err) { listEl.innerHTML = `<div class="alert">${esc(err.message)}</div>`; return; }
   draw();
@@ -127,6 +132,9 @@ export async function render(view) {
     });
   };
 
+  const reload = async () => { try { notes = (await api.notes()).notes; draw(); } catch (err) { toast(err.message); } };
+  view.querySelector('#ntAddGpt').addEventListener('click', () => openGptNote({ onSaved: reload }));
+
   listEl.addEventListener('click', async (e) => {
     const card = e.target.closest('[data-src]');
     if (!card) return;
@@ -139,6 +147,7 @@ export async function render(view) {
     }
     const tg = e.target.closest('[data-toggle]');
     if (tg) { const on = !card.classList.contains('open'); card.classList.toggle('open', on); tg.setAttribute('aria-expanded', String(on)); return; }
+    if (e.target.closest('[data-gpt]')) { openGptNote({ sourceId: n.source_id, title: n.title, current: n.gpt || '', onSaved: reload }); return; }
     if (e.target.closest('[data-edit]')) { if (!card.querySelector('.nt-edit')) edit(card, n); return; }
     if (e.target.closest('[data-del]')) {
       if (!confirm('تحذف هذي الخلاصة من «أفكار»؟')) return;
