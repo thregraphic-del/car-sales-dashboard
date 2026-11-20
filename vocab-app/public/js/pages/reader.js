@@ -436,7 +436,7 @@ export async function render(view, { segments, params }) {
   (() => {
     const T = [
       ['#speed', 'سرعة الفيديو: أبطأ تفهم أوضح، وأسرع توفّر وقتك.', '.player-box', ''],
-      ['#amList', 'وش يصير بعد كل جملة: يكمّل، أو يوقف شوي، أو يوقف عشان تردّد — يعلّمك النطق.', '.player-box', 'يظهر أثره وأنت تشغّل المقطع.'],
+      ['#amList', 'وش يصير بعد كل جملة: يكمّل، أو يوقف شوي، أو يوقف بقدر نطق الجملة عشان تردّدها (بدون ميكروفون) — يعلّمك النطق.', '.player-box', 'يظهر أثره وأنت تشغّل المقطع.'],
       ['#wbOn', 'يعرض لك كلمات جديدة قبل ما تجي أو بعدها، عشان تتجهّز لها وما تفوتك.', '.reader-side', 'القائمة تظهر أثناء التشغيل.'],
       ['#recapOn', 'كل فترة يلخّص لك اللي مرّ بجملتين، عشان ما تضيع في المقطع.', '', 'يظهر الملخص وأنت تشغّل المقطع.'],
       ['#gramOn', 'يكتب فوق كل جملة قاعدتها، وتضغط تشوف الشرح — تتعلّم القواعد من المقطع نفسه.', '#lines', ''],
@@ -1786,74 +1786,12 @@ export async function render(view, { segments, params }) {
   // 🎤 «ردّد معي»: the mic listens during the pause — once you have said the line (voice, then a
   // short silence) the video goes on. The mic is open only during the pause (phones keep the
   // video's sound normal the rest of the time). No mic → a pause the length of the line.
-  let micStop = null;
   const sayNote = document.createElement('div');
   sayNote.className = 'say-note';
   ($('.player-box', view) || $('#vidPin', view) || view).appendChild(sayNote);
   const showSay = (t) => { sayNote.textContent = t; sayNote.classList.toggle('on', !!t); };
-  const stopMic = () => { if (micStop) { micStop(); micStop = null; } showSay(''); };
-  // One AudioContext for the whole visit, started by a touch (iPhone keeps a context made later «suspended» and reads silence).
-  let shCtx = null;
-  let micFailUntil = 0;
-  const unlockMic = () => {
-    if (playMode !== 'shadow') return;
-    try { shCtx ||= new (window.AudioContext || window.webkitAudioContext)(); if (shCtx.state !== 'running') shCtx.resume?.(); } catch { shCtx = null; }
-  };
-  const UNLOCK_EVENTS = ['touchend', 'click', 'keydown'];
-  UNLOCK_EVENTS.forEach((ev) => document.addEventListener(ev, unlockMic, true));
-  const sleep2 = (ms) => new Promise((r) => setTimeout(r, ms));
-  /** Listen for the learner's voice. → 'heard' | 'timeout' (waited long enough) | 'nomic' (use a timed pause). Never waits longer than capMs. */
-  async function listenForRepeat(lineSecs, capMs) {
-    if (!navigator.mediaDevices?.getUserMedia || Date.now() < micFailUntil) return 'nomic';
-    let stream = null;
-    let late = false;
-    const asked = navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-    asked.then((s) => { if (late) s.getTracks().forEach((tr) => tr.stop()); }, () => {});
-    try {
-      // a permission question that is not answered in ~3.5 s must not hold the video
-      stream = await Promise.race([asked, sleep2(3500).then(() => { late = true; throw new Error('slow'); })]);
-    } catch (err) { micFailUntil = Date.now() + (err?.name === 'NotAllowedError' ? 600000 : 15000); return 'nomic'; }
-    let ctx = shCtx;
-    try {
-      ctx ||= new (window.AudioContext || window.webkitAudioContext)();
-      if (ctx.state !== 'running') await Promise.race([ctx.resume?.(), sleep2(500)]);
-    } catch { /* checked below */ }
-    if (!ctx || ctx.state !== 'running') { stream.getTracks().forEach((tr) => tr.stop()); if (ctx !== shCtx) ctx?.close?.().catch(() => {}); return 'nomic'; } // (suspended: it would only read silence)
-    return new Promise((resolve) => {
-      const an = ctx.createAnalyser(); an.fftSize = 1024;
-      const src = ctx.createMediaStreamSource(stream);
-      src.connect(an);
-      const buf = new Float32Array(an.fftSize);
-      let floor = 1; let n = 0; let spoke = 0; let quiet = 0;
-      const started = Date.now();
-      const need = Math.min(2500, Math.max(500, lineSecs * 350)); // ms of voice before it counts
-      const minWait = Math.min(4000, lineSecs * 500); // a long line cannot be repeated in a second
-      let slot = 0; let slotMin = 1;
-      const iv = setInterval(() => {
-        an.getFloatTimeDomainData(buf);
-        let sum = 0; for (let i = 0; i < buf.length; i += 1) sum += buf[i] * buf[i];
-        const rms = Math.sqrt(sum / buf.length);
-        n += 1; slotMin = Math.min(slotMin, rms);
-        if (n % 10 === 0) { floor = n === 10 ? slotMin : Math.min(floor * 1.5, Math.max(slotMin, floor * 0.7)); slotMin = 1; } // the room's quiet, followed over time
-        if (n <= 6) return; // ~0.6 s to learn the room's quiet
-        const loud = rms > Math.max(0.02, floor * 3);
-        if (loud) { spoke += 100; quiet = 0; } else if (spoke) quiet += 100;
-        const el = Date.now() - started;
-        showSay(spoke >= need ? '🎤 ممتاز… كمّل' : '🎤 ردّد الجملة الحين');
-        if (spoke >= need && quiet >= 800 && el >= minWait) done('heard');
-        else if (el >= capMs) done('timeout');
-      }, 100);
-      const done = (r) => {
-        clearInterval(iv);
-        try { src.disconnect(); } catch { /* ignore */ }
-        stream.getTracks().forEach((tr) => tr.stop());
-        if (ctx !== shCtx) ctx.close().catch(() => {});
-        micStop = null;
-        resolve(r);
-      };
-      micStop = () => done('stopped');
-    });
-  }
+  const stopMic = () => showSay('');
+  const UNLOCK_EVENTS = ['touchend', 'click', 'keydown']; // a touch anywhere continues the video if the browser refused to (see resumeVideo)
   const cancelGap = () => {
     const was = Boolean(gapTimer);
     stopMic();
@@ -1911,25 +1849,15 @@ export async function render(view, { segments, params }) {
       : gapMs;
     selfPause(); player.pause();
     if (playMode === 'shadow') {
-      // stay on this line until it has been said — but never longer than the cap, whatever the microphone does
+      // «ردّد معي»: the video waits as long as this sentence takes to say (at the current speed), then goes on — no microphone
       const lineSecs = Math.max(0.5, (entry.end - entry.start) / (rate || 1));
-      const cap = Math.min(20000, Math.max(5000, lineSecs * 2000 + 3500));
-      const finish = () => { cancelGap(); resumeVideo(); };
-      gapTimer = setTimeout(finish, cap + 800); // the watchdog (also what marks «waiting»)
+      const wait = Math.min(20000, Math.max(1200, lineSecs * 1000 + 300));
+      const until = Date.now() + wait;
+      const tickNote = () => showSay(`🗣 ردّد الجملة… ${Math.max(0, Math.ceil((until - Date.now()) / 1000))}`);
+      tickNote();
+      gapTick = setInterval(tickNote, 250);
+      gapTimer = setTimeout(() => { cancelGap(); resumeVideo(); }, wait);
       showPlayBtn();
-      showSay('🎤 ردّد الجملة الحين');
-      listenForRepeat(lineSecs, cap).then((r) => {
-        if (!gapTimer) return; // stopped / skipped meanwhile
-        if (r === 'heard') { showSay('✓'); clearTimeout(gapTimer); gapTimer = setTimeout(finish, 350); return; }
-        if (r === 'timeout') { finish(); return; }
-        // no mic (or it cannot be heard): a pause the length of the line, then on
-        const wait = Math.min(cap, lineSecs * 1300 + 1200);
-        const until = Date.now() + wait;
-        const tickNote = () => showSay(`🗣 ردّد الجملة… ${Math.max(0, Math.ceil((until - Date.now()) / 1000))}`);
-        tickNote(); clearInterval(gapTick); gapTick = setInterval(tickNote, 250);
-        clearTimeout(gapTimer);
-        gapTimer = setTimeout(finish, wait);
-      });
       return;
     }
     const until = Date.now() + ms;
@@ -1968,7 +1896,7 @@ export async function render(view, { segments, params }) {
   };
   $('#shadowBtn', view)?.addEventListener('click', () => {
     setMode(playMode === 'shadow' ? 'normal' : 'shadow');
-    toast(playMode === 'shadow' ? '🎤 ردّد معي: يقف بعد كل جملة، وأول ما تردّدها يكمّل' : 'رجع التشغيل عادي');
+    toast(playMode === 'shadow' ? '🗣 ردّد معي: يقف بعد كل جملة بقدر ما تحتاج لنطقها، وبعدها يكمّل' : 'رجع التشغيل عادي');
   });
   const modeMenu = $('#mode .speed-menu', view);
   const toggleMode = (open) => {
@@ -2730,8 +2658,6 @@ export async function render(view, { segments, params }) {
     stopUnmute();
     alive = false;
     stopMic(); sayNote.remove(); clearResumeTouch(); resumeNote?.remove();
-    UNLOCK_EVENTS.forEach((ev) => document.removeEventListener(ev, unlockMic, true));
-    shCtx?.close?.().catch(() => {});
     clearInterval(progressTimer);
     saveProgress(true);
     document.removeEventListener('click', closeSpeed);
