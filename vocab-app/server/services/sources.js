@@ -12,7 +12,7 @@ import { recordTranscript } from './ai.js';
 import { httpError } from '../lib/errors.js';
 import { parseYoutubeId, getVideoWithTranscript, getVideoMeta, parsePastedTranscript, MESSAGES, TranscriptError, externalTranscript, oembed } from '../lib/youtube.js';
 import { readArticle } from '../lib/article.js';
-import { extractVocabulary, extractChunkWithAi, toSentences, translateWithAi, suspiciousTranslations, alignWithAi, ExtractionError } from './extractor.js';
+import { extractVocabulary, extractChunkWithAi, toSentences, translateWithAi, translateToEnglishWithAi, suspiciousTranslations, alignWithAi, ExtractionError } from './extractor.js';
 import { chunkRanges, batchRanges } from '../lib/align.js';
 import { aiConfigured, aiAvailable, AiError, OFFLINE_MESSAGE, unavailableMessage } from './ai.js';
 import * as sources from '../data/sources.js';
@@ -119,6 +119,8 @@ export async function analyzeYoutube({ url, transcript, force, origin }, userId)
   const lines = toLines(segments);
   mark(`transcript (${transcriptSource}, ${lines.length} lines)`);
   if (!lines.length) throw httpError(422, 'ما لقينا نصًا في هذا الفيديو.');
+  // a video whose words are Arabic: the site teaches English from English videos — a clear message instead of an Arabic-to-Arabic page
+  if (isArabicText(lines.slice(0, 60).map((l) => l.text).join(' '))) throw httpError(422, 'هذا الفيديو بالعربي. الموقع يعلّمك الإنجليزي من فيديوهات إنجليزية — اختر فيديو بالإنجليزي، أو الصق جزءًا من نصه العربي في «نصوص» وبنترجمه لك للإنجليزي.');
   let items = [];
   let rest = [];
   let engine = 'dictionary';
@@ -153,12 +155,40 @@ export async function analyzeYoutube({ url, transcript, force, origin }, userId)
   return { source_id: sourceId, cached: false, ai: aiAvailable() };
 }
 
-/** Turn pasted English text into a readable source with suggested words. */
+/** Is this text mostly Arabic? (letters, so numbers and punctuation do not decide) */
+export function isArabicText(text) {
+  const s = String(text || '');
+  const ar = (s.match(/[\u0600-\u06FF\u0750-\u077F]/g) || []).length;
+  const en = (s.match(/[A-Za-z]/g) || []).length;
+  return ar >= 12 && ar > en * 1.5;
+}
+const AR_MAX_CHARS = 6000; // an Arabic text is translated before it is saved, inside one request
+
+/** Arabic lines → English lines that keep the Arabic beside them (the site teaches English). */
+async function arabicToEnglishLines(lines, title) {
+  if (!aiAvailable()) throw httpError(503, 'ترجمة النص العربي للإنجليزي تحتاج الذكاء الاصطناعي، وهو غير متاح الحين. جرّب لاحقًا.');
+  const chunks = [];
+  for (let i = 0; i < lines.length; i += 25) chunks.push(lines.slice(i, i + 25));
+  let maps;
+  try {
+    maps = await Promise.all(chunks.map((c) => translateToEnglishWithAi(c, title)));
+  } catch (err) {
+    if (err instanceof AiError) throw httpError(err.status || 503, err.message);
+    throw err;
+  }
+  const en = new Map(maps.flatMap((m) => [...m]));
+  return lines.map((l) => ({ idx: l.idx, start: null, text: String(en.get(l.idx) || '').trim() || l.text, text_ar: l.text }));
+}
+
+/** Turn pasted text into a readable source with suggested words. An Arabic text is translated to English first (the Arabic stays beside it). */
 export async function analyzeText(text, userId, title, url = null) {
   const clean = String(text || '').trim();
-  const sentences = clean.split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
-  const lines = sentences.map((s, idx) => ({ idx, start: null, text: s }));
-  const words = clean.split(/\s+/);
+  const arabic = isArabicText(clean);
+  if (arabic && clean.length > AR_MAX_CHARS) throw httpError(413, `النص العربي طويل — الصق حتى ${AR_MAX_CHARS} حرف في المرة وبنترجمه للإنجليزي.`);
+  const sentences = clean.split(arabic ? /(?<=[.!?؟])\s+|\n+/ : /(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
+  let lines = sentences.map((s, idx) => ({ idx, start: null, text: s }));
+  if (arabic) lines = await arabicToEnglishLines(lines, title || '');
+  const words = (arabic ? lines.map((l) => l.text).join(' ') : clean).split(/\s+/);
   const firstWords = words.slice(0, 7).join(' ');
   let items = [];
   let rest = [];

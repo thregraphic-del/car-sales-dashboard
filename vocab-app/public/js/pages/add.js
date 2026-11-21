@@ -16,11 +16,14 @@ const PASTE_HELP = new Set(['no_captions', 'blocked', 'service_limit', 'fetch_fa
 
 // «مقاطعي»: drawn at once from the last list kept on this device, then refreshed quietly.
 const srcKey = () => `add.sources.${state.user?.id || 'me'}`; // per account on a shared device
+// mostly Arabic words (a text to translate to English), not an English text or a word list
+const isArabicProse = (s) => { const ar = (String(s).match(/[\u0600-\u06FF]/g) || []).length; const en = (String(s).match(/[A-Za-z]/g) || []).length; return ar >= 12 && ar > en * 1.5 && String(s).trim().split(/\s+/).length >= 6; };
+
 export async function render(view, { params }) {
   let cached = [];
   try { cached = JSON.parse(localStorage.getItem(srcKey()) || '[]'); } catch { /* none yet */ }
   view.innerHTML = `
-    <div class="page-head compact"><div><h1>أضف</h1><p>الصق رابط فيديو يوتيوب، أو كلمات، أو ملاحظاتك، أو أي نص إنجليزي.</p></div></div>
+    <div class="page-head compact"><div><h1>أضف</h1><p>الصق رابط فيديو يوتيوب، أو كلمات، أو ملاحظاتك، أو أي نص إنجليزي — أو نص عربي وبنترجمه لك للإنجليزي.</p></div></div>
     <div class="card add-box">
       <textarea class="input add-input" id="input" dir="auto" rows="4" placeholder="https://www.youtube.com/watch?v=…&#10;&#10;أو مثلًا:&#10;accurate = دقيق&#10;The report is accurate."></textarea>
       <div class="row between wrap" style="gap:10px;margin-top:12px">
@@ -99,7 +102,8 @@ export async function render(view, { params }) {
     $('#hint', view).textContent = isYoutube(v)
       ? 'بنقرأ نص المقطع كامل ونجهّز الترجمة والكلمات المفيدة.'
       : isArticle(v) ? 'بنقرأ المقال كامل ونستخرج كلماته — يحفظ في «نصوص».'
-        : 'لا تحتاج تنسيقًا معيّنًا — سنفهم الكلمات والمعاني والأمثلة تلقائيًا.';
+        : isArabicProse(v) ? 'نص عربي: بنترجمه للإنجليزي وتتعلّم منه (الترجمة تستهلك الذكاء الاصطناعي، والنص يظهر في «نصوص»).'
+          : 'لا تحتاج تنسيقًا معيّنًا — سنفهم الكلمات والمعاني والأمثلة تلقائيًا.';
     if (!isYoutube(v)) manual.classList.add('hidden');
   };
   input.addEventListener('input', update);
@@ -172,7 +176,7 @@ export async function render(view, { params }) {
   }
 
   async function analyzeInput() {
-    const stop = steps(['قراءة ما كتبته', 'التعرّف على الكلمات والمعاني', 'مقارنتها بكلماتك']);
+    const stop = steps(isArabicProse(input.value) ? ['قراءة النص العربي', 'نترجمه للإنجليزي', 'نستخرج الكلمات المفيدة'] : ['قراءة ما كتبته', 'التعرّف على الكلمات والمعاني', 'مقارنتها بكلماتك']);
     try {
       const preview = await api.importPreview(input.value);
       stop();

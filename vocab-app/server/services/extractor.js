@@ -475,6 +475,24 @@ export async function translateWithAi(lines, title = '', { strict = false } = {}
   return suspiciousTranslations(lines, second).size <= bad.size ? second : first;
 }
 
+/* Arabic → English (an Arabic text pasted into the site becomes an English text to learn from; the Arabic stays beside it) */
+const TO_EN_SCHEMA = obj({ lines: { type: 'array', items: obj({ i: { type: 'integer' }, en: str }) } });
+const ToEnZ = z.object({ lines: z.array(z.object({ i: z.number().int(), en: z.string() })) });
+const TO_EN_RULES = 'Translate the numbered Arabic lines (Modern Standard Arabic or any dialect: Gulf/Saudi, Egyptian, Levantine…) into clear, natural, correct English for an Arabic-speaking learner who will study the English. Keep the meaning exactly; use everyday, simple English words where the meaning allows; keep names, numbers and brands as they are. Each line is a whole sentence or a short fragment: translate ONLY that line, never merge, split, summarise, add or skip lines. Return exactly one English item per input line, with its number.';
+
+/** Translate Arabic lines → Map(idx → English). */
+export async function translateToEnglishWithAi(lines, title = '') {
+  const r = await jsonCall({
+    task: 'translate_ar_en_v1',
+    system: TO_EN_RULES,
+    user: `${title ? `Title: ${title}\n` : ''}${lines.map((l) => `[${l.idx}] ${l.text}`).join('\n')}`,
+    schema: TO_EN_SCHEMA,
+    zod: ToEnZ,
+    maxTokens: Math.min(16000, 220 * lines.length + 1000),
+  });
+  return new Map(r.lines.map((l) => [l.i, l.en]));
+}
+
 export { findSpan, aiConfigured, aiAvailable, AiError };
 
 /* ------------------------------------------- 4. explain a selected text */

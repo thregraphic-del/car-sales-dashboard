@@ -7,7 +7,7 @@ import { config } from '../config.js';
 import { enrichWithAi, dictionaryDetails } from './extractor.js';
 import { aiAvailable, AiError, OFFLINE_MESSAGE, unavailableMessage } from './ai.js';
 import { parseInput } from './parse-input.js';
-import { analyzeText } from './sources.js';
+import { analyzeText, isArabicText } from './sources.js';
 import { matchKey, quickTier, sentenceKey, singularCandidates, sameArabicMeaning, BASIC_WORDS } from '../../public/js/shared/text.js';
 import { findVocabulary, upsertVocabulary, addExample, examplesOf } from '../data/vocabulary.js';
 import { userStateFor, saveWord } from '../data/words.js';
@@ -70,8 +70,10 @@ export async function preview(text, userId) {
   const rows = [];
   for (const it of parsed.items) rows.push(await previewRow(it, userId));
   let source = null;
-  if (parsed.passage && parsed.passage.split(/\s+/).length >= 6) {
-    const { source_id } = await analyzeText(parsed.passage, userId);
+  // an Arabic text (no English words list): it is translated to English and kept as a text to learn from
+  const arabicText = !parsed.items.length && !parsed.passage && isArabicText(text) && text.trim().split(/\s+/).length >= 6;
+  if (arabicText || (parsed.passage && parsed.passage.split(/\s+/).length >= 6)) {
+    const { source_id } = await analyzeText(arabicText ? text : parsed.passage, userId);
     const view = await sourceView(source_id, userId);
     source = { id: source_id, title: view.source.title, items: view.items.length };
   }
@@ -79,7 +81,7 @@ export async function preview(text, userId) {
   return {
     items: rows,
     source,
-    unclear: parsed.unclear,
+    unclear: arabicText ? [] : parsed.unclear,
     ai: aiAvailable(),
     needs_ai: aiAvailable() ? pending : 0,
     enrich_batch: ENRICH_BATCH,
