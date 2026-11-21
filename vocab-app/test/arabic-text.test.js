@@ -71,3 +71,15 @@ test('the «أضف» box: an Arabic paragraph becomes a translated text, not a l
   const view = await (await realFetch(`${app.base}/api/sources/${r.body.source.id}`)).json();
   assert.ok(view.lines.every((l) => /^English \d+$/.test(l.text) && /[؀-ۿ]/.test(l.text_ar)));
 });
+
+test('an Arabic-only video saved earlier is not handed back as a normal cached video', async () => {
+  const { saveSource } = await import('../server/data/sources.js');
+  const { get } = await import('../server/db/index.js');
+  const made = await post('/api/sources/text', { text: 'The cat sat on the warm mat. It was quiet today.', title: 'any' });
+  const uid = (await get('SELECT user_id FROM sources WHERE id = ?', made.body.source_id)).user_id;
+  const lines = ['هذا مؤسس إنفيديا اعترف بأنه خان زوجته', 'والمرأة اتهمت بأنها جاسوسة صينية', 'وخلال ثلاث وثلاثين سنة بنى أغلى شركة'].map((text, idx) => ({ idx, start: idx * 4, text }));
+  await saveSource({ kind: 'youtube', youtube_id: 'AbCdEfGhIjK', url: 'https://www.youtube.com/watch?v=AbCdEfGhIjK', title: 'قديم', transcript_source: 'x', extractor: 'dictionary', word_count: 20 }, lines, [], uid);
+  const r = await post('/api/sources/youtube', { url: 'https://www.youtube.com/watch?v=AbCdEfGhIjK' });
+  assert.equal(r.status, 422);
+  assert.match(r.body.error, /بالعربي/);
+});

@@ -101,7 +101,12 @@ export async function analyzeYoutube({ url, transcript, force, origin }, userId)
   const t0 = Date.now();
   const mark = (step) => console.log(`[add ${youtubeId}] ${step} ${Date.now() - t0}ms`);
   const existing = await sources.findSourceByYoutubeId(youtubeId, userId);
-  if (existing && !force && !transcript?.trim() && await sources.lineCount(existing.id)) return { source_id: existing.id, cached: true };
+  if (existing && !force && !transcript?.trim() && await sources.lineCount(existing.id)) {
+    // a video saved earlier with ARABIC words (before the site said so) must not be handed back as if it were fine
+    const head = await all('SELECT text FROM transcript_lines WHERE source_id = ? ORDER BY idx LIMIT 40', existing.id);
+    if (!isArabicText(head.map((l) => l.text).join(' '))) return { source_id: existing.id, cached: true };
+    throw httpError(422, ARABIC_VIDEO_MESSAGE);
+  }
   let meta;
   let segments;
   let transcriptSource;
@@ -120,7 +125,7 @@ export async function analyzeYoutube({ url, transcript, force, origin }, userId)
   mark(`transcript (${transcriptSource}, ${lines.length} lines)`);
   if (!lines.length) throw httpError(422, 'ما لقينا نصًا في هذا الفيديو.');
   // a video whose words are Arabic: the site teaches English from English videos — a clear message instead of an Arabic-to-Arabic page
-  if (isArabicText(lines.slice(0, 60).map((l) => l.text).join(' '))) throw httpError(422, 'هذا الفيديو بالعربي. الموقع يعلّمك الإنجليزي من فيديوهات إنجليزية — اختر فيديو بالإنجليزي، أو الصق جزءًا من نصه العربي في «نصوص» وبنترجمه لك للإنجليزي.');
+  if (isArabicText(lines.slice(0, 60).map((l) => l.text).join(' '))) throw httpError(422, ARABIC_VIDEO_MESSAGE);
   let items = [];
   let rest = [];
   let engine = 'dictionary';
@@ -162,6 +167,7 @@ export function isArabicText(text) {
   const en = (s.match(/[A-Za-z]/g) || []).length;
   return ar >= 12 && ar > en * 1.5;
 }
+const ARABIC_VIDEO_MESSAGE = 'هذا الفيديو نصه بالعربي. الموقع يعلّمك الإنجليزي من فيديوهات إنجليزية — اختر فيديو بالإنجليزي، أو الصق جزءًا من نصه العربي في «أضف» وبنترجمه لك للإنجليزي. (والنسخة العربية المحفوظة سابقًا تقدر تحذفها من «نشاطي».)';
 const AR_MAX_CHARS = 6000; // an Arabic text is translated before it is saved, inside one request
 
 /** Arabic lines → English lines that keep the Arabic beside them (the site teaches English). */
