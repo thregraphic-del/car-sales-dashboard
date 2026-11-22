@@ -2745,3 +2745,25 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .ah-go .btn:disabled { background: var(--surface-3); color: var(--muted); box-shadow: none; opacity: 1; }
 .ah-go .btn svg { width: 22px; height: 22px; }
 #manual, #status { text-align: start; }
+/* settings: contact + «انضم لفريقنا» */
+.tm-contacts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.tm-contact, .tm-join { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 20px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); text-decoration: none; font: inherit; text-align: start; cursor: pointer; }
+.tm-contact > span:last-child, .tm-join > span:last-child { display: grid; gap: 2px; min-width: 0; }
+.tm-contact:hover, .tm-join:hover { border-color: var(--accent); }
+.tm-ic { width: 42px; height: 42px; border-radius: 14px; display: grid; place-items: center; flex: none; background: var(--accent-soft); color: var(--accent); }
+.tm-ic svg { width: 22px; height: 22px; }
+.tm-ic.wa { background: #e3f6ea; color: #1f9d55; } .tm-ic.mail { background: var(--b2-soft); color: var(--b2); } .tm-ic.team { background: var(--gold-soft); color: var(--warn); }
+.tm-join { width: 100%; }
+.tm-modal h4 { font-size: 14px; }
+.tm-code { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-radius: 20px; background: var(--accent-soft); margin-bottom: 10px; }
+.tm-code b { flex: 1; font-size: 22px; letter-spacing: 1.5px; color: var(--accent); }
+.tm-link { display: grid; gap: 6px; margin-bottom: 12px; }
+.tm-link .input { flex: 1; min-width: 0; font-size: 12.5px; }
+.tm-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 12px 0 10px; }
+.tm-stats > div { display: grid; gap: 2px; justify-items: center; padding: 10px 4px; border-radius: 16px; background: var(--surface-2); text-align: center; }
+.tm-stats b { font-size: 16px; }
+.tm-bar { height: 8px; border-radius: 99px; background: var(--surface-3); overflow: hidden; }
+.tm-bar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--gold)); }
+.tm-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.tm-list li { display: flex; align-items: center; gap: 10px; justify-content: space-between; padding: 9px 12px; border-radius: 14px; background: var(--surface-2); font-size: 14px; }
+.tm-thanks { margin-bottom: 10px; }

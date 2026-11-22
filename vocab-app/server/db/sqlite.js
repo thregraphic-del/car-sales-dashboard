@@ -9,7 +9,7 @@ import { learningSignals } from '../lib/srs.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(here, '..', '..');
-export const SCHEMA_VERSION = 12;
+export const SCHEMA_VERSION = 13;
 export const DEFAULT_SQLITE_PATH = path.join(ROOT, 'data', 'lexitube.db');
 
 export function resolvePath(p) {
@@ -162,6 +162,22 @@ export function migrate(d) {
   if (version < 12) {
     // v12: a word's level is set once by the learner dictionaries, then kept.
     if (!columnsOf(d, 'vocabulary').includes('level_checked')) d.exec('ALTER TABLE vocabulary ADD COLUMN level_checked INTEGER NOT NULL DEFAULT 0');
+  }
+  if (version < 13) {
+    // v13: «انضم لفريقنا» — team members with a referral code, their referrals, earnings and payout requests.
+    d.exec(`
+      CREATE TABLE IF NOT EXISTS team_members (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+        name TEXT NOT NULL, email TEXT NOT NULL, phone TEXT NOT NULL, code TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS referrals (id INTEGER PRIMARY KEY AUTOINCREMENT, member_id INTEGER NOT NULL REFERENCES team_members(id) ON DELETE CASCADE,
+        referred_user_id INTEGER NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE, created_at TEXT NOT NULL);
+      CREATE INDEX IF NOT EXISTS referrals_member ON referrals (member_id);
+      CREATE TABLE IF NOT EXISTS team_credits (id INTEGER PRIMARY KEY AUTOINCREMENT, member_id INTEGER NOT NULL REFERENCES team_members(id) ON DELETE CASCADE,
+        amount_cents INTEGER NOT NULL, note TEXT, created_at TEXT NOT NULL);
+      CREATE INDEX IF NOT EXISTS team_credits_member ON team_credits (member_id);
+      CREATE TABLE IF NOT EXISTS payout_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, member_id INTEGER NOT NULL REFERENCES team_members(id) ON DELETE CASCADE,
+        amount_cents INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending', note TEXT, seen INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, decided_at TEXT);
+      CREATE INDEX IF NOT EXISTS payout_requests_member ON payout_requests (member_id, status);
+    `);
   }
   d.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }

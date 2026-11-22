@@ -202,6 +202,8 @@ async function route() {
 }
 
 watchForUpdates();
+// a link with ?ref=CODE (from a team member) is remembered until the visitor registers
+try { const r = new URLSearchParams(location.search).get('ref'); if (r) localStorage.setItem('lt.ref', r.trim().toUpperCase().slice(0, 20)); } catch { /* ignore */ }
 startReminder();
 startTooltips();
 

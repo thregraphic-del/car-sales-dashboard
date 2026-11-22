@@ -23,6 +23,8 @@ import channelRoutes from './routes/channels.js';
 import noteRoutes from './routes/notes.js';
 import aiRoutes from './routes/ai.js';
 import grammarRoutes from './routes/grammar.js';
+import teamRoutes from './routes/team.js';
+import adminRoutes from './routes/admin.js';
 
 const PUBLIC_PATHS = new Set(['/api/version', '/api/auth/status', '/api/auth/login', '/api/auth/setup', '/api/auth/register', '/api/auth/logout', '/api/auth/forgot', '/api/auth/reset', '/api/auth/guest']);
 
@@ -157,6 +159,8 @@ export function createApp() {
   app.use('/api/notes', noteRoutes);
   app.use('/api/grammar', grammarRoutes);
   app.use('/api/social', socialRoutes);
+  app.use('/api/team', teamRoutes);
+  app.use('/api/admin', adminRoutes);
   app.use('/api', (_req, res) => res.status(404).json({ error: 'غير موجود' }));
 
   // Human-readable errors only — details stay in the server log, never in responses.

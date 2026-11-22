@@ -1,6 +1,7 @@
 // /api/version, /api/config, /api/me — app identity and the learner's settings.
 import { Router } from 'express';
 import { config } from '../config.js';
+import { publicContact } from '../data/team.js';
 import { wrap, str } from '../http.js';
 import { aiStatus, checkModel } from '../services/ai.js';
 import { ttsInfo } from '../services/tts.js';
@@ -25,6 +26,7 @@ router.get('/config', wrap(async (req) => ({
   features: { demo_reset: config.features.demoReset },
   paid: await paidFor(req),
   can_set_paid: isOwner(req),
+  contact: await publicContact(),
   limits: { daily_goal_min: config.limits.dailyGoalMin, daily_goal_max: config.limits.dailyGoalMax, import_chunk_rows: config.limits.importChunkRows },
 })));
 

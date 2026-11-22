@@ -1,6 +1,7 @@
 // /api/auth — accounts for the website: register, login, logout, password.
 import { Router } from 'express';
 import { config } from '../config.js';
+import { noteReferral } from '../data/team.js';
 import { wrap } from '../http.js';
 import * as auth from '../services/auth.js';
 import { publicUser } from '../data/users.js';
@@ -34,6 +35,7 @@ router.post('/register', wrap(async (req, res) => {
   const user = await auth.register(req.body || {}, req.ip, req.user);
   if (req.body?.email) await setEmail(user.id, req.body.email).catch(() => {});
   if (req.body?.phone) await setPhone(user.id, req.body.phone).catch(() => {});
+  if (req.body?.ref) await noteReferral(user.id, req.body.ref).catch(() => {}); // signed up with a team member's code
   await startSession(res, user);
   return { ok: true, user: publicUser(user) };
 }));

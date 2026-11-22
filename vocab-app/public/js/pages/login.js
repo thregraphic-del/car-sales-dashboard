@@ -5,6 +5,8 @@
 import { api } from '../api.js';
 import { esc } from '../ui.js';
 
+const refCode = () => { try { return localStorage.getItem('lt.ref') || ''; } catch { return ''; } };
+
 export async function render(view, { onDone, mode: initial, status: given }) {
   const status = given || await api.authStatus();
   const first = !status.owner_exists;
@@ -23,6 +25,7 @@ export async function render(view, { onDone, mode: initial, status: given }) {
           ${status.registration !== 'closed' ? `<button type="button" data-mode="register" class="${reg ? 'active' : ''}" role="tab" aria-selected="${reg}">حساب جديد</button>` : ''}
         </div>`}
         <h2 style="margin:0">${first ? 'إنشاء أول حساب' : reg ? 'إنشاء حساب جديد' : 'تسجيل الدخول'}</h2>
+        ${reg && refCode() ? `<div class="alert info"><span>🎁 سجّلت عن طريق كود فريق: <b class="en-inline">${esc(refCode())}</b></span></div>` : ''}
         ${status.guest && reg ? '<div class="alert info"><span>✨ كل اللي سويته كضيف — كلماتك ومقاطعك وتقدّمك — ينتقل لحسابك الجديد.</span></div>' : ''}
         ${first
           ? `<p class="small ink-2">هذا أول حساب في الموقع، وسيكون حساب <b>المسؤول</b>. بعده يستطيع كل شخص إنشاء حسابه الخاص، ولكل حساب كلماته وتقدّمه المنفصل تمامًا.</p>
@@ -60,9 +63,10 @@ export async function render(view, { onDone, mode: initial, status: given }) {
       btn.disabled = true;
       $('#err').classList.add('hidden');
       try {
-        if (reg) await api.register({ username: $('#user').value.trim(), password: $('#pass').value, name: $('#name')?.value.trim(), code: $('#code')?.value.trim(), email: $('#email')?.value.trim(), phone: $('#phone')?.value.trim() });
+        if (reg) await api.register({ username: $('#user').value.trim(), password: $('#pass').value, name: $('#name')?.value.trim(), code: $('#code')?.value.trim(), email: $('#email')?.value.trim(), phone: $('#phone')?.value.trim(), ref: (() => { try { return localStorage.getItem('lt.ref') || undefined; } catch { return undefined; } })() });
         else await api.login($('#user').value.trim(), $('#pass').value);
         if (/^\/(login|register)\/?$/.test(location.pathname)) history.replaceState(null, '', `/${location.hash}`);
+        if (reg) { try { localStorage.removeItem('lt.ref'); } catch { /* ignore */ } }
         view.innerHTML = '';
         onDone();
       } catch (err) {

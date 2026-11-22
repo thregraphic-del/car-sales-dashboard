@@ -201,4 +201,8 @@ export const api = {
   wordForms: (word) => request('GET', `/api/ai/forms${qs({ word })}`),
   explain: (text, line_id) => request('POST', '/api/ai/explain', { text, line_id }),
   resetDemo: () => request('POST', '/api/data/reset-demo'),
+  teamMe: () => request('GET', '/api/team/me'),
+  teamJoin: (body) => request('POST', '/api/team/join', body),
+  teamPayout: () => request('POST', '/api/team/payout'),
+  teamAck: () => request('POST', '/api/team/ack'),
 };

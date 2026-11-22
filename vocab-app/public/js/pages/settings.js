@@ -6,6 +6,7 @@ import { refreshStats } from '../app.js';
 import { readDataFiles, importSnapshot, countsOf, TABLES } from '../data-transfer.js';
 import { feedbackCardHtml, bindFeedbackCard } from '../feedback.js';
 import { costReportHtml, bindCostReport } from '../cost-report.js';
+import { teamCardHtml, bindTeamCard } from '../team.js';
 import { GOAL_TYPES, goalTypes, setGoalTypes, setGoalN, goalFor, progress } from '../goal.js';
 
 const TABLE_LABELS = {
@@ -85,6 +86,7 @@ export async function render(view) {
         </form>
         <button class="btn ghost" id="logout" style="justify-self:start">تسجيل الخروج</button>
       </div>` : ''}
+      ${teamCardHtml(cfg)}
       ${cfg.can_set_paid ? `<div class="card stack" style="grid-column:1/-1" id="paidCard">
         <b>🔒 ميزات مدفوعة — لك أنتِ فقط</b>
         <p class="tiny muted" style="margin:0">تستهلك رصيد الذكاء الاصطناعي، فهي <b>مطفية</b> عندك وغير موجودة أصلًا عند غيرك. شغّليها للضرورة وأطفيها بعدها. (البديل المجاني: زر ChatGPT.)</p>
@@ -211,6 +213,7 @@ export async function render(view) {
   });
 
   bindFeedbackCard(view);
+  bindTeamCard(view);
   bindCostReport(view);
   view.querySelectorAll('[data-paid]').forEach((box) => box.addEventListener('change', async () => {
     try {
