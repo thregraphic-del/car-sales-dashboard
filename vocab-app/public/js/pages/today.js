@@ -223,13 +223,13 @@ async function openCalendar() {
   const MODES = { last: 'آخر', range: 'نطاق', set: 'مجموعة', cmp: 'مقارنة' };
   const prevM = nm === 0 ? { y: ny - 1, m: 11 } : { y: ny, m: nm - 1 };
   const F = {
-    unit: 'day', mode: 'last', last: { day: 30, week: 1, month: 3, year: 1 }, y: ny, m: nm,
+    unit: 'day', mode: 'last', last: { day: 1, week: 1, month: 3, year: 1 }, y: ny, m: nm,
     d: { cf: key(addD(now, -29)), ct: key(now), set: [], A: key(addD(now, -1)), B: key(now) },
     w: { from: 1, to: curW, set: [curW], A: { y: ny, m: nm, w: 1 }, B: { y: ny, m: nm, w: curW } },
     mo: { from: 0, to: nm, set: [nm], A: { ...prevM }, B: { y: ny, m: nm } },
     yr: { from: ny - 1, to: ny, set: [ny], A: ny - 1, B: ny },
   };
-  try { const sv = JSON.parse(ls('today.filter', 'null')); if (sv && UNITS[sv.unit] && MODES[sv.mode]) { F.unit = sv.unit; F.mode = sv.mode; Object.assign(F.last, sv.last || {}); } } catch { /* default */ }
+  // every time the dashboard opens it starts on «آخر يوم» (the filter is not remembered on purpose)
   let open = false;
   let openSh = false;
   let pick = '';
@@ -410,7 +410,7 @@ async function openCalendar() {
   const optionsHtml = () => {
     const { unit: u, mode } = F;
     if (u === 'day') {
-      if (mode === 'last') return lastChips('day', [7, 14, 30, 90], 'يوم');
+      if (mode === 'last') return lastChips('day', [1, 7, 14, 30, 90], 'يوم');
       if (mode === 'range') return step('نطاق من يوم إلى يوم', two(lab('من يوم', date('d.cf', F.d.cf)), lab('إلى يوم', date('d.ct', F.d.ct))));
       if (mode === 'set') { const len = new Date(F.y, F.m + 1, 0).getDate(); return step('١) اختر الشهر', ctxMonth()) + step('٢) اختر الأيام (أكثر من يوم)', `<div class="rg-chips rg-nums">${Array.from({ length: len }, (_, i) => i + 1).filter((n) => new Date(F.y, F.m, n, 12) <= now).map((n) => chip('data-ft', `d.set:${n}`, n, F.d.set.includes(n))).join('')}</div>`); }
       return step('قارن بين يومين', two(lab('اليوم الأول', date('d.A', F.d.A)), lab('اليوم الثاني', date('d.B', F.d.B))));
@@ -475,7 +475,7 @@ async function openCalendar() {
   };
   const getAt = (path) => path.split('.').reduce((o, k) => o[k], F);
   const setAt = (path, v) => { const ks = path.split('.'); const last = ks.pop(); ks.reduce((o, k) => o[k], F)[last] = v; };
-  const saveF = () => lsSet('today.filter', JSON.stringify({ unit: F.unit, mode: F.mode, last: F.last }));
+  const saveF = () => {};
   box.addEventListener('change', (e) => {
     const ff = e.target.closest('[data-ff]');
     if (ff) { setAt(ff.dataset.ff, ff.type === 'date' ? ff.value : Number(ff.value)); normalize(); pick = ''; draw(); return; }
