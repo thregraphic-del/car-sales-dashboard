@@ -600,6 +600,17 @@ export function bindFields(view) {
   const fdSlot = $('#fdSlot', view);
   const chipsEnd = () => fdChips.classList.toggle('at-end', fdChips.scrollTop + fdChips.clientHeight >= fdChips.scrollHeight - 3);
   fdChips.addEventListener('scroll', chipsEnd, { passive: true });
+  // the cards sit in a box that scrolls down: two rows in full, the third half-faded so you can tell there is more
+  const fit = () => requestAnimationFrame(() => {
+    const g = box?.querySelector('.fd-grid');
+    const c = g?.querySelector('.fd-card');
+    if (!g || !c) return;
+    const gap = parseFloat(getComputedStyle(g).rowGap) || 10;
+    g.style.maxHeight = `${Math.round(c.offsetHeight * 2.5 + gap * 2)}px`;
+    const end = () => g.classList.toggle('at-end', g.scrollTop + g.clientHeight >= g.scrollHeight - 4);
+    g.addEventListener('scroll', end, { passive: true });
+    end();
+  });
   const draw = () => {
     const sites = kind === 'sites';
     view.querySelectorAll('#fdKind [data-fk]').forEach((b) => b.classList.toggle('active', b.dataset.fk === kind));
@@ -634,6 +645,7 @@ export function bindFields(view) {
         ${part.length ? `<div class="fd-grid fd-rows2">${part.map(siteCard).join('')}</div>` : '<p class="tiny muted">ما فيه مواقع بهذا المستوى هنا.</p>'}
         ${all.length > shown ? `<div class="more-row"><button type="button" class="btn sm" id="fdMore">＋ عرض المزيد (${all.length - shown})</button></div>`
     : part.length ? '<p class="tiny muted" style="text-align:center;margin-top:8px">هذي كل المواقع المتوفرة في هذا المجال — جرّب مجالًا أو مستوى ثاني.</p>' : ''}`;
+      fit();
       return;
     }
     const extra = (moreOf[field.k] || []).filter((c) => !lv || String(c[2]) === lv);
@@ -646,6 +658,7 @@ export function bindFields(view) {
     box.innerHTML = `<div style="height:6px"></div>
       ${list.length ? `<div class="fd-grid fd-rows2">${list.map((c) => `<div class="fd-card fd-wrap"><a class="fd-go" href="${esc(chkCache[c[1]]?.url || `https://www.youtube.com/@${encodeURIComponent(c[1])}`)}" target="_blank" rel="noopener" title="${esc(c[0])}">${logo(c)}<b class="en">${esc(c[0])}<i class="fd-ldot" data-lv="${c[2]}" title="${LV[c[2]][1]}"></i></b><span class="tiny muted fd-desc">${c[3] ? esc(c[3]) : ''}</span></a><button type="button" class="fd-fav" data-fh="${esc(c[1])}" data-fn="${esc(c[0])}" aria-label="مفضلة" title="أضف للمفضلة">${icon.star}</button></div>`).join('')}</div>` : '<p class="tiny muted">ما فيه قنوات بهذا المستوى هنا.</p>'}
       <div class="more-row"><button type="button" class="btn sm" id="fdMore">${moreBusy ? '<span class="spinner"></span>' : '＋'} المزيد</button></div>`;
+    fit();
   };
   // ask the server only about channels this browser hasn't checked yet (each is checked once for everyone)
   const check = async (f) => {

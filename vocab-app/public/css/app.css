@@ -2664,3 +2664,8 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .fd-ldot[data-lv="1"] { background: #2e9e5b; } .fd-ldot[data-lv="2"] { background: #e6b422; } .fd-ldot[data-lv="3"] { background: #d9453a; }
 .fd-dot[data-lv="2"] { background: #e6b422; } .fd-badge[data-lv="2"] { background: #e6b422; }
 .fd-lvl { display: none; }
+/* the field's cards: a two-column box that scrolls down, last row fading out until you reach the end */
+#fdSlot .fd-grid.fd-rows2 { overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding-bottom: 2px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 70px), rgba(0,0,0,.12) 100%); mask-image: linear-gradient(to bottom, #000 calc(100% - 70px), rgba(0,0,0,.12) 100%); }
+#fdSlot .fd-grid.fd-rows2::-webkit-scrollbar { display: none; }
+#fdSlot .fd-grid.fd-rows2.at-end { -webkit-mask-image: none; mask-image: none; }
