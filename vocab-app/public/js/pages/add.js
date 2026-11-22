@@ -38,10 +38,13 @@ export async function render(view, { params }) {
 <div class="add-field">
         <textarea class="input add-input" id="input" dir="auto" rows="5" aria-label="الصق هنا النص أو الرابط"></textarea>
         <div class="add-ph" id="addPh" aria-hidden="true">
-          <div>نصوص عربي أو إنجليزي أو متداخلة</div>
-          <div class="ph-links">رابط من <span class="ph-logo">${LOGO.tiktok}</span><span class="ph-logo">${LOGO.instagram}</span><span class="ph-logo">${LOGO.youtube}</span></div>
-          <div>مقال أو كتب</div>
-          <div class="ph-soft">لا تحتاج تنسيقًا معيّنًا، نفهمها تلقائيًا 😉</div>
+          <div class="ph-main"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="12" height="16" rx="3"/><path d="M9 5.5V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5v1M9.5 12h5M9.5 15.5h3"/></svg>الصق هنا</div>
+          <div class="ph-rest">
+            <div>نصوص عربي أو إنجليزي أو متداخلة</div>
+            <div class="ph-links">رابط من <span class="ph-logo">${LOGO.tiktok}</span><span class="ph-logo">${LOGO.instagram}</span><span class="ph-logo">${LOGO.youtube}</span></div>
+            <div>مقال أو كتب</div>
+            <div>لا تحتاج تنسيقًا معيّنًا، نفهمها تلقائيًا 😉</div>
+          </div>
         </div>
       </div>
       <div class="row between wrap" style="gap:10px;margin-top:12px">
