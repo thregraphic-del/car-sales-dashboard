@@ -74,7 +74,12 @@ export function bindMyVideos(box, list, { onPrefs, onPick } = {}) {
       const first = box.querySelector('.mv');
       if (!wrap || !first) return;
       const h = first.offsetHeight + 12;
-      wrap.style.maxHeight = `${Math.round(h * 1.65)}px`; // first row in full, the next one fading: scroll for more
+      const grid = box.querySelector('.mv-grid');
+      const cols = Math.max(1, getComputedStyle(grid).gridTemplateColumns.split(' ').length);
+      // two full rows first; «المزيد» opens three (the box scrolls for the rest)
+      wrap.style.maxHeight = `${Math.round(h * (open ? 3 : 2) + 14)}px`;
+      const more = box.querySelector('.mv-more');
+      if (more) more.hidden = items.length <= 2 * cols;
     });
   }
 

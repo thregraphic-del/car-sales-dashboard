@@ -70,6 +70,7 @@ export async function render(view, { params }) {
     </div>
     <div id="sources"></div>
     <div id="texts" class="tx-sec hidden"></div>
+    <button type="button" class="link-btn mv-more hidden" id="txMore">المزيد ▾</button>
     ${fieldsHtml()}
     ${suggestionsHtml()}
     <div class="section-title"><h2>اختصارات سريعة</h2></div>
@@ -95,6 +96,7 @@ export async function render(view, { params }) {
     view.querySelector('#texts').classList.toggle('hidden', srcKind !== 'texts');
     view.querySelector('#srcFav').classList.toggle('on', favOn[srcKind]);
     view.querySelector('#srcPick').classList.toggle('hidden', srcKind !== 'videos');
+    if (typeof fitTexts === 'function') fitTexts();
   };
   view.querySelector('#srcTabs').addEventListener('click', (e) => {
     const k = e.target.closest('[data-sk]');
@@ -106,7 +108,22 @@ export async function render(view, { params }) {
       drawTabs();
     }
   });
+  // «نصوص»: two cards in full; «المزيد» opens three (the list scrolls for the rest)
+  const txBox = view.querySelector('#texts');
+  const txMore = view.querySelector('#txMore');
+  let txOpen = false;
+  const fitTexts = () => requestAnimationFrame(() => {
+    const cards = [...txBox.querySelectorAll('.tx-card')];
+    const n = txOpen ? 3 : 2;
+    const take = cards.slice(0, n);
+    txBox.style.maxHeight = take.length ? `${Math.round(take.reduce((a, c) => a + c.offsetHeight + 10, 0) + 14)}px` : '';
+    txMore.classList.toggle('hidden', srcKind !== 'texts' || cards.length <= 2);
+    txMore.textContent = txOpen ? 'أقل ▴' : `المزيد ▾ (${cards.length})`;
+  });
+  new MutationObserver(fitTexts).observe(txBox, { childList: true });
+  txMore.addEventListener('click', () => { txOpen = !txOpen; fitTexts(); });
   drawTabs();
+  fitTexts();
   const refreshLists = () => api.sources().then((list) => {
     try { localStorage.setItem(srcKey(), JSON.stringify(list.slice(0, 60))); } catch { /* storage unavailable */ }
     if (view.isConnected) { myVids.update(videosOf(list)); myTexts.update(textsOf(list)); counts = [videosOf(list).length, textsOf(list).length]; drawTabs(); }

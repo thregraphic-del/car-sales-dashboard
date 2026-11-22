@@ -2917,11 +2917,14 @@ body.clipset-on .main { max-width: none; margin: 0; padding-top: calc(10px + env
 /* «نشاطي»: the first card in full, the next one fading; the list scrolls */
 .mv-wrap { overflow-y: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(to bottom, #000 50%, rgba(0,0,0,.1) 100%); mask-image: linear-gradient(to bottom, #000 50%, rgba(0,0,0,.1) 100%); }
 .mv-wrap::-webkit-scrollbar { display: none; }
-.mv-more { display: none; }
-#texts.tx-sec { max-height: 190px; overflow-y: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(to bottom, #000 55%, rgba(0,0,0,.1) 100%); mask-image: linear-gradient(to bottom, #000 55%, rgba(0,0,0,.1) 100%); }
+.mv-more { display: block; margin: 6px auto 0; }
+.mv-more[hidden] { display: none; }
+#texts.tx-sec { max-height: 260px; overflow-y: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(to bottom, #000 55%, rgba(0,0,0,.1) 100%); mask-image: linear-gradient(to bottom, #000 55%, rgba(0,0,0,.1) 100%); }
 #texts.tx-sec::-webkit-scrollbar { display: none; }
 #fdSlot .fd-go { padding: 0 !important; padding-inline-end: 38px !important; }
 #fdSlot .fd-go .fd-desc { text-align: end; }
 /* two rows in full, a small peek of the next; the soft fade only at the very bottom */
 #fdSlot .fd-grid.fd-rows2 { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 30px), rgba(0,0,0,.12) 100%); mask-image: linear-gradient(to bottom, #000 calc(100% - 30px), rgba(0,0,0,.12) 100%); padding-top: 2px; }
 #fdSlot .fd-grid.fd-rows2.at-end { -webkit-mask-image: none; mask-image: none; }
+/* «نشاطي»: two full cards, the fade only at the very bottom */
+.mv-wrap, #texts.tx-sec { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), rgba(0,0,0,.12) 100%); mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), rgba(0,0,0,.12) 100%); }
