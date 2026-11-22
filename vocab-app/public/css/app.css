@@ -2861,3 +2861,8 @@ body.info-on button:not(.info-stop), body.info-on a, body.info-on label { cursor
 .info-list li > span:last-child { display: grid; gap: 1px; }
 .info-list .e { font-size: 20px; line-height: 1.3; }
 .tip-bubble { z-index: 500; }
+/* the clip settings page stands alone: no top bar, tab bar or sidebar */
+body.clipset-on .mobile-bar, body.clipset-on .tabbar, body.clipset-on .sidebar { display: none !important; }
+body.clipset-on .shell { display: block; }
+body.clipset-on .main { max-width: none; margin: 0; padding-top: calc(10px + env(safe-area-inset-top, 0px)); padding-bottom: 0; }
+.cs-head .cs-x { font-size: 20px; width: 46px; height: 46px; border-radius: 50%; background: var(--surface); border: 1px solid var(--line); display: grid; place-items: center; text-decoration: none; color: var(--ink); }

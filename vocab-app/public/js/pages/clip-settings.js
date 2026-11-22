@@ -23,10 +23,13 @@ export async function render(view, { segments, params }) {
   const row = (tip, label, sub, control) => `<div class="cs-row" data-tip="${esc(tip)}"><div class="cs-lab">${label}${sub ? `<span class="cs-sub">${sub}</span>` : ''}</div>${control}</div>`;
   const rates = [0.5, 0.75, 0.9, 1, 1.25, 1.5];
 
+  // a page of its own: the app's bars are out of the way until you close it (✕)
+  document.body.classList.add('clipset-on');
+  window.addEventListener('hashchange', () => document.body.classList.remove('clipset-on'), { once: true });
   view.className = 'view page-clipset';
   view.innerHTML = `<div class="cs-page">
     <header class="cs-head">
-      <a class="btn icon ghost" href="${clip}" aria-label="رجوع للمقطع" title="رجوع للمقطع">${icon.prev}</a>
+      <a class="btn icon ghost cs-x" href="${clip}" aria-label="إغلاق" title="إغلاق ورجوع للمقطع">✕</a>
       <h1>إعدادات المقطع</h1>
       ${id ? `<a class="btn icon ghost cs-ideas" href="${clip}?ideas=1" aria-label="أفكار" title="أفكار: اسأل ChatGPT، احفظ ملخصه، اكتب ملاحظة">${BULB}</a>` : ''}
     </header>
@@ -52,7 +55,7 @@ export async function render(view, { segments, params }) {
         <div><span class="mk-l mine">كلماتي</span><span>كلمة كانت في كلماتك قبل هذا المقطع</span></div>
       </section>
     </div>
-    <a class="btn primary lg cs-done" href="${clip}">رجوع للمقطع</a>
+    <a class="btn primary lg cs-done" href="${clip}">تم</a>
   </div>`;
 
   const $ = (s) => view.querySelector(s);
