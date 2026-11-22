@@ -34,7 +34,7 @@ export async function render(view, { onDone, mode: initial, status: given }) {
             : '<p class="small ink-2">ادخل وكمّل من وين ما وقفت.</p>'}
         <form id="authForm" autocomplete="on">
           ${reg && needCode ? `<label class="field">${first ? 'رمز الإعداد' : 'رمز الدعوة'}<input class="input en" id="code" autocomplete="one-time-code" required></label>` : ''}
-          ${reg && !first ? `<label class="field">كود فريق أو صديق <span class="tiny muted">(اختياري)</span><input class="input en" id="refcode" autocomplete="off" autocapitalize="characters" maxlength="20" placeholder="3G-XXXXXX" value="${esc(refCode())}"></label>` : ''}
+          ${reg && !first ? `<label class="field">كود فريق أو صديق <span class="tiny muted">(اختياري)</span><input class="input en" id="refcode" autocomplete="off" autocapitalize="characters" maxlength="20" placeholder="ABC" value="${esc(refCode())}"></label>` : ''}
           ${reg ? '<label class="field">اسمك <span class="tiny muted">(اختياري)</span><input class="input" id="name" autocomplete="name" maxlength="60"></label>' : ''}
           ${reg ? '<label class="field">الإيميل <span class="tiny muted">(مهم: بدونه ما تقدر تسترجع حسابك إذا نسيت كلمة المرور)</span><input class="input en" id="email" type="email" autocomplete="email" maxlength="200"></label>' : ''}
           ${reg ? '<label class="field">رقم الجوال <span class="tiny muted">(اختياري — تقدر تدخل فيه)</span><input class="input en" id="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="20" placeholder="05xxxxxxxx"></label>' : ''}

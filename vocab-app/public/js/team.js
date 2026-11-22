@@ -67,10 +67,11 @@ export async function openTeam() {
     body.innerHTML = `<h3 style="margin:0 0 10px">فريق 3Goal</h3>
       ${thanks ? `<div class="alert good tm-thanks">🎉 تم تحويل <b>${riyal(thanks.amount_cents)}</b> لك. شكرًا على جهودك، وندعوك لمضاعفة الجهود، كل مشترك جديد بكودك يقرّبك للمبلغ الجاي 🚀</div>` : ''}
       ${declined ? `<div class="alert bad">ما قدرنا ننفّذ آخر طلب تحويل${declined.note ? `: ${esc(declined.note)}` : ''}. تواصل معنا.</div>` : ''}
-      <div class="tm-code"><span class="tiny muted">كودك</span><b class="en-inline" id="tmCode">${esc(me.code)}</b>
-        <button type="button" class="btn sm ghost" id="tmCopy" aria-label="نسخ الكود" title="نسخ الكود">${IC.copy} نسخ</button></div>
-      <div class="tm-link"><span class="tiny muted">رابطك الخاص</span><div class="row" style="gap:8px"><input class="input en" id="tmLink" readonly value="${esc(link)}"><button type="button" class="btn sm" id="tmCopyLink">نسخ الرابط</button></div></div>
-      <p class="tiny muted tm-how" style="margin:0 0 10px">سوّق بالطريقة اللي تناسبك: شارك <b>رابطك</b> أو أعطِ الناس <b>كودك</b> يكتبونه عند التسجيل. واللي يسجّل بأي واحد منهم ينحسب لك.</p>
+      <div class="tm-opt"><div class="tm-code"><span class="tiny muted">كودك</span><b class="en-inline" id="tmCode">${esc(me.code)}</b>
+          <button type="button" class="btn sm ghost" id="tmCopy" aria-label="نسخ الكود" title="نسخ الكود">${IC.copy} نسخ</button></div>
+        <p class="tm-note"><b>بالكود:</b> قل لمن تبي «سجّل واكتب كودي <span class="en-inline">${esc(me.code)}</span> في خانة الكود».</p></div>
+      <div class="tm-opt"><div class="tm-link"><div class="row" style="gap:8px"><input class="input en" id="tmLink" readonly value="${esc(link)}" aria-label="رابطك الخاص"><button type="button" class="btn sm" id="tmCopyLink">نسخ الرابط</button></div></div>
+        <p class="tm-note"><b>بالرابط:</b> أرسله له، وإذا فتحه وسجّل ينحسب لك بدون ما يكتب شيء.</p></div>
       <button type="button" class="btn lg tm-share" id="tmShare">شارك رابطك وكودك</button>
       <div class="tm-stats">
         <div><b>${me.referrals}</b><span class="tiny muted">سجّلوا بكودك</span></div>

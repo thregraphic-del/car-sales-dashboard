@@ -26,7 +26,7 @@ test('not a member yet; the form is checked', async () => {
 test('joining gives a code; joining twice is refused', async () => {
   const r = await call('POST', '/api/team/join', { name: 'سارة أحمد', email: 'Sara@Example.com', phone: '٠٥٠١٢٣٤٥٦٧' });
   assert.equal(r.status, 200);
-  assert.match(r.body.member.code, /^3G-[A-Z2-9]{6}$/);
+  assert.match(r.body.member.code, /^[A-Z2-9]{3}$/);
   assert.equal(r.body.member.email, 'sara@example.com');
   assert.equal(r.body.member.phone, '966501234567');
   assert.equal(r.body.member.referrals, 0);
@@ -87,4 +87,17 @@ test('someone who signs up with the code is counted once, never for yourself', a
   const me = (await call('GET', '/api/team/me')).body.member;
   assert.equal(me.referrals, 1);
   assert.equal((await call('GET', '/api/admin/team')).body.members[0].referrals, 1);
+});
+
+test('every member gets a short code of their own', async () => {
+  const { ensureUser } = await import('../server/data/users.js');
+  const { join } = await import('../server/data/team.js');
+  const codes = new Set([(await call('GET', '/api/team/me')).body.member.code]);
+  for (let id = 10; id < 40; id += 1) {
+    await ensureUser(id);
+    const m = await join(id, { name: `عضو ${id}`, email: `m${id}@example.com`, phone: '0501234567' });
+    assert.match(m.code, /^[A-Z2-9]{3,4}$/);
+    codes.add(m.code);
+  }
+  assert.equal(codes.size, 31); // no two the same
 });

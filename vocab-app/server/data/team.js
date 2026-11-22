@@ -58,7 +58,8 @@ export async function publicContact() {
 }
 
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-const makeCode = () => `3G-${Array.from(crypto.randomBytes(6), (b) => ALPHABET[b % ALPHABET.length]).join('')}`;
+// a short code: 3 characters (31³ ≈ 29,000 codes), unique per member; if the short ones ever run low a longer one is made
+const makeCode = (len = 3) => Array.from(crypto.randomBytes(len), (b) => ALPHABET[b % ALPHABET.length]).join('');
 
 export const memberOfUser = (userId) => get('SELECT * FROM team_members WHERE user_id = ?', userId);
 
@@ -70,9 +71,9 @@ export async function join(userId, { name, email, phone }) {
   if (n.length < 2) throw httpError(400, 'اكتب اسمك.');
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e)) throw httpError(400, 'اكتب إيميلًا صحيحًا.');
   if (!p) throw httpError(400, 'اكتب رقم جوال صحيحًا.');
-  for (let i = 0; i < 6; i += 1) {
+  for (let i = 0; i < 60; i += 1) {
     try {
-      await insert('INSERT INTO team_members (user_id, name, email, phone, code, created_at) VALUES (?,?,?,?,?,?)', userId, n, e, p, makeCode(), nowIso());
+      await insert('INSERT INTO team_members (user_id, name, email, phone, code, created_at) VALUES (?,?,?,?,?,?)', userId, n, e, p, makeCode(i < 40 ? 3 : 4), nowIso());
       return memberOfUser(userId);
     } catch (err) {
       if (!/unique|duplicate/i.test(err.message)) throw err;
