@@ -40,18 +40,14 @@ export async function render(view, { params }) {
     <div class="card add-box add-hero">
       <h1 class="ah-title"><svg class="ah-spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3.5l-3.2 5.2M11.5 8.2 5 6.2M9.8 14.8 3.5 17"/></svg>أضف محتوى للتعلّم</h1>
       <span class="add-kind hidden" id="kindChip"></span>
-      <div class="ah-strip" id="ahStrip">
-        <button type="button" class="ah-cell" data-cell="link"><span class="ah-t">${ICO.link}رابط</span><span class="ah-s">مثل: يوتيوب، تيك توك، مقال</span></button>
-        <button type="button" class="ah-cell" data-cell="text"><span class="ah-t">${icon.doc}نص</span><span class="ah-s">مثل: فقرة، ملخص، حوار</span></button>
-        <label class="ah-cell" for="attachInput" id="attachBtn" title="صورة لصفحة كلمات، PDF، Word أو ملف نصي"><span class="ah-t">${ICO.clip}ملف</span><span class="ah-s">مثل: PDF, Word, صورة</span></label>
-        <input type="file" id="attachInput" accept="image/*,.pdf,.txt,.csv,.md,.srt,.vtt,.docx" hidden>
-      </div>
+      <input type="file" id="attachInput" accept="image/*,.pdf,.txt,.csv,.md,.srt,.vtt,.docx" hidden>
       <div class="add-field">
         <textarea class="input add-input" id="input" dir="auto" rows="3" aria-label="الصق هنا النص أو الرابط"></textarea>
-        <div class="add-ph" id="addPh" aria-hidden="true"><div class="ph-main"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="12" height="16" rx="3"/><path d="M9 5.5V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5v1M9.5 12h5M9.5 15.5h3"/></svg><span id="phTxt">الصق هنا</span></div></div>
+        <div class="add-ph" id="addPh" aria-hidden="true"><div class="ph-main"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="12" height="16" rx="3"/><path d="M9 5.5V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5v1M9.5 12h5M9.5 15.5h3"/></svg><span id="phTxt">الصق هنا</span></div>
+          <div class="ph-rest"><div>رابط: يوتيوب، تيك توك، مقال</div><div>نص: فقرة، ملخص، حوار</div><label for="attachInput" id="attachBtn" class="ph-file" title="صورة لصفحة كلمات، PDF، Word أو ملف نصي">ملف: PDF, Word, صورة ${ICO.clip}</label></div></div>
       </div>
-      <p class="ah-hint" id="hint">ما يهم التنسيق، إحنا نستخرجه تلقائيًا ✨</p>
-      <div class="ah-go"><button class="btn primary lg" id="go" disabled><span id="goLabel">استخرج</span>${ICO.arrow}</button></div>
+      <div class="ah-foot"><p class="ah-hint" id="hint">ما يهم التنسيق، إحنا نستخرجه تلقائيًا ✨</p>
+        <button class="btn primary" id="go" disabled><span id="goLabel">استخرج</span>${ICO.arrow}</button></div>
       <div id="manual" class="hidden stack" style="margin-top:14px">
         <label class="field">الصق نص الفيديو (Transcript) من يوتيوب
           <textarea class="input en" id="transcript" rows="6" placeholder="0:05 So today I want to talk about…"></textarea></label>
