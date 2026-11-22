@@ -49,7 +49,8 @@ export async function render(view, { params }) {
     <div class="src-tabs hidden" id="srcTabs">
       <div class="section-title"><h2>نشاطي</h2></div>
       <div class="act-bar"><div class="segmented fd-kind" id="srcKind"><button type="button" class="active" data-sk="videos">${icon.video} مقاطعي <span class="tiny" id="cV"></span></button><button type="button" data-sk="texts">${icon.doc} نصوص <span class="tiny" id="cT"></span></button></div>
-        <button type="button" class="fd-sq fav-chip" id="srcFav" aria-label="المفضلة" title="المفضلة">${icon.star}</button></div>
+        <button type="button" class="fd-sq fav-chip" id="srcFav" aria-label="المفضلة" title="المفضلة">${icon.star}</button>
+        <button type="button" class="fd-selbtn" id="srcPick" title="تحديد: اختر عدة مقاطع ونفّذ عليها إجراءً">☑ تحديد</button></div>
     </div>
     <div id="sources"></div>
     <div id="texts" class="tx-sec hidden"></div>
@@ -66,7 +67,7 @@ export async function render(view, { params }) {
   try { srcKind = localStorage.getItem('add.srcKind') === 'texts' ? 'texts' : 'videos'; } catch { /* ignore */ }
   const favOn = { videos: false, texts: false };
   let myTexts = null;
-  const myVids = bindMyVideos(view.querySelector('#sources'), videosOf(cached), { onPrefs: () => myTexts?.redraw() });
+  const myVids = bindMyVideos(view.querySelector('#sources'), videosOf(cached), { onPrefs: () => myTexts?.redraw(), onPick: (on) => { const b = view.querySelector('#srcPick'); if (b) { b.classList.toggle('on', on); b.textContent = on ? '✓ تم' : '☑ تحديد'; } } });
   myTexts = bindMyTexts(view.querySelector('#texts'), textsOf(cached), { isFav: (id) => myVids.isFav(id), toggleFav: (id) => myVids.toggleFav(id) });
   let counts = [videosOf(cached).length, textsOf(cached).length];
   const drawTabs = () => {
@@ -77,10 +78,12 @@ export async function render(view, { params }) {
     view.querySelector('#sources').classList.toggle('hidden', srcKind !== 'videos');
     view.querySelector('#texts').classList.toggle('hidden', srcKind !== 'texts');
     view.querySelector('#srcFav').classList.toggle('on', favOn[srcKind]);
+    view.querySelector('#srcPick').classList.toggle('hidden', srcKind !== 'videos');
   };
   view.querySelector('#srcTabs').addEventListener('click', (e) => {
     const k = e.target.closest('[data-sk]');
-    if (k) { srcKind = k.dataset.sk; try { localStorage.setItem('add.srcKind', srcKind); } catch { /* ignore */ } drawTabs(); return; }
+    if (k) { srcKind = k.dataset.sk; if (srcKind !== 'videos') myVids.setPicking(false); try { localStorage.setItem('add.srcKind', srcKind); } catch { /* ignore */ } drawTabs(); return; }
+    if (e.target.closest('#srcPick')) { myVids.setPicking(!myVids.isPicking()); return; }
     if (e.target.closest('#srcFav')) {
       favOn[srcKind] = !favOn[srcKind];
       (srcKind === 'videos' ? myVids : myTexts).setFavOnly(favOn[srcKind]);

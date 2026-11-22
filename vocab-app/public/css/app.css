@@ -2683,3 +2683,17 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .tip-bubble { position: fixed; z-index: 400; max-width: min(260px, calc(100vw - 16px)); padding: 8px 12px; border-radius: 10px; background: var(--navy, #1B263A); color: #fff; font-size: 13px; font-weight: 600; line-height: 1.45; text-align: center; pointer-events: none; opacity: 0; transform: translateY(-4px); transition: opacity .15s, transform .15s; box-shadow: 0 8px 22px rgba(0,0,0,.28); }
 .tip-bubble.on { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .tip-bubble { transition: none; } }
+/* selecting clips: one tidy row of icons, each opens its own few choices */
+.fd-selbtn { height: 42px; padding: 0 14px; border-radius: 12px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.fd-selbtn.hidden { display: none; }
+.fd-selbtn.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.mv-bar2 { display: flex; align-items: center; gap: 8px; padding: 8px; margin-bottom: 8px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); }
+.mv-bar2 .mv-count { margin-inline-end: auto; font-weight: 700; }
+.mv-bar2 button { width: 40px; height: 40px; padding: 0; border-radius: 11px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); display: grid; place-items: center; cursor: pointer; }
+.mv-bar2 button .ico { width: 20px; height: 20px; }
+.mv-bar2 button.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); }
+.mv-bar2 button.bad { color: var(--bad); }
+.mv-sub { display: flex; flex-wrap: wrap; gap: 8px; margin: -2px 0 10px; animation: addPop .18s var(--ease); }
+.mv-sub button { height: 38px; padding: 0 14px; border-radius: 99px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; font-size: 13.5px; cursor: pointer; white-space: nowrap; }
+.mv.mv-hid { opacity: .45; }
+.act-bar .fd-kind { margin-inline-end: auto; }
