@@ -34,10 +34,10 @@ test('joining gives a code; joining twice is refused', async () => {
 });
 
 test('contact details are public once the owner sets them', async () => {
-  assert.deepEqual((await call('GET', '/api/config')).body.contact, { email: '', whatsapp: '' });
-  const s = await call('PUT', '/api/admin/settings', { contact: { email: 'hi@3goal.test', whatsapp: '+966 50 000 0000' }, commission: { mode: 'fixed', value: 10 }, min_payout: 100 });
+  assert.deepEqual((await call('GET', '/api/config')).body.contact, { email: '', phone: '', whatsapp: '', instagram: '', tiktok: '' });
+  const s = await call('PUT', '/api/admin/settings', { contact: { email: 'hi@3goal.test', whatsapp: '+966 50 000 0000', phone: '٠٥٠١٢٣', instagram: 'https://instagram.com/3goal_app/?hl=ar', tiktok: '@3goal.app' }, commission: { mode: 'fixed', value: 10 }, min_payout: 100 });
   assert.equal(s.status, 200);
-  assert.deepEqual((await call('GET', '/api/config')).body.contact, { email: 'hi@3goal.test', whatsapp: '966500000000' });
+  assert.deepEqual((await call('GET', '/api/config')).body.contact, { email: 'hi@3goal.test', phone: '050123', whatsapp: '966500000000', instagram: '3goal_app', tiktok: '3goal.app' });
 });
 
 test('credits and the payout request: only from the minimum, then the owner pays', async () => {

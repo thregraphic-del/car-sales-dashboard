@@ -13,7 +13,7 @@ const toInt = (v) => Math.max(0, Math.round(Number(v) || 0));
 export const DEFAULTS = {
   commission: { mode: 'fixed', value: 0 }, // 'fixed' riyals per subscriber, or 'percent' of the subscription price
   min_payout: 100, // riyals
-  contact: { email: '', whatsapp: '' },
+  contact: { email: '', phone: '', whatsapp: '', instagram: '', tiktok: '' },
   pricing: [], // [{ name, price, period, note }] — edited by the owner
 };
 
@@ -29,6 +29,12 @@ export async function getSettings() {
 }
 
 const clean = (s, n) => String(s ?? '').trim().slice(0, n);
+/** «@name», «name» or a full profile link → just the account name. */
+const handleOf = (v) => {
+  let t = clean(v, 200);
+  try { if (/^https?:\/\//i.test(t)) t = new URL(t).pathname.split('/').filter(Boolean)[0] || ''; } catch { t = ''; }
+  return t.replace(/^@+/, '').replace(/[^\w.]/g, '').slice(0, 40);
+};
 
 export async function saveSettings(patch = {}) {
   const cur = await getSettings();
@@ -39,9 +45,14 @@ export async function saveSettings(patch = {}) {
   }
   if (patch.min_payout !== undefined) cur.min_payout = Math.max(1, Math.min(100000, Number(patch.min_payout) || DEFAULTS.min_payout));
   if (patch.contact) {
+    const c = patch.contact;
+    const digits = (v, n) => String(v ?? '').replace(/[٠-٩]/g, (d) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))).replace(/\D/g, '').slice(0, n);
     cur.contact = {
-      email: clean(patch.contact.email, 120),
-      whatsapp: String(patch.contact.whatsapp ?? '').replace(/[٠-٩]/g, (c) => String('٠١٢٣٤٥٦٧٨٩'.indexOf(c))).replace(/\D/g, '').slice(0, 16),
+      email: clean(c.email, 120),
+      phone: digits(c.phone, 16),
+      whatsapp: digits(c.whatsapp, 16),
+      instagram: handleOf(c.instagram),
+      tiktok: handleOf(c.tiktok),
     };
   }
   if (Array.isArray(patch.pricing)) {
@@ -54,7 +65,10 @@ export async function saveSettings(patch = {}) {
 /** What every visitor may see: how to reach the owner. */
 export async function publicContact() {
   const { contact } = await getSettings();
-  return { email: contact.email || '', whatsapp: contact.whatsapp || '' };
+  return {
+    email: contact.email || '', phone: contact.phone || '', whatsapp: contact.whatsapp || '',
+    instagram: contact.instagram || '', tiktok: contact.tiktok || '',
+  };
 }
 
 const ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';

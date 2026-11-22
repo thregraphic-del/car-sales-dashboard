@@ -2945,3 +2945,9 @@ body.clipset-on .info-btn.desk { display: none; }
 .tm-note { margin: 0; padding: 8px 12px; border-radius: 14px; background: color-mix(in srgb, #0ABAB5 13%, var(--surface)); border-inline-start: 4px solid #0ABAB5; color: #067a76; font-size: 12.5px; font-weight: 600; line-height: 1.6; }
 .tm-note b { font-weight: 800; }
 .tm-code b { font-size: 28px; letter-spacing: 4px; }
+
+/* 📞 contact icons under the menu (set from the control panel) */
+.soc-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 8px; }
+.soc-ic { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--accent); border: 1px solid var(--line, rgba(0,0,0,.08)); transition: transform .15s, background .15s, color .15s; }
+.soc-ic svg { width: 19px; height: 19px; }
+.soc-ic:hover, .soc-ic:focus-visible { transform: translateY(-2px); background: var(--accent); color: #fff; }

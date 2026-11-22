@@ -13,6 +13,7 @@ import { goalText, noteActive, endSession } from './goal.js';
 import { startReminder } from './reminder.js';
 import { startTooltips } from './tooltips.js';
 import { startInfo } from './info.js';
+import { socialRow } from './social.js';
 
 const NAV = [
   { path: '/', label: 'اليوم', icon: 'today', page: 'today', badge: true },
@@ -69,7 +70,7 @@ function renderNav(active) {
   if (top && s) top.innerHTML = `🔥 <b class="en-inline">${s.streak.current}</b>${s.streak.rescue ? SAD_BADGE : ''}`;
   const guestChip = state.user?.guest ? '<div class="guest-chip">👤 أنت ضيف — <a href="/register"><b>سجّل حسابك المجاني</b></a> وتنحفظ كلماتك. عندك حساب؟ <a href="/login"><b>ادخل</b></a></div>' : '';
   $('#sidebarFoot').innerHTML = s
-    ? `${guestChip}<div class="row between sf-streak"><span>🔥 أيام متتالية</span><b class="en-inline">${s.streak.current}</b></div>
+    ? `${guestChip}${socialRow(state.config?.contact)}
        ${creditsBell()}`
     : '';
 }
