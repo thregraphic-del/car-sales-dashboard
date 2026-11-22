@@ -11,6 +11,7 @@ import { setPending, checkDouble, remindOnce } from './streak-rescue.js';
 import { openFeedback } from './feedback.js';
 import { goalText, noteActive, endSession } from './goal.js';
 import { startReminder } from './reminder.js';
+import { startTooltips } from './tooltips.js';
 
 const NAV = [
   { path: '/', label: 'اليوم', icon: 'today', page: 'today', badge: true },
@@ -202,6 +203,7 @@ async function route() {
 
 watchForUpdates();
 startReminder();
+startTooltips();
 
 // ⏱ time on the site: every tap, key, scroll counts as activity (at most once a second); a hidden page ends the session
 (() => {

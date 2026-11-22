@@ -2679,3 +2679,7 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .fd-cap .fd-domn::before { content: " · "; }
 .mv-hint { margin: 6px 0; }
 .mv-bar button { white-space: nowrap; }
+/* the little explanation under an icon (hover on a computer, hold on a phone) */
+.tip-bubble { position: fixed; z-index: 400; max-width: min(260px, calc(100vw - 16px)); padding: 8px 12px; border-radius: 10px; background: var(--navy, #1B263A); color: #fff; font-size: 13px; font-weight: 600; line-height: 1.45; text-align: center; pointer-events: none; opacity: 0; transform: translateY(-4px); transition: opacity .15s, transform .15s; box-shadow: 0 8px 22px rgba(0,0,0,.28); }
+.tip-bubble.on { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .tip-bubble { transition: none; } }
