@@ -2645,6 +2645,7 @@ export async function render(view, { segments, params }) {
   // back from the settings page: ?fontbar=1 shows the small − + ✓ bar, ?ideas=1 opens the ideas window
   if (params.fontbar) { fontBar?.classList.add('on'); history.replaceState(null, '', `#/source/${id}`); }
   // 💡 «أفكار»: everything about ideas in one place — ask ChatGPT, keep its answer, write your own note, copy the text, the full summary (owner only)
+  if (params.copy) { history.replaceState(null, '', `#/source/${id}`); setTimeout(() => $('#copyAll', view)?.click(), 700); }
   if (params.ideas) { history.replaceState(null, '', `#/source/${id}`); setTimeout(() => $('#ideasBtn', view)?.click(), 700); }
   $('#ideasBtn', view)?.addEventListener('click', () => {
     toggleSet(false);
@@ -2653,7 +2654,6 @@ export async function render(view, { segments, params }) {
       <button type="button" class="idea-row" data-idea="ask"><span class="ico">${icon.gpt}</span><span><b>اسأل ChatGPT</b><span class="tiny muted">يجهّز رسالة تلخيص جاهزة ويفتح ChatGPT</span></span></button>
       <button type="button" class="idea-row" data-idea="keep"><span class="ico">${icon.bookmark}</span><span><b>الصق ملخص ChatGPT واحفظه</b><span class="tiny muted">يظهر باسم المقطع في «أفكار»</span></span></button>
       <button type="button" class="idea-row" data-idea="note"><span class="ico">${icon.note || icon.doc}</span><span><b>اكتب ملاحظة</b><span class="tiny muted">فكرة أعجبتك أو شي تبي تتذكره</span></span></button>
-      <button type="button" class="idea-row" data-idea="copy"><span class="ico">${icon.copy || icon.doc}</span><span><b>انسخ كل النص</b><span class="tiny muted">للصقه في ChatGPT أو أي مكان</span></span></button>
       ${paid.summary ? `<button type="button" class="idea-row" data-idea="summary"><span class="ico">${icon.doc}</span><span><b>ملخص المقطع كامل</b><span class="tiny muted">بالذكاء الاصطناعي (يستهلك رصيد)</span></span></button>` : ''}
       <a class="idea-row" href="#/notes" data-close><span class="ico">${icon.bookOpen}</span><span><b>افتح «أفكار»</b><span class="tiny muted">كل اللي حفظته من كل المقاطع</span></span></a></div>`);
     box.addEventListener('click', (e) => {

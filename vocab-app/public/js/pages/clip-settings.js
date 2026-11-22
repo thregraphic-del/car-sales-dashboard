@@ -7,6 +7,7 @@ const pref = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { re
 const setPref = (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } };
 
 const BULB = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg>';
+const COPY = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="22" height="22" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="3"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>';
 const sw = (id, on) => `<label class="tg-switch"><input type="checkbox" id="${id}" ${on ? 'checked' : ''}><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label>`;
 
 export async function render(view, { segments, params }) {
@@ -31,7 +32,7 @@ export async function render(view, { segments, params }) {
     <header class="cs-head">
       <a class="btn icon ghost cs-x" href="${clip}" aria-label="إغلاق" title="إغلاق ورجوع للمقطع">✕</a>
       <h1>إعدادات المقطع</h1>
-      ${id ? `<a class="btn icon ghost cs-ideas" href="${clip}?ideas=1" aria-label="أفكار" title="أفكار: اسأل ChatGPT، احفظ ملخصه، اكتب ملاحظة">${BULB}</a>` : ''}
+      ${id ? `<span class="cs-tools"><a class="btn icon ghost" href="${clip}?copy=1" aria-label="نسخ النص" title="نسخ كل النص: للصقه في ChatGPT أو أي مكان">${COPY}</a><a class="btn icon ghost cs-ideas" href="${clip}?ideas=1" aria-label="أفكار" title="أفكار: اكتب ملاحظة، الصق ملخص ChatGPT، اسأل ChatGPT">${BULB}</a></span>` : ''}
     </header>
     <div class="cs-grid">
       <section class="cs-card">
@@ -49,11 +50,7 @@ export async function render(view, { segments, params }) {
         ${hasTimes ? row('يكتب وقت كل جملة بجنبها، وتضغطه تروح لنفس اللحظة.', 'وقت كل جملة', 'يظهر وقت الجملة بجنبها', sw('csTimes', pref('reader.times', small ? '0' : '1') === '1')) : ''}
         ${hasTimes ? '<p class="cs-note">الشريط والأوقات مخفيّين تلقائيًا في الجوال الصغير، وتشغّلهم متى تبي.</p>' : ''}
       </section>
-      <section class="cs-card cs-legend" data-tip="ألوان الكلمات داخل النص: الأخضر المزرق لكلمة جديدة عليك، والبنفسجي لكلمة كانت في كلماتك.">
-        <h2>معنى الألوان</h2>
-        <div><span class="mk-l new">جديد</span><span>كلمة جديدة عليك من هذا المقطع</span></div>
-        <div><span class="mk-l mine">كلماتي</span><span>كلمة كانت في كلماتك قبل هذا المقطع</span></div>
-      </section>
+      <section class="cs-card cs-legend" data-tip="ألوان الكلمات داخل النص: الأخضر المزرق لكلمة جديدة عليك، والبنفسجي لكلمة كانت في كلماتك."><span class="cs-lg-t">الألوان:</span><span class="mk-l new">جديد</span><span>جديدة عليك</span><span class="mk-l mine">كلماتي</span><span>عندك</span></section>
     </div>
     <a class="btn primary lg cs-done" href="${clip}">تم</a>
   </div>`;
