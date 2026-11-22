@@ -1,4 +1,25 @@
 import { noteAnswer } from './goal.js';
+// A word is tidied (multi-word pieces → their one word, simplest form) right AFTER it is saved, once — so nothing has to be
+// re-checked later when «كلماتي» is opened. One quiet run a few seconds after the last save (several saves = one run).
+let tidyTimer = 0;
+let tidyBusy = false;
+async function tidyNow() {
+  if (tidyBusy) return;
+  tidyBusy = true;
+  try {
+    for (let i = 0; i < 8; i += 1) {
+      const r = await request('POST', '/api/words/tidy', {});
+      if (r.done || r.skipped) break;
+      await new Promise((res) => setTimeout(res, 1200));
+    }
+    for (let i = 0; i < 4; i += 1) {
+      const r = await request('POST', '/api/words/simplify', {});
+      if (r.done) break;
+    }
+  } catch { /* the next save (or the weekly check) will do it */ } finally { tidyBusy = false; }
+}
+const afterSave = (p) => p.then((r) => { clearTimeout(tidyTimer); tidyTimer = setTimeout(tidyNow, 4000); return r; });
+
 // Thin JSON client for the LexiTube API.
 async function request(method, url, body, retried = false) {
   let res;
@@ -81,8 +102,8 @@ export const api = {
   refineStep: (id) => request('POST', `/api/sources/${id}/refine`),
 
   lookup: (params) => request('GET', `/api/lookup${qs(params)}`),
-  saveWord: (vocabulary_id, occurrence_id, group_ids, bulk = false) => request('POST', '/api/words', { vocabulary_id, occurrence_id, group_ids, bulk }),
-  saveWordsBulk: (items) => request('POST', '/api/words/bulk', { items }),
+  saveWord: (vocabulary_id, occurrence_id, group_ids, bulk = false) => afterSave(request('POST', '/api/words', { vocabulary_id, occurrence_id, group_ids, bulk })),
+  saveWordsBulk: (items) => afterSave(request('POST', '/api/words/bulk', { items })),
   ensureLevels: (sourceId) => request('POST', '/api/levels', sourceId ? { source_id: sourceId } : {}),
   simplifyWords: () => request('POST', '/api/words/simplify', {}),
   tidyWords: () => request('POST', '/api/words/tidy', {}),
@@ -100,7 +121,7 @@ export const api = {
 
   importPreview: (text) => request('POST', '/api/import/preview', { text }),
   importEnrich: (items) => request('POST', '/api/import/enrich', { items }),
-  importSave: (items, group_ids) => request('POST', '/api/import/save', { items, group_ids }),
+  importSave: (items, group_ids) => afterSave(request('POST', '/api/import/save', { items, group_ids })),
 
   groups: () => request('GET', '/api/groups'),
   createGroup: (name) => request('POST', '/api/groups', { name }),

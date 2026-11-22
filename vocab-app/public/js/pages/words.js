@@ -401,12 +401,13 @@ export async function render(view, { params }) {
   // 🧹 «كلماتي» tidy-up (runs in the background while the site is open, even after leaving this page):
   // 1) multi-word items first — real expressions stay, free combinations become their one word;
   // 2) every word to its simplest form (struggling → struggle, delusional → delusion).
-  // Once it has gone through everything, it does not start again until the list changes (new words saved) — so it is quiet on every visit that follows.
-  const tidyKey = 'tidy.sig';
-  const tidySig = () => { try { return localStorage.getItem(tidyKey); } catch { return null; } };
+  // New words are tidied the moment they are saved (see api.js), so opening «كلماتي» does not re-check them. This pass only catches
+  // what an older version left (or what was saved while the AI was away): at most once a week, and quiet when it finds nothing.
+  const tidyKey = 'tidy.at';
+  const tidyRecent = () => { try { return Date.now() - Number(localStorage.getItem(tidyKey) || 0) < 7 * 86400000; } catch { return false; } };
   (async () => {
     let changed = 0;
-    if (window.__tidyRunning || tidySig() === String(all.length)) return;
+    if (window.__tidyRunning || tidyRecent()) return;
     let clean = true; // every step finished without a failure
     window.__tidyRunning = true;
     const note = (n) => { if (n) toast(`🧹 نرتّب كلماتك… اتعدّلت ${n} حتى الحين`, 2500); };
@@ -441,7 +442,7 @@ export async function render(view, { params }) {
     } catch { clean = false; /* next time */ }
     if (changed && view.isConnected) toast(`بسّطنا ${changed} كلمة إلى أبسط صيغة ✓`);
     if ((changed || levelled) && view.isConnected) await reload();
-    if (clean) { try { localStorage.setItem(tidyKey, String(all.length)); } catch { /* storage off */ } }
+    if (clean) { try { localStorage.setItem(tidyKey, String(Date.now())); } catch { /* storage off */ } }
   })();
 }
 
