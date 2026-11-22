@@ -12,6 +12,7 @@ import { openFeedback } from './feedback.js';
 import { goalText, noteActive, endSession } from './goal.js';
 import { startReminder } from './reminder.js';
 import { startTooltips } from './tooltips.js';
+import { startInfo } from './info.js';
 
 const NAV = [
   { path: '/', label: 'اليوم', icon: 'today', page: 'today', badge: true },
@@ -23,6 +24,7 @@ const ROUTES = {
   '/': 'today',
   '/add': 'add',
   '/source': 'reader',
+  '/clip-settings': 'clipsettings',
   '/words': 'words',
   '/practice': 'practice',
   '/settings': 'settings',
@@ -39,6 +41,7 @@ const pages = {
   today: () => import(`./pages/today.js?v=${BUILD_ID}`),
   add: () => import(`./pages/add.js?v=${BUILD_ID}`),
   reader: () => import(`./pages/reader.js?v=${BUILD_ID}`),
+  clipsettings: () => import(`./pages/clip-settings.js?v=${BUILD_ID}`),
   words: () => import(`./pages/words.js?v=${BUILD_ID}`),
   practice: () => import(`./pages/practice.js?v=${BUILD_ID}`),
   settings: () => import(`./pages/settings.js?v=${BUILD_ID}`),
@@ -132,7 +135,7 @@ export async function refreshStats({ lazy = false } = {}) {
   }
 }
 
-const activeNav = (base) => (base === '/source' ? '/add' : base);
+const activeNav = (base) => (base === '/source' || base === '/clip-settings' ? '/add' : base);
 
 let cleanup = null;
 let token = 0;
@@ -206,6 +209,7 @@ watchForUpdates();
 try { const r = new URLSearchParams(location.search).get('ref'); if (r) localStorage.setItem('lt.ref', r.trim().toUpperCase().slice(0, 20)); } catch { /* ignore */ }
 startReminder();
 startTooltips();
+startInfo();
 
 // ⏱ time on the site: every tap, key, scroll counts as activity (at most once a second); a hidden page ends the session
 (() => {

@@ -28,6 +28,39 @@ const HELP = {
   'الشهر التالي': 'الشهر التالي',
 };
 const say = (t) => HELP[t.trim()] || t;
+// buttons that show a word instead of an icon (used while «وضع الشرح» is on)
+const TEXT_HELP = {
+  'استخرج': 'يحلّل اللي لصقته ويستخرج منه الكلمات والمعاني.',
+  'افتح الفيديو': 'يفتح الفيديو داخل 3Goal والنص يتابعه جملة جملة.',
+  'افتح المقال': 'يقرأ المقال ويستخرج كلماته، ويُحفظ في «نصوص».',
+  'تحديد': 'اختر عدة عناصر ونفّذ عليها إجراءً دفعة واحدة، وبعدها اضغط «تم».',
+  'تم': 'ينهي التحديد ويرجعك للقائمة العادية.',
+  'مقاطعي': 'مقاطع يوتيوب اللي أضفتها.',
+  'نصوص': 'النصوص والمقالات اللي أضفتها.',
+  'قنوات': 'قنوات يوتيوب مناسبة لتعلّم الإنجليزي.',
+  'مواقع': 'مواقع ومقالات مناسبة لتعلّم الإنجليزي.',
+  'الكلمات': 'الكلمات الجديدة اللي في هذا المقطع.',
+  'القواعد': 'قواعد اللغة المرتبطة بكلماتك.',
+  'تدرّب': 'ابدأ تدريبًا على كلماتك بألعاب واختبارات.',
+  'كلماتي': 'كل الكلمات اللي حفظتها.',
+  'أضف': 'أضف مقطعًا أو نصًا أو كلمات جديدة.',
+  'اختبار': 'اختبار متنوع بكلماتك.',
+  'البطاقات': 'بطاقات لمراجعة الكلمات بالقلب والتقييم.',
+  'استماع': 'اسمع الكلمة واختر معناها.',
+  'قصة': 'قصة قصيرة مبنية على كلماتك.',
+  'المزيد': 'يعرض المزيد من العناصر.',
+  'عرض المزيد': 'يعرض المزيد من العناصر.',
+  'رجوع للمقطع': 'يرجعك للمقطع بعد ما تغيّر الإعدادات.',
+  'أفكار': 'ملاحظاتك وملخصات ChatGPT اللي حفظتها.',
+};
+const normText = (el) => (el.textContent || '').replace(/[^\p{L} ]/gu, ' ').replace(/\s+/g, ' ').trim();
+let infoOn = false;
+export const isInfoMode = () => infoOn;
+export function setInfoMode(on) {
+  infoOn = !!on;
+  document.body.classList.toggle('info-on', infoOn);
+  if (!infoOn) hide();
+}
 let bubble = null;
 let timer = 0;
 let hideTimer = 0;
@@ -41,7 +74,8 @@ const tipOf = (el) => {
   if (t) { el.dataset.tip = t; el.removeAttribute('title'); return say(t); } // our bubble replaces the slow native one
   const a = el.getAttribute('aria-label');
   const word = (el.textContent || '').replace(/[\s‏‎]/g, '');
-  return a && word.length < 2 ? say(a) : '';
+  if (a && word.length < 2) return say(a);
+  return infoOn ? (TEXT_HELP[normText(el)] || '') : '';
 };
 const findTarget = (n) => {
   for (let el = n instanceof Element ? n : n?.parentElement; el && el !== document.body; el = el.parentElement) {
@@ -101,6 +135,10 @@ export function startTooltips() {
   document.addEventListener('touchend', () => { cancel(); }, { passive: true });
   document.addEventListener('touchcancel', cancel, { passive: true });
   document.addEventListener('click', (e) => {
+    if (infoOn && !e.target.closest('#infoBtn, #infoBtnSide, .info-banner, .modal')) {
+      const el = findTarget(e.target);
+      if (el) { e.preventDefault(); e.stopPropagation(); show(el); clearTimeout(hideTimer); hideTimer = setTimeout(hide, 6000); return; }
+    }
     if (Date.now() - shownAt < 700 && cur && cur.contains(e.target) && !fine) { e.preventDefault(); e.stopPropagation(); }
   }, true);
   window.addEventListener('scroll', hide, { passive: true, capture: true });

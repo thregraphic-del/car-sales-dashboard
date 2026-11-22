@@ -389,7 +389,7 @@ export async function render(view, { segments, params }) {
                   </div>
         </div>
         <div class="font-bar" id="fontBar" role="group" aria-label="معاينة حجم الخط"><button type="button" class="fb" data-font="-1" aria-label="تصغير الخط">−</button><b class="en-inline" id="fontNow2"></b><button type="button" class="fb" data-font="1" aria-label="تكبير الخط">+</button><button type="button" class="fb ok" id="fontOk" aria-label="اعتماد">✓</button></div>
-        <div class="reader-status"><span class="mk-legend" aria-hidden="true"><span class="mk-l mine">كلماتي</span><span class="mk-l new">جديد</span></span><span class="tiny mode-note" id="modeNote"></span><span class="tiny muted" id="trNote"></span></div>
+        <div class="reader-status"><span class="tiny mode-note" id="modeNote"></span><span class="tiny muted" id="trNote"></span></div>
         <div class="vid-pin" id="vidPin">
         ${isVideo ? '<div class="player-box yt-clean"><div id="player"></div><button type="button" class="yt-shield" id="ytShield" aria-label="أظهر أزرار يوتيوب"></button></div><div class="split" id="split" role="separator" aria-orientation="horizontal" title="اسحب لتكبير الفيديو أو النص"><span></span></div>' : ''}
         ${isVideo && hasTimes ? '<div class="time-strip hidden" id="timeStrip" aria-label="وين وصلت في المقطع"><span class="en-inline" id="tsNow">0:00</span><div class="ts-bar"><span id="tsFill"></span></div><span class="en-inline" id="tsDur">0:00</span></div>' : ''}
@@ -415,7 +415,7 @@ export async function render(view, { segments, params }) {
   // ✕ = back to the video without keeping what was changed since ⚙ was opened
   const snapReader = () => { const o = {}; try { Object.keys(localStorage).filter((k) => k.startsWith('reader.') && !/^reader\.(saveall|new|new2|newhere)\./.test(k)).forEach((k) => { o[k] = localStorage.getItem(k); }); } catch { /* ignore */ } return o; };
   let setSnap = null;
-  const toggleSet = (open) => { if (open) setSnap = snapReader(); rset.classList.remove('focus'); rset.querySelectorAll('.focus-row').forEach((r) => r.classList.remove('focus-row')); rset.classList.toggle('hidden', !open); if (open) rset.scrollTop = 0; $('#setBtn', view).setAttribute('aria-expanded', String(open)); $('#setBtn', view).classList.toggle('primary', open); };
+  const toggleSet = (open) => { if (open) { location.hash = `#/clip-settings/${id}?v=${isVideo ? 1 : 0}&t=${hasTimes ? 1 : 0}`; return; } if (open) setSnap = snapReader(); rset.classList.remove('focus'); rset.querySelectorAll('.focus-row').forEach((r) => r.classList.remove('focus-row')); rset.classList.toggle('hidden', !open); if (open) rset.scrollTop = 0; $('#setBtn', view).setAttribute('aria-expanded', String(open)); $('#setBtn', view).classList.toggle('primary', open); };
   $('#setBtn', view).addEventListener('click', (e) => { e.stopPropagation(); if (rset.classList.contains('hidden')) toggleSet(true); else discardSet(); });
   // closing without «حفظ» (✕, a tap outside, ⚙ again) = nothing changed is kept
   const discardSet = () => { toggleSet(false); }; // changes apply at once now: closing keeps them
@@ -2642,7 +2642,10 @@ export async function render(view, { segments, params }) {
     document.body.appendChild(gptPill);
   };
   $('#saveGpt', view)?.addEventListener('click', keepGpt);
+  // back from the settings page: ?fontbar=1 shows the small − + ✓ bar, ?ideas=1 opens the ideas window
+  if (params.fontbar) { fontBar?.classList.add('on'); history.replaceState(null, '', `#/source/${id}`); }
   // 💡 «أفكار»: everything about ideas in one place — ask ChatGPT, keep its answer, write your own note, copy the text, the full summary (owner only)
+  if (params.ideas) { history.replaceState(null, '', `#/source/${id}`); setTimeout(() => $('#ideasBtn', view)?.click(), 700); }
   $('#ideasBtn', view)?.addEventListener('click', () => {
     toggleSet(false);
     const box = openModal(`<div class="stack ideas-box"><h2 style="margin:0">💡 أفكار</h2>
