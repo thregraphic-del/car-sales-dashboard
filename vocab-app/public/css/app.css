@@ -2512,3 +2512,28 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .cd-gl svg { width: 15px; height: 15px; }
 .cd-gs { justify-self: end; font-size: 14px; }
 .cd-g .cd-meter { grid-column: 1 / -1; }
+
+/* «كلماتي» in short form: title · one stats card · Words | Grammar · a row of icons · plain rows */
+.wd-stats { display: grid; justify-items: center; gap: 2px; padding: 16px 18px; margin-bottom: 12px; border-radius: 22px; text-align: center; }
+.wd-sl { color: var(--ink-2); font-size: 15px; }
+.wd-sn { font-size: 40px; font-weight: 800; line-height: 1.1; color: var(--ink); }
+.wd-ss { color: var(--muted); font-size: 14px; }
+.wd-seg { display: flex; width: 100%; margin-bottom: 12px; }
+.wd-seg a { flex: 1; text-align: center; padding: 11px 8px; }
+.wd-seg b { font-weight: 600; margin-inline-start: 4px; color: inherit; opacity: .85; }
+.wd-tools { display: flex; gap: 8px; justify-content: space-between; margin-bottom: 12px; }
+.wd-t { flex: 1; max-width: 56px; height: 48px; display: grid; place-items: center; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; box-shadow: var(--shadow-sm); }
+.wd-t svg { width: 22px; height: 22px; }
+.wd-t.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.word-row.compact { padding: 10px 14px; gap: 10px; }
+.word-row.compact .term { font-size: 19px; }
+.word-row.compact .meaning { font-size: 14px; color: var(--ink-2); margin-top: 1px; }
+.word-row.compact .en-row { gap: 6px; }
+@media (max-width: 640px) {
+  .word-row.compact { grid-template-columns: 1fr auto; }
+  .word-row.compact.check-mode { grid-template-columns: auto 1fr auto; }
+  .word-row.compact .actions { justify-content: flex-end; }
+  .wd-stats { padding: 12px 16px; }
+  .wd-sn { font-size: 36px; }
+}
+.word-row.compact .term { color: var(--ink) !important; }

@@ -11,15 +11,15 @@ export const BAND_AR = { function: 'كلمة نحوية', basic: 'كلمة أس�
 
 /* -------------------------------------------------------------- rows */
 
-export function wordRowHtml(w, { selectable = false, selected = false, extra = '' } = {}) {
+export function wordRowHtml(w, { selectable = false, selected = false, extra = '', compact = false } = {}) {
   const groups = (w.group_ids || []).map(groupName).filter(Boolean);
   return `
-    <div class="word-row ${selectable ? 'check-mode' : ''}" data-id="${w.uv_id}">
+    <div class="word-row ${selectable ? 'check-mode' : ''}${compact ? ' compact' : ''}" data-id="${w.uv_id}">
       ${selectable ? `<input type="checkbox" class="check" data-act="select" ${selected ? 'checked' : ''} aria-label="تحديد">` : ''}
       <div style="min-width:0">
-        <div class="en-row en">${usageDot(w.usage)}<span class="term u-t-${esc(w.usage || '')}">${esc(w.term)}</span>${levelChip(w.level)}${extra}</div>
+        <div class="en-row en">${compact ? '' : usageDot(w.usage)}<span class="term u-t-${esc(w.usage || '')}">${esc(w.term)}</span>${compact ? '' : levelChip(w.level)}${extra}</div>
         <div class="meaning">${w.arabic ? esc(w.arabic) : '<span class="muted">بدون معنى بعد</span>'}</div>
-        ${groups.length || statusChips(w) ? `<div class="meta">${statusChips(w)}${groups.map((g) => `<span class="chip ar-chip group-chip">${esc(g)}</span>`).join('')}</div>` : ''}
+        ${!compact && (groups.length || statusChips(w)) ? `<div class="meta">${statusChips(w)}${groups.map((g) => `<span class="chip ar-chip group-chip">${esc(g)}</span>`).join('')}</div>` : ''}
       </div>
       <div class="actions"><button class="btn icon sm ghost" data-act="listen" aria-label="استمع">${icon.speaker}</button></div>
     </div>`;

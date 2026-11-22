@@ -31,13 +31,27 @@ export async function render(view, { params }) {
   const selected = new Set();
   let shown = [];
 
+  // a short page: the title, one stats card, Words | Grammar, a row of icons (each opens its own panel), then the words
+  const WI = {
+    filter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5h17l-6.5 7.8V19l-4 2v-8.2z"/></svg>',
+    grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>',
+    sort: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20V5M4.5 8.5 8 5l3.5 3.5M16 4v15M12.5 15.5 16 19l3.5-3.5"/></svg>',
+  };
+  let panel = ''; // which icon's panel is open: search · filter · sort · groups
   view.innerHTML = `
-    <div class="page-head compact">
-      <div><h1>كلماتي</h1><p id="summary"></p></div>
-      <div class="btn-row"><button class="btn" id="exportBtn">${icon.download} تصدير</button></div>
+    <div class="page-head compact"><div><h1>كلماتي</h1></div></div>
+    <div class="card wd-stats" id="summary"></div>
+    <div class="lib-tabs segmented wd-seg" role="tablist"><a href="#/words" role="tab" class="active">الكلمات <b id="wCount"></b></a><a href="#/words?tab=grammar" role="tab">القواعد <b id="gCount"></b></a></div>
+    <div class="wd-tools" id="wdTools">
+      <button type="button" class="wd-t" data-wt="search" aria-label="بحث" title="بحث">${icon.search}</button>
+      <button type="button" class="wd-t" data-wt="filter" aria-label="فلاتر" title="فلاتر">${WI.filter}</button>
+      <button type="button" class="wd-t" data-wt="view" aria-label="الأوضح: كلمة بسيطة لكل معنى" title="الأوضح">${WI.grid}</button>
+      <button type="button" class="wd-t" data-wt="sort" aria-label="ترتيب" title="ترتيب">${WI.sort}</button>
+      <button type="button" class="wd-t" id="selectToggle" aria-label="تحديد" title="تحديد">${icon.check}</button>
+      <button type="button" class="wd-t" data-wt="groups" aria-label="المجموعات" title="المجموعات">${icon.folder}</button>
+      <button type="button" class="wd-t" id="exportBtn" aria-label="تصدير" title="تصدير">${icon.download}</button>
     </div>
-    ${libTabs('words')}
-    <div class="words-search"><span class="search-ico">${icon.search}</span><input class="input" id="q" type="search" placeholder="ابحث بالإنجليزية أو العربية…"></div>
+    <div class="words-search hidden" id="wsearch"><span class="search-ico">${icon.search}</span><input class="input" id="q" type="search" placeholder="ابحث بالإنجليزية أو العربية…"></div>
     <div class="chip-row" id="filters"></div>
     <div class="chip-row groups-row" id="groups"></div>
     <div id="groupHead"></div>
@@ -64,14 +78,24 @@ export async function render(view, { params }) {
   function draw() {
     const mastered = all.filter((w) => w.state === 'mastered').length;
     const practice = all.filter((w) => w.state === 'review' || w.state === 'hard').length;
-    $('#summary').textContent = all.length ? `${num(all.length)} كلمة · ${num(mastered)} متقنة · ${num(practice)} تحتاج مراجعة` : 'ما حفظت كلمات للحين.';
-    $('#filters').innerHTML = filterBarHtml(barDefs(), fbOpen);
+    $('#summary').innerHTML = all.length
+      ? `<span class="wd-sl">إجمالي الكلمات</span><b class="wd-sn en-inline">${all.length.toLocaleString('en-US')}</b><span class="wd-ss">${num(mastered)} متقنة · ${num(practice)} مراجعة</span>`
+      : '<span class="wd-sl">ما حفظت كلمات للحين</span>';
+    // which icon is lit, and which panel is open under the row
+    view.querySelectorAll('#wdTools [data-wt]').forEach((b) => {
+      const k = b.dataset.wt;
+      b.classList.toggle('on', k === 'view' ? f.view === 'clear' : panel === k || (k === 'filter' && fbOpen && panel === 'filter'));
+    });
+    $('#selectToggle').classList.toggle('on', select);
+    $('#wsearch').classList.toggle('hidden', panel !== 'search' && !f.q);
+    const defs = barDefs();
+    $('#filters').innerHTML = panel === 'filter' ? filterBarHtml(defs.filter((d) => d.k !== 'sort'), fbOpen) : panel === 'sort' ? filterBarHtml(defs.filter((d) => d.k === 'sort'), fbOpen) : '';
     placeMenus($('#filters'));
-    // 📁 groups: one closed button; tapping it shows every group + «مجموعة جديدة» + «إدارة المجموعات»
+    // 📁 groups: the panel of every group + «مجموعة جديدة» + «إدارة المجموعات» (opened by the folder icon)
     const gSel = state.groups.find((x) => x.id === f.group);
-    $('#groups').innerHTML = `<button type="button" class="grp-toggle${groupsOpen ? ' open' : ''}${gSel ? ' set' : ''}" id="grpToggle" aria-expanded="${groupsOpen}"><span class="fb-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></span> <span>${gSel ? esc(gSel.name) : 'المجموعات'}</span> <span class="tiny en-inline">${gSel ? gSel.count : state.groups.length}</span> ▾</button>
-      ${groupsOpen ? `<div class="grp-panel">${state.groups.map((g) => `<button class="gchip ${f.group === g.id ? 'on' : ''}" data-g="${g.id}">${esc(g.name)} <span class="en-inline tiny">${g.count}</span></button>`).join('') || '<span class="tiny muted">ما عندك مجموعات بعد.</span>'}
-        <div class="grp-actions"><button class="gchip new" id="newGroup">+ مجموعة جديدة</button>${state.groups.length > 1 ? '<button class="gchip new" id="manageGroups">⚙ إدارة المجموعات</button>' : ''}</div></div>` : ''}`;
+    groupsOpen = panel === 'groups';
+    $('#groups').innerHTML = groupsOpen ? `<div class="grp-panel">${state.groups.map((g) => `<button class="gchip ${f.group === g.id ? 'on' : ''}" data-g="${g.id}">${esc(g.name)} <span class="en-inline tiny">${g.count}</span></button>`).join('') || '<span class="tiny muted">ما عندك مجموعات بعد.</span>'}
+        <div class="grp-actions"><button class="gchip new" id="newGroup">+ مجموعة جديدة</button>${state.groups.length > 1 ? '<button class="gchip new" id="manageGroups">⚙ إدارة المجموعات</button>' : ''}</div></div>` : (gSel ? `<span class="gchip on">${esc(gSel.name)}</span>` : '');
     const g = state.groups.find((x) => x.id === f.group);
     $('#groupHead').innerHTML = g ? `
       <div class="card group-head">
@@ -92,11 +116,11 @@ export async function render(view, { params }) {
     if (sorters[f.sort]) shown.sort(sorters[f.sort]);
     if (f.count) shown = shown.slice(0, f.count);
     $('#list').innerHTML = shown.length
-      ? `<div class="row between" style="margin:4px 0 10px"><span class="small muted">${shown.length} كلمة</span><span class="btn-row"><button class="btn sm ${select ? 'primary' : ''}" id="selectToggle">${icon.check} ${select ? 'إنهاء التحديد' : 'تحديد'}</button></span></div>
-         <div class="word-list">${shown.map((w) => wordRowHtml(w, { selectable: select, selected: selected.has(w.uv_id) })).join('')}</div>`
+      ? `         <div class="word-list">${shown.map((w) => wordRowHtml(w, { selectable: select, selected: selected.has(w.uv_id), compact: true })).join('')}</div>`
       : all.length
         ? emptyState('🔍', 'ما فيه كلمات هنا', f.group ? 'أضف كلمات إلى هذه المجموعة من بطاقة أي كلمة.' : 'جرّب بحثًا أو فلترًا آخر.')
         : emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات وبنساعدك تختار اللي يستاهل.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`);
+    $('#wCount').textContent = shown.length ? `(${shown.length.toLocaleString('en-US')})` : '';
     const allShownSelected = shown.length > 0 && shown.every((w) => selected.has(w.uv_id));
     const inGroup = state.groups.find((x) => x.id === f.group);
     const none = selected.size ? '' : 'disabled';
@@ -271,17 +295,27 @@ export async function render(view, { params }) {
         else if (fb.k === 'source') f.source = Number(fb.value) || null;
         else f[fb.k] = fb.value;
         if (fb.k === 'filter') f.view = 'list';
+        if (fb.k === 'sort') panel = '';
         if (fb.close) fbOpen = '';
       }
       return draw();
     }
     const cl = e.target.closest('[data-cl]');
     if (cl) return openLadder(clusters[Number(cl.dataset.cl)]);
-    if (e.target.closest('#grpToggle')) { groupsOpen = !groupsOpen; return draw(); }
+    const wt = e.target.closest('#wdTools [data-wt]');
+    if (wt) {
+      const k = wt.dataset.wt;
+      if (k === 'view') { f.view = f.view === 'clear' ? 'list' : 'clear'; return draw(); }
+      panel = panel === k ? '' : k;
+      fbOpen = '';
+      draw();
+      if (panel === 'search') $('#q').focus();
+      return undefined;
+    }
     const gb = e.target.closest('[data-g]');
     if (gb) {
       f.group = f.group === Number(gb.dataset.g) ? null : Number(gb.dataset.g);
-      groupsOpen = false;
+      panel = ''; groupsOpen = false;
       return draw();
     }
     if (e.target.closest('#newGroup')) {
@@ -397,6 +431,11 @@ export async function render(view, { params }) {
   const unOutside = closeOnOutside(view, () => fbOpen, () => { fbOpen = ''; draw(); });
   window.addEventListener('hashchange', unOutside, { once: true });
   draw();
+  api.grammar().then((lib) => {
+    const n = Object.values(lib.subs || {}).filter((e) => (e.examples?.length || 0) || e.seen || (e.status && e.status !== 'new')).length;
+    const el = $('#gCount');
+    if (el && n) el.textContent = String(n);
+  }).catch(() => {});
 
   // 🧹 «كلماتي» tidy-up (runs in the background while the site is open, even after leaving this page):
   // 1) multi-word items first — real expressions stay, free combinations become their one word;
