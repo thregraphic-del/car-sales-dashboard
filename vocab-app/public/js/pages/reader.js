@@ -346,6 +346,10 @@ export async function render(view, { segments, params }) {
             <div class="sw-sub"><span class="sopts" id="recapMin"><span class="tiny">كل</span>${[3, 6].map((m) => `<button type="button" class="sopt en-inline" data-rmin="${m}">${m}د</button>`).join('')}<input class="input sopt-num" id="recapMinN" type="number" min="1" max="60" inputmode="numeric" placeholder="اكتب" aria-label="كل كم دقيقة"></span>
             <span class="sopts" id="recapWhen"><button type="button" class="sopt" data-rwhen="before">قبل</button><button type="button" class="sopt" data-rwhen="after">بعد</button></span>
             <span class="sopts" id="recapPause"><span class="tiny">لما يطلع:</span><button type="button" class="sopt" data-rpause="none">يكمّل المقطع</button><button type="button" class="sopt" data-rpause="read">يوقف بقدر قراءته</button><button type="button" class="sopt" data-rpause="5">يوقف ٥ ثواني</button></span></div></div></div>` : ''}` : ''}
+          <div class="sgroup">🧠 اعتمد على نفسك</div>
+          <div class="srow sw-row"><span class="slabel">أخفِ معاني كلماتي</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="memHideAr"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label><span class="tiny muted">المعنى موجود دايمًا — المس لإظهاره</span></div></div>
+          <div class="srow sw-row"><span class="slabel">أخفِ الكلمات المتقنة</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="memMastered"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label><span class="tiny muted">اللي تدرّبت عليها وأتقنتها</span></div></div>
+          <div class="srow sw-row"><span class="slabel">أطفئ الكلمات الجديدة</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="memOffNew"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label><span class="tiny muted">تظهر كلماتي فقط</span></div></div>
           <div class="sgroup">العرض</div>
           <div id="viewPick" class="rgrp"><button type="button" class="hidden" id="viewBtn"></button><div id="viewMenu" class="rgrp">
             <div class="srow sw-row"><span class="slabel">📚 وضع القواعد</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="gramOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label><div class="sw-sub"><span class="tiny">بدل الكلمات: كل سطر يظهر فوقه اسم القاعدة (مثل «الماضي البسيط») — اضغطه تشوف شرحها وأمثلتها وتحفظ المثال.</span></div></div></div>
@@ -1263,9 +1267,34 @@ export async function render(view, { segments, params }) {
   const side = $('#side', view);
   bindSpeech(view);
 
+  // 🧠 «اعتمد على نفسك»: make the learner rely on memory — my words show no meaning (it is one tap away), mastered words are not marked, new words can be off
+  const mem = { hideAr: pref('reader.memHideAr', '0') === '1', mastered: pref('reader.memMastered', '0') === '1', offNew: pref('reader.memOffNew', '0') === '1' };
+  let masteredIds = new Set();
+  let masteredLoaded = false;
+  const loadMastered = async () => {
+    if (!mem.mastered || masteredLoaded) return;
+    masteredLoaded = true;
+    try { masteredIds = new Set((await api.words({ status: 'mastered' })).map((w) => w.vocabulary_id)); } catch { masteredLoaded = false; }
+  };
+  const isHidden = (vid, state) => (mem.offNew && state !== 'saved') || (mem.mastered && masteredIds.has(vid));
+  const visibleMarks = () => (mem.offNew || (mem.mastered && masteredIds.size) ? data.marks.filter((m) => !isHidden(m.vocabulary_id, m.state)) : data.marks);
+  for (const [sel, key, flag] of [['#memHideAr', 'reader.memHideAr', 'hideAr'], ['#memMastered', 'reader.memMastered', 'mastered'], ['#memOffNew', 'reader.memOffNew', 'offNew']]) {
+    const box = $(sel, view);
+    if (!box) continue;
+    box.checked = mem[flag];
+    box.addEventListener('change', async () => {
+      mem[flag] = box.checked;
+      setPref(key, mem[flag] ? '1' : '0');
+      if (flag === 'mastered') await loadMastered();
+      drawLines();
+      drawSide();
+      toast(mem[flag] ? 'شغّلتها — الكلمات تظهر بدون معناها لين تلمسها' : 'رجعت الكلمات والمعاني كاملة');
+    });
+  }
   const drawLines = () => {
     const keep = linesEl.scrollTop;
-    linesEl.innerHTML = data.lines.map((l) => lineHtml(l, data.marks)).join('') || '<p class="muted">ما فيه نص.</p>';
+    const vmarks = visibleMarks();
+    linesEl.innerHTML = data.lines.map((l) => lineHtml(l, vmarks)).join('') || '<p class="muted">ما فيه نص.</p>';
     linesEl.scrollTop = keep;
     if (currentId) linesEl.querySelector(`.line[data-id="${currentId}"]`)?.classList.add('current');
     currentWord = -1; // re-applied on the next tick
@@ -1365,6 +1394,7 @@ export async function render(view, { segments, params }) {
   newObs.observe(linesEl, { childList: true, subtree: true });
   const sideShown = () => data.items.filter(isNew).filter((it) => (!sideF.level || it.level === sideF.level)
     && (!sideF.show || sideF.show === 'all' || (sideF.show === 'unsaved' ? !it.user_state : it.user_state === 'saved'))
+    && !isHidden(it.vocabulary_id, it.user_state)
     && (!sideF.q || `${it.term} ${it.arabic || ''}`.toLowerCase().includes(sideF.q.toLowerCase())));
   const drawSide = () => {
     const shown = sideShown();
@@ -1396,7 +1426,7 @@ export async function render(view, { segments, params }) {
       <div class="side-list">${shown.slice(0, sideLimit).map((it) => `
         <div class="side-item ${it.user_state === 'dismissed' ? 'dim' : ''}" data-vid="${it.vocabulary_id}" data-line="${it.line_id}">
           <div style="min-width:0"><div class="row" style="gap:6px">${usageDot(it.usage)}<b class="en u-t-${esc(it.usage || '')}">${esc(it.term)}</b>${levelChip(it.level)}</div>
-            <div class="small ink-2 clamp1">${esc(it.arabic || '')}</div></div>
+            ${mem.hideAr && it.user_state === 'saved' && it.arabic ? `<button type="button" class="ar-veil" data-veil>••• المس لإظهار المعنى</button><div class="small ink-2 clamp1 hidden">${esc(it.arabic)}</div>` : `<div class="small ink-2 clamp1">${esc(it.arabic || '')}</div>`}</div>
           ${it.user_state === 'saved' ? '<span class="saved-tick" title="محفوظة">✓</span>' : `<button class="btn sm" data-save="${it.vocabulary_id}" data-occ="${it.occurrence_id}">حفظ</button>`}
         </div>`).join('') || '<p class="small muted">ما فيه كلمات هنا. غيّر الفلتر، أو اضغط أي كلمة في النص لتفهمها وتحفظها.</p>'}
         ${shown.length > sideLimit ? `<button class="btn sm ghost" id="sideMore" style="width:100%;margin-top:8px">عرض ${Math.min(150, shown.length - sideLimit)} أخرى (${shown.length - sideLimit} متبقية)</button>` : ''}</div>`;
@@ -1448,6 +1478,7 @@ export async function render(view, { segments, params }) {
     refreshStats();
   };
 
+  await loadMastered(); // only does anything when «أخفِ الكلمات المتقنة» is on
   drawLines();
   drawSide();
   // 📚 وضع القواعد: grammar labels instead of the words (⚙ → «وضع القواعد», remembered)
@@ -1483,7 +1514,7 @@ export async function render(view, { segments, params }) {
     const wasCurrent = el.classList.contains('current');
     const para = el.dataset.para;
     const cls = ['para-now', 'para-first', 'para-last', 'past-fade'].filter((c) => el.classList.contains(c));
-    el.outerHTML = lineHtml(line, data.marks);
+    el.outerHTML = lineHtml(line, visibleMarks());
     const fresh = linesEl.querySelector(`.line[data-id="${line.id}"]`);
     if (fresh) { fresh.dataset.para = para; fresh.classList.add(...cls); }
     if (wasCurrent) {
@@ -1661,7 +1692,7 @@ export async function render(view, { segments, params }) {
   let watchAt = Date.now();
   const watchTimer = isVideo ? setInterval(() => {
     const now = Date.now();
-    if (playing && document.visibilityState === 'visible') noteWatched((now - watchAt) / 1000);
+    if (playing && document.visibilityState === 'visible') noteWatched(); // a playing video is activity (counted with taps and scrolls)
     watchAt = now;
   }, 5000) : 0;
   // Every word of the built-in dictionary used in this video (once per video, no AI).

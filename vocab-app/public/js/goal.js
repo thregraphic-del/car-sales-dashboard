@@ -8,7 +8,7 @@
 export const GOAL_TYPES = {
   pass: { label: 'أمرّ على كلمات جديدة', short: 'كلمات مرّت', unit: 'كلمة', def: 15, min: 3, max: 500, note: 'كل كلمة جديدة تمر عليك في مقطع أو نص — بدون ما تفتحها' },
   practice: { label: 'أتدرّب على كلمات', short: 'إجابات تدريب', unit: 'سؤال', def: 20, min: 3, max: 500, note: 'كل إجابة في بطاقات وألعاب الكلمات' },
-  watch: { label: 'أشاهد مدة', short: 'دقائق مشاهدة', unit: 'دقيقة', def: 10, min: 1, max: 300, note: 'دقائق تشغيل المقطع فعليًا — لو حاب تتعرّض للغة بس' },
+  watch: { label: 'أقضي وقتًا في الموقع', short: 'دقائق تعلّم', unit: 'دقيقة', def: 20, min: 1, max: 600, note: 'كل وقت نشاطك في الموقع: مشاهدة وتدريب ومراجعة وتنقل — يتوقف العدّ لما تسكت أكثر من دقيقتين' },
   rules: { label: 'أمرّ على قواعد وأمثلة', short: 'قواعد وأمثلة', unit: 'قاعدة', def: 10, min: 1, max: 300, note: 'كل قاعدة أو مثال تفتحه أو تتدرّب عليه في القواعد (مرة باليوم لكل واحدة)' },
 };
 const ORDER = ['pass', 'practice', 'watch', 'rules'];
@@ -133,14 +133,28 @@ export function noteRule(key) {
   after(before);
 }
 
-/** Seconds of real playing. */
-export function noteWatched(seconds) {
-  if (!(seconds > 0)) return;
-  const before = progress();
+// ⏱ Time on the site = every moment of ACTIVITY: a tap, a key, a scroll, or a video that is playing. Between two activities the
+// time counts while the gap is short (up to two minutes); a longer silence ends the session, and the next tap starts a new one.
+// Nothing runs by itself: it is added only when the learner does something.
+const IDLE_MS = 120000;
+let lastAct = 0;
+export const endSession = () => { lastAct = 0; };
+export function noteActive() {
+  const now = Date.now();
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') { lastAct = 0; return; }
+  const gap = lastAct ? now - lastAct : 0;
+  lastAct = now;
+  if (gap <= 0 || gap > IDLE_MS) return; // the first tap of a session adds nothing yet
   const k = `lt.watch.${dayStr()}`;
-  put(k, Number(get(k, 0)) + Math.min(seconds, 30));
-  if (Math.floor(Number(get(k, 0)) / 60) !== before.counts.watch) after(before);
+  const prev = Number(get(k, 0)) || 0;
+  const next = prev + gap / 1000;
+  if (Math.floor(next / 60) === Math.floor(prev / 60)) { put(k, next); return; } // the same minute: just keep the seconds
+  const before = progress();
+  put(k, next);
+  after(before);
 }
+/** (old name) a video is playing — counts as activity. */
+export const noteWatched = () => noteActive();
 
 /** One practice answer (words). */
 export function noteAnswer() {

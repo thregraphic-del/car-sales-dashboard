@@ -318,12 +318,12 @@ async function openCalendar() {
     const nothing = !min && !x.answers && !x.saved && !x.seen;
     const got = val(d);
     const gl = goalN();
-    const goalLine = `<div class="cd-goal${got >= gl ? ' ok' : ''}"><span>🎯 الهدف <b class="en-inline">${gl}</b> ${unit()} · ${metric === 'time' ? 'مشاهدة' : 'كلمات'}</span><span class="cd-goal-s">${got >= gl ? `✓ حققته (${got})` : `${got} — باقي ${gl - got}`}</span><i class="cd-meter"><b style="width:${Math.min(100, Math.round((100 * got) / gl))}%"></b></i></div>`;
+    const goalLine = `<div class="cd-goal${got >= gl ? ' ok' : ''}"><span>🎯 الهدف <b class="en-inline">${gl}</b> ${unit()} · ${metric === 'time' ? 'تعلّم' : 'كلمات'}</span><span class="cd-goal-s">${got >= gl ? `✓ حققته (${got})` : `${got} — باقي ${gl - got}`}</span><i class="cd-meter"><b style="width:${Math.min(100, Math.round((100 * got) / gl))}%"></b></i></div>`;
     return `<div class="cal-dash"><div class="cd-head"><b>${DAY_NAMES[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}</b>${pick === key(now) ? '<span class="th-chip">اليوم</span>' : ''}</div>
       ${goalLine}
       ${nothing ? '<p class="tiny muted" style="margin:6px 0 0">ما فيه نشاط هذا اليوم.</p>' : ''}
       <div class="cd-grid">
-        <div class="cd-card"><span class="cd-i">⏱</span><b>${min}</b><small>دقيقة مشاهدة</small></div>
+        <div class="cd-card"><span class="cd-i">⏱</span><b>${min}</b><small>دقيقة تعلّم</small></div>
         <div class="cd-card"><span class="cd-i">📚</span><b>${x.saved}</b><small>كلمة تعلّمتها</small></div>
         <div class="cd-card"><span class="cd-i">👁</span><b>${x.seen}</b><small>كلمة مرّت عليك</small></div>
         <div class="cd-card"><span class="cd-i">🎮</span><b>${x.answers}</b><small>إجابة تدريب${x.answers ? ` · ${rate}٪ صح` : ''}</small>${x.answers ? `<i class="cd-meter"><b style="width:${rate}%"></b></i>` : ''}</div>

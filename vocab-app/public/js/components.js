@@ -69,10 +69,19 @@ function headHtml(w, { big = false } = {}) {
     <div class="row wrap" style="gap:6px;margin-top:6px">${levelChip(w.level)}${typeLabel(w) ? `<span class="chip ar-chip">${esc(typeLabel(w))}</span>` : ''}${w.band === 'specialized' ? '<span class="chip ar-chip">متخصصة</span>' : ''}</div>`;
 }
 
-function meaningHtml(w) {
+// 🧠 «أخفِ معاني كلماتي»: the meaning of a saved word waits behind one tap (it is always there)
+const memHidesAr = () => { try { return localStorage.getItem('reader.memHideAr') === '1'; } catch { return false; } };
+document.addEventListener('click', (e) => {
+  const v = e.target.closest?.('[data-veil]');
+  if (!v) return;
+  v.nextElementSibling?.classList.remove('hidden');
+  v.remove();
+});
+
+function meaningHtml(w, { veil = false } = {}) {
   const general = w.arabic_general && w.arabic && w.arabic_general !== w.arabic ? `<div class="tiny muted" style="margin-top:2px">المعنى العام: ${esc(w.arabic_general)}</div>` : '';
   return `
-    <div class="wp-meaning">${w.arabic ? esc(w.arabic) : '<span class="muted" style="font-size:15px;font-weight:500">ما فيه معنى محفوظ بعد</span>'}</div>
+    ${veil && w.arabic ? '<button type="button" class="ar-veil" data-veil>••• المس لإظهار المعنى</button>' : ''}<div class="wp-meaning${veil && w.arabic ? ' hidden' : ''}">${w.arabic ? esc(w.arabic) : '<span class="muted" style="font-size:15px;font-weight:500">ما فيه معنى محفوظ بعد</span>'}</div>
     ${general}
     ${w.simple_english ? `<p class="en ink-2 wp-simple">${esc(w.simple_english)}</p>` : ''}`;
 }
@@ -254,7 +263,7 @@ export async function openWordPanel(anchor, query, { onChange, onClose } = {}) {
       <button class="btn icon sm ghost wp-close" aria-label="إغلاق">${icon.x}</button>
       ${headHtml(info)}
       ${baseHtml(forms, info.term)}
-      ${meaningHtml(info)}
+      ${meaningHtml(info, { veil: saved && memHidesAr() })}
       ${synHtml()}
       ${info.context_note ? `<p class="small ctx-note">💡 ${esc(info.context_note)}</p>` : ''}
       ${info.contextual ? '' : info.arabic ? '<div class="tiny muted">معنى عام من القاموس (ليس حسب هذه الجملة)</div>' : ''}
@@ -481,6 +490,6 @@ export { $ };
 export function celebrateGoal(goal, practiceHref = '#/practice?session=today') {
   openModal(`<div class="celebrate"><div class="celebrate-emoji">🎉</div>
     <h2>مبروك! حققت هدف اليوم</h2>
-    <p class="ink-2">${(goal.items || [goal]).map((g) => (g.type === 'watch' ? `شاهدت <b class="en-inline">${g.count}</b> دقيقة` : g.type === 'practice' ? `جاوبت <b class="en-inline">${g.count}</b> سؤال` : g.type === 'rules' ? `مرّيت على <b class="en-inline">${g.count}</b> قاعدة ومثال` : `مرّت عليك <b class="en-inline">${g.count}</b> كلمة جديدة`) + ` (الهدف ${g.n})`).join(' · ')} اليوم.</p>
+    <p class="ink-2">${(goal.items || [goal]).map((g) => (g.type === 'watch' ? `قضيت <b class="en-inline">${g.count}</b> دقيقة في الموقع` : g.type === 'practice' ? `جاوبت <b class="en-inline">${g.count}</b> سؤال` : g.type === 'rules' ? `مرّيت على <b class="en-inline">${g.count}</b> قاعدة ومثال` : `مرّت عليك <b class="en-inline">${g.count}</b> كلمة جديدة`) + ` (الهدف ${g.n})`).join(' · ')} اليوم.</p>
     <div class="btn-row" style="justify-content:center;margin-top:14px"><button class="btn primary" data-close>▶ أكمل</button><a class="btn" href="${practiceHref}" data-close>🎯 تدرّب الحين</a></div></div>`);
 }

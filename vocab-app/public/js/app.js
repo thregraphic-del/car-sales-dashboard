@@ -9,7 +9,7 @@ import { BUILD_ID } from './build-id.js';
 import { watchForUpdates } from './update-check.js';
 import { setPending, checkDouble, remindOnce } from './streak-rescue.js';
 import { openFeedback } from './feedback.js';
-import { goalText } from './goal.js';
+import { goalText, noteActive, endSession } from './goal.js';
 
 const NAV = [
   { path: '/', label: 'اليوم', icon: 'today', page: 'today', badge: true },
@@ -203,6 +203,14 @@ async function route() {
 }
 
 watchForUpdates();
+
+// ⏱ time on the site: every tap, key, scroll counts as activity (at most once a second); a hidden page ends the session
+(() => {
+  let last = 0;
+  const act = () => { const n = Date.now(); if (n - last < 1000) return; last = n; noteActive(); };
+  for (const ev of ['pointerdown', 'keydown', 'touchstart', 'wheel', 'scroll']) window.addEventListener(ev, act, { capture: true, passive: true });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') endSession(); });
+})();
 window.addEventListener('lexitube:goal-progress', () => checkDouble()); // doubling the goal anywhere gives yesterday back
 startIcons(); // every emoji on buttons and titles becomes a line icon in the site's style
 let started = false;
