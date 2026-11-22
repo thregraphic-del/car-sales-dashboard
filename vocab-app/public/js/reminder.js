@@ -95,9 +95,9 @@ export function openReminderFlow({ onDone } = {}) {
       <h2 style="margin:0">احفظه في التقويم</h2>
       <p class="small ink-2" style="margin:0">عشان يذكّرك التقويم باسم <b>«3Goal — كمّل إنجازك»</b> في <b>${esc(reminderSummary(r))}</b> — حتى والموقع مقفل:</p>
       <ol class="rem-how">
-        <li><span class="rem-n">١</span><span>اضغط الزر الأزرق <b>«افتح التقويم»</b> تحت.</span></li>
-        <li><span class="rem-n">٢</span><span>تطلع شاشة التقويم: اضغط <b>«إضافة»</b> (أو <b>Add All</b>) فوق.</span></li>
-        <li><span class="rem-n">٣</span><span>خلاص ✓ يتكرر التذكير كل أسبوع في الأيام اللي اخترتها.</span></li>
+        <li><span class="rem-n">١</span><span>اضغط <b>«افتح التقويم»</b> تحت<small class="rem-en" dir="ltr">Tap “Open Calendar” below</small></span></li>
+        <li><span class="rem-n">٢</span><span>اضغط <b>«إضافة إلى التقويم»</b><small class="rem-en" dir="ltr">Tap “Add to Calendar”</small></span></li>
+        <li><span class="rem-n">٣</span><span>اختر <b>«حفظ للأحداث المستقبلية»</b> ← يتكرر ويرنّ بوقته ✓<small class="rem-en" dir="ltr">Choose “Save for Future Events” — it repeats and alerts you on time</small></span></li>
       </ol>
       <button type="button" class="btn primary rem-cal" id="remCal"><span class="ico" aria-hidden="true">${icon.calendar || '📅'}</span> افتح التقويم</button>
       <p class="tiny muted" style="margin:0">وكمان: لما تفتح الموقع بعد الوقت يطلع لك إشعار فوق باسم «3Goal — كمّل إنجازك».</p>

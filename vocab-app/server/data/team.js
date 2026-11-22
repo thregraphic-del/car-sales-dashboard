@@ -13,7 +13,7 @@ const toInt = (v) => Math.max(0, Math.round(Number(v) || 0));
 export const DEFAULTS = {
   commission: { mode: 'fixed', value: 0 }, // 'fixed' riyals per subscriber, or 'percent' of the subscription price
   min_payout: 100, // riyals
-  contact: { email: '', phone: '', whatsapp: '', instagram: '', tiktok: '' },
+  contact: { email: '', phone: '', whatsapp: '', instagram: '', tiktok: '', youtube: '', x: '', snapchat: '', telegram: '', facebook: '' },
   pricing: [], // [{ name, price, period, note }] — edited by the owner
 };
 
@@ -53,6 +53,11 @@ export async function saveSettings(patch = {}) {
       whatsapp: digits(c.whatsapp, 16),
       instagram: handleOf(c.instagram),
       tiktok: handleOf(c.tiktok),
+      youtube: handleOf(c.youtube),
+      x: handleOf(c.x),
+      snapchat: handleOf(c.snapchat),
+      telegram: handleOf(c.telegram),
+      facebook: handleOf(c.facebook),
     };
   }
   if (Array.isArray(patch.pricing)) {
@@ -67,7 +72,8 @@ export async function publicContact() {
   const { contact } = await getSettings();
   return {
     email: contact.email || '', phone: contact.phone || '', whatsapp: contact.whatsapp || '',
-    instagram: contact.instagram || '', tiktok: contact.tiktok || '',
+    instagram: contact.instagram || '', tiktok: contact.tiktok || '', youtube: contact.youtube || '', x: contact.x || '',
+    snapchat: contact.snapchat || '', telegram: contact.telegram || '', facebook: contact.facebook || '',
   };
 }
 

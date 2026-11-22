@@ -120,7 +120,12 @@ async function settings() {
         <label class="f">رقم الواتساب <small>بالصيغة الدولية بدون + (مثل 9665xxxxxxxx)</small><input class="input num" id="ctWa" inputmode="tel" value="${esc(s.contact.whatsapp)}" placeholder="9665xxxxxxxx"></label>
         <label class="f">رقم الاتصال<input class="input num" id="ctPh" inputmode="tel" value="${esc(s.contact.phone)}" placeholder="9665xxxxxxxx"></label>
         <label class="f">انستقرام <small>اسم الحساب أو الرابط</small><input class="input num" id="ctIg" value="${esc(s.contact.instagram)}" placeholder="username"></label>
-        <label class="f">تيك توك <small>اسم الحساب أو الرابط</small><input class="input num" id="ctTk" value="${esc(s.contact.tiktok)}" placeholder="username"></label></section>
+        <label class="f">تيك توك <small>اسم الحساب أو الرابط</small><input class="input num" id="ctTk" value="${esc(s.contact.tiktok)}" placeholder="username"></label>
+        <label class="f">يوتيوب <small>اسم القناة (بدون @) أو الرابط</small><input class="input num" id="ctYt" value="${esc(s.contact.youtube)}" placeholder="channel"></label>
+        <label class="f">إكس (تويتر)<input class="input num" id="ctX" value="${esc(s.contact.x)}" placeholder="username"></label>
+        <label class="f">سناب شات<input class="input num" id="ctSn" value="${esc(s.contact.snapchat)}" placeholder="username"></label>
+        <label class="f">تيليجرام<input class="input num" id="ctTg" value="${esc(s.contact.telegram)}" placeholder="username"></label>
+        <label class="f">فيسبوك<input class="input num" id="ctFb" value="${esc(s.contact.facebook)}" placeholder="page or username"></label></section>
     </div>
     <section class="card"><h2>الأسعار (خطط الاشتراك)</h2><p class="muted tiny" style="margin-top:0">للتوثيق والعرض الحين؛ تُستخدم لما يُربط الدفع. اترك الاسم فاضيًا لحذف الصف.</p>
       <div id="prices">${rows.map((p) => `<div class="pr-row"><input class="input" data-k="name" placeholder="اسم الخطة" value="${esc(p.name)}"><input class="input num" data-k="price" type="number" min="0" step="0.5" placeholder="السعر (ريال)" value="${p.price}"><input class="input" data-k="period" placeholder="مثل: شهري" value="${esc(p.period)}"><input class="input" data-k="note" placeholder="ملاحظة" value="${esc(p.note)}"></div>`).join('')}</div>
@@ -131,7 +136,7 @@ async function settings() {
     const pricing = [...app.querySelectorAll('.pr-row')].map((r) => Object.fromEntries([...r.querySelectorAll('[data-k]')].map((i) => [i.dataset.k, i.value]))).filter((p) => p.name.trim());
     e.currentTarget.disabled = true;
     try {
-      await api('PUT', '/api/admin/settings', { commission: { mode: $('#cMode').value, value: Number($('#cVal').value) }, min_payout: Number($('#cMin').value), contact: { email: $('#ctMail').value, whatsapp: $('#ctWa').value, phone: $('#ctPh').value, instagram: $('#ctIg').value, tiktok: $('#ctTk').value }, pricing });
+      await api('PUT', '/api/admin/settings', { commission: { mode: $('#cMode').value, value: Number($('#cVal').value) }, min_payout: Number($('#cMin').value), contact: { email: $('#ctMail').value, whatsapp: $('#ctWa').value, phone: $('#ctPh').value, instagram: $('#ctIg').value, tiktok: $('#ctTk').value, youtube: $('#ctYt').value, x: $('#ctX').value, snapchat: $('#ctSn').value, telegram: $('#ctTg').value, facebook: $('#ctFb').value }, pricing });
       toast('تم الحفظ ✓');
     } catch (err) { toast(err.message); }
     e.currentTarget.disabled = false;
