@@ -2710,3 +2710,11 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .ph-logo svg { width: 14px; height: 14px; }
 .fd-sq, .fd-selbtn { flex: none; }
 .act-bar { flex-wrap: wrap; row-gap: 8px; }
+/* «نشاطي» bar: مقاطعي|نصوص and «تحديد» on the right, the star on the left (lined up with the stars below) */
+.act-bar { flex-wrap: nowrap; }
+.act-bar .fd-kind { margin-inline-end: 0; min-width: 0; }
+.act-bar .fd-kind button { padding: 0 10px; font-size: 13px; gap: 5px; }
+.act-bar .fd-kind button svg { width: 15px; height: 15px; }
+.act-bar .fd-selbtn { padding: 0 12px; font-size: 13.5px; }
+.act-bar .fav-chip { margin-inline-start: auto; }
+@media (max-width: 370px) { .act-bar { flex-wrap: wrap; } }

@@ -66,8 +66,8 @@ export async function render(view, { params }) {
     <div class="src-tabs hidden" id="srcTabs">
       <div class="section-title"><h2>نشاطي</h2></div>
       <div class="act-bar"><div class="segmented fd-kind" id="srcKind"><button type="button" class="active" data-sk="videos">${icon.video} مقاطعي <span class="tiny" id="cV"></span></button><button type="button" data-sk="texts">${icon.doc} نصوص <span class="tiny" id="cT"></span></button></div>
-        <button type="button" class="fd-sq fav-chip" id="srcFav" aria-label="المفضلة" title="المفضلة">${icon.star}</button>
-        <button type="button" class="fd-selbtn" id="srcPick" title="تحديد: اختر عدة مقاطع ونفّذ عليها إجراءً">☑ تحديد</button></div>
+        <button type="button" class="fd-selbtn" id="srcPick" title="تحديد: اختر عدة مقاطع ونفّذ عليها إجراءً">☑ تحديد</button>
+        <button type="button" class="fd-sq fav-chip" id="srcFav" aria-label="المفضلة" title="المفضلة">${icon.star}</button></div>
     </div>
     <div id="sources"></div>
     <div id="texts" class="tx-sec hidden"></div>
