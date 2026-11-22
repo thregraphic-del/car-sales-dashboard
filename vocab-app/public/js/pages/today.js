@@ -208,66 +208,87 @@ async function openCalendar() {
   const keys = Object.keys(days).sort();
   const first = keys[0] ? new Date(`${keys[0]}T12:00:00`) : new Date();
   const now = new Date(); now.setHours(12, 0, 0, 0);
-  let y = now.getFullYear();
-  let m = now.getMonth();
   let metric = metricPref();
   let shape = ['squares', 'bars', 'line'].includes(ls('today.shape', 'bars')) ? ls('today.shape', 'bars') : 'bars';
-  const RANGES = { last7: 'آخر أسبوع', last30: 'آخر ٣٠ يوم', month: 'هذا الشهر', monthend: 'أواخر الشهر', weeks: 'أسابيع', months: 'شهور', years: 'سنوات', custom: 'نطاق معين' };
-  let rng = RANGES[ls('today.range', 'last30')] ? ls('today.range', 'last30') : 'last30';
+  const RANGES = { last7: 'آخر أسبوع', last30: 'آخر ٣٠ يوم', month: 'شهر', monthend: 'أواخر شهر', weeks: 'أسابيع', months: 'شهور', years: 'سنوات', custom: 'نطاق معين' };
   const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
   const addD = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
   const key = (d) => d.toISOString().slice(0, 10);
   const parse = (k) => new Date(`${k}T12:00:00`);
-  let custom = { from: key(addD(now, -29)), to: key(now) };
-  try { const c = JSON.parse(ls('today.rcustom', 'null')); if (c?.from && c?.to) custom = c; } catch { /* default */ }
-  let rangeOpen = false;
+  const monthsAgo = (n) => new Date(now.getFullYear(), now.getMonth() - n, 1, 12);
+  const mkRange = (type) => ({ type, y: now.getFullYear(), m: now.getMonth(), year: now.getFullYear(), months: [now.getMonth()], kind: 'days', cf: key(addD(now, -29)), ct: key(now), cfy: monthsAgo(2).getFullYear(), cfm: monthsAgo(2).getMonth(), cty: now.getFullYear(), ctm: now.getMonth() });
+  const R = [null, mkRange(RANGES[ls('today.range', 'last30')] ? ls('today.range', 'last30') : 'last30'), mkRange('last7')];
+  let cmpOn = false;
+  const open = { 1: false, 2: false };
   let pick = '';
   const memo = new Map();
   const A = (d) => { const k = key(d); if (!memo.has(k)) memo.set(k, dayAll(d, days)); return memo.get(k); };
   const unit = () => METRICS[metric].unit;
   const goalN = () => goalFor(METRICS[metric].goal); // the learner's own number (or the default) for the chosen measure
   const lvl = (v, max) => { if (!v) return 0; const p = v / max; return p >= 0.75 ? 4 : p >= 0.5 ? 3 : p >= 0.25 ? 2 : 1; };
+  const years = () => { const o = []; for (let yy = Math.min(first.getFullYear(), now.getFullYear()); yy <= now.getFullYear(); yy += 1) o.push(yy); return o; };
 
-  // one bucket = a day, a week, a month or a year: its totals for the four measures and how many days it spans (the goal grows with them)
-  const mkB = (from, to, gran, span, label, sub, tl) => {
+  // one bucket = a day, a week, a month or a year: its totals for the four measures and the days that have passed in it (the goal grows with them)
+  const mkB = (from, to, gran, _x, label, sub, tl) => {
     const t = { time: 0, words: 0, practice: 0, rules: 0 };
-    for (let d = new Date(from); d <= to && d <= now; d = addD(d, 1)) { const a = A(d); Object.keys(t).forEach((k) => { t[k] += a[k]; }); }
-    return { id: key(from), from, to, gran, span, label, sub, tl, t };
+    let n = 0;
+    for (let d = new Date(from); d <= to && d <= now; d = addD(d, 1)) { const a = A(d); Object.keys(t).forEach((k) => { t[k] += a[k]; }); n += 1; }
+    return { id: key(from), from, to, gran, span: n, label, sub, tl, t };
   };
-  const dayList = (from, to) => { const o = []; for (let d = new Date(from); d <= to && d <= now; d = addD(d, 1)) o.push(mkB(d, d, 'day', 1, String(d.getDate()), WD[d.getDay()], `${d.getDate()}/${d.getMonth() + 1}`)); return o; };
-  const weekChunks = (from, to) => { const o = []; for (let f = new Date(from); f <= to; f = addD(f, 7)) { const e = addD(f, 6) > to ? to : addD(f, 6); o.push(mkB(f, e, 'week', Math.round((e - f) / 864e5) + 1, String(f.getDate()), String(f.getMonth() + 1), `${f.getDate()}/${f.getMonth() + 1}`)); } return o; };
-  const monthChunks = (from, to) => { const o = []; for (let f = new Date(from.getFullYear(), from.getMonth(), 1, 12); f <= to; f = new Date(f.getFullYear(), f.getMonth() + 1, 1, 12)) { const e = new Date(f.getFullYear(), f.getMonth() + 1, 0, 12); o.push(mkB(f, e, 'month', e.getDate(), String(f.getMonth() + 1), MONTHS[f.getMonth()].slice(0, 3), MONTHS[f.getMonth()])); } return o; };
-  const build = () => {
-    if (rng === 'last7') return { gran: 'day', list: dayList(addD(now, -6), now) };
-    if (rng === 'last30') return { gran: 'day', list: dayList(addD(now, -29), now) };
-    if (rng === 'month') return { gran: 'day', nav: true, list: dayList(new Date(y, m, 1, 12), new Date(y, m + 1, 0, 12)) };
-    if (rng === 'monthend') { const len = new Date(y, m + 1, 0).getDate(); return { gran: 'day', nav: true, list: dayList(new Date(y, m, Math.max(1, len - 9), 12), new Date(y, m, len, 12)) }; }
-    if (rng === 'weeks') return { gran: 'week', list: weekChunks(addD(now, -83), now) };
-    if (rng === 'months') return { gran: 'month', list: monthChunks(new Date(now.getFullYear(), now.getMonth() - 11, 1, 12), now) };
-    if (rng === 'years') {
+  const dayList = (from, to) => { const o = []; for (let d = new Date(from); d <= to && d <= now; d = addD(d, 1)) o.push(mkB(d, d, 'day', 0, String(d.getDate()), WD[d.getDay()], `${d.getDate()}/${d.getMonth() + 1}`)); return o; };
+  const weekChunks = (from, to) => { const o = []; for (let f = new Date(from); f <= to && f <= now; f = addD(f, 7)) { const e = addD(f, 6); o.push(mkB(f, e, 'week', 0, String(f.getDate()), String(f.getMonth() + 1), `${f.getDate()}/${f.getMonth() + 1}`)); } return o; };
+  const monthChunks = (from, to) => { const o = []; for (let f = new Date(from.getFullYear(), from.getMonth(), 1, 12); f <= to && f <= now; f = new Date(f.getFullYear(), f.getMonth() + 1, 1, 12)) { const e = new Date(f.getFullYear(), f.getMonth() + 1, 0, 12); o.push(mkB(f, e, 'month', 0, String(f.getMonth() + 1), MONTHS[f.getMonth()].slice(0, 3), MONTHS[f.getMonth()])); } return o; };
+  const build = (Rg) => {
+    const t = Rg.type;
+    if (t === 'last7') return { gran: 'day', list: dayList(addD(now, -6), now) };
+    if (t === 'last30') return { gran: 'day', list: dayList(addD(now, -29), now) };
+    if (t === 'month') return { gran: 'day', nav: true, list: dayList(new Date(Rg.y, Rg.m, 1, 12), new Date(Rg.y, Rg.m + 1, 0, 12)) };
+    if (t === 'monthend') { const len = new Date(Rg.y, Rg.m + 1, 0).getDate(); return { gran: 'day', nav: true, list: dayList(new Date(Rg.y, Rg.m, Math.max(1, len - 9), 12), new Date(Rg.y, Rg.m, len, 12)) }; }
+    if (t === 'weeks') { // the months are chosen first; each month is cut into its weeks (days 1-7, 8-14 …)
+      const o = [];
+      [...Rg.months].sort((p, q) => p - q).forEach((mm) => {
+        const len = new Date(Rg.year, mm + 1, 0).getDate();
+        for (let d0 = 1, n = 1; d0 <= len; d0 += 7, n += 1) {
+          const f = new Date(Rg.year, mm, d0, 12); if (f > now) break;
+          o.push(mkB(f, new Date(Rg.year, mm, Math.min(len, d0 + 6), 12), 'week', 0, String(n), MONTHS[mm].slice(0, 3), `أ${n} ${MONTHS[mm]}`));
+        }
+      });
+      return { gran: 'week', list: o };
+    }
+    if (t === 'months') { // the year is chosen first
+      const o = [];
+      for (let mm = 0; mm < 12; mm += 1) { const f = new Date(Rg.year, mm, 1, 12); if (f > now) break; o.push(mkB(f, new Date(Rg.year, mm + 1, 0, 12), 'month', 0, String(mm + 1), MONTHS[mm].slice(0, 3), MONTHS[mm])); }
+      return { gran: 'month', list: o };
+    }
+    if (t === 'years') {
       const o = []; const y0 = Math.max(now.getFullYear() - 4, Math.min(first.getFullYear(), now.getFullYear()));
-      for (let yy = y0; yy <= now.getFullYear(); yy += 1) { const e = new Date(yy, 11, 31, 12); o.push(mkB(new Date(yy, 0, 1, 12), e, 'year', Math.round((e - new Date(yy, 0, 1, 12)) / 864e5) + 1, String(yy), '', String(yy))); }
+      for (let yy = y0; yy <= now.getFullYear(); yy += 1) o.push(mkB(new Date(yy, 0, 1, 12), new Date(yy, 11, 31, 12), 'year', 0, String(yy), '', String(yy)));
       return { gran: 'year', list: o };
     }
-    let f = parse(custom.from); let t = parse(custom.to);
-    if (f > t) [f, t] = [t, f];
-    if (t > now) t = now;
-    if (f > t) f = t;
-    const n = Math.round((t - f) / 864e5) + 1;
-    if (n <= 62) return { gran: 'day', list: dayList(f, t) };
-    return n <= 400 ? { gran: 'week', list: weekChunks(f, t) } : { gran: 'month', list: monthChunks(f, t) };
+    // custom: the kind first (days, weeks or months), then from … to
+    if (Rg.kind === 'months') {
+      let f = new Date(Rg.cfy, Rg.cfm, 1, 12); let e = new Date(Rg.cty, Rg.ctm + 1, 0, 12);
+      if (f > e) [f, e] = [new Date(Rg.cty, Rg.ctm, 1, 12), new Date(Rg.cfy, Rg.cfm + 1, 0, 12)];
+      return { gran: 'month', list: monthChunks(f, e) };
+    }
+    let f = parse(Rg.cf); let e = parse(Rg.ct);
+    if (f > e) [f, e] = [e, f];
+    if (e > now) e = now;
+    if (f > e) f = e;
+    if (Rg.kind === 'weeks') return { gran: 'week', list: weekChunks(addD(f, -f.getDay()), addD(e, 6 - e.getDay())).slice(-104) };
+    return { gran: 'day', list: dayList(addD(e, -365) > f ? addD(e, -365) : f, e) };
   };
   const GRAN = { day: 'يوم', week: 'أسبوع', month: 'شهر', year: 'سنة' };
-  let V = build();
+  let V = build(R[1]);
   const val = (b) => b.t[metric];
   const lineGoal = () => goalN() * Math.max(1, ...V.list.map((b) => b.span));
   const goalTxt = () => `${lineGoal()} ${unit()}${V.gran === 'day' ? '' : ` لكل ${GRAN[V.gran]}`}`;
   const maxOf = () => Math.max(metric === 'time' ? 10 : 5, lineGoal(), ...V.list.map(val));
-  const hit = (b) => val(b) >= goalN() * b.span;
+  const hit = (b) => b.span > 0 && val(b) >= goalN() * b.span;
 
   const squares = () => {
     const mx = maxOf();
-    const cell = (b) => `<button type="button" class="cal-d l${lvl(val(b), mx)}${val(b) >= goalN() * b.span ? ' hit' : ''} ${pick === b.id ? 'pick' : ''}${b.from <= now && b.to >= now ? ' today' : ''}" data-d="${b.id}"><b>${V.gran === 'day' ? b.label : b.tl}</b><small>${val(b) || ''}</small></button>`;
+    const cell = (b) => `<button type="button" class="cal-d l${lvl(val(b), mx)}${hit(b) ? ' hit' : ''} ${pick === b.id ? 'pick' : ''}${b.from <= now && b.to >= now ? ' today' : ''}" data-d="${b.id}"><b>${V.gran === 'day' ? b.label : b.tl}</b><small>${val(b) || ''}</small></button>`;
     if (V.gran !== 'day') return `<div class="cal-g tiles">${V.list.map(cell).join('')}</div>`;
     const pad = Array.from({ length: V.list[0]?.from.getDay() || 0 }, () => '<span></span>').join('');
     return `<div class="cal-w">${['أحد', 'إثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت'].map((d) => `<span>${d}</span>`).join('')}</div><div class="cal-g">${pad}${V.list.map(cell).join('')}</div>`;
@@ -298,36 +319,72 @@ async function openCalendar() {
       ${list.map((b, i) => `<circle class="cl-dot${b.id === pick ? ' pick' : ''}${val(b) ? ' on' : ''}${hit(b) ? ' hit' : ''}" cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="${b.id === pick ? 5 : N > 40 ? 2 : 3}"/><circle class="cl-hit" data-d="${b.id}" cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="${N > 40 ? 5 : 9}"/>`).join('')}
       <text class="cl-t" x="${X(0)}" y="${H + 12}" text-anchor="end">${lab(0)}</text>${N > 2 ? `<text class="cl-t" x="${X(mid)}" y="${H + 12}" text-anchor="middle">${lab(mid)}</text>` : ''}${N > 1 ? `<text class="cl-t" x="${X(N - 1)}" y="${H + 12}" text-anchor="start">${lab(N - 1)}</text>` : ''}</svg>`;
   };
-  const shapeHtml = () => (!V.list.length ? '<p class="tiny muted" style="text-align:center">ما فيه أيام في هذي المدة.</p>' : shape === 'bars' ? bars() : shape === 'line' ? line() : squares());
-  const navRow = () => (V.nav ? `<div class="row between"><button class="btn icon sm ghost" data-m="1" ${new Date(y, m + 1, 1) > now ? 'disabled' : ''} aria-label="الشهر التالي">${icon.next}</button><b>${MONTHS[m]} ${y}</b><button class="btn icon sm ghost" data-m="-1" ${new Date(y, m, 1) <= new Date(first.getFullYear(), first.getMonth(), 1) ? 'disabled' : ''} aria-label="الشهر السابق">${icon.prev}</button></div>` : '');
-  const rangeTitle = () => (rng === 'month' ? `${MONTHS[m]} ${y}` : rng === 'monthend' ? `أواخر ${MONTHS[m]}` : rng === 'custom' ? `${parse(custom.from).getDate()}/${parse(custom.from).getMonth() + 1} ← ${parse(custom.to).getDate()}/${parse(custom.to).getMonth() + 1}` : RANGES[rng]);
-  const rangeNote = () => {
-    const sum = (k) => V.list.reduce((s, b) => s + b.t[k], 0);
-    return `المجموع · ${sum('time')} دقيقة · ${sum('words')} كلمة · ${sum('practice')} تدريب · ${sum('rules')} قاعدة`;
+  const shapeHtml = () => (!V.list.length ? '<p class="tiny muted" style="text-align:center">ما فيه أيام في هذي المدة — اختر شهرًا أو فترة ثانية.</p>' : shape === 'bars' ? bars() : shape === 'line' ? line() : squares());
+  const navRow = () => { const Rg = R[1]; return V.nav ? `<div class="row between"><button class="btn icon sm ghost" data-m="1" ${new Date(Rg.y, Rg.m + 1, 1) > now ? 'disabled' : ''} aria-label="الشهر التالي">${icon.next}</button><b>${MONTHS[Rg.m]} ${Rg.y}</b><button class="btn icon sm ghost" data-m="-1" ${new Date(Rg.y, Rg.m, 1) <= new Date(first.getFullYear(), first.getMonth(), 1) ? 'disabled' : ''} aria-label="الشهر السابق">${icon.prev}</button></div>` : ''; };
+  const dm = (k) => { const d = parse(k); return `${d.getDate()}/${d.getMonth() + 1}`; };
+  const rangeTitle = (Rg) => {
+    switch (Rg.type) {
+      case 'month': return `${MONTHS[Rg.m]} ${Rg.y}`;
+      case 'monthend': return `أواخر ${MONTHS[Rg.m]}`;
+      case 'weeks': return `أسابيع ${Rg.months.length > 2 ? `${Rg.months.length} شهور` : [...Rg.months].sort((p, q) => p - q).map((mm) => MONTHS[mm]).join(' و')} ${Rg.year}`;
+      case 'months': return `شهور ${Rg.year}`;
+      case 'custom': return Rg.kind === 'months' ? `${MONTHS[Rg.cfm]} ${Rg.cfy} ← ${MONTHS[Rg.ctm]} ${Rg.cty}` : `${dm(Rg.cf)} ← ${dm(Rg.ct)}${Rg.kind === 'weeks' ? ' (أسابيع)' : ''}`;
+      default: return RANGES[Rg.type];
+    }
   };
+
+  // 🧮 a summary of buckets: totals of the four measures and the days they cover — what the part below the chart shows
+  const summ = (list) => ({ t: list.reduce((o, b) => { Object.keys(o).forEach((k) => { o[k] += b.t[k]; }); return o; }, { time: 0, words: 0, practice: 0, rules: 0 }), days: list.reduce((n, b) => n + b.span, 0), from: list[0]?.from, to: list[list.length - 1]?.to, n: list.length });
+  const rows4 = (S) => Object.entries(METRICS).map(([k, mt]) => { const goal = goalFor(mt.goal) * Math.max(1, S.days); return { k, mt, got: S.t[k], goal, pct: S.t[k] / goal }; });
+  const avgOf = (S) => { const rs = rows4(S); return Math.round((100 * rs.reduce((a, x) => a + Math.min(1, x.pct), 0)) / rs.length); };
+  // the window of the same length right before (the day before, the week before …)
+  const before = (S) => { const len = Math.max(1, S.days); const f = addD(S.from, -len); return summ([mkB(f, addD(S.from, -1), 'x', 0, '', '', '')]); };
+  const deltaHtml = (cur, prev, what) => {
+    let cls = 'flat'; let sym = '＝'; let txt = '٠٪';
+    if (!prev && !cur) { txt = '—'; } else if (!prev) { cls = 'up'; sym = '▲'; txt = 'أول نشاط'; } else {
+      const pc = Math.round((100 * (cur - prev)) / prev);
+      if (pc > 0) { cls = 'up'; sym = '▲'; txt = `+${pc}٪`; } else if (pc < 0) { cls = 'down'; sym = '▼'; txt = `−${Math.abs(pc)}٪`; }
+    }
+    return `<div class="cd-delta ${cls}"><span class="cd-arr">${sym}</span><b class="en-inline">${txt}</b><small>${what}</small></div>`;
+  };
+  const avgBlock = (S, deltaH, extra = '') => { const a = avgOf(S); return `<div class="cd-avg"><div class="cd-avg-top"><span>متوسط تحقيق الأهداف الأربعة</span><b class="en-inline">${a}٪</b></div><i class="cd-meter"><b style="width:${a}%"></b></i>${extra}${deltaH}</div>`; };
+  const colsHtml = (S) => `<div class="cd-cols">${rows4(S).map((x) => `<div class="cd-col${x.pct >= 1 ? ' ok' : ''}"><b class="en-inline cd-v">${x.got}</b><i class="cd-tr"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal}</small></div>`).join('')}</div>`;
+  const pairHtml = (S1, S2) => { const r1 = rows4(S1); const r2 = rows4(S2); return `<div class="cd-cols">${r1.map((x, i) => { const z = r2[i]; return `<div class="cd-col cd-pair"><div class="cd-vs"><b class="en-inline cd-v c1">${x.got}</b><b class="en-inline cd-v c2">${z.got}</b></div><div class="cd-trs"><i class="cd-tr c1"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><i class="cd-tr c2"><b style="height:${Math.min(100, Math.round(100 * z.pct))}%"></b></i></div><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal} · ${z.goal}</small></div>`; }).join('')}</div>`; };
+
   const dash = () => {
-    const b = V.list.find((x) => x.id === pick) || V.list[V.list.length - 1];
-    if (!b) return '';
-    const cur = b.from <= now && b.to >= now;
-    const title = b.gran === 'day' ? `${DAY_NAMES[b.from.getDay()]} ${b.from.getDate()}/${b.from.getMonth() + 1}` : b.gran === 'week' ? `من ${b.from.getDate()}/${b.from.getMonth() + 1} إلى ${b.to.getDate()}/${b.to.getMonth() + 1}` : b.gran === 'month' ? `${MONTHS[b.from.getMonth()]} ${b.from.getFullYear()}` : `سنة ${b.from.getFullYear()}`;
-    const nothing = Object.values(b.t).every((v) => !v);
-    const cols = Object.entries(METRICS).map(([k, mt]) => {
-      const got = b.t[k]; const gl = goalFor(mt.goal) * b.span;
-      const pct = Math.min(100, Math.round((100 * got) / gl));
-      return `<div class="cd-col${got >= gl ? ' ok' : ''}"><b class="en-inline cd-v">${got}</b><i class="cd-tr"><b style="height:${pct}%"></b></i><span class="cd-n">${mt.label}</span><small class="tiny muted en-inline">${gl}</small></div>`;
-    }).join('');
-    return `<div class="cal-dash"><div class="cd-head"><b>${title}</b>${cur ? `<span class="th-chip">${b.gran === 'day' ? 'اليوم' : 'الحالي'}</span>` : ''}</div>
-      <div class="cd-cols">${cols}</div>
+    if (!V.list.length && !cmpOn) return '';
+    const b = pick ? V.list.find((x) => x.id === pick) : null;
+    const S1 = b ? summ([b]) : summ(V.list);
+    const t1 = b ? (b.gran === 'day' ? `${DAY_NAMES[b.from.getDay()]} ${b.from.getDate()}/${b.from.getMonth() + 1}` : b.gran === 'week' ? `من ${b.from.getDate()}/${b.from.getMonth() + 1} إلى ${b.to.getDate()}/${b.to.getMonth() + 1}` : b.gran === 'month' ? `${MONTHS[b.from.getMonth()]} ${b.from.getFullYear()}` : `سنة ${b.from.getFullYear()}`) : `ملخص ${rangeTitle(R[1])}`;
+    const chip = b ? (b.from <= now && b.to >= now ? `<span class="th-chip">${b.gran === 'day' ? 'اليوم' : 'الحالي'}</span>` : '') : `<span class="th-chip">${S1.days} يوم</span>`;
+    const back = b ? '<button type="button" class="btn ghost sm cd-back" data-clearpick>ملخص الفترة كلها</button>' : '';
+    if (cmpOn) {
+      const L2 = build(R[2]); const S2 = summ(L2.list);
+      const a1 = avgOf(S1); const a2 = avgOf(S2);
+      return `<div class="cal-dash"><div class="cd-head"><b>مقارنة</b>${back}</div>
+        <div class="cd-legend"><span class="c1"><i></i>١ · ${esc(t1)} <small>(${S1.days} يوم)</small></span><span class="c2"><i></i>٢ · ${esc(rangeTitle(R[2]))} <small>(${S2.days} يوم)</small></span></div>
+        ${pairHtml(S1, S2)}
+        ${avgBlock(S1, deltaHtml(a1, a2, 'الأولى مقارنة بالثانية'), `<div class="cd-avg2"><span>١: <b class="en-inline">${a1}٪</b></span><span>٢: <b class="en-inline">${a2}٪</b></span></div>`)}
+        <button type="button" class="btn cd-editbtn" data-editgoals>✏️ عدّل أهدافك</button></div>`;
+    }
+    const prev = before(S1);
+    const nothing = Object.values(S1.t).every((v) => !v);
+    const what = b ? (b.gran === 'day' ? 'عن اليوم السابق' : `عن ${GRAN[b.gran]} قبله (نفس المدة)`) : `عن الفترة السابقة (${S1.days} يوم قبلها)`;
+    return `<div class="cal-dash"><div class="cd-head"><b>${esc(t1)}</b>${chip}${back}</div>
+      ${colsHtml(S1)}
       ${nothing ? '<p class="tiny muted" style="margin:6px 0 0;text-align:center">ما فيه نشاط في هذي الفترة.</p>' : ''}
+      ${avgBlock(S1, deltaHtml(avgOf(S1), avgOf(prev), what))}
       <button type="button" class="btn cd-editbtn" data-editgoals>✏️ عدّل أهدافك</button></div>`;
   };
-  // 🎯 the goals editor lives here (it used to be in the settings page)
+
+  // 🎯 the goals editor lives here (it used to be in the settings page). Changing a goal never deletes what was done:
+  // the days stay as they were counted, they are only compared with the new numbers.
   let editing = false;
   const drawGoals = () => {
     const sel = goalTypes(); const off = ls('goal.off', '0') === '1';
     const p = progress();
     box.innerHTML = `<div class="cal"><h3 style="margin:0 0 4px">🎯 عدّل أهدافك</h3>
-      <p class="tiny muted" style="margin:0">اختر هدفًا واحدًا أو أكثر. لو اخترت أكثر من واحد يصير <b>هدفك مركّب</b>: يكتمل اليوم لما تحقق كلها، ولكل هدف عدده.</p>
+      <p class="tiny muted" style="margin:0">اختر هدفًا واحدًا أو أكثر. لو اخترت أكثر من واحد يصير <b>هدفك مركّب</b>: يكتمل اليوم لما تحقق كلها، ولكل هدف عدده. <b>أداءك في الأيام الماضية ما ينحذف</b> — بس يتقارن بالأرقام الجديدة.</p>
       <div class="goal-rows" id="goalRows">${Object.entries(GOAL_TYPES).map(([k, g]) => `<div class="goal-row${sel.includes(k) ? ' on' : ''}" data-gt="${k}">
         <label class="goal-pick"><input type="checkbox" class="check" data-gc="${k}" ${sel.includes(k) ? 'checked' : ''}><span><b>${g.label}</b><span class="tiny muted">${g.note}</span></span></label>
         <span class="goal-num"><input class="input en-inline" data-gn="${k}" type="number" inputmode="numeric" min="${g.min}" max="${g.max}" value="${goalFor(k)}" ${sel.includes(k) ? '' : 'disabled'}> <span class="small">${g.unit}</span></span></div>`).join('')}</div>
@@ -335,35 +392,60 @@ async function openCalendar() {
       <span class="tiny muted" id="goalNow">${p.combo ? '<b>هدف مركّب</b> — ' : ''}اليوم: ${p.items.map((i) => `${i.short} <b class="en-inline">${i.count}/${i.n}</b>${i.done ? ' ✓' : ''}`).join(' · ')}</span>
       <div class="btn-row" style="justify-content:center;margin-top:12px"><button class="btn primary" data-donegoals>تم</button></div></div>`;
   };
-  const rangePanel = () => (!rangeOpen ? '' : `<div class="rg-panel">
-      <div class="rg-chips">${Object.entries(RANGES).map(([k, l]) => `<button type="button" class="rg-chip${rng === k ? ' on' : ''}" data-rg="${k}">${l}</button>`).join('')}</div>
-      ${rng === 'custom' ? `<div class="rg-custom"><label>من<input class="input en-inline" type="date" id="rgFrom" value="${custom.from}" max="${key(now)}"></label><label>إلى<input class="input en-inline" type="date" id="rgTo" value="${custom.to}" max="${key(now)}"></label></div>` : ''}
-    </div>`);
+
+  const yearSel = (id, f, v) => `<select class="input rg-sel" data-rf="${id}:${f}">${years().map((yy) => `<option value="${yy}" ${yy === v ? 'selected' : ''}>${yy}</option>`).join('')}</select>`;
+  const monthSel = (id, f, v, yy) => `<select class="input rg-sel" data-rf="${id}:${f}">${MONTHS.map((n, i) => (new Date(yy, i, 1) > now ? '' : `<option value="${i}" ${i === v ? 'selected' : ''}>${n}</option>`)).join('')}</select>`;
+  const panel = (id) => {
+    const Rg = R[id];
+    const chips = Object.entries(RANGES).map(([k, l]) => `<button type="button" class="rg-chip${Rg.type === k ? ' on' : ''}" data-rg="${id}:${k}">${l}</button>`).join('');
+    let extra = '';
+    if (Rg.type === 'month' || Rg.type === 'monthend') extra = `<div class="rg-step"><b>اختر الشهر</b><div class="rg-two">${yearSel(id, 'y', Rg.y)}${monthSel(id, 'm', Rg.m, Rg.y)}</div></div>`;
+    if (Rg.type === 'weeks') extra = `<div class="rg-step"><b>١) اختر السنة والشهور (تقدر أكثر من شهر)</b>${yearSel(id, 'year', Rg.year)}<div class="rg-chips">${MONTHS.map((n, i) => (new Date(Rg.year, i, 1) > now ? '' : `<button type="button" class="rg-chip${Rg.months.includes(i) ? ' on' : ''}" data-rmon="${id}:${i}">${n}</button>`)).join('')}</div><small class="muted">٢) الأسابيع تطلع لك بالأسفل لكل شهر اخترته.</small></div>`;
+    if (Rg.type === 'months') extra = `<div class="rg-step"><b>اختر السنة أولًا</b>${yearSel(id, 'year', Rg.year)}</div>`;
+    if (Rg.type === 'custom') {
+      const kinds = [['days', 'أيام'], ['weeks', 'أسابيع'], ['months', 'شهور']];
+      const inputs = Rg.kind === 'months'
+        ? `<div class="rg-two"><label>من شهر<span class="rg-two">${yearSel(id, 'cfy', Rg.cfy)}${monthSel(id, 'cfm', Rg.cfm, Rg.cfy)}</span></label><label>إلى شهر<span class="rg-two">${yearSel(id, 'cty', Rg.cty)}${monthSel(id, 'ctm', Rg.ctm, Rg.cty)}</span></label></div>`
+        : `<div class="rg-two"><label>${Rg.kind === 'weeks' ? 'من أسبوع (أي يوم فيه)' : 'من يوم'}<input class="input en-inline" type="date" data-rf="${id}:cf" value="${Rg.cf}" max="${key(now)}"></label><label>${Rg.kind === 'weeks' ? 'إلى أسبوع (أي يوم فيه)' : 'إلى يوم'}<input class="input en-inline" type="date" data-rf="${id}:ct" value="${Rg.ct}" max="${key(now)}"></label></div>`;
+      extra = `<div class="rg-step"><b>نوع النطاق</b><div class="rg-chips">${kinds.map(([k, l]) => `<button type="button" class="rg-chip${Rg.kind === k ? ' on' : ''}" data-rck="${id}:${k}">${l}</button>`).join('')}</div>${inputs}</div>`;
+    }
+    return `<div class="rg-panel"><div class="rg-chips">${chips}</div>${extra}</div>`;
+  };
+  const rgBtn = (id) => `<button type="button" class="rg-btn${open[id] ? ' open' : ''}" data-rgtoggle="${id}" aria-expanded="${open[id]}" title="المدة">${cmpOn ? `<i class="rg-n c${id}">${id === 1 ? '١' : '٢'}</i>` : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>'}<span>${rangeTitle(R[id])}</span></button>`;
   const draw = () => {
     if (editing) return drawGoals();
-    V = build();
-    if (!V.list.some((b) => b.id === pick)) pick = V.list[V.list.length - 1]?.id || '';
+    V = build(R[1]);
+    if (pick && !V.list.some((b) => b.id === pick)) pick = '';
     box.innerHTML = `<div class="cal">
       <div class="cal-ctl">
         <div class="segmented seg4" id="calMetric">${Object.entries(METRICS).map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'active' : ''}">${mt.label}</button>`).join('')}</div>
         <div class="cal-ctl2">
           <div class="segmented" id="calShape">${[['squares', 'مربعات'], ['bars', 'أعمدة'], ['line', 'منحنى']].map(([k, l]) => `<button type="button" data-cs="${k}" class="${shape === k ? 'active' : ''}" aria-label="${l}" title="${l}"><span class="cs-i">${SHAPE_IC[k]}</span><span class="cs-t">${l}</span></button>`).join('')}</div>
-          <button type="button" class="rg-btn${rangeOpen ? ' open' : ''}" data-rgtoggle aria-expanded="${rangeOpen}" title="المدة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg><span>${rangeTitle()}</span></button>
+          ${rgBtn(1)}
+          <button type="button" class="cmp-btn${cmpOn ? ' on' : ''}" data-cmp aria-pressed="${cmpOn}" title="مقارنة بين فترتين" aria-label="مقارنة بين فترتين"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4v16M17 4v16M3 8l4-4 4 4M13 16l4 4 4-4"/></svg><span>مقارنة</span></button>
         </div>
-        ${rangePanel()}
+        ${open[1] ? panel(1) : ''}
+        ${cmpOn ? `<div class="cal-ctl2">${rgBtn(2)}</div>${open[2] ? panel(2) : ''}` : ''}
       </div>
       ${navRow()}
       <div class="cal-shape">${shapeHtml()}</div>
       <div class="cal-key tiny"><span>أقل</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>أكثر</span><span class="muted">· ${METRICS[metric].key}</span><span class="cal-gkey"><i></i> الهدف ${goalTxt()}</span></div>
-      <p class="cal-range tiny muted">${rangeNote()}</p>
       ${dash()}
       <div class="btn-row" style="justify-content:center"><button class="btn ghost" data-close>إغلاق</button></div></div>`;
   };
+  const clampMonths = (Rg) => { const mx = Rg.year === now.getFullYear() ? now.getMonth() : 11; Rg.months = Rg.months.filter((i) => i <= mx); if (!Rg.months.length) Rg.months = [mx]; };
   box.addEventListener('change', (e) => {
-    if (e.target.id === 'rgFrom' || e.target.id === 'rgTo') {
-      const f = $v('#rgFrom'); const t = $v('#rgTo');
-      if (f && t) { custom = { from: f, to: t }; lsSet('today.rcustom', JSON.stringify(custom)); pick = ''; draw(); }
-      return;
+    const rf = e.target.closest('[data-rf]');
+    if (rf) {
+      const [id, f] = rf.dataset.rf.split(':'); const Rg = R[Number(id)];
+      Rg[f] = ['cf', 'ct'].includes(f) ? rf.value : Number(rf.value);
+      if (['y', 'cfy', 'cty', 'year'].includes(f)) { // a later month of a year that has not started yet → the last month so far
+        const yy = Rg[f]; const cap = yy === now.getFullYear() ? now.getMonth() : 11;
+        if (f === 'y' && Rg.m > cap) Rg.m = cap; if (f === 'cfy' && Rg.cfm > cap) Rg.cfm = cap; if (f === 'cty' && Rg.ctm > cap) Rg.ctm = cap;
+        if (f === 'year') clampMonths(Rg);
+      }
+      if (Number(id) === 1) pick = '';
+      draw(); return;
     }
     if (!editing) return;
     const c = e.target.closest('[data-gc]'); const n = e.target.closest('[data-gn]');
@@ -377,7 +459,6 @@ async function openCalendar() {
     if (n) setGoalN(n.dataset.gn, Number(n.value));
     drawGoals();
   });
-  const $v = (sel) => box.querySelector(sel)?.value;
   box.addEventListener('click', (e) => {
     if (e.target.closest('[data-editgoals]')) { editing = true; draw(); return; }
     if (e.target.closest('[data-donegoals]')) { editing = false; draw(); return; }
@@ -385,19 +466,28 @@ async function openCalendar() {
     if (cm && METRICS[cm.dataset.cm]) { metric = cm.dataset.cm; lsSet('today.metric', metric); draw(); return; }
     const cs = e.target.closest('[data-cs]');
     if (cs) { shape = cs.dataset.cs; lsSet('today.shape', shape); draw(); return; }
-    if (e.target.closest('[data-rgtoggle]')) { rangeOpen = !rangeOpen; draw(); return; }
+    if (e.target.closest('[data-cmp]')) { cmpOn = !cmpOn; open[2] = cmpOn; open[1] = false; draw(); return; }
+    const tg = e.target.closest('[data-rgtoggle]');
+    if (tg) { const id = Number(tg.dataset.rgtoggle); open[id] = !open[id]; draw(); return; }
     const rg = e.target.closest('[data-rg]');
-    if (rg && RANGES[rg.dataset.rg]) {
-      rng = rg.dataset.rg; lsSet('today.range', rng); pick = '';
-      y = now.getFullYear(); m = now.getMonth();
-      if (rng === 'monthend' && now.getDate() < new Date(y, m + 1, 0).getDate() - 5) { m -= 1; if (m < 0) { m = 11; y -= 1; } }
-      if (rng !== 'custom') rangeOpen = false;
+    if (rg) {
+      const [id, type] = rg.dataset.rg.split(':'); const Rg = R[Number(id)];
+      if (!RANGES[type]) return;
+      Rg.type = type; Rg.y = now.getFullYear(); Rg.m = now.getMonth(); Rg.year = now.getFullYear(); Rg.months = [now.getMonth()];
+      if (type === 'monthend' && now.getDate() < new Date(Rg.y, Rg.m + 1, 0).getDate() - 5) { Rg.m -= 1; if (Rg.m < 0) { Rg.m = 11; Rg.y -= 1; } }
+      if (Number(id) === 1) { lsSet('today.range', type); pick = ''; }
+      if (!['weeks', 'months', 'month', 'monthend', 'custom'].includes(type)) open[Number(id)] = false; // those need one more choice, so the panel stays
       draw(); return;
     }
+    const rm = e.target.closest('[data-rmon]');
+    if (rm) { const [id, i] = rm.dataset.rmon.split(':').map(Number); const Rg = R[id]; const at = Rg.months.indexOf(i); if (at >= 0) { if (Rg.months.length > 1) Rg.months.splice(at, 1); } else Rg.months.push(i); if (id === 1) pick = ''; draw(); return; }
+    const rk = e.target.closest('[data-rck]');
+    if (rk) { const [id, k] = rk.dataset.rck.split(':'); R[Number(id)].kind = k; if (Number(id) === 1) pick = ''; draw(); return; }
+    if (e.target.closest('[data-clearpick]')) { pick = ''; draw(); return; }
     const nav = e.target.closest('[data-m]');
-    if (nav && !nav.disabled) { m += Number(nav.dataset.m); if (m < 0) { m = 11; y -= 1; } if (m > 11) { m = 0; y += 1; } pick = ''; draw(); return; }
+    if (nav && !nav.disabled) { const Rg = R[1]; Rg.m += Number(nav.dataset.m); if (Rg.m < 0) { Rg.m = 11; Rg.y -= 1; } if (Rg.m > 11) { Rg.m = 0; Rg.y += 1; } pick = ''; draw(); return; }
     const d = e.target.closest('[data-d]');
-    if (d) { pick = d.dataset.d; draw(); }
+    if (d) { pick = pick === d.dataset.d ? '' : d.dataset.d; draw(); } // a tap picks that day/week/month; the same tap again goes back to the summary of the whole period
   });
   draw();
 }
