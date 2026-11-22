@@ -2790,3 +2790,24 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .idea-row:hover { border-color: var(--accent); }
 .idea-row .ico { width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; flex: none; background: var(--accent-soft); color: var(--accent); }
 .idea-row .ico svg { width: 21px; height: 21px; }
+/* ===== clip settings: five-ish plain controls (the old ones stay hidden underneath) ===== */
+.rset .rset-legacy[hidden] { display: none !important; }
+.rset-tools { display: inline-flex; align-items: center; gap: 4px; }
+.rset-new { display: grid; padding: 0 2px 8px; }
+.rset-new .nrow { display: grid; gap: 8px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+.rset-new .nrow-h { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rset-new .nlab { font-weight: 700; }
+.rset-new .nsub { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+.rset-new .nhint { margin: 8px 0 0; }
+.rset-new .fsz { display: inline-flex; align-items: center; gap: 10px; }
+.rset-new .fsz b { min-width: 28px; text-align: center; }
+.rset-new .fsz .sopt { min-width: 46px; height: 40px; font-size: 19px; font-weight: 700; }
+.rset-new .nlegend { display: grid; gap: 6px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: 11.5px; color: var(--muted); }
+.rset-new .nlegend > div { display: flex; align-items: center; gap: 8px; }
+.rset-new .nlegend .mk-l { min-width: 58px; text-align: center; }
+/* the small bar that follows a tap on − / + in the settings */
+.font-bar { position: fixed; inset-inline: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 120; display: none; align-items: center; gap: 8px; padding: 10px; border-radius: 26px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-lg); max-width: 440px; margin-inline: auto; }
+.font-bar.on { display: flex; animation: addIn .25s var(--ease); }
+.font-bar > b { min-width: 34px; text-align: center; font-size: 17px; }
+.font-bar .fb { flex: 1; height: 52px; border-radius: 18px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: 700 22px var(--font-en); cursor: pointer; }
+.font-bar .fb.ok { flex: none; width: 56px; background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }

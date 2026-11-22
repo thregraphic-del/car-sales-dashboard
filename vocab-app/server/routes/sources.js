@@ -67,8 +67,8 @@ router.delete('/:id', wrap(async (req) => {
 router.post('/:id/refine', wrap(async (req) => service.refineSource(idParam(req), req.userId)));
 router.get('/:id/translation', wrap(async (req) => service.translationStatus(idParam(req), req.userId)));
 // A short recap in Saudi dialect of the part just watched (from–to seconds).
-router.post('/:id/index-step', wrap(async (req) => sources.indexStep(idParam(req), req.userId)));
-router.post('/:id/retranslate', wrap(async (req) => sources.retranslate(idParam(req), req.userId)));
+router.post('/:id/index-step', wrap(async (req) => service.indexStep(idParam(req), req.userId)));
+router.post('/:id/retranslate', wrap(async (req) => service.retranslate(idParam(req), req.userId)));
 
 router.post('/:id/recap', wrap(async (req, res) => {
   await requirePaid(req, 'recap'); // owner-only, off by default (costs AI credit)

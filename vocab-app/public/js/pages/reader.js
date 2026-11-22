@@ -310,7 +310,6 @@ export async function render(view, { segments, params }) {
       <a class="btn icon sm ghost" href="#/add" id="backLink" aria-label="رجوع">${icon.prev}</a>
       <div class="reader-title-sm en" dir="auto" title="${esc(source.title)}">${esc(source.title)}</div>
       ${isVideo ? `<button type="button" class="rb-btn rb-ic play-btn" id="playBtn" title="تشغيل / إيقاف (مسافة)" aria-label="تشغيل أو إيقاف">${icon.play}</button>` : ''}
-      ${isVideo && hasTimes ? `<button type="button" class="rb-btn rb-ic" id="againBtn" aria-pressed="false" title="كل جملة تُعاد مرتين تلقائيًا">${icon.repeat}<span class="rb-x">×2</span></button><button type="button" class="rb-btn rb-ic" id="shadowBtn" aria-pressed="false" title="ردّد معي: يقف بعد كل جملة لتعيدها">${icon.mic}<span>ردّد</span></button>` : ''}
       ${paid.summary && (isVideo || data.lines.length) ? `<button type="button" class="rb-btn sum-top" id="sumTop" title="ملخص المقطع كامل: أبرز الأفكار، خطوات عملية، الحكم والرسالة">${icon.doc}<span>ملخص المقطع</span></button>` : ''}
       ${data.lines.length ? `<button type="button" class="rb-btn rb-ic" id="gptTop" title="اسأل ChatGPT عن المقطع: ينسخ رسالة تلخيص جاهزة مع النص ويفتح ChatGPT" aria-label="اسأل ChatGPT">${icon.gpt}</button>` : ''}
       <button type="button" class="rb-btn words-btn" id="wordsBtn" aria-pressed="false" title="الكلمات الجديدة في المقطع">${icon.list}<span>الكلمات</span> <b id="wcount2">${data.items.length}</b></button>
@@ -325,11 +324,24 @@ export async function render(view, { segments, params }) {
       <div class="reader-main">
         <div class="rset hidden" id="rset">
           <div class="rset-grip" id="rsetGrip" role="separator" aria-orientation="horizontal" tabindex="0" aria-label="اسحب لتكبير القائمة أو تصغيرها"><span></span></div>
-          <div class="rset-title row between"><span>إعدادات المقطع</span><button type="button" class="btn icon sm ghost rset-x" id="setX" title="رجوع بدون حفظ" aria-label="رجوع بدون حفظ">✕</button></div>
+          <div class="rset-title row between"><span>إعدادات المقطع</span><span class="rset-tools"><button type="button" class="btn icon sm ghost" id="ideasBtn" title="أفكار: اسأل ChatGPT، احفظ ملخصه، اكتب ملاحظة" aria-label="أفكار"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="20" height="20"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg></button><button type="button" class="btn icon sm ghost" id="setClose" aria-label="إغلاق">✕</button></span></div>
+          <div class="rset-new">
+            ${isVideo && hasTimes ? `<div class="nrow"><div class="nlab">السرعة</div><div class="sopts" id="speed">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" class="sopt en-inline" data-rate="${r}">${r}×</button>`).join('')}</div></div>` : ''}
+            <div class="nrow nrow-h"><div class="nlab">حجم الخط</div><span class="fsz"><button type="button" class="sopt" data-font="-1" aria-label="تصغير الخط">−</button><b class="en-inline" id="fontNow"></b><button type="button" class="sopt" data-font="1" aria-label="تكبير الخط">+</button></span></div>
+            ${isVideo ? `<div class="nrow nrow-h"><div class="nlab">مكان الفيديو</div><div class="sopts" id="vidPos"><button type="button" class="sopt" data-vpos="top">فوق</button><button type="button" class="sopt" data-vpos="bottom">تحت</button></div></div>` : ''}
+            ${isVideo && hasTimes ? `<div class="nrow nrow-h"><div class="nlab">قف بعد كل جملة للترديد<span class="nsub">يقف بعد كل جملة لتعيدها</span></div><label class="tg-switch"><input type="checkbox" id="swShadow"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div>
+            <div class="nrow nrow-h"><div class="nlab">تكرار الجملة<span class="nsub">كل جملة تنعاد مرتين</span></div><label class="tg-switch"><input type="checkbox" id="swRepeat"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div>` : ''}
+            <div class="nrow nrow-h"><div class="nlab">قائمة الكلمات<span class="nsub">تطلع الكلمات الجديدة بعد كل ١٠ كلمات</span></div><label class="tg-switch"><input type="checkbox" id="wbOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div>
+            ${isVideo && hasTimes ? `<div class="nrow nrow-h"><div class="nlab">شريط الوقت<span class="nsub">شريط صغير يوريك وين وصلت في المقطع</span></div><label class="tg-switch"><input type="checkbox" id="stripToggle"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div>` : ''}
+            ${hasTimes ? `<div class="nrow nrow-h"><div class="nlab">وقت كل جملة<span class="nsub">يظهر وقت الجملة بجنبها</span></div><label class="tg-switch"><input type="checkbox" id="timesToggle"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div>` : ''}
+            ${hasTimes ? '<p class="nsub nhint">الشريط والأوقات مخفيّين تلقائيًا في الجوال الصغير، وتشغّلهم متى تبي.</p>' : ''}
+            <div class="nlegend"><div><span class="mk-l new">جديد</span><span>كلمة جديدة عليك من هذا المقطع</span></div><div><span class="mk-l mine">كلماتي</span><span>كلمة كانت في كلماتك قبل هذا المقطع</span></div></div>
+          </div>
+          <div class="rset-legacy" hidden>
           <div class="rset-fbar"><span class="fb-t">👁 شوف التغيير فوق: <b id="fbName"></b></span><button type="button" class="btn sm ghost" id="fbAll">↩ كل الإعدادات</button><span class="tiny muted fb-note" id="fbNote"></span></div>
           <p class="tiny muted rset-hint">غيّر أي إعداد وبتنقلك الصفحة للجزء اللي تغيّر عشان تشوف أثره، ثم اضغط «اعتمد». علامة ؟ تشرح لك كل ميزة.</p>
           ${isVideo && hasTimes ? `<div class="sgroup">التشغيل</div><div id="mode" class="rgrp">
-            <div class="srow"><span class="slabel">السرعة</span><div class="sopts" id="speed">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" class="sopt en-inline" data-rate="${r}">${r}×</button>`).join('')}</div></div>
+            <div class="srow"><span class="slabel">السرعة</span><div class="sopts" id="speedOld">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" class="sopt en-inline" data-rate="${r}">${r}×</button>`).join('')}</div></div>
             ${hasTimes ? `<div class="srow"><span class="slabel">ضبط التزامن</span><div class="sopts" id="syncRow"><button type="button" class="sopt" data-sync="-0.25" title="التظليل متأخر عن الصوت: قدّمه">⏪ قدّم</button><b class="en-inline sync-val" id="syncVal">0</b><button type="button" class="sopt" data-sync="0.25" title="التظليل يسبق الصوت: أخّره">أخّر ⏩</button><button type="button" class="sopt" data-sync="0">↺ صفر</button></div></div>` : ''}
             <div class="srow"><span class="slabel">بعد كل جملة</span><div class="sopts am-list" id="amList">
               <button type="button" class="sopt am-opt" data-am="normal">${icon.play}<span>عادي</span></button>
@@ -339,7 +351,7 @@ export async function render(view, { segments, params }) {
               <button type="button" class="sopt am-opt" data-am="twice">${icon.repeat}<span>كل جملة مرتين</span></button></div></div>
           </div>
           <div class="sgroup">المساعدة</div>
-          <div class="srow sw-row"><span class="slabel">قائمة الكلمات</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="wbOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label>
+          <div class="srow sw-row"><span class="slabel">قائمة الكلمات</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="wbOnOld"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label>
             <div class="sw-sub"><span class="sopts">كل <input class="input sopt-num" id="wbN" type="number" min="3" max="300" inputmode="numeric"> <span class="tiny">كلمة</span></span>
             <span class="sopts" id="wbWhen"><button type="button" class="sopt" data-when="before">قبلها</button><button type="button" class="sopt" data-when="after">بعدها</button></span></div></div></div>
           ${false ? `<div class="srow sw-row"><span class="slabel">ملخص كل فترة</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="recapOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label>
@@ -360,21 +372,23 @@ export async function render(view, { segments, params }) {
             <div class="srow sw-row tb-only"><span class="slabel">أزرار تحت</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="tbOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="tbOnTxt"></span></label></div></div>
             <div class="srow"><span class="slabel">الخلفية</span><div class="sopts" id="rBg">${[['light', '☀️ فاتح'], ['night', '🌙 داكن']].map(([k, l]) => `<button type="button" class="sopt" data-rbg="${k}">${l}</button>`).join('')}</div></div>
             ${hasTimes ? `<div class="srow sw-row"><span class="slabel">متابعة تلقائية</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="followToggle" ${follow ? 'checked' : ''}><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div></div>` : ''}
-            <div class="srow"><span class="slabel">حجم الخط</span><div class="sopts"><span class="sopts fontsize"><button type="button" class="sopt" data-font="-1">A−</button><b class="en-inline fontnow" id="fontNow"></b><button type="button" class="sopt" data-font="1">A+</button></span></div></div>
-            ${hasTimes ? '<div class="srow sw-row"><span class="slabel">وقت كل سطر</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="timesToggle"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="timesTxt"></span></label></div></div>' : ''}
-            ${isVideo && hasTimes ? '<div class="srow sw-row"><span class="slabel">شريط الوقت</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="stripToggle"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="stripTxt"></span></label></div></div>' : ''}
+            <div class="srow"><span class="slabel">حجم الخط</span><div class="sopts"><span class="sopts fontsize"><button type="button" class="sopt" data-font="-1">A−</button><b class="en-inline fontnow" id="fontNowOld"></b><button type="button" class="sopt" data-font="1">A+</button></span></div></div>
+            ${hasTimes ? '<div class="srow sw-row"><span class="slabel">وقت كل سطر</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="timesToggleOld"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="timesTxt"></span></label></div></div>' : ''}
+            ${isVideo && hasTimes ? '<div class="srow sw-row"><span class="slabel">شريط الوقت</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="stripToggleOld"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="stripTxt"></span></label></div></div>' : ''}
           </div></div>
-          ${isVideo ? `<div class="srow"><span class="slabel">الفيديو</span><div class="sopts" id="vidPos"><button type="button" class="sopt" data-vpos="top">فوق</button><button type="button" class="sopt" data-vpos="bottom">تحت</button><button type="button" class="sopt" data-vpos="float">عائم</button></div></div>` : ''}
+          ${isVideo ? `<div class="srow"><span class="slabel">الفيديو</span><div class="sopts" id="vidPosOld"><button type="button" class="sopt" data-vpos="top">فوق</button><button type="button" class="sopt" data-vpos="bottom">تحت</button><button type="button" class="sopt" data-vpos="float">عائم</button></div></div>` : ''}
           ${isVideo ? `<div class="srow sw-row"><span class="slabel">شرح التكبير 👆</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="shOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="shTxt"></span></label></div></div>` : ''}
           <div class="srow"><span class="slabel">بحث</span><div class="sopts tr-search"><input class="input sm" id="trQ" type="search" placeholder="ابحث في النص" aria-label="ابحث في النص"><span class="tiny muted" id="trQn"></span></div></div>
           <div class="sgroup">أدوات</div>
           <div class="srow"><span class="slabel">أدوات</span><div class="sopts">
-            <button class="sopt" id="ideasBtn" title="أفكار: اسأل ChatGPT، احفظ ملخصه، اكتب ملاحظة، انسخ النص">💡 أفكار</button>
+            <button class="sopt" id="ideasBtnOld" title="أفكار: اسأل ChatGPT، احفظ ملخصه، اكتب ملاحظة، انسخ النص">💡 أفكار</button>
             <span hidden id="ideasSrc">${paid.summary ? '<button type="button" id="summaryBtn">summary</button>' : ''}<button type="button" id="copyAll">copy</button><button type="button" id="saveGpt">save</button><button type="button" id="askGpt">ask</button></span>
             <button class="sopt" id="del" style="color:var(--bad)">🗑 حذف</button></div></div>
           <button type="button" class="btn rset-reset" id="resetAll">↺ رجّع كل الإعدادات للأصل</button>
           <div class="rset-ok-row"><button type="button" class="btn primary rset-ok" id="setOk">اعتمد</button></div>
+                  </div>
         </div>
+        <div class="font-bar" id="fontBar" role="group" aria-label="معاينة حجم الخط"><button type="button" class="fb" data-font="-1" aria-label="تصغير الخط">−</button><b class="en-inline" id="fontNow2"></b><button type="button" class="fb" data-font="1" aria-label="تكبير الخط">+</button><button type="button" class="fb ok" id="fontOk" aria-label="اعتماد">✓</button></div>
         <div class="reader-status"><span class="mk-legend" aria-hidden="true"><span class="mk-l mine">كلماتي</span><span class="mk-l new">جديد</span></span><span class="tiny mode-note" id="modeNote"></span><span class="tiny muted" id="trNote"></span></div>
         <div class="vid-pin" id="vidPin">
         ${isVideo ? '<div class="player-box yt-clean"><div id="player"></div><button type="button" class="yt-shield" id="ytShield" aria-label="أظهر أزرار يوتيوب"></button></div><div class="split" id="split" role="separator" aria-orientation="horizontal" title="اسحب لتكبير الفيديو أو النص"><span></span></div>' : ''}
@@ -404,7 +418,8 @@ export async function render(view, { segments, params }) {
   const toggleSet = (open) => { if (open) setSnap = snapReader(); rset.classList.remove('focus'); rset.querySelectorAll('.focus-row').forEach((r) => r.classList.remove('focus-row')); rset.classList.toggle('hidden', !open); if (open) rset.scrollTop = 0; $('#setBtn', view).setAttribute('aria-expanded', String(open)); $('#setBtn', view).classList.toggle('primary', open); };
   $('#setBtn', view).addEventListener('click', (e) => { e.stopPropagation(); if (rset.classList.contains('hidden')) toggleSet(true); else discardSet(); });
   // closing without «حفظ» (✕, a tap outside, ⚙ again) = nothing changed is kept
-  const discardSet = () => {
+  const discardSet = () => { toggleSet(false); }; // changes apply at once now: closing keeps them
+  const discardSetOld = () => {
     const now = snapReader();
     const before = setSnap || now;
     const changed = Object.keys({ ...before, ...now }).filter((k) => before[k] !== now[k] && k !== 'reader.focus');
@@ -417,6 +432,7 @@ export async function render(view, { segments, params }) {
   // the sheet stays at the bottom while the video/text above shows every choice live; only «اعتمد» keeps them
   // (✕ or ⚙ again = back without saving). A tap elsewhere no longer discards, so the learner can look and touch the page.
   $('#setOk', view).addEventListener('click', () => { toggleSet(false); toast('✓ تم اعتماد الإعدادات'); });
+  $('#setClose', view)?.addEventListener('click', () => toggleSet(false));
   // ↕ pull the sheet's top edge up or down (remembered on this device, not part of the video settings)
   (() => {
     const grip = $('#rsetGrip', view);
@@ -539,7 +555,7 @@ export async function render(view, { segments, params }) {
   // Video above the text, below it, or floating in a corner (drag it anywhere, it snaps to a corner).
   // 🎬 The video sits above the text by default; when the learner picks «عائم» it floats, large, over the lower half; it can be moved
   // anywhere (drag its top bar) and resized (drag its corner ↘ or pinch the bar with two fingers).
-  let vidPos = ['top', 'bottom', 'float'].includes(pref('reader.vp', 'top')) ? pref('reader.vp', 'top') : 'top';
+  let vidPos = ['top', 'bottom'].includes(pref('reader.vp', 'top')) ? pref('reader.vp', 'top') : 'top';
   const vw = () => window.innerWidth;
   const vh = () => window.innerHeight;
   let floatW = Number(pref('reader.fw', '0')) || 0; // 0 = automatic (large)
@@ -696,9 +712,9 @@ export async function render(view, { segments, params }) {
   window.addEventListener('lexitube:ended', onEnded);
   // 🔔 Every N new words of the video: a list with meanings — before they come, or after they went by.
   // A word shown once in this video is never listed again (so new words always take the place).
-  let wbN = Math.max(3, Math.min(300, Number(pref('reader.wbN2', '10')) || 10)); // default: the next 10 words
+  let wbN = 10; // fixed: every 10 words
   let wbOn = pref('reader.wbOn3', '1') === '1' && !params.jump; // on by default
-  let wbWhen = pref('reader.wbWhen2', 'before') === 'after' ? 'after' : 'before'; // shown BEFORE they come
+  let wbWhen = 'after'; // fixed: shown after
   const shownKey = `reader.shown.${id}`;
   const shown = new Set((() => { try { return JSON.parse(localStorage.getItem(shownKey) || '[]'); } catch { return []; } })());
   const saveShown = () => { try { localStorage.setItem(shownKey, JSON.stringify([...shown])); } catch { /* storage unavailable */ } };
@@ -1070,7 +1086,7 @@ export async function render(view, { segments, params }) {
     view.querySelectorAll('[data-rbg]').forEach((b) => b.classList.toggle('active', b.dataset.rbg === rbgOf()));
   };
   // 👍 phone buttons under the thumb: when to show them and how big (for every video)
-  const applyTb = () => { document.body.dataset.tb = pref('reader.tbOn', '1') === '1' ? 'always' : 'off'; document.body.dataset.tbsize = 's'; };
+  const applyTb = () => { document.body.dataset.tb = 'off'; document.body.dataset.tbsize = 's'; }; // the buttons under the video are gone
   applyTb();
   const drawTb = () => {
     const on = pref('reader.tbOn', '1') === '1';
@@ -1100,13 +1116,16 @@ export async function render(view, { segments, params }) {
     setPref('reader.font', String(fontPx));
     applyFont();
     recenter();
-    const n = document.querySelector('#fontNow');
-    if (n) n.textContent = String(fontPx);
+    document.querySelectorAll('#fontNow, #fontNow2').forEach((n) => { n.textContent = String(fontPx); });
   };
-  { const n0 = $('#fontNow', view); if (n0) n0.textContent = String(fontPx); }
+  view.querySelectorAll('#fontNow, #fontNow2').forEach((n0) => { n0.textContent = String(fontPx); });
+  const fontBar = $('#fontBar', view);
   view.querySelectorAll('[data-font]').forEach((b) => b.addEventListener('click', () => {
-    stepFont(Number(b.dataset.font)); // live: the sheet stays at the bottom, the text above changes at once
+    stepFont(Number(b.dataset.font));
+    // from the settings: the sheet closes, the clip shows the change, and a small bar (− + ✓) lets you adjust and accept
+    if (b.closest('#rset')) { toggleSet(false); fontBar?.classList.add('on'); }
   }));
+  $('#fontOk', view)?.addEventListener('click', () => fontBar?.classList.remove('on'));
   // "العرض" menu: Arabic, layout, hide Arabic, follow, font size — all in one place.
   const viewMenu = $('#viewMenu', view);
   const toggleView = (open) => { viewMenu.classList.toggle('hidden', !open); $('#viewBtn', view).setAttribute('aria-expanded', String(open)); };
@@ -1205,7 +1224,7 @@ export async function render(view, { segments, params }) {
     if (box) mainEl.style.setProperty('--ph', `${Math.round(box.getBoundingClientRect().height)}px`);
     return p;
   };
-  const sizeHintOn = () => pref('reader.sizeHint', '1') === '1';
+  const sizeHintOn = () => true; // the zoom hint shows by itself for two seconds when a clip opens
   // 👆 each opening (unless switched off in ⚙): the video starts a little smaller and a finger
   // shows — and plays — that dragging the line resizes it (up = smaller, down = bigger)
   try { if (localStorage.getItem('reader.sideMini') === '1') $('.reader-grid', view)?.classList.add('side-mini'); } catch { /* ignore */ }
@@ -1232,10 +1251,10 @@ export async function render(view, { segments, params }) {
       if (k >= steps.length) { clearInterval(play); return; }
       h.classList.toggle('up', steps[k] < base); h.classList.toggle('down', steps[k] > base);
       splitPct = applySplit(steps[k]); k += 1;
-    }, 700);
+    }, 450);
     const close = () => { clearInterval(play); splitPct = applySplit(base); h?.remove(); };
     bar.addEventListener('pointerdown', () => { clearInterval(play); h?.remove(); }, { once: true });
-    setTimeout(close, 5200);
+    setTimeout(close, 2000);
   }
   if (isVideo) setTimeout(sizeHint, 1200);
   const drawSh = () => { const c = $('#shOn', view); if (c) c.checked = sizeHintOn(); const t = $('#shTxt', view); if (t) t.textContent = sizeHintOn() ? 'يطلع كل مرة' : 'مطفأ'; };
@@ -1941,6 +1960,7 @@ export async function render(view, { segments, params }) {
     $('#modeOff', view)?.classList.toggle('hidden', playMode === 'normal');
     $('#shadowBtn', view)?.classList.toggle('primary', playMode === 'shadow');
     $('#shadowBtn', view)?.setAttribute('aria-pressed', String(playMode === 'shadow'));
+    if (typeof drawSw === 'function') drawSw();
   };
   const setMode = (m) => {
     playMode = m;
@@ -1987,6 +2007,7 @@ export async function render(view, { segments, params }) {
       b.classList.toggle('primary', repeatPara);
       b.setAttribute('aria-pressed', String(repeatPara));
     }
+    if (typeof drawSw === 'function') drawSw();
   };
   const toggleLoop = () => {
     repeatPara = !repeatPara;
@@ -2014,6 +2035,16 @@ export async function render(view, { segments, params }) {
     drawAm();
   });
   view.addEventListener('click', (e) => { if (e.target.closest('#shadowBtn, #againBtn')) setTimeout(drawAm, 0); });
+  // ⚙ two plain switches: «قف بعد كل جملة للترديد» and «تكرار الجملة»
+  function drawSw() {
+    try {
+      const a = $('#swShadow', view); if (a) a.checked = playMode === 'shadow';
+      const b = $('#swRepeat', view); if (b) b.checked = repeatPara;
+    } catch { /* not ready yet */ }
+  }
+  $('#swShadow', view)?.addEventListener('change', (e) => { setMode(e.target.checked ? 'shadow' : 'normal'); drawSw(); });
+  $('#swRepeat', view)?.addEventListener('change', (e) => { setRepeat(e.target.checked); drawSw(); });
+  drawSw();
   drawAm();
   $('#againBtn', view)?.addEventListener('click', toggleLoop);
   $('#tourR', view)?.addEventListener('click', () => { toggleSet(false); startTour('reader'); });
@@ -2539,7 +2570,7 @@ export async function render(view, { segments, params }) {
   const applyTimes = () => { linesEl.classList.toggle('no-times', !showTimes); const c = $('#timesToggle', view); if (c) c.checked = showTimes; const t = $('#timesTxt', view); if (t) t.textContent = showTimes ? 'ظاهر' : 'مخفي'; };
   applyTimes();
   // ⏱ the time strip under the video: always there by default (so you know where you are), its own switch — separate from the line times
-  let showStrip = pref('reader.strip', '1') === '1';
+  let showStrip = pref('reader.strip', window.innerWidth < 700 ? '0' : '1') === '1'; // hidden by default on small phones
   const applyStrip = () => { $('#timeStrip', view)?.classList.toggle('hidden', !showStrip); const c = $('#stripToggle', view); if (c) c.checked = showStrip; const s = $('#stripTxt', view); if (s) s.textContent = showStrip ? 'ظاهر' : 'مخفي'; };
   applyStrip();
   $('#stripToggle', view)?.addEventListener('change', (e) => { showStrip = e.target.checked; setPref('reader.strip', showStrip ? '1' : '0'); applyStrip(); });
