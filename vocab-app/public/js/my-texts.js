@@ -65,16 +65,19 @@ export function bindMyTexts(box, list, { isFav, toggleFav } = {}) {
   async function settle(id) {
     const d = data.get(id);
     if (!d || d === 'loading' || d === 'error' || d.source.is_demo || settling.has(id)) return;
+    try { if (localStorage.getItem(`settled.${id}`) === '1') return; } catch { /* storage off */ } // done once for this text: quiet afterwards
     if (String(d.source.dict_words_at || '').startsWith('v2:') && d.source.simplified) return;
     settling.add(id);
     draw();
     try {
       let changed = 0;
+      let finished = false;
       for (let i = 0; box.isConnected && i < 8; i++) {
         const r = await api.dictionaryWords(id);
         changed += (r.added || 0) + (r.simplified || 0);
-        if (!r.more) break;
+        if (!r.more) { finished = true; break; }
       }
+      if (finished) { try { localStorage.setItem(`settled.${id}`, '1'); } catch { /* storage off */ } }
       if (changed) await load(id, true);
     } catch { /* the words stay as they are */ }
     settling.delete(id);

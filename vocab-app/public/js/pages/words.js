@@ -401,9 +401,13 @@ export async function render(view, { params }) {
   // 🧹 «كلماتي» tidy-up (runs in the background while the site is open, even after leaving this page):
   // 1) multi-word items first — real expressions stay, free combinations become their one word;
   // 2) every word to its simplest form (struggling → struggle, delusional → delusion).
+  // Once it has gone through everything, it does not start again until the list changes (new words saved) — so it is quiet on every visit that follows.
+  const tidyKey = 'tidy.sig';
+  const tidySig = () => { try { return localStorage.getItem(tidyKey); } catch { return null; } };
   (async () => {
     let changed = 0;
-    if (window.__tidyRunning) return;
+    if (window.__tidyRunning || tidySig() === String(all.length)) return;
+    let clean = true; // every step finished without a failure
     window.__tidyRunning = true;
     const note = (n) => { if (n) toast(`🧹 نرتّب كلماتك… اتعدّلت ${n} حتى الحين`, 2500); };
     if (state.config?.ai?.available) {
@@ -416,15 +420,15 @@ export async function render(view, { params }) {
           if (r.changed) { changed += r.changed; note(changed); }
           if (r.done) break;
         }
-      } catch { /* next visit */ }
-    }
+      } catch { clean = false; /* next visit */ }
+    } else clean = false; // no AI right now: try again later
     try {
       for (let i = 0; i < 80; i++) {
         const r = await api.simplifyWords();
         changed += r.changed || 0;
         if (r.done) break;
       }
-    } catch { /* try again next time */ }
+    } catch { clean = false; /* try again next time */ }
     window.__tidyRunning = false;
     // levels never checked: once, then saved for good
     let levelled = 0;
@@ -434,9 +438,10 @@ export async function render(view, { params }) {
         levelled += r.levelled || 0;
         if (!r.more) break;
       }
-    } catch { /* next time */ }
+    } catch { clean = false; /* next time */ }
     if (changed && view.isConnected) toast(`بسّطنا ${changed} كلمة إلى أبسط صيغة ✓`);
     if ((changed || levelled) && view.isConnected) await reload();
+    if (clean) { try { localStorage.setItem(tidyKey, String(all.length)); } catch { /* storage off */ } }
   })();
 }
 
