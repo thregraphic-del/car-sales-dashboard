@@ -2718,3 +2718,30 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .act-bar .fd-selbtn { padding: 0 12px; font-size: 13.5px; }
 .act-bar .fav-chip { margin-inline-start: auto; }
 @media (max-width: 370px) { .act-bar { flex-wrap: wrap; } }
+/* ===== «أضف» hero card: title, three ways to add, the box, one big button ===== */
+.add-hero { position: relative; overflow: hidden; padding: 22px 16px 26px; text-align: center;
+  background: linear-gradient(180deg, var(--accent-soft) 0%, var(--surface) 55%); border-color: color-mix(in srgb, var(--accent) 14%, var(--line)); box-shadow: var(--shadow); }
+.add-hero::after { content: ""; position: absolute; inset-inline: -10%; bottom: -1px; height: 90px; pointer-events: none; z-index: 0;
+  background: radial-gradient(120% 100% at 15% 130%, color-mix(in srgb, var(--accent) 12%, transparent) 40%, transparent 41%), radial-gradient(120% 100% at 90% 140%, color-mix(in srgb, var(--accent) 9%, transparent) 40%, transparent 41%); }
+.add-hero > * { position: relative; z-index: 1; }
+.ah-title { margin: 0 0 16px; font-size: 24px; font-weight: 800; color: var(--ink); display: inline-flex; align-items: center; gap: 10px; justify-content: center; width: 100%; }
+.ah-spark { width: 26px; height: 26px; fill: none; stroke: color-mix(in srgb, var(--accent) 55%, transparent); stroke-width: 2.4; stroke-linecap: round; }
+.add-hero .add-kind { display: none; }
+.ah-strip { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: 12px; border: 1.5px solid color-mix(in srgb, var(--accent) 22%, var(--line)); border-radius: 26px; background: color-mix(in srgb, var(--surface) 80%, transparent); overflow: hidden; }
+.ah-cell { display: grid; gap: 6px; justify-items: center; align-content: start; padding: 14px 6px 12px; border: 0; background: none; color: var(--ink); font: inherit; cursor: pointer; text-align: center; position: relative; transition: background .2s; }
+.ah-cell + .ah-cell::before { content: ""; position: absolute; inset-block: 14px; inset-inline-start: 0; width: 1px; background: var(--line); }
+.ah-cell .ah-t { display: inline-flex; align-items: center; gap: 7px; font-size: 17px; font-weight: 700; }
+.ah-cell .ah-t svg { width: 22px; height: 22px; color: var(--accent); }
+.ah-cell .ah-s { font-size: 11.5px; line-height: 1.4; color: var(--muted); }
+.ah-cell:hover, .ah-cell.on { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.ah-cell.on .ah-t { color: var(--accent); }
+.add-hero .add-field .add-input { min-height: 92px; border-radius: 22px; background: var(--surface); text-align: start; }
+.add-hero .add-ph { align-content: center; justify-items: start; }
+.add-hero .ph-main { font-size: 16px; opacity: .6; }
+.ah-hint { margin: 12px 0 14px; color: var(--muted); font-size: 15px; font-weight: 500; text-align: center; }
+.ah-go { display: flex; justify-content: center; }
+.ah-go .btn { min-width: 62%; height: 54px; font-size: 18px; font-weight: 800; border-radius: 999px; gap: 12px; border: 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 72%, #fff) 0%, var(--accent) 100%); color: var(--accent-ink); box-shadow: 0 10px 22px -8px color-mix(in srgb, var(--accent) 55%, transparent); }
+.ah-go .btn:disabled { background: var(--surface-3); color: var(--muted); box-shadow: none; opacity: 1; }
+.ah-go .btn svg { width: 22px; height: 22px; }
+#manual, #status { text-align: start; }

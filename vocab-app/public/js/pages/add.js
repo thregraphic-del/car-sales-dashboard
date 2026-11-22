@@ -6,8 +6,13 @@ import { speak } from '../audio.js';
 import { state, loadGroups } from '../state.js';
 import { esc, icon, levelChip, thumbHtml, relDate, toast, fmtTime, $ } from '../ui.js';
 import { groupPickerHtml, bindGroupPicker } from '../components.js';
-import { attachButtonHtml, bindAttach, packsHtml, bindPacks, suggestionsHtml, bindSuggestions, suggestWordsHtml, bindSuggestWords, channelsHtml, bindChannels, fieldsHtml, bindFields } from '../add-extras.js';
+import { bindAttach, packsHtml, bindPacks, suggestionsHtml, bindSuggestions, suggestWordsHtml, bindSuggestWords, channelsHtml, bindChannels, fieldsHtml, bindFields } from '../add-extras.js';
 
+const ICO = {
+  link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>',
+  clip: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.5l-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l9-9a3.7 3.7 0 0 1 5.2 5.2l-9 9a1.8 1.8 0 0 1-2.6-2.6l8.3-8.3"/></svg>',
+  arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
+};
 // the three platforms a link can come from (simple marks, shown inside the empty box)
 const LOGO = {
   tiktok: '<svg viewBox="0 0 24 24" aria-label="TikTok"><path fill="currentColor" d="M16.6 5.8A4.3 4.3 0 0 1 15.6 3h-3.1v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.7a5.8 5.8 0 1 0 5 5.7V9a7.4 7.4 0 0 0 4.3 1.4V7.3a4.3 4.3 0 0 1-3.4-1.5z"/></svg>',
@@ -32,25 +37,21 @@ export async function render(view, { params }) {
   let cached = [];
   try { cached = JSON.parse(localStorage.getItem(srcKey()) || '[]'); } catch { /* none yet */ }
   view.innerHTML = `
-    <div class="page-head compact"><div><h1>أضف</h1></div></div>
-    <div class="card add-box">
+    <div class="card add-box add-hero">
+      <h1 class="ah-title"><svg class="ah-spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3.5l-3.2 5.2M11.5 8.2 5 6.2M9.8 14.8 3.5 17"/></svg>أضف محتوى للتعلّم</h1>
       <span class="add-kind hidden" id="kindChip"></span>
-<div class="add-field">
-        <textarea class="input add-input" id="input" dir="auto" rows="5" aria-label="الصق هنا النص أو الرابط"></textarea>
-        <div class="add-ph" id="addPh" aria-hidden="true">
-          <div class="ph-main"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="12" height="16" rx="3"/><path d="M9 5.5V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5v1M9.5 12h5M9.5 15.5h3"/></svg>الصق هنا</div>
-          <div class="ph-rest">
-            <div>نصوص عربي أو إنجليزي أو متداخلة</div>
-            <div class="ph-links">رابط من <span class="ph-logo">${LOGO.tiktok}</span><span class="ph-logo">${LOGO.instagram}</span><span class="ph-logo">${LOGO.youtube}</span></div>
-            <div>مقال أو كتب</div>
-            <div>لا تحتاج تنسيقًا معيّنًا، نفهمها تلقائيًا 😉</div>
-          </div>
-        </div>
+      <div class="ah-strip" id="ahStrip">
+        <button type="button" class="ah-cell" data-cell="link"><span class="ah-t">${ICO.link}رابط</span><span class="ah-s">مثل: يوتيوب، تيك توك، مقال</span></button>
+        <button type="button" class="ah-cell" data-cell="text"><span class="ah-t">${icon.doc}نص</span><span class="ah-s">مثل: فقرة، ملخص، حوار</span></button>
+        <label class="ah-cell" for="attachInput" id="attachBtn" title="صورة لصفحة كلمات، PDF، Word أو ملف نصي"><span class="ah-t">${ICO.clip}ملف</span><span class="ah-s">مثل: PDF, Word, صورة</span></label>
+        <input type="file" id="attachInput" accept="image/*,.pdf,.txt,.csv,.md,.srt,.vtt,.docx" hidden>
       </div>
-      <div class="row between wrap" style="gap:10px;margin-top:12px">
-        <span class="tiny muted hidden" id="hint"></span>
-        <div class="row" style="gap:8px">${attachButtonHtml()}<button class="btn primary lg" id="go" disabled>${icon.sparkle} <span id="goLabel">استخراج</span></button></div>
+      <div class="add-field">
+        <textarea class="input add-input" id="input" dir="auto" rows="3" aria-label="الصق هنا النص أو الرابط"></textarea>
+        <div class="add-ph" id="addPh" aria-hidden="true"><div class="ph-main"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="12" height="16" rx="3"/><path d="M9 5.5V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5v1M9.5 12h5M9.5 15.5h3"/></svg><span id="phTxt">الصق هنا</span></div></div>
       </div>
+      <p class="ah-hint" id="hint">ما يهم التنسيق، إحنا نستخرجه تلقائيًا ✨</p>
+      <div class="ah-go"><button class="btn primary lg" id="go" disabled><span id="goLabel">استخرج</span>${ICO.arrow}</button></div>
       <div id="manual" class="hidden stack" style="margin-top:14px">
         <label class="field">الصق نص الفيديو (Transcript) من يوتيوب
           <textarea class="input en" id="transcript" rows="6" placeholder="0:05 So today I want to talk about…"></textarea></label>
@@ -123,7 +124,7 @@ export async function render(view, { params }) {
   const update = () => {
     const v = input.value.trim();
     go.disabled = !v;
-    $('#goLabel', view).textContent = isYoutube(v) ? 'افتح الفيديو' : isArticle(v) ? 'افتح المقال' : 'استخراج';
+    $('#goLabel', view).textContent = isYoutube(v) ? 'افتح الفيديو' : isArticle(v) ? 'افتح المقال' : 'استخرج';
     const sn = socialOf(v);
     const k = !v ? '' : isYoutube(v) ? 'video' : sn ? 'social' : isArticle(v) ? 'article' : isArabicProse(v) ? 'arabic' : 'words';
     const chip = $('#kindChip', view);
@@ -135,12 +136,19 @@ export async function render(view, { params }) {
       article: 'نقرأ المقال ونستخرج كلماته، ويُحفظ في «نصوص».',
       social: `ما نقدر نقرأ نص الفيديو من ${sn}. انسخي النص أو الوصف اللي تبينه والصقيه هنا مكان الرابط.`,
       arabic: 'نترجمه للإنجليزي (يستهلك الذكاء الاصطناعي) ويظهر في «نصوص».',
-    }[k] || '';
-    $('#hint', view).classList.toggle('hidden', !$('#hint', view).textContent);
+    }[k] || 'ما يهم التنسيق، إحنا نستخرجه تلقائيًا ✨';
+    view.querySelectorAll('#ahStrip [data-cell]').forEach((c) => c.classList.toggle('on', (c.dataset.cell === 'link' && ['video', 'article', 'social'].includes(k)) || (c.dataset.cell === 'text' && ['words', 'arabic'].includes(k))));
     $('#addPh', view)?.classList.toggle('hidden', !!v);
     if (!isYoutube(v)) manual.classList.add('hidden');
   };
   input.addEventListener('input', update);
+  // «رابط» / «نص»: aim the box (the file cell opens the picker by itself)
+  view.querySelector('#ahStrip')?.addEventListener('click', (e) => {
+    const c = e.target.closest('[data-cell]');
+    if (!c) return;
+    $('#phTxt', view).textContent = c.dataset.cell === 'link' ? 'الصق الرابط هنا' : 'الصق النص هنا';
+    input.focus();
+  });
   if (params.text) input.value = params.text;
   update();
   bindAttach(view, { input, go, status });
