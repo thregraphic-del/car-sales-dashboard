@@ -69,7 +69,9 @@ export async function openTeam() {
       ${declined ? `<div class="alert bad">ما قدرنا ننفّذ آخر طلب تحويل${declined.note ? `: ${esc(declined.note)}` : ''}. تواصل معنا.</div>` : ''}
       <div class="tm-code"><span class="tiny muted">كودك</span><b class="en-inline" id="tmCode">${esc(me.code)}</b>
         <button type="button" class="btn sm ghost" id="tmCopy" aria-label="نسخ الكود" title="نسخ الكود">${IC.copy} نسخ</button></div>
-      <div class="tm-link"><span class="tiny muted">رابط التسجيل بكودك</span><div class="row" style="gap:8px"><input class="input en" id="tmLink" readonly value="${esc(link)}"><button type="button" class="btn sm" id="tmCopyLink">نسخ الرابط</button></div></div>
+      <div class="tm-link"><span class="tiny muted">رابطك الخاص</span><div class="row" style="gap:8px"><input class="input en" id="tmLink" readonly value="${esc(link)}"><button type="button" class="btn sm" id="tmCopyLink">نسخ الرابط</button></div></div>
+      <p class="tiny muted tm-how" style="margin:0 0 10px">سوّق بالطريقة اللي تناسبك: شارك <b>رابطك</b> أو أعطِ الناس <b>كودك</b> يكتبونه عند التسجيل. واللي يسجّل بأي واحد منهم ينحسب لك.</p>
+      <button type="button" class="btn lg tm-share" id="tmShare">شارك رابطك وكودك</button>
       <div class="tm-stats">
         <div><b>${me.referrals}</b><span class="tiny muted">سجّلوا بكودك</span></div>
         <div><b>${riyal(me.available)}</b><span class="tiny muted">رصيدك المتاح</span></div>
@@ -82,6 +84,11 @@ export async function openTeam() {
       ${me.recent.length ? `<h4 style="margin:16px 0 6px">آخر المسجّلين بكودك</h4><ul class="tm-list">${me.recent.map((r) => `<li>${esc(r.name || '—')}<span class="tiny muted">${esc(String(r.at).slice(0, 10))}</span></li>`).join('')}</ul>` : '<p class="tiny muted" style="margin-top:14px">ما سجّل أحد بكودك للحين. شارك رابطك مع أصحابك.</p>'}
       ${me.requests.length ? `<h4 style="margin:16px 0 6px">طلبات التحويل</h4><ul class="tm-list">${me.requests.map((r) => `<li>${riyal(r.amount_cents)}<span class="chip ${STAT[r.status]?.[1] || ''}">${STAT[r.status]?.[0] || r.status}</span><span class="tiny muted">${esc(String(r.created_at).slice(0, 10))}</span></li>`).join('')}</ul>` : ''}`;
     body.querySelector('#tmCopy').addEventListener('click', async () => toast((await copyText(me.code)) ? 'نسخنا الكود ✓' : 'ما قدرنا ننسخ'));
+    body.querySelector('#tmShare').addEventListener('click', async () => {
+      const text = `سجّل في 3Goal وتعلّم الإنجليزي من يوتيوب 🎯\nالرابط: ${link}\nأو اكتب كودي عند التسجيل: ${me.code}`;
+      try { if (navigator.share) { await navigator.share({ text }); return; } } catch (err) { if (err?.name === 'AbortError') return; }
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener');
+    });
     body.querySelector('#tmCopyLink').addEventListener('click', async () => toast((await copyText(link)) ? 'نسخنا الرابط ✓' : 'ما قدرنا ننسخ'));
     body.querySelector('#tmPay')?.addEventListener('click', async (e) => {
       e.currentTarget.disabled = true;

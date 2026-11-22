@@ -2938,3 +2938,4 @@ body.clipset-on .info-btn.desk { display: none; }
 .wd-sort .sopt { flex: 1 1 0; min-width: 0; height: 44px; border-radius: 99px; font-size: 14.5px; font-weight: 600; justify-content: center; text-align: center; }
 /* كلماتي: the filters, same slim one-row pills as «تدرّب» */
 #filters .wd-fl { flex: 1 1 100%; min-width: 0; }
+.tm-share { width: 100%; margin-bottom: 12px; border-radius: 999px; background: color-mix(in srgb, #1f9d55 14%, var(--surface)); border-color: #1f9d55; color: var(--ink); font-weight: 800; }
