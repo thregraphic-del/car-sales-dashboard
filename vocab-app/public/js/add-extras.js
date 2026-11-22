@@ -85,9 +85,10 @@ export function bindAttach(view, { input, go, status }) {
     input.dispatchEvent(new Event('input'));
     go.click();
   };
-  fileInput.addEventListener('change', async () => {
-    const file = fileInput.files?.[0];
-    fileInput.value = '';
+  // one handler for both inputs: «ملف أو صورة» and the camera («التقط صورة»)
+  const onPick = async (el) => {
+    const file = el.files?.[0];
+    el.value = '';
     if (!file) return;
     const name = file.name || 'file';
     const ext = name.toLowerCase().split('.').pop();
@@ -122,7 +123,9 @@ export function bindAttach(view, { input, go, status }) {
       busy('');
       fail(err.message || 'ما قدرنا نقرأ الملف.');
     }
-  });
+  };
+  fileInput.addEventListener('change', () => onPick(fileInput));
+  $('#attachCam', view)?.addEventListener('change', (e) => onPick(e.target));
 }
 
 /* ------------------------------------------------------- ready-made packs */

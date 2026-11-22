@@ -2890,3 +2890,15 @@ body.clipset-on .main { max-width: none; margin: 0; padding-top: calc(10px + env
 .cs-copy { gap: 6px; border-radius: 99px; font-weight: 700; color: var(--accent); padding: 0 12px; height: 40px; display: inline-flex; align-items: center; }
 .cs-copy svg { width: 20px; height: 20px; }
 .cs-tools { align-items: center; gap: 6px; }
+/* «أضف»: the paperclip beside «استخرج»; «تحديد» next to the star on the left */
+.ah-actions { display: inline-flex; align-items: center; gap: 10px; flex: none; }
+.ah-clip { width: 46px; height: 46px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--surface); color: var(--accent); display: grid; place-items: center; cursor: pointer; flex: none; }
+.ah-clip svg { width: 21px; height: 21px; }
+.ah-clip:hover { border-color: var(--accent); }
+.act-bar .fd-selbtn { margin-inline-start: auto; }
+.act-bar .fav-chip { margin-inline-start: 0; }
+.act-bar { gap: 6px; }
+.act-bar .fd-kind { flex: 0 1 auto; min-width: 0; }
+.act-bar .fd-kind button { padding: 0 8px; font-size: 12.5px; gap: 4px; }
+.act-bar .fd-selbtn { padding: 0 10px; font-size: 13px; }
+.act-bar .fd-sq { width: 40px; }

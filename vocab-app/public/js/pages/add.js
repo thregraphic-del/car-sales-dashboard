@@ -4,7 +4,7 @@ import { bindMyTexts } from '../my-texts.js';
 import { api } from '../api.js';
 import { speak } from '../audio.js';
 import { state, loadGroups } from '../state.js';
-import { esc, icon, levelChip, thumbHtml, relDate, toast, fmtTime, $ } from '../ui.js';
+import { esc, icon, levelChip, thumbHtml, relDate, toast, fmtTime, $, openModal, closeModal } from '../ui.js';
 import { groupPickerHtml, bindGroupPicker } from '../components.js';
 import { bindAttach, packsHtml, bindPacks, suggestionsHtml, bindSuggestions, suggestWordsHtml, bindSuggestWords, channelsHtml, bindChannels, fieldsHtml, bindFields } from '../add-extras.js';
 
@@ -41,13 +41,15 @@ export async function render(view, { params }) {
       <h1 class="ah-title"><svg class="ah-spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3.5l-3.2 5.2M11.5 8.2 5 6.2M9.8 14.8 3.5 17"/></svg>أضف محتوى للتعلّم</h1>
       <span class="add-kind hidden" id="kindChip"></span>
       <input type="file" id="attachInput" accept="image/*,.pdf,.txt,.csv,.md,.srt,.vtt,.docx" hidden>
+      <input type="file" id="attachCam" accept="image/*" capture="environment" hidden>
       <div class="add-field">
         <textarea class="input add-input" id="input" dir="auto" rows="3" aria-label="الصق هنا النص أو الرابط"></textarea>
         <div class="add-ph" id="addPh" aria-hidden="true"><div class="ph-main"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="12" height="16" rx="3"/><path d="M9 5.5V4.5A1.5 1.5 0 0 1 10.5 3h3A1.5 1.5 0 0 1 15 4.5v1M9.5 12h5M9.5 15.5h3"/></svg><span id="phTxt">الصق هنا</span></div>
           <div class="ph-rest"><div>رابط: يوتيوب، تيك توك، مقال</div><div>نص: فقرة، ملخص، حوار</div><label for="attachInput" id="attachBtn" class="ph-file" title="صورة لصفحة كلمات، PDF، Word أو ملف نصي">ملف: PDF, Word, صورة ${ICO.clip}</label></div></div>
       </div>
       <div class="ah-foot"><p class="ah-hint" id="hint">ما يهم التنسيق، إحنا نستخرجه تلقائيًا ✨</p>
-        <button class="btn primary" id="go" disabled><span id="goLabel">استخرج</span>${ICO.arrow}</button></div>
+        <div class="ah-actions"><button type="button" class="ah-clip" id="attachMenu" aria-label="استيراد ملف أو صورة" title="استيراد ملف أو صورة، أو التقاط صورة">${ICO.clip}</button>
+          <button class="btn primary" id="go" disabled><span id="goLabel">استخرج</span>${ICO.arrow}</button></div>
       <div id="manual" class="hidden stack" style="margin-top:14px">
         <label class="field">الصق نص الفيديو (Transcript) من يوتيوب
           <textarea class="input en" id="transcript" rows="6" placeholder="0:05 So today I want to talk about…"></textarea></label>
@@ -148,6 +150,14 @@ export async function render(view, { params }) {
   if (params.text) input.value = params.text;
   update();
   bindAttach(view, { input, go, status });
+  // 📎 beside «استخرج»: import a file or a photo, or take a picture
+  $('#attachMenu', view)?.addEventListener('click', () => {
+    const box = openModal(`<div class="stack"><h2 style="margin:0">أضف من ملف أو صورة</h2>
+      <p class="tiny muted" style="margin:0">نقرأ الكلمات من الصورة أو الملف ونستخرجها لك.</p>
+      <label class="idea-row" for="attachInput" data-close><span class="ico">${ICO.clip}</span><span><b>استيراد ملف أو صورة</b><span class="tiny muted">صورة، PDF، Word، نص</span></span></label>
+      <label class="idea-row" for="attachCam" data-close><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span><span><b>التقط صورة</b><span class="tiny muted">صوّر صفحة كلمات بالكاميرا</span></span></label></div>`);
+    box.querySelectorAll('label[data-close]').forEach((l) => l.addEventListener('click', () => setTimeout(() => closeModal(true), 50)));
+  });
   bindPacks(view);
   bindSuggestWords(view);
   const pickVideo = (url) => {
