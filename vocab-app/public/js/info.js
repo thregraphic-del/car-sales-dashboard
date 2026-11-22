@@ -2,7 +2,7 @@
 // time (the rest of the page greyed), one line about what it does, «التالي» or «تخطّي». Nothing runs in the background.
 export function startInfo() {
   document.addEventListener('click', (e) => {
-    if (!e.target.closest('#infoBtn, #infoBtnSide, #infoBtnPage')) return;
+    if (!e.target.closest('#infoBtn, #infoBtnDesk, #infoBtnPage')) return;
     import('./tour.js').then((m) => m.startTour(m.currentTour())).catch(() => {});
   });
 }

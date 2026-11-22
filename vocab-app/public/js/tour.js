@@ -8,7 +8,7 @@ const HOME = [
   { s: ['#tabbar a[href="#/words"]', '#nav a[href="#/words"]'], t: '📒 كلماتي', d: 'كل كلمة حفظتها مع معناها وأمثلتها ومستواها ومرادفاتها الأسهل. وتقدر تنزّلها ملف Excel.' },
   { s: ['#tabbar a[href="#/practice"]', '#nav a[href="#/practice"]'], t: '🎮 تدرّب', d: 'اختر الكلمات بـ٤ فلاتر بسيطة، ثم العب: اختبار، بطاقات، استماع، قصة، وألعاب كثيرة.' },
   { s: ['#menuBtn', '#nav a[href="#/friends"]'], t: '☰ القائمة', d: 'فيها 👥 أصدقائي (تحدَّ صديقك وشارك تقدمك) والإعدادات ورصيد الموقع.' },
-  { s: ['#infoBtn', '#infoBtnSide'], t: 'الشرح', d: 'أيقونة «i» موجودة في كل صفحة: تضغطها ويشرح لك أزرار الصفحة زرًّا زرًّا. بالتوفيق!' },
+  { s: ['#infoBtn', '#infoBtnDesk'], t: 'الشرح', d: 'أيقونة «i» موجودة في كل صفحة: تضغطها ويشرح لك أزرار الصفحة زرًّا زرًّا. بالتوفيق!' },
 ];
 const READER = [
   { t: 'صفحة المقطع', d: 'الفيديو فوق والنص تحته وكل جملة معها ترجمتها. اضغط أي كلمة تشوف معناها وتحفظها.' },
@@ -207,13 +207,14 @@ export function startTour(kind = 'home') {
   const card = root.querySelector('.tour-card');
   let i = 0;
   const close = () => { root.classList.add('out'); setTimeout(() => root.remove(), 250); window.removeEventListener('resize', place); };
-  function place() {
+  function place(scroll = false) {
+    if (!root.isConnected) return;
     const st = steps[i];
     const el = st.s?.map((q) => document.querySelector(q)).find(visible);
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     if (el) {
-      el.scrollIntoView({ block: 'nearest' });
+      if (scroll === true) el.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' });
       const r = el.getBoundingClientRect();
       const pad = 6;
       Object.assign(spot.style, { left: `${r.left - pad}px`, top: `${r.top - pad}px`, width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px`, borderRadius: '14px' });
@@ -239,7 +240,10 @@ export function startTour(kind = 'home') {
       <div class="tour-dots">${steps.map((_, k) => `<i class="${k === i ? 'on' : ''}"></i>`).join('')}</div>
       <div class="tour-btns"><button type="button" data-t="skip" class="tour-skip">تخطّي</button>
         <span>${i ? '<button type="button" data-t="prev">السابق</button>' : ''}<button type="button" data-t="next" class="tour-next">${i === steps.length - 1 ? 'تم ✓' : 'التالي ←'}</button></span></div>`;
-    place();
+    place(true);
+    // the page can settle a moment after the step starts: measure again so the frame is exact
+    setTimeout(place, 120);
+    setTimeout(place, 450);
   }
   root.addEventListener('click', (e) => {
     const b = e.target.closest('[data-t]')?.dataset.t;
@@ -249,6 +253,7 @@ export function startTour(kind = 'home') {
     return undefined;
   });
   window.addEventListener('resize', place);
+  window.addEventListener('scroll', () => place(), { passive: true, capture: true });
   draw();
 }
 

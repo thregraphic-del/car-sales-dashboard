@@ -2928,3 +2928,7 @@ body.clipset-on .main { max-width: none; margin: 0; padding-top: calc(10px + env
 #fdSlot .fd-grid.fd-rows2.at-end { -webkit-mask-image: none; mask-image: none; }
 /* «نشاطي»: two full cards, the fade only at the very bottom */
 .mv-wrap, #texts.tx-sec { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), rgba(0,0,0,.12) 100%); mask-image: linear-gradient(to bottom, #000 calc(100% - 26px), rgba(0,0,0,.12) 100%); }
+/* the green «i» stays at the top on a computer too */
+.info-btn.desk { display: none; }
+@media (min-width: 901px) { .info-btn.desk { display: grid; position: fixed; top: 14px; left: 18px; z-index: 35; } .main { padding-top: 60px; } }
+body.clipset-on .info-btn.desk { display: none; }
