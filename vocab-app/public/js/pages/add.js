@@ -50,11 +50,11 @@ export async function render(view, { params }) {
     </div>
     <div id="sources"></div>
     <div id="texts" class="tx-sec hidden"></div>
+    ${fieldsHtml()}
+    ${suggestionsHtml()}
     <div class="section-title"><h2>اختصارات سريعة</h2></div>
     ${packsHtml()}
-    ${suggestWordsHtml()}
-    ${fieldsHtml()}
-    ${suggestionsHtml()}`;
+    ${suggestWordsHtml()}`;
   // videos → «مقاطعي», pasted texts → «نصوص» (3 lines each)
   const videosOf = (l) => l.filter((s) => s.kind !== 'text');
   const textsOf = (l) => l.filter((s) => s.kind === 'text');

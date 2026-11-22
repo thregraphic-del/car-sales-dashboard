@@ -2659,3 +2659,8 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 #fdSlot .fd-go { display: grid; justify-items: start; text-align: start; gap: 8px; width: 100%; padding-top: 2px; }
 #fdSlot .fd-go b, #fdSlot .fd-go .fd-desc { text-align: start; }
 #fdSlot .fd-go b.en { text-align: left; }
+/* level = just a small coloured dot beside the name (green easy · yellow medium · red hard) */
+.fd-ldot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-inline-start: 7px; vertical-align: middle; background: var(--muted); flex: none; }
+.fd-ldot[data-lv="1"] { background: #2e9e5b; } .fd-ldot[data-lv="2"] { background: #e6b422; } .fd-ldot[data-lv="3"] { background: #d9453a; }
+.fd-dot[data-lv="2"] { background: #e6b422; } .fd-badge[data-lv="2"] { background: #e6b422; }
+.fd-lvl { display: none; }
