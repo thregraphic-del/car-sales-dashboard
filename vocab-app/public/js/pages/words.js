@@ -50,12 +50,12 @@ export async function render(view, { params }) {
       <button type="button" class="wd-t" data-wt="groups" aria-label="المجموعات" title="المجموعات">${icon.folder}</button>
       <button type="button" class="wd-t" id="exportBtn" aria-label="تصدير" title="تصدير">${icon.download}</button>
     </div>
+    <div id="selectBar"></div>
     <div class="words-search hidden" id="wsearch"><span class="search-ico">${icon.search}</span><input class="input" id="q" type="search" placeholder="ابحث بالإنجليزية أو العربية…"></div>
     <div class="chip-row" id="filters"></div>
     <div class="chip-row groups-row" id="groups"></div>
     <div id="groupHead"></div>
-    <div id="list"></div>
-    <div id="selectBar"></div>`;
+    <div id="list"></div>`;
   const $ = (s) => view.querySelector(s);
 
   const matches = (w) => {
@@ -88,7 +88,7 @@ export async function render(view, { params }) {
     $('#selectToggle').classList.toggle('on', select);
     $('#wsearch').classList.toggle('hidden', panel !== 'search' && !f.q);
     const defs = barDefs();
-    $('#filters').innerHTML = panel === 'filter' ? filterBarHtml(defs.filter((d) => d.k !== 'sort'), fbOpen) : panel === 'sort' ? filterBarHtml(defs.filter((d) => d.k === 'sort'), fbOpen) : '';
+    $('#filters').innerHTML = panel === 'filter' ? filterBarHtml(defs.filter((d) => d.k !== 'sort'), fbOpen) : panel === 'sort' ? `<div class="wd-sort" role="radiogroup" aria-label="الترتيب">${[['new', 'الأحدث'], ['old', 'الأقدم'], ['az', 'أبجدي']].map(([k, l]) => `<button type="button" role="radio" aria-checked="${(f.sort || 'new') === k}" class="sopt${(f.sort || 'new') === k ? ' active' : ''}" data-sortv="${k}">${l}</button>`).join('')}</div>` : '';
     placeMenus($('#filters'));
     // 📁 groups: the panel of every group + «مجموعة جديدة» + «إدارة المجموعات» (opened by the folder icon)
     const gSel = state.groups.find((x) => x.id === f.group);
@@ -286,6 +286,8 @@ export async function render(view, { params }) {
 
   view.addEventListener('click', async (e) => {
     if (!document.getElementById('summary')) return; // left «كلماتي» (the page area is reused)
+    const sv = e.target.closest('[data-sortv]');
+    if (sv) { f.sort = sv.dataset.sortv; panel = ''; return draw(); }
     const fb = filterBarClick(e, barDefs(), fbOpen);
     if (fb) {
       if ('open' in fb) fbOpen = fb.open;

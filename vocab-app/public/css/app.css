@@ -2932,3 +2932,7 @@ body.clipset-on .main { max-width: none; margin: 0; padding-top: calc(10px + env
 .info-btn.desk { display: none; }
 @media (min-width: 901px) { .info-btn.desk { display: grid; position: fixed; top: 14px; left: 18px; z-index: 35; } .main { padding-top: 60px; } }
 body.clipset-on .info-btn.desk { display: none; }
+/* كلماتي: the selection panel sits under the icons; the sort choices show at once */
+#selectBar .select-bar { position: static; margin: 10px 0 12px; box-shadow: var(--shadow-sm); }
+.wd-sort { display: flex; gap: 8px; flex-wrap: wrap; padding: 4px 0 10px; }
+.wd-sort .sopt { flex: 1 1 0; min-width: 0; height: 44px; border-radius: 99px; font-size: 14.5px; font-weight: 600; justify-content: center; text-align: center; }
