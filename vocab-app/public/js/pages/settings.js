@@ -7,7 +7,6 @@ import { readDataFiles, importSnapshot, countsOf, TABLES } from '../data-transfe
 import { feedbackCardHtml, bindFeedbackCard } from '../feedback.js';
 import { costReportHtml, bindCostReport } from '../cost-report.js';
 import { teamCardHtml, bindTeamCard } from '../team.js';
-import { GOAL_TYPES, goalTypes, setGoalTypes, setGoalN, goalFor, progress } from '../goal.js';
 
 const TABLE_LABELS = {
   sources: 'مصادر', transcript_lines: 'أسطر نص', vocabulary: 'مفردات', examples: 'أمثلة', occurrences: 'سياقات', user_vocabulary: 'كلماتك',
@@ -37,14 +36,6 @@ export async function render(view) {
         <section class="set-card">
           <h3 class="set-h">👤 الملف الشخصي</h3>
           <div class="set-line"><label class="set-lbl" for="name">الاسم</label><input class="input" id="name" value="${esc(u.name)}"><button class="btn primary sm" id="saveProfile">حفظ</button></div>
-        </section>
-        <section class="set-card">
-          ${swItem('goalOn', '🎯 الهدف اليومي', 'تابع كم سويت اليوم، ونبّهني لما أوصل', `
-            <p class="tiny muted" style="margin:0">اختر هدفًا واحدًا أو أكثر. لو اخترت أكثر من واحد يصير <b>هدفك مركّب</b>: يكتمل اليوم لما تحقق كلها، ولكل هدف عدده.</p>
-            <div class="goal-rows" id="goalRows">${Object.entries(GOAL_TYPES).map(([k, g]) => `<div class="goal-row${goalTypes().includes(k) ? ' on' : ''}" data-gt="${k}">
-              <label class="goal-pick"><input type="checkbox" class="check" data-gc="${k}" ${goalTypes().includes(k) ? 'checked' : ''}><span><b>${g.label}</b><span class="tiny muted">${g.note}</span></span></label>
-              <span class="goal-num"><input class="input en-inline" data-gn="${k}" type="number" inputmode="numeric" min="${g.min}" max="${g.max}" value="${goalFor(k)}"> <span class="small">${g.unit}</span></span></div>`).join('')}</div>
-            <span class="tiny muted" id="goalNow"></span>`)}
         </section>
         <section class="set-card">
           <h3 class="set-h">🔊 الصوت</h3>
@@ -130,31 +121,6 @@ export async function render(view) {
     </div>`;
 
   const $ = (s) => view.querySelector(s);
-  // 🎯 pick what counts (one or several: words that go by · word practice · minutes watched · grammar rules) and how many of each
-  const drawGoal = () => {
-    const sel = goalTypes();
-    view.querySelectorAll('[data-gt]').forEach((row) => {
-      const on = sel.includes(row.dataset.gt);
-      row.classList.toggle('on', on);
-      row.querySelector('[data-gc]').checked = on;
-      row.querySelector('[data-gn]').disabled = !on;
-    });
-    const p = progress();
-    $('#goalNow').innerHTML = `${p.combo ? '<b>هدف مركّب</b> — ' : ''}اليوم: ${p.items.map((i) => `${i.short} <b class="en-inline">${i.count}/${i.n}</b>${i.done ? ' ✓' : ''}`).join(' · ')}${p.combo && p.done ? ' — كملت كلها 🎉' : ''}`;
-  };
-  $('#goalRows').addEventListener('change', (e) => {
-    const c = e.target.closest('[data-gc]');
-    const n = e.target.closest('[data-gn]');
-    if (c) {
-      const now = new Set(goalTypes());
-      if (c.checked) now.add(c.dataset.gc); else now.delete(c.dataset.gc);
-      if (!now.size) { toast('لازم يبقى هدف واحد على الأقل'); drawGoal(); return; }
-      setGoalTypes([...now]);
-    }
-    if (n) setGoalN(n.dataset.gn, Number(n.value));
-    drawGoal();
-  });
-  drawGoal();
   $('#rate').addEventListener('input', (e) => ($('#rateVal').textContent = `${e.target.value}×`));
   $('#saveProfile').addEventListener('click', async () => {
     state.user = await api.updateMe({ name: $('#name').value });
@@ -172,7 +138,6 @@ export async function render(view) {
   bindSw('darkSw', (on) => { const t = on ? 'dark' : 'light'; try { localStorage.setItem('theme', t); } catch { /* ignore */ } applyTheme(t); });
   bindSw('wideSw', (on) => lsSet('app.openWide', on ? '1' : '0'));
   bindSw('autoSw', (on) => lsSet('app.autoSave', on ? '1' : '0'));
-  bindSw('goalOn', (on) => lsSet('goal.off', on ? '0' : '1'));
   bindSw('ar', async (on) => { state.user = await api.updateMe({ speak_arabic: on }); });
   $('#reset')?.addEventListener('click', async () => {
     if (!confirm('سيتم حذف كل البيانات وإعادة إنشاء البيانات التجريبية. متابعة؟')) return;

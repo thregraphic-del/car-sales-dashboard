@@ -5,7 +5,7 @@ import { api } from '../api.js';
 import { maybeTour } from '../tour.js';
 import { state } from '../state.js';
 import { esc, icon, openModal, closeModal, toast } from '../ui.js';
-import { dayStr, goalFor, dayCounts } from '../goal.js';
+import { dayStr, goalFor, dayCounts, GOAL_TYPES, goalTypes, setGoalTypes, setGoalN, progress } from '../goal.js';
 import { setPending, checkDouble, doubleInfo } from '../streak-rescue.js';
 import { getReminder, reminderSummary, openReminderFlow } from '../reminder.js';
 
@@ -285,7 +285,7 @@ async function openCalendar() {
       const pct = Math.min(100, Math.round((100 * got) / gl));
       return `<div class="cd-g${got >= gl ? ' ok' : ''}"><span class="cd-gl">${mt.label}</span><span class="cd-gs"><b class="en-inline">${got}</b><span class="tiny muted"> / ${gl} ${mt.unit}</span>${got >= gl ? ' ✓' : ''}</span><i class="cd-meter"><b style="width:${pct}%"></b></i></div>`;
     }).join('');
-    return `<div class="cal-dash"><div class="cd-head"><b>${DAY_NAMES[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}</b>${pick === key(now) ? '<span class="th-chip">اليوم</span>' : ''}</div>
+    return `<div class="cal-dash"><div class="cd-head"><b>${DAY_NAMES[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}</b>${pick === key(now) ? '<span class="th-chip">اليوم</span>' : ''}<button type="button" class="btn ghost sm cd-edit" data-editgoals>✏️ عدّل أهدافك</button></div>
       <div class="cd-goals">${rows}</div>
       ${nothing ? '<p class="tiny muted" style="margin:6px 0 0">ما فيه نشاط هذا اليوم.</p>' : ''}
       <div class="cd-grid">
@@ -293,7 +293,22 @@ async function openCalendar() {
         <div class="cd-card"><span class="cd-i">🎯</span><b>${x.answers ? `${rate}٪` : '—'}</b><small>دقة التدريب${x.answers ? ` · ${x.answers} إجابة` : ''}</small>${x.answers ? `<i class="cd-meter"><b style="width:${rate}%"></b></i>` : ''}</div>
       </div></div>`;
   };
+  // 🎯 the goals editor lives here (it used to be in the settings page)
+  let editing = false;
+  const drawGoals = () => {
+    const sel = goalTypes(); const off = ls('goal.off', '0') === '1';
+    const p = progress();
+    box.innerHTML = `<div class="cal"><h3 style="margin:0 0 4px">🎯 عدّل أهدافك</h3>
+      <p class="tiny muted" style="margin:0">اختر هدفًا واحدًا أو أكثر. لو اخترت أكثر من واحد يصير <b>هدفك مركّب</b>: يكتمل اليوم لما تحقق كلها، ولكل هدف عدده.</p>
+      <div class="goal-rows" id="goalRows">${Object.entries(GOAL_TYPES).map(([k, g]) => `<div class="goal-row${sel.includes(k) ? ' on' : ''}" data-gt="${k}">
+        <label class="goal-pick"><input type="checkbox" class="check" data-gc="${k}" ${sel.includes(k) ? 'checked' : ''}><span><b>${g.label}</b><span class="tiny muted">${g.note}</span></span></label>
+        <span class="goal-num"><input class="input en-inline" data-gn="${k}" type="number" inputmode="numeric" min="${g.min}" max="${g.max}" value="${goalFor(k)}" ${sel.includes(k) ? '' : 'disabled'}> <span class="small">${g.unit}</span></span></div>`).join('')}</div>
+      <label class="goal-pick" style="margin-top:10px"><input type="checkbox" class="check" id="goalAlert" ${off ? '' : 'checked'}><span><b>نبّهني لما أوصل هدفي</b></span></label>
+      <span class="tiny muted" id="goalNow">${p.combo ? '<b>هدف مركّب</b> — ' : ''}اليوم: ${p.items.map((i) => `${i.short} <b class="en-inline">${i.count}/${i.n}</b>${i.done ? ' ✓' : ''}`).join(' · ')}</span>
+      <div class="btn-row" style="justify-content:center;margin-top:12px"><button class="btn primary" data-donegoals>تم</button></div></div>`;
+  };
   const draw = () => {
+    if (editing) return drawGoals();
     box.innerHTML = `<div class="cal">
       <div class="cal-ctl">
         <div class="segmented seg4" id="calMetric">${Object.entries(METRICS).map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'active' : ''}">${mt.label}</button>`).join('')}</div>
@@ -305,7 +320,22 @@ async function openCalendar() {
       <p class="cal-range tiny muted">${rangeNote()}</p>
       <div class="btn-row" style="justify-content:center"><button class="btn ghost" data-close>إغلاق</button></div></div>`;
   };
+  box.addEventListener('change', (e) => {
+    if (!editing) return;
+    const c = e.target.closest('[data-gc]'); const n = e.target.closest('[data-gn]');
+    if (e.target.id === 'goalAlert') { lsSet('goal.off', e.target.checked ? '0' : '1'); return; }
+    if (c) {
+      const now = new Set(goalTypes());
+      if (c.checked) now.add(c.dataset.gc); else now.delete(c.dataset.gc);
+      if (!now.size) { toast('لازم يبقى هدف واحد على الأقل'); drawGoals(); return; }
+      setGoalTypes([...now]);
+    }
+    if (n) setGoalN(n.dataset.gn, Number(n.value));
+    drawGoals();
+  });
   box.addEventListener('click', (e) => {
+    if (e.target.closest('[data-editgoals]')) { editing = true; draw(); return; }
+    if (e.target.closest('[data-donegoals]')) { editing = false; draw(); return; }
     const cm = e.target.closest('[data-cm]');
     if (cm && METRICS[cm.dataset.cm]) { metric = cm.dataset.cm; lsSet('today.metric', metric); draw(); return; }
     const cs = e.target.closest('[data-cs]');
