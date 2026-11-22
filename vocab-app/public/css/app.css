@@ -2500,3 +2500,15 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .th-stat b { font-size: clamp(24px, 8vw, 34px); }
 .th-sl { align-self: center; padding-bottom: 0; white-space: nowrap; }
 @media (max-width: 380px) { .th-prog2 .th-si { width: 32px; height: 32px; } .th-prog2 .th-si svg { width: 16px; height: 16px; } .th-stat { gap: 6px; } }
+
+/* the dashboard: four measures, and the day's four goals each with its own bar */
+.segmented.seg4 { display: flex; width: 100%; }
+.segmented.seg4 button { flex: 1; padding: 7px 4px; font-size: 12.5px; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
+.segmented.seg4 button svg { width: 14px; height: 14px; }
+.cd-goals { display: grid; gap: 8px; margin: 8px 0 10px; }
+.cd-g { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: center; padding: 8px 12px; border-radius: 12px; background: color-mix(in srgb, var(--ink) 4%, var(--surface)); border: 1px solid transparent; }
+.cd-g.ok { border-color: color-mix(in srgb, var(--gold, #CBA55E) 60%, transparent); background: color-mix(in srgb, var(--gold, #CBA55E) 12%, var(--surface)); }
+.cd-gl { font-weight: 700; font-size: 13.5px; display: inline-flex; align-items: center; gap: 5px; }
+.cd-gl svg { width: 15px; height: 15px; }
+.cd-gs { justify-self: end; font-size: 14px; }
+.cd-g .cd-meter { grid-column: 1 / -1; }

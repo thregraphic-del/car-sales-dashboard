@@ -5,7 +5,7 @@ import { api } from '../api.js';
 import { maybeTour } from '../tour.js';
 import { state } from '../state.js';
 import { esc, icon, openModal, closeModal, toast } from '../ui.js';
-import { dayStr, goalFor } from '../goal.js';
+import { dayStr, goalFor, dayCounts } from '../goal.js';
 import { setPending, checkDouble, doubleInfo } from '../streak-rescue.js';
 import { getReminder, reminderSummary, openReminderFlow } from '../reminder.js';
 
@@ -20,11 +20,23 @@ function todayMinutes() {
   return Math.floor((Number(ls(`lt.watch.${dayStr()}`, 0)) || 0) / 60);
 }
 
-/** What the dashboard measures: time watched on this device, or words learned (saved). */
-const metricPref = () => (ls('today.metric', 'time') === 'words' ? 'words' : 'time');
+/** What the dashboard measures — the four goals: time on the site · new words · practice answers · grammar rules (each against its own goal). */
+const METRICS = {
+  time: { goal: 'watch', unit: 'دقيقة', label: '⏱ الوقت', key: 'دقائق تعلّم في الموقع (على هذا الجهاز)' },
+  words: { goal: 'pass', unit: 'كلمة', label: '📚 الكلمات', key: 'كلمات جديدة مرّت عليك' },
+  practice: { goal: 'practice', unit: 'سؤال', label: '🎮 التدريب', key: 'إجابات تدريب' },
+  rules: { goal: 'rules', unit: 'قاعدة', label: '📖 القواعد', key: 'قواعد وأمثلة' },
+};
+const metricPref = () => (METRICS[ls('today.metric', 'time')] ? ls('today.metric', 'time') : 'time');
 const watchMin = (d) => Math.round((Number(ls(`lt.watch.${dayStr(d)}`, 0)) || 0) / 60);
-const dayValue = (d, days, metric) => (metric === 'time' ? watchMin(d) : Number(days[d.toISOString().slice(0, 10)]?.saved || 0));
-const dayActive = (d, days) => { const x = days[d.toISOString().slice(0, 10)]; return watchMin(d) > 0 || !!(x && x.answers + x.saved + x.seen > 0); };
+/** One day's number for each of the four measures (this device's counters, plus what the server remembers). */
+const dayAll = (d, days) => {
+  const c = dayCounts(dayStr(d));
+  const s = days[d.toISOString().slice(0, 10)] || {};
+  return { time: watchMin(d), words: Math.max(c.pass, Number(s.saved || 0)), practice: Math.max(c.practice, Number(s.answers || 0)), rules: c.rules };
+};
+const dayValue = (d, days, metric) => dayAll(d, days)[metric];
+const dayActive = (d, days) => { const a = dayAll(d, days); const x = days[d.toISOString().slice(0, 10)]; return a.time > 0 || a.words > 0 || a.practice > 0 || a.rules > 0 || !!(x && x.answers + x.saved + x.seen > 0); };
 
 /** The words of the last day something was saved (yesterday if any, else the latest earlier day). */
 function lastDay(words) {
@@ -205,9 +217,9 @@ async function openCalendar() {
   const at = (n) => { const d = new Date(now); d.setDate(now.getDate() - n); return d; };
   const key = (d) => d.toISOString().slice(0, 10);
   const val = (d) => dayValue(d, days, metric);
-  const unit = () => (metric === 'time' ? 'دقيقة' : 'كلمة');
+  const unit = () => METRICS[metric].unit;
   const lvl = (v, max) => { if (!v) return 0; const p = v / max; return p >= 0.75 ? 4 : p >= 0.5 ? 3 : p >= 0.25 ? 2 : 1; };
-  const goalN = () => goalFor(metric === 'time' ? 'watch' : 'pass'); // the learner's own number (or the default)
+  const goalN = () => goalFor(METRICS[metric].goal); // the learner's own number (or the default) for the chosen measure
   const goalTxt = () => `${goalN()} ${unit()}`;
   const maxOf = (list) => Math.max(metric === 'time' ? 10 : 5, goalN(), ...list.map(val));
   const rangeDays = (n) => Array.from({ length: n }, (_, i) => at(n - 1 - i));
@@ -257,45 +269,45 @@ async function openCalendar() {
   const shapeHtml = () => (shape === 'bars' ? bars() : shape === 'line' ? line() : squares());
   const rangeNote = () => {
     const list = shape === 'bars' ? rangeDays(14) : shape === 'line' ? rangeDays(30) : Array.from({ length: new Date(y, m + 1, 0).getDate() }, (_, i) => new Date(y, m, i + 1, 12));
-    const mins = list.reduce((s, d) => s + watchMin(d), 0);
-    const words = list.reduce((s, d) => s + Number(days[key(d)]?.saved || 0), 0);
+    const sum = (k) => list.reduce((s, d) => s + dayAll(d, days)[k], 0);
     const act = list.filter((d) => dayActive(d, days)).length;
-    return `${shape === 'bars' ? 'آخر ١٤ يوم' : shape === 'line' ? 'آخر ٣٠ يوم' : `${MONTHS[m]}`} · ${act} يوم نشاط · ${mins} دقيقة · ${words} كلمة`;
+    return `${shape === 'bars' ? 'آخر ١٤ يوم' : shape === 'line' ? 'آخر ٣٠ يوم' : `${MONTHS[m]}`} · ${act} يوم نشاط · ${sum('time')} دقيقة · ${sum('words')} كلمة · ${sum('practice')} تدريب · ${sum('rules')} قاعدة`;
   };
   const dash = () => {
     const d = new Date(`${pick}T12:00:00`);
     const x = days[pick] || { answers: 0, right: 0, saved: 0, seen: 0 };
-    const min = watchMin(d);
+    const a = dayAll(d, days);
     const rate = x.answers ? Math.round((100 * x.right) / x.answers) : 0;
-    const nothing = !min && !x.answers && !x.saved && !x.seen;
-    const got = val(d);
-    const gl = goalN();
-    const goalLine = `<div class="cd-goal${got >= gl ? ' ok' : ''}"><span>🎯 الهدف <b class="en-inline">${gl}</b> ${unit()} · ${metric === 'time' ? 'تعلّم' : 'كلمات'}</span><span class="cd-goal-s">${got >= gl ? `✓ حققته (${got})` : `${got} — باقي ${gl - got}`}</span><i class="cd-meter"><b style="width:${Math.min(100, Math.round((100 * got) / gl))}%"></b></i></div>`;
+    const nothing = !a.time && !a.words && !a.practice && !a.rules && !x.saved && !x.seen;
+    // the four goals of the day, each against its own number: the learner sees every side of the day at a glance
+    const rows = Object.entries(METRICS).map(([k, mt]) => {
+      const got = a[k]; const gl = goalFor(mt.goal);
+      const pct = Math.min(100, Math.round((100 * got) / gl));
+      return `<div class="cd-g${got >= gl ? ' ok' : ''}"><span class="cd-gl">${mt.label}</span><span class="cd-gs"><b class="en-inline">${got}</b><span class="tiny muted"> / ${gl} ${mt.unit}</span>${got >= gl ? ' ✓' : ''}</span><i class="cd-meter"><b style="width:${pct}%"></b></i></div>`;
+    }).join('');
     return `<div class="cal-dash"><div class="cd-head"><b>${DAY_NAMES[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}</b>${pick === key(now) ? '<span class="th-chip">اليوم</span>' : ''}</div>
-      ${goalLine}
+      <div class="cd-goals">${rows}</div>
       ${nothing ? '<p class="tiny muted" style="margin:6px 0 0">ما فيه نشاط هذا اليوم.</p>' : ''}
       <div class="cd-grid">
-        <div class="cd-card"><span class="cd-i">⏱</span><b>${min}</b><small>دقيقة تعلّم</small></div>
-        <div class="cd-card"><span class="cd-i">📚</span><b>${x.saved}</b><small>كلمة تعلّمتها</small></div>
-        <div class="cd-card"><span class="cd-i">👁</span><b>${x.seen}</b><small>كلمة مرّت عليك</small></div>
-        <div class="cd-card"><span class="cd-i">🎮</span><b>${x.answers}</b><small>إجابة تدريب${x.answers ? ` · ${rate}٪ صح` : ''}</small>${x.answers ? `<i class="cd-meter"><b style="width:${rate}%"></b></i>` : ''}</div>
+        <div class="cd-card"><span class="cd-i">📚</span><b>${x.saved}</b><small>كلمة تعلّمتها (حفظتها)</small></div>
+        <div class="cd-card"><span class="cd-i">🎯</span><b>${x.answers ? `${rate}٪` : '—'}</b><small>دقة التدريب${x.answers ? ` · ${x.answers} إجابة` : ''}</small>${x.answers ? `<i class="cd-meter"><b style="width:${rate}%"></b></i>` : ''}</div>
       </div></div>`;
   };
   const draw = () => {
     box.innerHTML = `<div class="cal">
       <div class="cal-ctl">
-        <div class="segmented" id="calMetric"><button type="button" data-cm="time" class="${metric === 'time' ? 'active' : ''}">⏱ الوقت</button><button type="button" data-cm="words" class="${metric === 'words' ? 'active' : ''}">📚 الكلمات</button></div>
+        <div class="segmented seg4" id="calMetric">${Object.entries(METRICS).map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'active' : ''}">${mt.label}</button>`).join('')}</div>
         <div class="segmented" id="calShape">${[['squares', 'مربعات'], ['bars', 'أعمدة'], ['line', 'منحنى']].map(([k, l]) => `<button type="button" data-cs="${k}" class="${shape === k ? 'active' : ''}" aria-label="${l}" title="${l}"><span class="cs-i">${SHAPE_IC[k]}</span><span class="cs-t">${l}</span></button>`).join('')}</div>
       </div>
       <div class="cal-shape">${shapeHtml()}</div>
-      <div class="cal-key tiny"><span>أقل</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>أكثر</span><span class="muted">· ${metric === 'time' ? 'دقائق مشاهدة (على هذا الجهاز)' : 'كلمات تعلّمتها'}</span><span class="cal-gkey"><i></i> الهدف ${goalTxt()}</span></div>
+      <div class="cal-key tiny"><span>أقل</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>أكثر</span><span class="muted">· ${METRICS[metric].key}</span><span class="cal-gkey"><i></i> الهدف ${goalTxt()}</span></div>
       ${dash()}
       <p class="cal-range tiny muted">${rangeNote()}</p>
       <div class="btn-row" style="justify-content:center"><button class="btn ghost" data-close>إغلاق</button></div></div>`;
   };
   box.addEventListener('click', (e) => {
     const cm = e.target.closest('[data-cm]');
-    if (cm) { metric = cm.dataset.cm; lsSet('today.metric', metric); draw(); return; }
+    if (cm && METRICS[cm.dataset.cm]) { metric = cm.dataset.cm; lsSet('today.metric', metric); draw(); return; }
     const cs = e.target.closest('[data-cs]');
     if (cs) { shape = cs.dataset.cs; lsSet('today.shape', shape); draw(); return; }
     const nav = e.target.closest('[data-m]');
