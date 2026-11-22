@@ -231,6 +231,7 @@ async function openCalendar() {
   };
   try { const sv = JSON.parse(ls('today.filter', 'null')); if (sv && UNITS[sv.unit] && MODES[sv.mode]) { F.unit = sv.unit; F.mode = sv.mode; Object.assign(F.last, sv.last || {}); } } catch { /* default */ }
   let open = false;
+  let openSh = false;
   let pick = '';
   const memo = new Map();
   const A = (d) => { const k = key(d); if (!memo.has(k)) memo.set(k, dayAll(d, days)); return memo.get(k); };
@@ -445,7 +446,11 @@ async function openCalendar() {
     box.innerHTML = `<div class="cal">
       <div class="cal-ctl">
         <div class="segmented seg4" id="calMetric">${Object.entries(METRICS).map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'active' : ''}">${mt.label}</button>`).join('')}</div>
-        <div class="segmented" id="calShape">${[['squares', 'مربعات'], ['bars', 'أعمدة'], ['line', 'منحنى']].map(([k, l]) => `<button type="button" data-cs="${k}" class="${shape === k ? 'active' : ''}" aria-label="${l}" title="${l}"><span class="cs-i">${SHAPE_IC[k]}</span><span class="cs-t">${l}</span></button>`).join('')}<button type="button" class="rg-ic${open ? ' active' : ''}" data-rgtoggle aria-expanded="${open}" aria-label="الفترة والمقارنة" title="الفترة والمقارنة"><span class="cs-i">${RG_IC}</span></button></div>
+        <div class="cal-tools">
+          <button type="button" class="ct-btn${openSh ? ' open' : ''}" data-shtoggle aria-expanded="${openSh}"><span class="cs-i">${SHAPE_IC[shape]}</span><span>الأشكال</span></button>
+          <button type="button" class="ct-btn${open ? ' open' : ''}" data-rgtoggle aria-expanded="${open}"><span class="cs-i">${RG_IC}</span><span>الفترة</span></button>
+        </div>
+        ${openSh ? `<div class="rg-panel"><div class="rg-chips rg-shapes">${[['squares', 'مربعات'], ['bars', 'أعمدة'], ['line', 'منحنى']].map(([k, l]) => `<button type="button" class="rg-chip${shape === k ? ' on' : ''}" data-cs="${k}"><span class="cs-i">${SHAPE_IC[k]}</span>${l}</button>`).join('')}</div></div>` : ''}
         <p class="rg-cap tiny"><span class="cs-i">${RG_IC}</span> ${esc(fTitle())}</p>
         ${open ? panel() : ''}
       </div>
@@ -492,8 +497,9 @@ async function openCalendar() {
     const cm = e.target.closest('[data-cm]');
     if (cm && METRICS[cm.dataset.cm]) { metric = cm.dataset.cm; lsSet('today.metric', metric); draw(); return; }
     const cs = e.target.closest('[data-cs]');
-    if (cs) { shape = cs.dataset.cs; lsSet('today.shape', shape); draw(); return; }
-    if (e.target.closest('[data-rgtoggle]')) { open = !open; draw(); return; }
+    if (cs) { shape = cs.dataset.cs; lsSet('today.shape', shape); openSh = false; draw(); return; }
+    if (e.target.closest('[data-shtoggle]')) { openSh = !openSh; open = false; draw(); return; }
+    if (e.target.closest('[data-rgtoggle]')) { open = !open; openSh = false; draw(); return; }
     const fu = e.target.closest('[data-fu]');
     if (fu) { F.unit = fu.dataset.fu; pick = ''; saveF(); draw(); return; }
     const fm = e.target.closest('[data-fm]');

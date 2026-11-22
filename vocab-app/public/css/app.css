@@ -3053,3 +3053,10 @@ body.clipset-on .info-btn.desk { display: none; }
 .rg-units .rg-chip.on { background: #0ABAB5; border-color: #0ABAB5; color: #fff; }
 .rg-nums .rg-chip:has(small) { display: grid; gap: 0; min-width: 52px; padding: 5px 8px; border-radius: 15px; line-height: 1.2; }
 .rg-nums .rg-chip small { font-size: 10.5px; opacity: .8; font-weight: 500; }
+/* two labelled icon buttons: «الأشكال» (the 3 views) and «الفترة» (the filters) */
+.cal-tools { display: flex; gap: 8px; justify-content: center; width: 100%; max-width: 460px; }
+.ct-btn { flex: 1; height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 1.5px solid var(--line); border-radius: 17px; background: var(--surface); color: var(--ink); font: 700 13.5px var(--font-ar, inherit); cursor: pointer; }
+.ct-btn .cs-i { color: #0ABAB5; width: 18px; height: 18px; }
+.ct-btn.open { background: #0ABAB5; border-color: #0ABAB5; color: #fff; } .ct-btn.open .cs-i { color: #fff; }
+.rg-shapes .rg-chip { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 8px; }
+.rg-shapes .rg-chip .cs-i { width: 17px; height: 17px; }
