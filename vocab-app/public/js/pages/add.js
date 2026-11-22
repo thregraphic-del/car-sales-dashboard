@@ -8,6 +8,12 @@ import { esc, icon, levelChip, thumbHtml, relDate, toast, fmtTime, $ } from '../
 import { groupPickerHtml, bindGroupPicker } from '../components.js';
 import { attachButtonHtml, bindAttach, packsHtml, bindPacks, suggestionsHtml, bindSuggestions, suggestWordsHtml, bindSuggestWords, channelsHtml, bindChannels, fieldsHtml, bindFields } from '../add-extras.js';
 
+// the three platforms a link can come from (simple marks, shown inside the empty box)
+const LOGO = {
+  tiktok: '<svg viewBox="0 0 24 24" aria-label="TikTok"><path fill="currentColor" d="M16.6 5.8A4.3 4.3 0 0 1 15.6 3h-3.1v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.7a5.8 5.8 0 1 0 5 5.7V9a7.4 7.4 0 0 0 4.3 1.4V7.3a4.3 4.3 0 0 1-3.4-1.5z"/></svg>',
+  instagram: '<svg viewBox="0 0 24 24" aria-label="Instagram"><defs><linearGradient id="igg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#F9A03F"/><stop offset=".5" stop-color="#E1306C"/><stop offset="1" stop-color="#7B3FE4"/></linearGradient></defs><rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#igg)" stroke-width="2"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="url(#igg)" stroke-width="2"/><circle cx="17.2" cy="6.8" r="1.2" fill="#E1306C"/></svg>',
+  youtube: '<svg viewBox="0 0 24 24" aria-label="YouTube"><rect x="2" y="5" width="20" height="14" rx="4.5" fill="#FF0000"/><path fill="#fff" d="M10 9.2v5.6l5-2.8z"/></svg>',
+};
 // a link to a normal page (an article), not YouTube
 // TikTok / Instagram / Facebook / X links: recognised, but they give no transcript to read
 const SOCIAL = [[/(^|\.)(tiktok\.com|vm\.tiktok\.com)/i, 'تيك توك'], [/(^|\.)(instagram\.com|instagr\.am)/i, 'انستقرام'], [/(^|\.)(facebook\.com|fb\.watch|fb\.com)/i, 'فيسبوك'], [/(^|\.)(twitter\.com|x\.com)/i, 'إكس']];
@@ -26,13 +32,21 @@ export async function render(view, { params }) {
   let cached = [];
   try { cached = JSON.parse(localStorage.getItem(srcKey()) || '[]'); } catch { /* none yet */ }
   view.innerHTML = `
-    <div class="page-head compact"><div><h1>أضف</h1><p>الصق رابط فيديو يوتيوب، أو كلمات، أو ملاحظاتك، أو أي نص إنجليزي — أو نص عربي وبنترجمه لك للإنجليزي.</p></div></div>
+    <div class="page-head compact"><div><h1>أضف</h1></div></div>
     <div class="card add-box">
       <span class="add-kind hidden" id="kindChip"></span>
-      <textarea class="input add-input" id="input" dir="auto" rows="4" placeholder="https://www.youtube.com/watch?v=…&#10;&#10;أو مثلًا:&#10;accurate = دقيق&#10;The report is accurate."></textarea>
+<div class="add-field">
+        <textarea class="input add-input" id="input" dir="auto" rows="5" aria-label="الصق هنا النص أو الرابط"></textarea>
+        <div class="add-ph" id="addPh" aria-hidden="true">
+          <div>نصوص عربي أو إنجليزي أو متداخلة</div>
+          <div class="ph-links">رابط من <span class="ph-logo">${LOGO.tiktok}</span><span class="ph-logo">${LOGO.instagram}</span><span class="ph-logo">${LOGO.youtube}</span></div>
+          <div>مقال أو كتب</div>
+          <div class="ph-soft">لا تحتاج تنسيقًا معيّنًا، نفهمها تلقائيًا 😉</div>
+        </div>
+      </div>
       <div class="row between wrap" style="gap:10px;margin-top:12px">
-        <span class="tiny muted" id="hint">لا تحتاج تنسيقًا معيّنًا، نفهم الكلمات والمعاني تلقائيًا.</span>
-        <div class="row" style="gap:8px">${attachButtonHtml()}<button class="btn primary lg" id="go" disabled>${icon.sparkle} <span id="goLabel">تحليل</span></button></div>
+        <span class="tiny muted hidden" id="hint"></span>
+        <div class="row" style="gap:8px">${attachButtonHtml()}<button class="btn primary lg" id="go" disabled>${icon.sparkle} <span id="goLabel">استخراج</span></button></div>
       </div>
       <div id="manual" class="hidden stack" style="margin-top:14px">
         <label class="field">الصق نص الفيديو (Transcript) من يوتيوب
@@ -106,7 +120,7 @@ export async function render(view, { params }) {
   const update = () => {
     const v = input.value.trim();
     go.disabled = !v;
-    $('#goLabel', view).textContent = isYoutube(v) ? 'افتح الفيديو' : isArticle(v) ? 'افتح المقال' : 'تحليل';
+    $('#goLabel', view).textContent = isYoutube(v) ? 'افتح الفيديو' : isArticle(v) ? 'افتح المقال' : 'استخراج';
     const sn = socialOf(v);
     const k = !v ? '' : isYoutube(v) ? 'video' : sn ? 'social' : isArticle(v) ? 'article' : isArabicProse(v) ? 'arabic' : 'words';
     const chip = $('#kindChip', view);
@@ -118,7 +132,9 @@ export async function render(view, { params }) {
       article: 'نقرأ المقال ونستخرج كلماته، ويُحفظ في «نصوص».',
       social: `ما نقدر نقرأ نص الفيديو من ${sn}. انسخي النص أو الوصف اللي تبينه والصقيه هنا مكان الرابط.`,
       arabic: 'نترجمه للإنجليزي (يستهلك الذكاء الاصطناعي) ويظهر في «نصوص».',
-    }[k] || 'لا تحتاج تنسيقًا معيّنًا، نفهم الكلمات والمعاني تلقائيًا.';
+    }[k] || '';
+    $('#hint', view).classList.toggle('hidden', !$('#hint', view).textContent);
+    $('#addPh', view)?.classList.toggle('hidden', !!v);
     if (!isYoutube(v)) manual.classList.add('hidden');
   };
   input.addEventListener('input', update);

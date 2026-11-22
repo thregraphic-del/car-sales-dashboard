@@ -2697,3 +2697,13 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .mv-sub button { height: 38px; padding: 0 14px; border-radius: 99px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; font-size: 13.5px; cursor: pointer; white-space: nowrap; }
 .mv.mv-hid { opacity: .45; }
 .act-bar .fd-kind { margin-inline-end: auto; }
+/* «أضف» — the guide text lives inside the empty box */
+.add-field { position: relative; }
+.add-field .add-input { min-height: 150px; }
+.add-ph { position: absolute; inset: 0; padding: 12px 14px; display: grid; align-content: start; gap: 8px; pointer-events: none; color: var(--muted); font-size: 15px; line-height: 1.6; }
+.add-ph.hidden { display: none; }
+.ph-links { display: flex; align-items: center; gap: 9px; }
+.ph-logo { display: inline-grid; place-items: center; width: 24px; height: 24px; color: var(--ink); }
+.ph-logo svg { width: 22px; height: 22px; }
+.ph-soft { margin-top: 2px; font-size: 13.5px; opacity: .85; }
+.fd-sq, .fd-selbtn { flex: none; }
