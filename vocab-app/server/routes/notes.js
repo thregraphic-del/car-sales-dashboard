@@ -68,9 +68,17 @@ router.post('/', wrap(async (req) => {
 router.put('/:sourceId', wrap(async (req) => {
   const id = Number(req.params.sourceId);
   const list = await load(req.userId);
-  const item = list.find((n) => Number(n.source_id) === id);
-  if (!item) throw httpError(404, 'ما لقينا هذه الخلاصة.');
-  item.note = clean(req.body?.note, 6000);
+  let item = list.find((n) => Number(n.source_id) === id);
+  const note = clean(req.body?.note, 6000);
+  if (!item) {
+    // the entry is made on the first note written for this clip
+    const s = await get('SELECT id, youtube_id, title, channel, thumbnail_url FROM sources WHERE id = ? AND user_id = ?', id, req.userId);
+    if (!s) throw httpError(404, 'المقطع غير موجود.');
+    if (!note.trim()) return { ok: true, note: null };
+    item = { source_id: id, title: s.title, channel: s.channel || '', youtube_id: s.youtube_id || null, thumbnail_url: s.thumbnail_url || null, saved_at: new Date().toISOString(), summary: null, note: '', refs: [], clips: [] };
+    list.unshift(item);
+  }
+  item.note = note;
   item.refs = cleanRefs(req.body?.refs);
   item.edited_at = new Date().toISOString();
   await save(req.userId, list);

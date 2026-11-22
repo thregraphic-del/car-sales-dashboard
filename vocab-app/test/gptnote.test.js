@@ -35,3 +35,16 @@ test('keeps a ChatGPT summary under the clip, then removes it with empty text', 
 test('an unknown clip is refused', async () => {
   assert.equal((await call('PUT', '/api/notes/999999/gpt', { text: 'x' })).status, 404);
 });
+
+test('a note can be written for a clip that has nothing kept yet; empty text keeps nothing', async () => {
+  const made = await call('POST', '/api/sources/text', { text: 'Habits are built slowly. Small steps matter every single day.', title: 'Habits clip' });
+  const id = made.body.source_id;
+  assert.equal((await call('PUT', `/api/notes/${id}`, { note: '   ', refs: [] })).body.note, null);
+  assert.equal((await call('GET', '/api/notes')).body.notes.some((n) => n.source_id === id), false);
+  const r = await call('PUT', `/api/notes/${id}`, { note: 'فكرة أعجبتني: الخطوات الصغيرة', refs: [] });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.note.title, 'Habits clip');
+  const mine = (await call('GET', '/api/notes')).body.notes.find((n) => n.source_id === id);
+  assert.equal(mine.note, 'فكرة أعجبتني: الخطوات الصغيرة');
+  assert.equal((await call('PUT', '/api/notes/999999', { note: 'x', refs: [] })).status, 404);
+});

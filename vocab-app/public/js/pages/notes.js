@@ -5,6 +5,7 @@ import { api } from '../api.js';
 import { esc, icon, toast, emptyState } from '../ui.js';
 import { summaryHtml } from '../summary-view.js';
 import { openGptNote } from '../gpt-note.js';
+import { askChatGpt } from '../chatgpt-ask.js';
 
 const fmt = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
 const TOKEN = /@(\d{1,3})(?::(\d{1,2}))?/g;
@@ -47,7 +48,9 @@ const cardHtml = (n) => `
       ${gptHtml(n)}${noteHtml(n)}${clipsHtml(n)}${n.summary ? summaryHtml(n.summary) : ''}</div>
   </article>`;
 
-export async function render(view) {
+export async function render(view, { params } = {}) {
+  const only = Number(params?.source) || 0;
+  if (only) return renderOne(view, only);
   view.innerHTML = `<div class="page-head"><div><div class="eyebrow">Insights</div><h1>أفكار</h1><p class="muted small">ملخصات المقاطع والمقاطع اللي ظلّلتها، مع ملاحظاتك عليها.</p></div>
       <button type="button" class="btn sm" id="ntAddGpt"><span class="gpt-mark" aria-hidden="true"></span> أضف ملخص ChatGPT</button></div>
     <div class="stack" id="ntList"><p class="tiny muted"><span class="spinner"></span></p></div>`;
@@ -153,5 +156,88 @@ export async function render(view) {
       if (!confirm('تحذف هذي الخلاصة من «أفكار»؟')) return;
       try { await api.dropNote(n.source_id); notes = notes.filter((x) => x !== n); draw(); } catch (err) { toast(err.message); }
     }
+  });
+}
+
+/* ------------------------------------------------ one clip's ideas (opened from the 💡 in the clip) */
+const IC_GPT = '<span class="gpt-mark" aria-hidden="true"></span>';
+const IC_PASTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="26" height="26" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>';
+const IC_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="26" height="26" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
+
+async function renderOne(view, id) {
+  let data;
+  try { data = await api.source(id); } catch (err) { view.innerHTML = emptyState('🔎', 'ما لقينا هذا المقطع', err.message, '<a class="btn" href="#/notes">كل الأفكار</a>'); return; }
+  const src = data.source;
+  const lines = (data.lines || []).map((l) => l.text).filter(Boolean);
+  view.innerHTML = `<div class="nt-one">
+    <header class="cs-head"><a class="btn icon ghost cs-x" href="#/source/${id}" aria-label="رجوع للمقطع" title="رجوع للمقطع">✕</a><h1>أفكاري عن المقطع</h1></header>
+    <p class="tiny muted en clamp2" dir="auto" style="margin:0">${esc(src.title || '')}</p>
+    <div class="nt-actions" role="group" aria-label="أدوات الأفكار">
+      <button type="button" class="nt-act" id="ntAsk" title="اسأل ChatGPT: يجهّز رسالة تلخيص جاهزة ويفتح ChatGPT">${IC_GPT}<span>اسأل ChatGPT</span></button>
+      <button type="button" class="nt-act" id="ntPaste" title="الصق تلخيص ChatGPT واحفظه هنا">${IC_PASTE}<span>الصق تلخيص ChatGPT</span></button>
+      <button type="button" class="nt-act" id="ntWrite" title="اكتب ملاحظة عن المقطع">${IC_NOTE}<span>اكتب ملاحظة</span></button>
+    </div>
+    <p class="tiny muted nt-hint">وهنا تنحفظ أفكارك: الجمل اللي ظلّلتها من المقطع، وملاحظتك، وملخص ChatGPT.</p>
+    <div class="stack" id="ntList"><p class="tiny muted"><span class="spinner"></span></p></div></div>`;
+  const listEl = view.querySelector('#ntList');
+  let notes = [];
+  const blank = () => ({ source_id: id, title: src.title, youtube_id: src.youtube_id || null, thumbnail_url: src.thumbnail_url || null, exists: true, summary: null, gpt: '', note: '', refs: [], clips: [], blank: true });
+  const mine = (all) => { const n = all.find((x) => Number(x.source_id) === id); return n ? [n] : [blank()]; };
+  const draw = () => {
+    listEl.innerHTML = notes.map(cardHtml).join('');
+    listEl.querySelectorAll('.nt-card').forEach((c) => { c.classList.add('open'); c.querySelector('[data-toggle]')?.setAttribute('aria-expanded', 'true'); });
+  };
+  const reload = async () => { try { notes = mine((await api.notes()).notes); draw(); } catch (err) { toast(err.message); } };
+  try { notes = mine((await api.notes()).notes); } catch (err) { listEl.innerHTML = `<div class="alert">${esc(err.message)}</div>`; return; }
+  draw();
+  view.querySelector('#ntAsk').addEventListener('click', () => askChatGpt(lines));
+  view.querySelector('#ntPaste').addEventListener('click', () => openGptNote({ sourceId: id, title: src.title, current: notes[0]?.gpt || '', onSaved: reload }));
+  view.querySelector('#ntWrite').addEventListener('click', () => listEl.querySelector('[data-edit]')?.click());
+  const linesOf = lines.length ? Promise.resolve((data.lines || []).filter((l) => l.start_seconds != null)) : Promise.resolve([]);
+  listEl.addEventListener('click', async (e) => {
+    const card = e.target.closest('[data-src]');
+    if (!card) return;
+    const n = notes[0];
+    const dc = e.target.closest('[data-delclip]');
+    if (dc) { const c = n.clips[Number(dc.dataset.delclip)]; try { await api.dropClip(id, c.t, c.en); n.clips = n.clips.filter((x) => x !== c); draw(); } catch (err) { toast(err.message); } return; }
+    if (e.target.closest('[data-gpt]')) { openGptNote({ sourceId: id, title: src.title, current: n.gpt || '', onSaved: reload }); return; }
+    if (e.target.closest('[data-edit]')) { if (!card.querySelector('.nt-edit')) await editOne(card, n, linesOf); return; }
+    if (e.target.closest('[data-del]')) {
+      if (!confirm('تحذف أفكار هذا المقطع من «أفكار»؟')) return;
+      try { await api.dropNote(id); notes = [blank()]; draw(); } catch (err) { toast(err.message); }
+    }
+  });
+}
+
+// writing a note (with @minute sentences) for the clip shown on this page
+async function editOne(card, n, linesP) {
+  const lines = await linesP;
+  const body = card.querySelector('.nt-body');
+  body.querySelector('.nt-tools').insertAdjacentHTML('afterend', `<div class="nt-edit">
+    <textarea class="input" rows="5" placeholder="اكتب ملاحظتك… واكتب @ ثم الدقيقة (مثل @3 أو @3:20) عشان تربطها بجملة من المقطع">${esc(n.note || '')}</textarea>
+    <div class="btn-row"><button type="button" class="btn primary sm" data-save>حفظ</button><button type="button" class="btn sm ghost" data-cancel>إلغاء</button></div></div>`);
+  card.querySelector('.nt-note')?.remove();
+  const ta = body.querySelector('textarea');
+  ta.focus();
+  const lineAt = (t) => { let best = null; for (const l of lines) { if (Number(l.start_seconds) <= t + 0.5) best = l; else break; } return best || lines[0] || null; };
+  body.querySelector('[data-cancel]').addEventListener('click', () => { body.querySelector('.nt-edit').remove(); body.querySelector('.nt-tools').insertAdjacentHTML('afterend', noteHtml(n)); });
+  body.querySelector('[data-save]').addEventListener('click', async () => {
+    const note = ta.value.trim();
+    const used = [];
+    for (const m of note.matchAll(TOKEN)) {
+      const t = secOf(m[1], m[2]);
+      if (used.some((r) => r.t === t)) continue;
+      const known = (n.refs || []).find((r) => r.t === t);
+      const l = known ? null : lineAt(t);
+      if (known) used.push(known);
+      else if (l) used.push({ t, en: l.text, ar: l.text_ar || '' });
+    }
+    try {
+      const r = await api.editNote(n.source_id, note, used);
+      if (r.note) { Object.assign(n, r.note); delete n.blank; } else { n.note = ''; n.refs = []; }
+      body.querySelector('.nt-edit').remove();
+      body.querySelector('.nt-tools').insertAdjacentHTML('afterend', noteHtml(n));
+      toast('تم الحفظ ✓');
+    } catch (err) { toast(err.message); }
   });
 }

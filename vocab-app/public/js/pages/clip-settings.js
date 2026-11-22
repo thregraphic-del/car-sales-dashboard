@@ -32,7 +32,7 @@ export async function render(view, { segments, params }) {
     <header class="cs-head">
       <a class="btn icon ghost cs-x" href="${clip}" aria-label="إغلاق" title="إغلاق ورجوع للمقطع">✕</a>
       <h1>إعدادات المقطع</h1>
-      ${id ? `<span class="cs-tools"><a class="btn icon ghost" href="${clip}?copy=1" aria-label="نسخ النص" title="نسخ كل النص: للصقه في ChatGPT أو أي مكان">${COPY}</a><a class="btn icon ghost cs-ideas" href="${clip}?ideas=1" aria-label="أفكار" title="أفكار: اكتب ملاحظة، الصق ملخص ChatGPT، اسأل ChatGPT">${BULB}</a></span>` : ''}
+      ${id ? `<span class="cs-tools"><a class="btn icon ghost" href="${clip}?copy=1" aria-label="نسخ النص" title="نسخ كل النص: للصقه في ChatGPT أو أي مكان">${COPY}</a><a class="btn icon ghost cs-ideas" href="#/notes?source=${id}" aria-label="أفكار" title="أفكار: اسأل ChatGPT، الصق ملخصه، اكتب ملاحظة">${BULB}</a></span>` : ''}
     </header>
     <div class="cs-grid">
       <section class="cs-card">

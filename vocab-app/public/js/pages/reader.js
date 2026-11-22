@@ -14,6 +14,7 @@ import { state } from '../state.js';
 import { notePassed, noteWatched } from '../goal.js';
 import { summaryHtml } from '../summary-view.js';
 import { openGptNote } from '../gpt-note.js';
+import { askChatGpt } from '../chatgpt-ask.js';
 import { esc, icon, levelChip, usageDot, usageLegend, fmtTime, fmtDuration, toast, $, emptyState, openModal, closeModal, applyTheme, copyText } from '../ui.js';
 import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech, celebrateGoal } from '../components.js';
 import { tokenize, quickTier, normalizeArabic } from '../shared/text.js';
@@ -2647,51 +2648,8 @@ export async function render(view, { segments, params }) {
   // 💡 «أفكار»: everything about ideas in one place — ask ChatGPT, keep its answer, write your own note, copy the text, the full summary (owner only)
   if (params.copy) { history.replaceState(null, '', `#/source/${id}`); setTimeout(() => $('#copyAll', view)?.click(), 700); }
   if (params.ideas) { history.replaceState(null, '', `#/source/${id}`); setTimeout(() => $('#ideasBtn', view)?.click(), 700); }
-  $('#ideasBtn', view)?.addEventListener('click', () => {
-    toggleSet(false);
-    const box = openModal(`<div class="stack ideas-box"><h2 style="margin:0">💡 أفكار</h2>
-      <p class="tiny muted" style="margin:0">كل شي عن أفكارك لهذا المقطع في مكان واحد. ويتحفظ كله في «أفكار».</p>
-      <button type="button" class="idea-row" data-idea="ask"><span class="ico">${icon.gpt}</span><span><b>اسأل ChatGPT</b><span class="tiny muted">يجهّز رسالة تلخيص جاهزة ويفتح ChatGPT</span></span></button>
-      <button type="button" class="idea-row" data-idea="keep"><span class="ico">${icon.bookmark}</span><span><b>الصق ملخص ChatGPT واحفظه</b><span class="tiny muted">يظهر باسم المقطع في «أفكار»</span></span></button>
-      <button type="button" class="idea-row" data-idea="note"><span class="ico">${icon.note || icon.doc}</span><span><b>اكتب ملاحظة</b><span class="tiny muted">فكرة أعجبتك أو شي تبي تتذكره</span></span></button>
-      ${paid.summary ? `<button type="button" class="idea-row" data-idea="summary"><span class="ico">${icon.doc}</span><span><b>ملخص المقطع كامل</b><span class="tiny muted">بالذكاء الاصطناعي (يستهلك رصيد)</span></span></button>` : ''}
-      <a class="idea-row" href="#/notes" data-close><span class="ico">${icon.bookOpen}</span><span><b>افتح «أفكار»</b><span class="tiny muted">كل اللي حفظته من كل المقاطع</span></span></a></div>`);
-    box.addEventListener('click', (e) => {
-      const b = e.target.closest('[data-idea]');
-      if (!b) return;
-      closeModal(true);
-      const k = b.dataset.idea;
-      if (k === 'note') return openGptNote({ sourceId: id, title: source.title, own: true });
-      return $(`#${{ ask: 'askGpt', keep: 'saveGpt', copy: 'copyAll', summary: 'summaryBtn' }[k]}`, view)?.click();
-    });
-  });
-  view.querySelectorAll('#askGpt, #gptTop').forEach((btn) => btn.addEventListener('click', async () => {
-    const body = data.lines.map((l) => l.text).join('\n');
-    const head = 'أنت خبير تلخيص. لخّص لي النص التالي بالعربي بأسلوب علمي واضح وعملي، وبأقصر شكل: الزبدة فقط، بدون مقدمات ولا حشو ولا إعادة للنص.\n'
-      + 'أعطني: (١) الفكرة الأساسية في جملتين. (٢) أهم ٣ إلى ٥ نقاط. (٣) كيف أطبّقها عمليًا من اليوم.\n'
-      + 'لا تتجاوز نحو ١٥٠ كلمة، وأجب عن أسئلتي عن النص بعدها بنفس الأسلوب المختصر.';
-    const full = `${head}\n\n${body}`;
-    showGptPill();
-    const fits = encodeURIComponent(full).length <= 7000; // short enough to travel inside the link (?q=) → the box arrives filled
-    const url = fits ? `https://chatgpt.com/?q=${encodeURIComponent(full)}` : 'https://chatgpt.com/';
-    if (fits && body.length <= 3500) {
-      // a short text: straight to ChatGPT with the whole message in the box (also copied, in case the box stays empty)
-      const win = window.open(url, '_blank'); // opened first, inside the tap
-      if (win) win.opener = null;
-      copyText(full);
-      toast(win ? '✓ فتحنا ChatGPT والرسالة جاهزة فيه — اضغط إرسال' : 'المتصفح منع فتح ChatGPT — افتحه والصق (الرسالة منسوخة)');
-      return;
-    }
-    // a long text: say first that it takes about a minute, copy the full message, and give one clear button
-    const ok = await copyText(full);
-    openModal(`<div class="stack gpt-help">
-        <h2 style="margin:0">لخّص المقطع في ChatGPT</h2>
-        <p class="gpt-step">⏳ <b>النص طويل، فتجهيزه في ChatGPT ياخذ نحو دقيقة</b> قبل ما يشتغل زر الإرسال — انتظر لين يخلص الشريط «جارٍ إضافة النص».</p>
-        <p class="gpt-step">${ok ? '✓' : '⚠'} <b>${ok ? 'نُسخت الرسالة كاملة' : 'ما قدرنا ننسخ'}</b> (طلب «لخّص بالعربي، الزبدة فقط» ومعه النص كله)${ok ? '' : ' — استخدم «نسخ كل النص» من الإعدادات'}.</p>
-        <a class="btn primary" href="${url}" target="_blank" rel="noopener" data-close>افتح ChatGPT ↗</a>
-        <p class="gpt-step">${fits ? 'الرسالة بتكون جاهزة في المربع.' : '<b>بعد ما يفتح:</b> المس مربع الكتابة مطوّلًا ← «لصق» ← إرسال.'}</p>
-      </div>`);
-  }));
+  $('#ideasBtn', view)?.addEventListener('click', () => { location.hash = `#/notes?source=${id}`; });
+  view.querySelectorAll('#askGpt, #gptTop').forEach((btn) => btn.addEventListener('click', () => askChatGpt(data.lines.map((l) => l.text), { onTap: showGptPill })));
 
   // 🏁 the video ended: its summary, then «أحسنت» 🎉 with practice on its words (not a test) or finish
   const finishVideo = () => {
