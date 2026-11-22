@@ -91,9 +91,13 @@ export async function render(view, { params }) {
   if (!label && mode !== 'story' && !params.focus && !params.type) {
     // two areas on one page: 🔤 الكلمات | 📚 القواعد (the grammar one has its own games that also TEACH the rule)
     const area = params.area === 'grammar' ? 'grammar' : 'words';
-    stage.insertAdjacentHTML('beforebegin', `<div class="lib-tabs segmented" role="tablist" id="areaTabs"><a href="${href({})}" role="tab" class="${area === 'words' ? 'active' : ''}">🔤 الكلمات</a><a href="${href({ area: 'grammar' })}" role="tab" class="${area === 'grammar' ? 'active' : ''}">📚 القواعد</a></div>`);
+    const tabsHtml = `<div class="lib-tabs segmented wd-seg" role="tablist" id="areaTabs"><a href="${href({})}" role="tab" class="${area === 'words' ? 'active' : ''}">الكلمات <b id="pCnt"></b></a><a href="${href({ area: 'grammar' })}" role="tab" class="${area === 'grammar' ? 'active' : ''}">القواعد <b id="gCnt"></b></a></div>`;
+    // the lazy count of grammar rules (one light request), shown beside «القواعد»
+    const fillGrammarCount = () => api.grammar().then((lib) => { const n = Object.values(lib.subs || {}).filter((e) => (e.examples?.length || 0) || e.seen || (e.status && e.status !== 'new')).length; const el = view.querySelector('#gCnt'); if (el && n) el.textContent = `(${n})`; }).catch(() => {});
     if (area === 'grammar') {
       view.querySelector('.page-head .btn')?.remove();
+      stage.insertAdjacentHTML('beforebegin', tabsHtml);
+      fillGrammarCount();
       const stopGrammar = renderGrammarSection(stage);
       cleanup = stopGrammar;
       return () => cleanup?.();
@@ -113,9 +117,10 @@ export async function render(view, { params }) {
       ...GAME_ORDER.map((k) => ({ mode: 'games', type: k, icon: icon[TYPES[k].icon] || '🎮', name: TYPES[k].name, desc: TYPES[k].description })),
     ];
     renderBuilder(stage, {
-      words: all, groups: state.groups, games,
+      words: all, groups: state.groups, games, tabs: tabsHtml,
       onGo: (list, m, t) => { location.hash = href({ mode: m, type: t, ids: list.map((w) => w.uv_id).slice(0, m === 'story' ? 30 : 1000).join(','), exact: 1, n: Date.now() }); },
     });
+    fillGrammarCount();
     return;
   }
 

@@ -2551,3 +2551,36 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .fbar .dd-btn.fb-btn.set { border-color: var(--accent) !important; background: color-mix(in srgb, var(--accent) 8%, var(--surface)) !important; color: var(--ink) !important; }
 .fbar .dd-btn.fb-btn.set .dd-t { color: var(--ink-2) !important; font-weight: 500; }
 @media (max-width: 520px) { .fbar .dd { flex: 1 1 calc(25% - 8px); } .fbar .dd-btn.fb-btn { padding: 0 8px; } .fbar .dd-btn.fb-btn .dd-t { font-size: 13px; } }
+
+/* «تدرّب» in short form: [funnel] [N words · start], Words | Grammar, six tiles; the filters open on ONE line */
+.pb5 { display: grid; gap: 12px; }
+.pb-top { display: flex; align-items: stretch; gap: 10px; }
+.pb-fbtn { flex: none; width: 56px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; display: grid; place-items: center; position: relative; box-shadow: var(--shadow-sm); }
+.pb-fbtn svg { width: 24px; height: 24px; }
+.pb-fbtn.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pb-fbtn.set:not(.on)::after { content: ''; position: absolute; top: 9px; inset-inline-end: 9px; width: 9px; height: 9px; border-radius: 50%; background: var(--gold, #CBA55E); }
+.pb-start { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 18px; }
+.pb-n { all: unset; cursor: pointer; flex: 1; font-size: 17px; color: var(--ink-2); white-space: nowrap; }
+.pb-n b { font-size: 30px; font-weight: 800; color: var(--ink); margin-inline-end: 4px; }
+.pb-sep { width: 1px; align-self: stretch; background: var(--line); }
+.pb-go { border-radius: 999px; padding: 10px 18px; font-size: 16px; display: inline-flex; align-items: center; gap: 6px; }
+.pb-go svg { width: 18px; height: 18px; }
+.pb-filters .fbar { flex-wrap: nowrap; gap: 6px; margin-bottom: 0; }
+.pb-filters .fbar .dd { flex: 1 1 0; min-width: 0; }
+.pb-filters .fbar .dd-btn.fb-btn { height: 34px; padding: 0 6px; gap: 3px; }
+.pb-filters .fbar .dd-btn.fb-btn .dd-t { font-size: 12.5px; }
+.pb-filters .fbar .dd-btn.fb-btn .dd-v { font-size: 11.5px; max-width: 5ch; }
+.pb-filters .fbar .dd-btn.fb-btn .fb-chev { width: 12px; height: 12px; }
+.pb-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.pb-tile { padding: 20px 6px; border-radius: 20px; gap: 8px; min-height: 104px; align-content: center; box-shadow: var(--shadow-sm); }
+.pb-tile .pb-gi svg { width: 28px; height: 28px; }
+.pb-tile b { font-size: 14.5px; }
+.pb-more { justify-self: center; font-size: 13px; }
+@media (min-width: 900px) { .pb-grid { grid-template-columns: repeat(6, 1fr); } }
+.pb5, .pb-filters, .pb-top { min-width: 0; }
+.pb-filters .fbar { overflow: visible; }
+.pb-filters .fbar .dd-btn.fb-btn { min-width: 0; overflow: hidden; }
+.pb-filters .fbar .fb-txt { min-width: 0; overflow: hidden; }
+.pb-filters .fbar .dd-t { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 380px) { .pb-filters .fbar .dd-btn.fb-btn .dd-t { font-size: 11.5px; } .pb-filters .fbar .dd-btn.fb-btn .fb-chev { display: none; } .pb-start { gap: 8px; padding: 8px 10px; } .pb-go { padding: 9px 12px; } }
+@media (max-width: 380px) { .pb-filters .fbar .dd-btn.fb-btn .dd-v { display: none; } }

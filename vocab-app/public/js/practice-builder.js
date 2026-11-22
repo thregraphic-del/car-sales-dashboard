@@ -9,7 +9,7 @@
 //                       and «not again today» so the same words don't come back in one day
 // Presets set the five filters in one tap; when nothing matches, the builder says which
 // filter to loosen and how many words that would give. The result is the exact list.
-import { esc, levelChip, usageDot } from './ui.js';
+import { esc, icon, levelChip, usageDot } from './ui.js';
 import { filterBarHtml, filterBarClick, placeMenus, closeOnOutside, ytThumb } from './filter-bar.js';
 
 const DAY = 86400000;
@@ -138,11 +138,13 @@ function summary(F, key, ctx) {
  * Draw the builder into `stage`. groups: [{id,name}]. onGo(list, mode) starts the practice.
  * Returns nothing; everything lives inside `stage`.
  */
-export function renderBuilder(stage, { words: all, groups = [], games = [], onGo }) {
+export function renderBuilder(stage, { words: all, groups = [], games = [], tabs = '', onGo }) {
   let F = { ...DEFAULTS };
   try { F = { ...DEFAULTS, ...JSON.parse(localStorage.getItem('practice.builder2') || '{}') }; } catch { /* first time */ }
   F.seed = Math.floor(Math.random() * 100000) + 1;
   let open = '';
+  let fOpen = false; // the filters are folded behind the funnel icon
+  let moreOpen = false;
   let preset = '';
   const off = new Set();
   const vids = videoList(all);
@@ -191,15 +193,28 @@ export function renderBuilder(stage, { words: all, groups = [], games = [], onGo
       { k: 'when', t: 'الوقت', value: F.when === 'lastN' ? 'all' : F.when, opts: [['all', 'أي وقت'], ['today', 'اليوم'], ['yesterday', 'أمس'], ['week', 'آخر أسبوع'], ['month', 'آخر شهر']] },
     ];
     stage._defs = defs;
-    stage.innerHTML = `<div class="card pb pb4">
-      ${filterBarHtml(defs, open)}
-      <div class="pb-result">
-        <div class="pb-count"><b>${chosen.length}</b> كلمة جاهزة ${list.length ? `<button type="button" class="link-btn tiny" data-showlist>عرض ▾</button>` : ''}</div>
-        ${!list.length ? '<div class="sopts"><button type="button" class="sopt" data-reset>↺ كل كلماتي</button></div>' : `<details class="pb-list"${stage._listOpen ? ' open' : ''}><summary class="hidden"></summary>
-          <div class="pf-list">${list.map((w) => `<label class="pf-item"><input type="checkbox" class="check" data-pv="${w.uv_id}" ${off.has(w.uv_id) ? '' : 'checked'}> <b class="en">${esc(w.term)}</b> <span class="tiny ink-2">${esc(w.arabic || '')}</span></label>`).join('')}</div></details>`}
-        <div class="pb-games-title">${chosen.length ? `اختر لعبة — تبدأ بهذه الـ ${chosen.length} كلمة:` : 'اختر كلمات أولًا.'}</div>
-        <div class="pb-games">${games.map((g) => `<button type="button" class="pb-game" data-game="${g.mode}:${g.type || ''}" ${chosen.length ? '' : 'disabled'}><span class="pb-gi">${g.icon}</span><b>${g.name}</b><span class="tiny muted">${g.desc || ''}</span></button>`).join('')}</div>
-      </div></div>`;
+    // the short form: [filter icon] [N words · «تدرّب»], the tabs, six game tiles (the rest one tap away)
+    const MAIN = ['quiz:', 'cards:', 'listen:', 'story:', 'games:speed', 'games:similar'];
+    const gkey = (g) => `${g.mode}:${g.type || ''}`;
+    const main = MAIN.map((k) => games.find((g) => gkey(g) === k)).filter(Boolean);
+    const rest = games.filter((g) => !MAIN.includes(gkey(g)));
+    const tile = (g) => `<button type="button" class="pb-game pb-tile" data-game="${gkey(g)}" ${chosen.length ? '' : 'disabled'}><span class="pb-gi">${g.icon}</span><b>${g.name}</b></button>`;
+    const fSet = F.levels.length > 0 || F.perf.length > 0 || F.from !== 'all' || (F.when && F.when !== 'all') || Number(F.count) > 0;
+    const FUNNEL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5h17l-6.5 7.8V19l-4 2v-8.2z"/></svg>';
+    stage.innerHTML = `<div class="pb5">
+      <div class="pb-top">
+        <button type="button" class="pb-fbtn${fOpen ? ' on' : ''}${fSet ? ' set' : ''}" data-pbf aria-expanded="${fOpen}" aria-label="الفلاتر" title="الفلاتر">${FUNNEL}</button>
+        <div class="card pb-start"><button type="button" class="pb-n" data-showlist aria-label="عرض الكلمات"><b class="en-inline">${chosen.length}</b> كلمة</button><i class="pb-sep"></i><button type="button" class="btn primary pb-go" data-go ${chosen.length ? '' : 'disabled'}>تدرّب ${icon.play}</button></div>
+      </div>
+      ${fOpen ? `<div class="pb-filters">${filterBarHtml(defs, open)}</div>` : ''}
+      ${tabs}
+      ${!list.length ? '<div class="sopts" style="margin:10px 0"><button type="button" class="sopt" data-reset>↺ كل كلماتي</button></div>' : `<details class="pb-list"${stage._listOpen ? ' open' : ''}><summary class="hidden"></summary>
+        <div class="pf-list">${list.map((w) => `<label class="pf-item"><input type="checkbox" class="check" data-pv="${w.uv_id}" ${off.has(w.uv_id) ? '' : 'checked'}> <b class="en">${esc(w.term)}</b> <span class="tiny ink-2">${esc(w.arabic || '')}</span></label>`).join('')}</div></details>`}
+      <div class="pb-grid">${main.map(tile).join('')}</div>
+      ${rest.length ? `<button type="button" class="link-btn pb-more" data-more>${moreOpen ? 'أقل ▴' : `المزيد من الألعاب (${rest.length}) ▾`}</button>${moreOpen ? `<div class="pb-grid">${rest.map(tile).join('')}</div>` : ''}` : ''}
+    </div>`;
+    const pc = stage.querySelector('#pCnt');
+    if (pc) pc.textContent = chosen.length ? `(${chosen.length})` : '';
     save();
     stage._chosen = chosen;
     placeMenus(stage);
@@ -255,6 +270,9 @@ export function renderBuilder(stage, { words: all, groups = [], games = [], onGo
     if (t.closest('[data-reset]')) { F = { ...DEFAULTS, seed: F.seed }; preset = ''; return draw(); }
     if (t.closest('[data-all]')) { off.clear(); return draw(); }
     if (t.closest('[data-none]')) { selectWords(all, F).list.forEach((w) => off.add(w.uv_id)); return draw(); }
+    if (t.closest('[data-pbf]')) { fOpen = !fOpen; open = ''; return draw(); }
+    if (t.closest('[data-more]')) { moreOpen = !moreOpen; return draw(); }
+    if (t.closest('[data-go]')) return onGo(stage._chosen || [], 'quiz', undefined); // «تدرّب»: a mixed quiz of these words
     const g = t.closest('[data-game]');
     if (g) { const [m, type] = g.dataset.game.split(':'); return onGo(stage._chosen || [], m, type || undefined); }
     return undefined;
