@@ -3060,3 +3060,13 @@ body.clipset-on .info-btn.desk { display: none; }
 .ct-btn.open { background: #0ABAB5; border-color: #0ABAB5; color: #fff; } .ct-btn.open .cs-i { color: #fff; }
 .rg-shapes .rg-chip { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 9px 8px; }
 .rg-shapes .rg-chip .cs-i { width: 17px; height: 17px; }
+/* the filters fill the whole width (no empty side), evenly sized on every screen */
+.cal-ctl { justify-items: stretch; }
+.cal-ctl > * { width: 100%; box-sizing: border-box; min-width: 0; }
+.cal-ctl .seg4 { display: flex; max-width: none; }
+.cal-ctl .seg4 button { flex: 1; justify-content: center; }
+.cal-tools { max-width: none; }
+.rg-cap { justify-content: center; }
+.rg-chips .rg-chip { flex: 1 1 auto; text-align: center; }
+.rg-nums .rg-chip { flex: 0 1 auto; }
+.cal-ctl { grid-template-columns: minmax(0, 1fr); justify-content: stretch; }
