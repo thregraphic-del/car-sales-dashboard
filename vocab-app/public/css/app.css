@@ -2494,3 +2494,9 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 
 /* today's minutes: just one small grey line, no frame, no icon */
 .th-spent { margin: 2px 6px 0; font-size: 12.5px; color: var(--muted); text-align: start; }
+.th-stat { flex-wrap: wrap; }
+.th-sl { font-size: 13px; color: var(--muted); align-self: flex-end; padding-bottom: 4px; }
+.th-stat { flex-wrap: nowrap; gap: 9px; min-width: 0; }
+.th-stat b { font-size: clamp(24px, 8vw, 34px); }
+.th-sl { align-self: center; padding-bottom: 0; white-space: nowrap; }
+@media (max-width: 380px) { .th-prog2 .th-si { width: 32px; height: 32px; } .th-prog2 .th-si svg { width: 16px; height: 16px; } .th-stat { gap: 6px; } }
