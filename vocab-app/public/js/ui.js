@@ -283,6 +283,8 @@ export function thumbHtml(source, { duration } = {}) {
 // ---- 3Goal line icons (one style everywhere, instead of chat emojis)
 Object.assign(icon, {
   bookOpen: svg('<path d="M2 4.5h6a4 4 0 0 1 4 4V21a3 3 0 0 0-3-3H2z"/><path d="M22 4.5h-6a4 4 0 0 0-4 4V21a3 3 0 0 1 3-3h7z"/>'),
+  globe: svg('<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/>'),
+  funnel: svg('<path d="M3 5h18l-7 8v6l-4 2v-8z"/>'),
   library: svg('<path d="M4 4v16M8 4v16"/><path d="m12.5 4.6 4.2-1.1 4 15.4-4.2 1.1z"/>'),
   chat: svg('<path d="M21 12a8 8 0 0 1-11.6 7.1L3 21l1.9-6.2A8 8 0 1 1 21 12z"/><path d="M8.5 12h.01M12 12h.01M15.5 12h.01"/>'),
   sprout: svg('<path d="M12 21v-9"/><path d="M12 12C12 7 8 5 4 5c0 4 3 7 8 7z"/><path d="M12 10c0-4 3-6 8-6 0 4-3 6-8 6z"/>'),

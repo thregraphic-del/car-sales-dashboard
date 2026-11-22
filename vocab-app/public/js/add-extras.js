@@ -9,7 +9,7 @@ import { SITES } from './site-fields.js';
 /* ------------------------------------------------- attach a file or photo */
 
 export const attachButtonHtml = () => `
-  <label class="btn ghost" id="attachBtn" title="صورة لصفحة كلمات، PDF، Word أو ملف نصي">📎 إرفاق ملف أو صورة
+  <label class="btn ghost" id="attachBtn" title="صورة لصفحة كلمات، PDF، Word أو ملف نصي">📎 إرفاق
     <input type="file" id="attachInput" accept="image/*,.pdf,.txt,.csv,.md,.srt,.vtt,.docx" hidden></label>`;
 
 const MAX_PDF = 4 * 1024 * 1024;
@@ -532,9 +532,14 @@ const chkCache = (() => { try { return JSON.parse(localStorage.getItem(CHK_KEY) 
 const saveChk = () => { try { localStorage.setItem(CHK_KEY, JSON.stringify(chkCache)); } catch { /* ignore */ } };
 
 export const fieldsHtml = () => `
-  <div class="section-title row between" style="gap:8px"><h2 id="fdTitle">مصادر لتعلّم الإنجليزي</h2>
-    <button type="button" class="fav-chip" id="favChip"><span class="ic">${icon.star}</span> المفضلة</button></div>
-  <div class="segmented fd-kind" id="fdKind"><button type="button" class="active" data-fk="channels">📺 قنوات</button><button type="button" data-fk="sites">🌐 مواقع</button></div>
+  <div class="section-title"><h2 id="fdTitle">مصادر لتعلّم الإنجليزي</h2></div>
+  <div class="fd-tools" id="fdTools">
+    <div class="segmented fd-kind" id="fdKind"><button type="button" class="active" data-fk="channels">${icon.video} قنوات</button><button type="button" data-fk="sites">${icon.globe} مواقع</button></div>
+    <span class="fd-sp"></span>
+    <button type="button" class="fd-sq" id="lvBtn" aria-label="المستوى" aria-haspopup="menu">${icon.funnel}<i class="fd-badge hidden" id="lvBadge"></i></button>
+    <button type="button" class="fd-sq fav-chip" id="favChip" aria-label="المفضلة">${icon.star}</button>
+    <div class="fd-menu hidden" id="lvMenu" role="menu"></div>
+  </div>
   ${channelsHtml()}
   <div id="siteFavBox" class="fav-box hidden"></div>
   <div class="fd-acc" id="fdAcc"><div class="fd-chips" id="fdChips">${CH_FIELDS.map((f) => `<section class="fd-item" data-fdi="${f.k}">
@@ -597,8 +602,10 @@ export function bindFields(view) {
   const draw = () => {
     const sites = kind === 'sites';
     view.querySelectorAll('#fdKind [data-fk]').forEach((b) => b.classList.toggle('active', b.dataset.fk === kind));
-    const chip = $('#favChip', view);
-    if (chip) chip.innerHTML = `<span class="ic">${icon.star}</span> المفضلة${sites && siteFavs.size ? ` (${siteFavs.size})` : ''}`;
+    const dm = $('#fdDomTxt', view);
+    if (dm) dm.textContent = field?.n || 'كل المجالات';
+    const bd = $('#lvBadge', view);
+    if (bd) { bd.classList.toggle('hidden', !lv); bd.dataset.lv = lv; }
     if (sites && !SITES[field?.k]) field = CH_FIELDS.find((x) => x.k === 'travel') || CH_FIELDS[0];
     acc.querySelectorAll('.fd-item').forEach((it) => {
       it.classList.toggle('hidden', sites && !SITES[it.dataset.fdi]);
@@ -620,7 +627,7 @@ export function bindFields(view) {
       const all = (SITES[field.k] || []).filter((s) => !lv || String(s[2]) === lv);
       const shown = siteShown[field.k] || STEP;
       const part = all.slice(0, shown);
-      box.innerHTML = `<div class="sopts" style="margin:8px 0">${LV.map(([k, l]) => `<button type="button" class="sopt${k === lv ? ' active' : ''}" data-lv="${k}">${l}</button>`).join('')}</div>
+      box.innerHTML = `<div style="height:6px"></div>
         ${part.length ? `<div class="fd-grid fd-rows2">${part.map(siteCard).join('')}</div>` : '<p class="tiny muted">ما فيه مواقع بهذا المستوى هنا.</p>'}
         ${all.length > shown ? `<div class="more-row"><button type="button" class="btn sm" id="fdMore">＋ عرض المزيد (${all.length - shown})</button></div>`
     : part.length ? '<p class="tiny muted" style="text-align:center;margin-top:8px">هذي كل المواقع المتوفرة في هذا المجال — جرّب مجالًا أو مستوى ثاني.</p>' : ''}`;
@@ -633,7 +640,7 @@ export function bindFields(view) {
       const src = k?.logo || `https://unavatar.io/youtube/${encodeURIComponent(c[1])}?fallback=false`;
       return `<span class="ch-ava" aria-hidden="true"><img src="${esc(src)}" alt="" loading="lazy"><span>${esc(c[0].slice(0, 1).toUpperCase())}</span></span>`;
     };
-    box.innerHTML = `<div class="sopts" style="margin:8px 0">${LV.map(([k, l]) => `<button type="button" class="sopt${k === lv ? ' active' : ''}" data-lv="${k}">${l}</button>`).join('')}</div>
+    box.innerHTML = `<div style="height:6px"></div>
       ${list.length ? `<div class="fd-grid fd-rows2">${list.map((c) => `<div class="fd-card fd-wrap"><a class="fd-go" href="${esc(chkCache[c[1]]?.url || `https://www.youtube.com/@${encodeURIComponent(c[1])}`)}" target="_blank" rel="noopener" title="${esc(c[0])}">${logo(c)}<b class="en">${esc(c[0])}</b><span class="tiny muted fd-desc">${c[3] ? esc(c[3]) : LV[c[2]][1]}</span></a><button type="button" class="fd-fav" data-fh="${esc(c[1])}" data-fn="${esc(c[0])}" title="أضف للمفضلة">⭐</button></div>`).join('')}</div>` : '<p class="tiny muted">ما فيه قنوات بهذا المستوى هنا.</p>'}
       <div class="more-row"><button type="button" class="btn sm" id="fdMore">${moreBusy ? '<span class="spinner"></span>' : '＋'} المزيد</button></div>`;
   };
@@ -702,6 +709,27 @@ export function bindFields(view) {
       }).catch((err) => { fb.disabled = false; toast(err.message); });
       return;
     }
+    if (e.target.closest('#lvBtn')) {
+      const m = $('#lvMenu', view);
+      m.innerHTML = LV.map(([k, l]) => `<button type="button" role="menuitemradio" aria-checked="${k === lv}" class="${k === lv ? 'on' : ''}" data-lv="${k}"><span class="fd-dot" data-lv="${k}"></span>${l}</button>`).join('');
+      m.classList.toggle('hidden');
+      return;
+    }
+    if (!e.target.closest('#lvMenu')) $('#lvMenu', view)?.classList.add('hidden');
+    if (e.target.closest('#fdSlot .fd-head')) {
+      const list = CH_FIELDS.filter((x) => kind === 'channels' || SITES[x.k]);
+      const m = openModal(`<h3 style="margin:0 0 12px">اختر المجال</h3><div class="fd-pick">${list.map((x) => `<button type="button" class="fd-pk${x.k === field?.k ? ' on' : ''}" data-pk="${x.k}">${fic(x.k)}${x.n}</button>`).join('')}</div>`);
+      m.addEventListener('click', (ev) => {
+        const b = ev.target.closest('[data-pk]');
+        if (!b) return;
+        field = CH_FIELDS.find((x) => x.k === b.dataset.pk) || field;
+        try { localStorage.setItem('fields.last', field.k); } catch { /* ignore */ }
+        closeModal();
+        draw();
+        if (kind === 'channels') check(field);
+      });
+      return;
+    }
     const f = e.target.closest('[data-fd]');
     if (f && acc.contains(f)) {
       // tapping the open field closes it; tapping another opens it and closes the previous
@@ -714,7 +742,7 @@ export function bindFields(view) {
       return;
     }
     const l = e.target.closest('[data-lv]');
-    if (l && box?.contains(l)) { lv = l.dataset.lv; try { localStorage.setItem('fields.level', lv); } catch { /* ignore */ } draw(); }
+    if (l && l.closest('#lvMenu')) { lv = l.dataset.lv; try { localStorage.setItem('fields.level', lv); } catch { /* ignore */ } $('#lvMenu', view).classList.add('hidden'); draw(); }
   });
   draw();
   if (kind === 'channels') check(field);

@@ -25,9 +25,10 @@ export async function render(view, { params }) {
   view.innerHTML = `
     <div class="page-head compact"><div><h1>أضف</h1><p>الصق رابط فيديو يوتيوب، أو كلمات، أو ملاحظاتك، أو أي نص إنجليزي — أو نص عربي وبنترجمه لك للإنجليزي.</p></div></div>
     <div class="card add-box">
+      <span class="add-kind hidden" id="kindChip"></span>
       <textarea class="input add-input" id="input" dir="auto" rows="4" placeholder="https://www.youtube.com/watch?v=…&#10;&#10;أو مثلًا:&#10;accurate = دقيق&#10;The report is accurate."></textarea>
       <div class="row between wrap" style="gap:10px;margin-top:12px">
-        <span class="tiny muted" id="hint">لا تحتاج تنسيقًا معيّنًا — سنفهم الكلمات والمعاني والأمثلة تلقائيًا.</span>
+        <span class="tiny muted" id="hint">لا تحتاج تنسيقًا معيّنًا، نفهم الكلمات والمعاني تلقائيًا.</span>
         <div class="row" style="gap:8px">${attachButtonHtml()}<button class="btn primary lg" id="go" disabled>${icon.sparkle} <span id="goLabel">تحليل</span></button></div>
       </div>
       <div id="manual" class="hidden stack" style="margin-top:14px">
@@ -99,11 +100,16 @@ export async function render(view, { params }) {
     const v = input.value.trim();
     go.disabled = !v;
     $('#goLabel', view).textContent = isYoutube(v) ? 'افتح الفيديو' : isArticle(v) ? 'افتح المقال' : 'تحليل';
-    $('#hint', view).textContent = isYoutube(v)
-      ? 'بنقرأ نص المقطع كامل ونجهّز الترجمة والكلمات المفيدة.'
-      : isArticle(v) ? 'بنقرأ المقال كامل ونستخرج كلماته — يحفظ في «نصوص».'
-        : isArabicProse(v) ? 'نص عربي: بنترجمه للإنجليزي وتتعلّم منه (الترجمة تستهلك الذكاء الاصطناعي، والنص يظهر في «نصوص»).'
-          : 'لا تحتاج تنسيقًا معيّنًا — سنفهم الكلمات والمعاني والأمثلة تلقائيًا.';
+    const k = !v ? '' : isYoutube(v) ? 'video' : isArticle(v) ? 'article' : isArabicProse(v) ? 'arabic' : 'words';
+    const chip = $('#kindChip', view);
+    chip.classList.toggle('hidden', !k);
+    chip.dataset.k = k;
+    chip.textContent = { video: 'فيديو يوتيوب', article: 'مقال', arabic: 'نص عربي ← إنجليزي', words: 'كلمات أو نص' }[k] || '';
+    $('#hint', view).textContent = {
+      video: 'نقرأ نص المقطع كامل ونجهّز الترجمة والكلمات.',
+      article: 'نقرأ المقال ونستخرج كلماته، ويُحفظ في «نصوص».',
+      arabic: 'نترجمه للإنجليزي (يستهلك الذكاء الاصطناعي) ويظهر في «نصوص».',
+    }[k] || 'لا تحتاج تنسيقًا معيّنًا، نفهم الكلمات والمعاني تلقائيًا.';
     if (!isYoutube(v)) manual.classList.add('hidden');
   };
   input.addEventListener('input', update);
