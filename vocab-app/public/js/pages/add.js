@@ -9,7 +9,10 @@ import { groupPickerHtml, bindGroupPicker } from '../components.js';
 import { attachButtonHtml, bindAttach, packsHtml, bindPacks, suggestionsHtml, bindSuggestions, suggestWordsHtml, bindSuggestWords, channelsHtml, bindChannels, fieldsHtml, bindFields } from '../add-extras.js';
 
 // a link to a normal page (an article), not YouTube
-const isArticle = (s) => /^\s*https?:\/\/[^\s]+\s*$/i.test(s) && !isYoutube(s);
+// TikTok / Instagram / Facebook / X links: recognised, but they give no transcript to read
+const SOCIAL = [[/(^|\.)(tiktok\.com|vm\.tiktok\.com)/i, 'تيك توك'], [/(^|\.)(instagram\.com|instagr\.am)/i, 'انستقرام'], [/(^|\.)(facebook\.com|fb\.watch|fb\.com)/i, 'فيسبوك'], [/(^|\.)(twitter\.com|x\.com)/i, 'إكس']];
+const socialOf = (s) => { try { const h = new URL(String(s).trim()).hostname; return SOCIAL.find(([re]) => re.test(h))?.[1] || ''; } catch { return ''; } };
+const isArticle = (s) => /^\s*https?:\/\/[^\s]+\s*$/i.test(s) && !isYoutube(s) && !socialOf(s);
 const isYoutube = (s) => /^\s*(https?:\/\/)?((www|m|music)\.)?(youtube\.com|youtu\.be|youtube-nocookie\.com)\/\S+\s*$/i.test(s);
 // Pasting the transcript is offered for every reason except a bad link.
 const PASTE_HELP = new Set(['no_captions', 'blocked', 'service_limit', 'fetch_failed', 'age_restricted', 'region_blocked', 'transcript_fetch_failed']);
@@ -101,14 +104,16 @@ export async function render(view, { params }) {
     const v = input.value.trim();
     go.disabled = !v;
     $('#goLabel', view).textContent = isYoutube(v) ? 'افتح الفيديو' : isArticle(v) ? 'افتح المقال' : 'تحليل';
-    const k = !v ? '' : isYoutube(v) ? 'video' : isArticle(v) ? 'article' : isArabicProse(v) ? 'arabic' : 'words';
+    const sn = socialOf(v);
+    const k = !v ? '' : isYoutube(v) ? 'video' : sn ? 'social' : isArticle(v) ? 'article' : isArabicProse(v) ? 'arabic' : 'words';
     const chip = $('#kindChip', view);
     chip.classList.toggle('hidden', !k);
     chip.dataset.k = k;
-    chip.textContent = { video: 'فيديو يوتيوب', article: 'مقال', arabic: 'نص عربي ← إنجليزي', words: 'كلمات أو نص' }[k] || '';
+    chip.textContent = sn ? `رابط ${sn}` : { video: 'فيديو يوتيوب', article: 'مقال', arabic: 'نص عربي ← إنجليزي', words: 'كلمات أو نص' }[k] || '';
     $('#hint', view).textContent = {
       video: 'نقرأ نص المقطع كامل ونجهّز الترجمة والكلمات.',
       article: 'نقرأ المقال ونستخرج كلماته، ويُحفظ في «نصوص».',
+      social: `ما نقدر نقرأ نص الفيديو من ${sn}. انسخي النص أو الوصف اللي تبينه والصقيه هنا مكان الرابط.`,
       arabic: 'نترجمه للإنجليزي (يستهلك الذكاء الاصطناعي) ويظهر في «نصوص».',
     }[k] || 'لا تحتاج تنسيقًا معيّنًا، نفهم الكلمات والمعاني تلقائيًا.';
     if (!isYoutube(v)) manual.classList.add('hidden');
@@ -209,7 +214,7 @@ export async function render(view, { params }) {
       status.innerHTML = `<div class="alert" style="margin-top:14px" role="alert"><b>${esc(err.message)}</b></div>`;
     }
   }
-  go.addEventListener('click', () => { const v = input.value.trim(); return isYoutube(v) ? openVideo() : isArticle(v) ? openArticle() : analyzeInput(); });
+  go.addEventListener('click', () => { const v = input.value.trim(); if (socialOf(v)) return toast(`روابط ${socialOf(v)} ما نقدر نقرأ نصها. انسخي النص أو الوصف والصقيه بدل الرابط.`); return isYoutube(v) ? openVideo() : isArticle(v) ? openArticle() : analyzeInput(); });
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !go.disabled) go.click();
   });

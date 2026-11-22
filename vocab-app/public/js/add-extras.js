@@ -536,11 +536,10 @@ export const fieldsHtml = () => `
   <div class="fd-tools" id="fdTools">
     <div class="segmented fd-kind" id="fdKind"><button type="button" class="active" data-fk="channels">${icon.video} قنوات</button><button type="button" data-fk="sites">${icon.globe} مواقع</button></div>
     <span class="fd-sp"></span>
-    <button type="button" class="fd-sq" id="lvBtn" aria-label="المستوى" aria-haspopup="menu">${icon.funnel}<i class="fd-badge hidden" id="lvBadge"></i></button>
+    <button type="button" class="fd-sq" id="lvBtn" aria-label="الفلتر (المستوى والمجال)" title="الفلتر">${icon.funnel}<i class="fd-badge hidden" id="lvBadge"></i></button>
     <button type="button" class="fd-sq fav-chip" id="favChip" aria-label="المفضلة">${icon.star}</button>
-    <div class="fd-menu hidden" id="lvMenu" role="menu"></div>
   </div>
-  <button type="button" class="fd-dom" id="fdDom"><span class="ic">${icon.library}</span><span id="fdDomTxt">كل المجالات</span><span class="tiny fd-domn" id="fdDomN"></span><span class="fd-caret" aria-hidden="true">▾</span></button>
+  <div class="fd-cap" id="fdDom"><span id="fdDomTxt">كل المجالات</span><span class="fd-domn" id="fdDomN"></span></div>
   ${channelsHtml()}
   <div id="siteFavBox" class="fav-box hidden"></div>
   <div class="fd-acc" id="fdAcc"><div class="fd-chips" id="fdChips">${CH_FIELDS.map((f) => `<section class="fd-item" data-fdi="${f.k}">
@@ -725,17 +724,23 @@ export function bindFields(view) {
       }).catch((err) => { fb.disabled = false; toast(err.message); });
       return;
     }
-    if (e.target.closest('#lvBtn')) {
-      const m = $('#lvMenu', view);
-      m.innerHTML = LV.map(([k, l]) => `<button type="button" role="menuitemradio" aria-checked="${k === lv}" class="${k === lv ? 'on' : ''}" data-lv="${k}"><span class="fd-dot" data-lv="${k}"></span>${l}</button>`).join('');
-      m.classList.toggle('hidden');
-      return;
-    }
-    if (!e.target.closest('#lvMenu')) $('#lvMenu', view)?.classList.add('hidden');
-    if (e.target.closest('#fdDom')) {
+    // 🎚 one filter window: the level and the field together; picking either applies at once and closes it
+    if (e.target.closest('#lvBtn, #fdDom')) {
       const list = CH_FIELDS.filter((x) => kind === 'channels' || SITES[x.k]);
-      const m = openModal(`<h3 style="margin:0 0 12px">اختر المجال</h3><div class="fd-pick">${list.map((x) => `<button type="button" class="fd-pk${x.k === field?.k ? ' on' : ''}" data-pk="${x.k}" style="--i:${list.indexOf(x)}">${fic(x.k)}${x.n}</button>`).join('')}</div>`);
+      const m = openModal(`<h3 style="margin:0 0 12px">الفلتر</h3>
+        <div class="fd-sec">المستوى</div>
+        <div class="fd-lvrow">${LV.map(([k, l]) => `<button type="button" class="fd-lvb${k === lv ? ' on' : ''}" data-mlv="${k}">${k ? `<i class="fd-ldot" data-lv="${k}"></i>` : ''}${k ? l : 'الكل'}</button>`).join('')}</div>
+        <div class="fd-sec">المجال</div>
+        <div class="fd-pick">${list.map((x) => `<button type="button" class="fd-pk${x.k === field?.k ? ' on' : ''}" data-pk="${x.k}" style="--i:${list.indexOf(x)}">${fic(x.k)}${x.n}</button>`).join('')}</div>`);
       m.addEventListener('click', (ev) => {
+        const lb = ev.target.closest('[data-mlv]');
+        if (lb) {
+          lv = lb.dataset.mlv;
+          try { localStorage.setItem('fields.level', lv); } catch { /* ignore */ }
+          closeModal();
+          draw();
+          return;
+        }
         const b = ev.target.closest('[data-pk]');
         if (!b) return;
         field = CH_FIELDS.find((x) => x.k === b.dataset.pk) || field;
@@ -757,8 +762,6 @@ export function bindFields(view) {
       if (field) { if (kind === 'channels') check(field); f.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
       return;
     }
-    const l = e.target.closest('[data-lv]');
-    if (l && l.closest('#lvMenu')) { lv = l.dataset.lv; try { localStorage.setItem('fields.level', lv); } catch { /* ignore */ } $('#lvMenu', view).classList.add('hidden'); draw(); }
   });
   draw();
   if (kind === 'channels') check(field);

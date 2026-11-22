@@ -2669,3 +2669,13 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 70px), rgba(0,0,0,.12) 100%); mask-image: linear-gradient(to bottom, #000 calc(100% - 70px), rgba(0,0,0,.12) 100%); }
 #fdSlot .fd-grid.fd-rows2::-webkit-scrollbar { display: none; }
 #fdSlot .fd-grid.fd-rows2.at-end { -webkit-mask-image: none; mask-image: none; }
+/* filter window (level + field) and the small field caption */
+.fd-sec { font-weight: 800; font-size: 13.5px; color: var(--muted); margin: 14px 0 8px; }
+.fd-lvrow { display: flex; gap: 8px; flex-wrap: wrap; }
+.fd-lvb { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 16px; border-radius: 99px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.fd-lvb .fd-ldot { margin: 0; }
+.fd-lvb.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.fd-cap { color: var(--muted); font-size: 13.5px; font-weight: 600; margin: 0 2px 10px; cursor: pointer; }
+.fd-cap .fd-domn::before { content: " · "; }
+.mv-hint { margin: 6px 0; }
+.mv-bar button { white-space: nowrap; }

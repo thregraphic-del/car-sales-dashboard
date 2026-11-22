@@ -37,10 +37,10 @@ export function bindMyVideos(box, list, { onPrefs } = {}) {
     const secs = sections();
     box.innerHTML = `<div class="row" style="justify-content:flex-end;margin-bottom:6px">
         <button type="button" class="btn sm ${picking ? 'primary' : 'ghost'}" data-mv="pick">${picking ? '✓ تم' : '☑ تحديد'}</button></div>
-      ${secs.length || P.hidden.length ? `<div class="chip-row">${[['', 'الكل'], ...secs.map((x) => [x, `📁 ${x}`]), ...(P.hidden.length ? [['__hidden', `🙈 المخفية (${P.hidden.length})`]] : [])].map(([k, l]) => `<button type="button" class="gchip ${tab === k ? 'on' : ''}" data-tab="${esc(k)}">${esc(l)}</button>`).join('')}</div>` : ''}
-      ${picking ? `<div class="mv-bar"><span class="tiny">${sel.size} محدد</span>
-        <button data-mv="fav">⭐</button><button data-mv="up">⬆️</button><button data-mv="down">⬇️</button><button data-mv="ok">✅ أتقنته</button><button data-mv="review">🟡 مراجعة</button><button data-mv="clear">↺</button>
-        <button data-mv="sec">📁 قسم</button><button data-mv="hide">${tab === '__hidden' ? '👁 إظهار' : '🙈 إخفاء'}</button><button data-mv="del" class="bad">🗑</button></div>` : ''}
+      ${secs.length || (P.hidden.length && picking) ? `<div class="chip-row">${[['', 'الكل'], ...secs.map((x) => [x, `📁 ${x}`]), ...(P.hidden.length && picking ? [['__hidden', `🙈 المخفية (${P.hidden.length})`]] : [])].map(([k, l]) => `<button type="button" class="gchip ${tab === k ? 'on' : ''}" data-tab="${esc(k)}">${esc(l)}</button>`).join('')}</div>` : ''}
+      ${picking ? `<div class="mv-hint tiny muted">اضغطي المقاطع لتحديدها، ثم اختاري ما تبين:</div><div class="mv-bar"><span class="tiny">${sel.size} محدد</span>
+        <button data-mv="fav">⭐ مفضلة</button><button data-mv="up">⬆️ لفوق</button><button data-mv="down">⬇️ لتحت</button><button data-mv="ok">✅ أتقنته</button><button data-mv="review">🟡 مراجعة</button><button data-mv="clear">↺ إلغاء العلامة</button>
+        <button data-mv="sec">📁 قسم</button><button data-mv="hide">${tab === '__hidden' ? '👁 إظهار' : '🙈 إخفاء'}</button><button data-mv="del" class="bad">🗑 حذف</button></div>` : ''}
       <div class="mv-wrap ${open ? 'open' : ''}"><div class="grid cols-3 mv-grid">${items.map((s) => `
         <a class="video-mini mv ${sel.has(s.id) ? 'sel' : ''} mark-${P.mark[s.id] || 'none'}" href="#/source/${s.id}" data-id="${s.id}">${thumbHtml(s, { duration: s.duration_seconds })}
           <div style="min-width:0"><div class="en small clamp2" style="font-weight:600">${P.fav.includes(s.id) ? '⭐ ' : ''}${P.mark[s.id] === 'ok' ? '✅ ' : P.mark[s.id] === 'review' ? '🟡 ' : ''}${esc(s.title)}</div>
@@ -59,7 +59,7 @@ export function bindMyVideos(box, list, { onPrefs } = {}) {
 
   const act = async (k) => {
     const ids = [...sel];
-    if (k === 'pick') { picking = !picking; sel.clear(); return draw(); }
+    if (k === 'pick') { picking = !picking; sel.clear(); if (!picking && tab === '__hidden') tab = ''; return draw(); }
     if (k === 'more') { open = !open; return draw(); }
     if (!ids.length) return toast('اختر مقطعًا أولًا');
     if (k === 'fav') { const all = ids.every((i) => P.fav.includes(i)); P.fav = all ? P.fav.filter((i) => !ids.includes(i)) : [...new Set([...P.fav, ...ids])]; }
