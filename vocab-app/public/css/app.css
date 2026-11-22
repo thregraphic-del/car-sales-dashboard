@@ -3018,3 +3018,29 @@ body.clipset-on .info-btn.desk { display: none; }
 .cd-trs { display: flex; gap: 5px; justify-content: center; width: 100%; height: 100%; }
 .cd-trs .cd-tr { max-width: 26px; flex: 1; }
 .cd-trs .cd-tr.c2 b { background: var(--gold, #CBA55E); }
+
+/* 📅 the filter lives inside one pill with the view icons; the metric icons are centred */
+.cal-ctl { justify-items: center; }
+.cal-ctl .seg4 { max-width: 460px; }
+.cal-ctl .segmented { margin-inline: auto; }
+.segmented button.rg-ic { color: #0ABAB5; border-inline-start: 1px solid var(--line); border-radius: 13px; display: inline-flex; align-items: center; padding: 6px 12px; }
+.segmented button.rg-ic.active { background: #0ABAB5; color: #fff; }
+.rg-cap { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: var(--ink-2); font-weight: 700; }
+.rg-cap .cs-i { color: #0ABAB5; width: 15px; height: 15px; }
+.cal-ctl .rg-panel { width: 100%; box-sizing: border-box; }
+.rg-units .rg-chip { flex: 1; text-align: center; }
+.rg-modes { padding-top: 8px; border-top: 1px dashed color-mix(in srgb, #0ABAB5 45%, transparent); }
+.rg-modes .rg-chip { flex: 1; text-align: center; background: color-mix(in srgb, #0ABAB5 8%, var(--surface)); }
+.rg-modes .rg-chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.rg-nums .rg-chip { min-width: 38px; padding: 6px 0; text-align: center; font-family: var(--font-en, inherit); }
+.rg-step label { display: grid; gap: 3px; font-size: 12px; color: var(--ink-2); min-width: 0; }
+
+/* 🗂 «أضف»: every section is its own softly shaded box (darker at the top, fading down), so the page reads in clear parts */
+.add-sec { margin-top: 16px; padding: 14px 12px 16px; border-radius: 28px; border: 1px solid color-mix(in srgb, var(--ink) 8%, var(--line)); background: linear-gradient(180deg, color-mix(in srgb, var(--ink) 7%, var(--surface)) 0%, color-mix(in srgb, var(--ink) 2%, var(--surface)) 55%, var(--surface) 100%); box-shadow: 0 1px 0 color-mix(in srgb, #fff 60%, transparent) inset; }
+.add-sec > .section-title:first-child, .add-sec > .src-tabs > .section-title:first-child { margin-top: 0; }
+.add-sec.hidden { display: none; }
+/* the top box: no green/teal tint — a light beige-grey that fades to white */
+.add-hero { background: linear-gradient(180deg, color-mix(in srgb, var(--ink) 8%, var(--surface)) 0%, var(--surface) 62%); border-color: color-mix(in srgb, var(--ink) 9%, var(--line)); }
+.add-hero::after { background: radial-gradient(120% 100% at 15% 130%, color-mix(in srgb, var(--ink) 6%, transparent) 40%, transparent 41%), radial-gradient(120% 100% at 90% 140%, color-mix(in srgb, var(--ink) 4%, transparent) 40%, transparent 41%); }
+/* the green edge on a finished video → a soft light grey-beige */
+.mv.mark-ok { box-shadow: inset 4px 0 0 color-mix(in srgb, var(--ink) 16%, var(--surface)); }

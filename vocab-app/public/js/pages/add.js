@@ -62,6 +62,7 @@ export async function render(view, { params }) {
       <div id="status"></div>
     </div>
     <div id="result"></div>
+    <section class="add-sec hidden" id="srcSec">
     <div class="src-tabs hidden" id="srcTabs">
       <div class="section-title"><h2>نشاطي</h2></div>
       <div class="act-bar"><div class="segmented fd-kind" id="srcKind"><button type="button" class="active" data-sk="videos">${icon.video} مقاطعي <span class="tiny" id="cV"></span></button><button type="button" data-sk="texts">${icon.doc} نصوص <span class="tiny" id="cT"></span></button></div>
@@ -71,11 +72,11 @@ export async function render(view, { params }) {
     <div id="sources"></div>
     <div id="texts" class="tx-sec hidden"></div>
     <button type="button" class="link-btn mv-more hidden" id="txMore">المزيد ▾</button>
-    ${fieldsHtml()}
-    ${suggestionsHtml()}
-    <div class="section-title"><h2>اختصارات سريعة</h2></div>
+    </section>
+    <section class="add-sec">${fieldsHtml()}${suggestionsHtml()}</section>
+    <section class="add-sec"><div class="section-title"><h2>اختصارات سريعة</h2></div>
     ${packsHtml()}
-    ${suggestWordsHtml()}`;
+    ${suggestWordsHtml()}</section>`;
   // videos → «مقاطعي», pasted texts → «نصوص» (3 lines each)
   const videosOf = (l) => l.filter((s) => s.kind !== 'text');
   const textsOf = (l) => l.filter((s) => s.kind === 'text');
@@ -89,6 +90,7 @@ export async function render(view, { params }) {
   let counts = [videosOf(cached).length, textsOf(cached).length];
   const drawTabs = () => {
     view.querySelector('#srcTabs').classList.toggle('hidden', !counts[0] && !counts[1]);
+    view.querySelector('#srcSec').classList.toggle('hidden', !counts[0] && !counts[1]);
     view.querySelector('#cV').textContent = `(${counts[0]})`;
     view.querySelector('#cT').textContent = `(${counts[1]})`;
     view.querySelectorAll('#srcKind [data-sk]').forEach((b) => b.classList.toggle('active', b.dataset.sk === srcKind));
