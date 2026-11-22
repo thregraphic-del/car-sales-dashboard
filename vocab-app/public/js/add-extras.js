@@ -571,7 +571,7 @@ export function bindFields(view) {
   const keepSiteFavs = () => { try { localStorage.setItem(sfKey(), JSON.stringify([...siteFavs])); } catch { /* ignore */ } };
   // the site's own icon (Google's favicon service); a failed picture is dropped and the first letter stays
   const siteLogo = (u) => { try { return `https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&url=${encodeURIComponent(new URL(u).origin)}&size=128`; } catch { return ''; } };
-  const siteCard = (s) => `<div class="fd-card fd-wrap"><a class="fd-go" href="${esc(s[1])}" target="_blank" rel="noopener noreferrer" title="${esc(s[0])}"><span class="ch-ava site-ava" aria-hidden="true"><img src="${esc(siteLogo(s[1]))}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${esc(s[0].slice(0, 1).toUpperCase())}</span></span><b class="en">${esc(s[0])}</b><span class="tiny muted fd-desc">${esc(s[3])}</span><span class="tiny fd-type">${esc(s[4])} · ${LV[s[2]][1]}</span></a><button type="button" class="fd-fav${siteFavs.has(s[1]) ? ' on' : ''}" data-sf="${esc(s[1])}" aria-pressed="${siteFavs.has(s[1])}" title="${siteFavs.has(s[1]) ? 'إزالة من المفضلة' : 'أضف للمفضلة'}">${siteFavs.has(s[1]) ? '★' : '⭐'}</button></div>`;
+  const siteCard = (s) => `<div class="fd-card fd-wrap"><a class="fd-go" href="${esc(s[1])}" target="_blank" rel="noopener noreferrer" title="${esc(s[0])}"><span class="ch-ava site-ava" aria-hidden="true"><img src="${esc(siteLogo(s[1]))}" alt="" loading="lazy" referrerpolicy="no-referrer"><span>${esc(s[0].slice(0, 1).toUpperCase())}</span></span><b class="en">${esc(s[0])}</b><span class="tiny muted fd-desc">${esc(s[3])}</span><span class="tiny fd-type">${esc(s[4])} · ${LV[s[2]][1]}</span></a><button type="button" class="fd-fav${siteFavs.has(s[1]) ? ' on' : ''}" data-sf="${esc(s[1])}" aria-pressed="${siteFavs.has(s[1])}" aria-label="مفضلة" title="${siteFavs.has(s[1]) ? 'إزالة من المفضلة' : 'أضف للمفضلة'}">${icon.star}</button></div>`;
   const drawSiteFavs = () => {
     const list = [...siteFavs].map((u) => SITE_BY_URL.get(u)).filter(Boolean);
     sbox.innerHTML = `<div style="margin-bottom:8px"><b>⭐ مواقعي المفضلة</b> <span class="tiny muted">(${list.length})</span></div>
@@ -641,7 +641,7 @@ export function bindFields(view) {
       return `<span class="ch-ava" aria-hidden="true"><img src="${esc(src)}" alt="" loading="lazy"><span>${esc(c[0].slice(0, 1).toUpperCase())}</span></span>`;
     };
     box.innerHTML = `<div style="height:6px"></div>
-      ${list.length ? `<div class="fd-grid fd-rows2">${list.map((c) => `<div class="fd-card fd-wrap"><a class="fd-go" href="${esc(chkCache[c[1]]?.url || `https://www.youtube.com/@${encodeURIComponent(c[1])}`)}" target="_blank" rel="noopener" title="${esc(c[0])}">${logo(c)}<b class="en">${esc(c[0])}</b><span class="tiny muted fd-desc">${c[3] ? esc(c[3]) : LV[c[2]][1]}</span></a><button type="button" class="fd-fav" data-fh="${esc(c[1])}" data-fn="${esc(c[0])}" title="أضف للمفضلة">⭐</button></div>`).join('')}</div>` : '<p class="tiny muted">ما فيه قنوات بهذا المستوى هنا.</p>'}
+      ${list.length ? `<div class="fd-grid fd-rows2">${list.map((c) => `<div class="fd-card fd-wrap"><a class="fd-go" href="${esc(chkCache[c[1]]?.url || `https://www.youtube.com/@${encodeURIComponent(c[1])}`)}" target="_blank" rel="noopener" title="${esc(c[0])}">${logo(c)}<b class="en">${esc(c[0])}</b><span class="tiny muted fd-desc">${c[3] ? esc(c[3]) : LV[c[2]][1]}</span></a><button type="button" class="fd-fav" data-fh="${esc(c[1])}" data-fn="${esc(c[0])}" aria-label="مفضلة" title="أضف للمفضلة">${icon.star}</button></div>`).join('')}</div>` : '<p class="tiny muted">ما فيه قنوات بهذا المستوى هنا.</p>'}
       <div class="more-row"><button type="button" class="btn sm" id="fdMore">${moreBusy ? '<span class="spinner"></span>' : '＋'} المزيد</button></div>`;
   };
   // ask the server only about channels this browser hasn't checked yet (each is checked once for everyone)
@@ -705,7 +705,7 @@ export function bindFields(view) {
     if (fb && !fb.disabled) {
       fb.disabled = true;
       api.channelAction({ action: 'add', handle: fb.dataset.fh, name: fb.dataset.fn }).then(() => {
-        fb.textContent = '✓'; toast(`✓ ${fb.dataset.fn} أُضيفت للمفضلة`);
+        fb.classList.add('on'); toast(`✓ ${fb.dataset.fn} أُضيفت للمفضلة`);
       }).catch((err) => { fb.disabled = false; toast(err.message); });
       return;
     }
@@ -718,7 +718,7 @@ export function bindFields(view) {
     if (!e.target.closest('#lvMenu')) $('#lvMenu', view)?.classList.add('hidden');
     if (e.target.closest('#fdSlot .fd-head')) {
       const list = CH_FIELDS.filter((x) => kind === 'channels' || SITES[x.k]);
-      const m = openModal(`<h3 style="margin:0 0 12px">اختر المجال</h3><div class="fd-pick">${list.map((x) => `<button type="button" class="fd-pk${x.k === field?.k ? ' on' : ''}" data-pk="${x.k}">${fic(x.k)}${x.n}</button>`).join('')}</div>`);
+      const m = openModal(`<h3 style="margin:0 0 12px">اختر المجال</h3><div class="fd-pick">${list.map((x) => `<button type="button" class="fd-pk${x.k === field?.k ? ' on' : ''}" data-pk="${x.k}" style="--i:${list.indexOf(x)}">${fic(x.k)}${x.n}</button>`).join('')}</div>`);
       m.addEventListener('click', (ev) => {
         const b = ev.target.closest('[data-pk]');
         if (!b) return;
