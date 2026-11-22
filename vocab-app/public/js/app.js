@@ -120,7 +120,7 @@ function openCredits() {
 // (fewer server calls = faster pages and fewer Netlify credits).
 let statsAt = 0;
 export async function refreshStats({ lazy = false } = {}) {
-  if (lazy && Date.now() - statsAt < 60000 && state.stats) return;
+  if (lazy && Date.now() - statsAt < 180000 && state.stats) return; // asked again at most every 3 minutes (each ask is a server round trip)
   statsAt = Date.now();
   try {
     state.stats = await api.stats();

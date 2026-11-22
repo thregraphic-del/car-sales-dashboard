@@ -27,6 +27,9 @@ if (process.env.NETLIFY) {
   const id = String(process.env.COMMIT_REF || process.env.DEPLOY_ID || Date.now()).slice(0, 12);
   fs.writeFileSync(path.join(root, 'public/js/build-id.js'), `export const BUILD_ID = '${id}';\n`);
   fs.writeFileSync(path.join(root, 'public/version.json'), JSON.stringify({ v: id }));
+  // the first page is preloaded under the same versioned address the app will ask for (so the early download is reused)
+  const indexFile = path.join(root, 'public/index.html');
+  fs.writeFileSync(indexFile, fs.readFileSync(indexFile, 'utf8').replace('/js/pages/today.js?v=dev', `/js/pages/today.js?v=${id}`));
   console.log(`build stamped ${id}`);
 }
 console.log('build check ok: API loads, no secrets in public/');

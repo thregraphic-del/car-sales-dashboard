@@ -7,8 +7,9 @@
 /**
  * Build a sorted timeline once per transcript.
  * → [{ id, start, end, words: [{ start, end }] | null }] (seconds)
+ * `shift` (seconds, may be negative): the learner's own correction when the highlight comes too early (+) or too late (−) for the voice.
  */
-export function buildTimeline(lines) {
+export function buildTimeline(lines, shift = 0) {
   // Reading order, never re-sorted: a sentence can't be "before" the one above it.
   // Overlapping captions can give a later start to an earlier line — times are
   // made non-decreasing so the highlight only ever moves down while playing.
@@ -42,6 +43,12 @@ export function buildTimeline(lines) {
     const to = Math.min(a.start + MIN, b.end - 0.4);
     if (to > a.end) { a.end = to; b.start = Math.max(b.start, to); }
   }
+  if (shift) {
+    for (const e of out) {
+      e.start += shift; e.end += shift;
+      if (e.words) e.words = e.words.map((w) => ({ start: w.start + shift, end: w.end + shift }));
+    }
+  }
   return out;
 }
 
@@ -62,6 +69,14 @@ export function estimateWords(text, start, end) {
     t += (span * weight[k]) / total;
     return { start: s, end: t };
   });
+}
+
+/** When the voice really stops in a line: just after the last word's start when YouTube gave word times, else the line's end. */
+export function speechEnd(entry) {
+  if (!entry) return 0;
+  const w = entry.words;
+  if (!entry.estimated && w?.length) return Math.min(entry.end, w[w.length - 1].start + 0.55); // the last word takes about half a second
+  return entry.end;
 }
 
 /** Index of the last entry with start ≤ t (binary search), or -1. */

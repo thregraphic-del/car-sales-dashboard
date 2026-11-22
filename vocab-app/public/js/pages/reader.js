@@ -17,7 +17,7 @@ import { openGptNote } from '../gpt-note.js';
 import { esc, icon, levelChip, usageDot, usageLegend, fmtTime, fmtDuration, toast, $, emptyState, openModal, closeModal, applyTheme, copyText } from '../ui.js';
 import { openWordPanel, closeWordPanel, isPanelOpen, bindSpeech, celebrateGoal } from '../components.js';
 import { tokenize, quickTier, normalizeArabic } from '../shared/text.js';
-import { buildTimeline, positionAt, steadyPosition, wordIndexByChar, dedupeLines } from '../shared/sync.js';
+import { buildTimeline, positionAt, steadyPosition, wordIndexByChar, dedupeLines, speechEnd } from '../shared/sync.js';
 import { refreshStats } from '../app.js';
 import { APP_CONFIG } from '../config.js';
 import { speak, stop as stopSpeech } from '../audio.js';
@@ -299,7 +299,9 @@ export async function render(view, { segments, params }) {
   let playing = false;
   let lastSelfPause = 0;
   const selfPause = () => { lastSelfPause = Date.now(); };
-  let timeline = buildTimeline(data.lines);
+  // ⏱ «ضبط التزامن»: if the highlight comes before (or after) the voice, the learner moves it (kept for this video)
+  let syncShift = Math.max(-5, Math.min(5, Number(pref(`sync.${id}`, '0')) || 0));
+  let timeline = buildTimeline(data.lines, syncShift);
   let userScrollUntil = 0; // the learner is scrolling: don't pull the transcript back for a moment
   let tab = 'text';
 
@@ -328,6 +330,7 @@ export async function render(view, { segments, params }) {
           <p class="tiny muted rset-hint">غيّر أي إعداد وبتنقلك الصفحة للجزء اللي تغيّر عشان تشوف أثره، ثم اضغط «اعتمد». علامة ؟ تشرح لك كل ميزة.</p>
           ${isVideo && hasTimes ? `<div class="sgroup">التشغيل</div><div id="mode" class="rgrp">
             <div class="srow"><span class="slabel">السرعة</span><div class="sopts" id="speed">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" class="sopt en-inline" data-rate="${r}">${r}×</button>`).join('')}</div></div>
+            ${hasTimes ? `<div class="srow"><span class="slabel">ضبط التزامن</span><div class="sopts" id="syncRow"><button type="button" class="sopt" data-sync="-0.25" title="التظليل متأخر عن الصوت: قدّمه">⏪ قدّم</button><b class="en-inline sync-val" id="syncVal">0</b><button type="button" class="sopt" data-sync="0.25" title="التظليل يسبق الصوت: أخّره">أخّر ⏩</button><button type="button" class="sopt" data-sync="0">↺ صفر</button></div></div>` : ''}
             <div class="srow"><span class="slabel">بعد كل جملة</span><div class="sopts am-list" id="amList">
               <button type="button" class="sopt am-opt" data-am="normal">${icon.play}<span>عادي</span></button>
               <button type="button" class="sopt am-opt" data-am="gap">${icon.pause}<span>وقفة بثواني</span></button>
@@ -440,6 +443,7 @@ export async function render(view, { segments, params }) {
   (() => {
     const T = [
       ['#speed', 'سرعة الفيديو: أبطأ تفهم أوضح، وأسرع توفّر وقتك.', '.player-box', ''],
+      ['#syncRow', 'لو التظليل يسبق الصوت اضغط «أخّر»، ولو يتأخر عنه اضغط «قدّم». يتحرّك التظليل ووقفة «ردّد معي» معًا وينحفظ لهذا المقطع.', '.line.current', ''],
       ['#amList', 'وش يصير بعد كل جملة: يكمّل، أو يوقف شوي، أو يوقف بقدر نطق الجملة عشان تردّدها (بدون ميكروفون) — يعلّمك النطق.', '.player-box', 'يظهر أثره وأنت تشغّل المقطع.'],
       ['#wbOn', 'يعرض لك كلمات جديدة قبل ما تجي أو بعدها، عشان تتجهّز لها وما تفوتك.', '.reader-side', 'القائمة تظهر أثناء التشغيل.'],
       ['#recapOn', 'كل فترة يلخّص لك اللي مرّ بجملتين، عشان ما تضيع في المقطع.', '', 'يظهر الملخص وأنت تشغّل المقطع.'],
@@ -1129,6 +1133,18 @@ export async function render(view, { segments, params }) {
     if (v) v.textContent = `${rate}×`;
   };
   showRate();
+  const showSync = () => { const v = $('#syncVal', view); if (v) v.textContent = syncShift ? `${syncShift > 0 ? '+' : ''}${syncShift.toFixed(2).replace(/\.?0+$/, '')}ث` : '0'; };
+  showSync();
+  view.querySelectorAll('#syncRow [data-sync]').forEach((b) => b.addEventListener('click', () => {
+    const d = Number(b.dataset.sync);
+    syncShift = d === 0 ? 0 : Math.max(-5, Math.min(5, Math.round((syncShift + d) * 100) / 100));
+    setPref(`sync.${id}`, String(syncShift));
+    timeline = buildTimeline(data.lines, syncShift);
+    steady = null; lastT = null; prevEntry = null; gapDoneFor = null;
+    showSync();
+    tick(); // the highlight moves at once, so the change is seen
+    toast(syncShift ? `التظليل ${syncShift > 0 ? 'يتأخر' : 'يتقدّم'} ${Math.abs(syncShift)} ث` : 'رجع التزامن الأصلي');
+  }));
   const closeSpeed = (e) => { if (!e.target.closest?.('#speed')) toggleSpeed(false); };
   document.addEventListener('click', closeSpeed);
   $('#speed', view)?.addEventListener('click', (e) => {
@@ -1426,7 +1442,7 @@ export async function render(view, { segments, params }) {
         data = dedupeLines(await api.source(id));
       }
     }
-    timeline = buildTimeline(data.lines);
+    timeline = buildTimeline(data.lines, syncShift);
     drawLines();
     drawSide();
     refreshStats();
@@ -1479,9 +1495,10 @@ export async function render(view, { segments, params }) {
     if (!showAr || aligning || !hasTimes || !state.config.ai.available) return;
     aligning = true;
     let complete = false;
-    // Three batches at a time, starting where the learner is, so the visible lines are ready first.
+    // ONE batch at a time (five at once filled the browser's connections, so every other tap — sounds, word cards, pages — waited
+    // behind them), starting where the learner is so the visible lines are ready first.
     const worker = async (offset) => {
-      for (let step = 0; alive && showAr && !complete && step < 40; step += 1) {
+      for (let step = 0; alive && showAr && !complete && step < 90; step += 1) {
         const cur = data.lines.find((l) => l.id === currentId);
         const from = cur ? cur.idx : 0;
         let r;
@@ -1502,10 +1519,11 @@ export async function render(view, { segments, params }) {
           return;
         }
         if (!r.lines?.length) return; // nothing left for this worker
+        await sleep(400); // room for what the learner is doing
       }
     };
     try {
-      await Promise.all([0, 12, 24, 36, 48].map(worker));
+      await worker(0);
     } finally {
       aligning = false;
     }
@@ -1857,7 +1875,7 @@ export async function render(view, { segments, params }) {
     selfPause(); player.pause();
     if (playMode === 'shadow') {
       // «ردّد معي»: the video waits as long as this sentence takes to say (at the current speed), then goes on — no microphone
-      const lineSecs = Math.max(0.5, (entry.end - entry.start) / (rate || 1));
+      const lineSecs = Math.max(0.5, (speechEnd(entry) - entry.start) / (rate || 1));
       const wait = Math.min(20000, Math.max(1200, lineSecs * 1000 + 300));
       const until = Date.now() + wait;
       const tickNote = () => showSay(`🗣 ردّد الجملة… ${Math.max(0, Math.ceil((until - Date.now()) / 1000))}`);
@@ -2162,7 +2180,7 @@ export async function render(view, { segments, params }) {
     }
     if (playMode !== 'normal' && loopId == null && (playing || player.buffering?.()) && entry && !gapTimer) {
       const lead = 0.3 + 0.12 * (rate || 1); // the pause takes a moment to reach the player
-      if (gapDoneFor !== entry.id && t >= entry.end - lead && pauseHere(entry)) {
+      if (gapDoneFor !== entry.id && t >= speechEnd(entry) - lead && pauseHere(entry)) {
         startGap(entry);
         // the player kept going a little: put it back at the end of this sentence so the next one does not start
         setTimeout(() => { if (alive && gapTimer && player && player.time() > entry.end + 0.15) { player.seek(Math.max(0, entry.end - 0.05), { play: false }); lastT = null; } }, 450);
