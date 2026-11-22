@@ -603,12 +603,26 @@ export function bindFields(view) {
   const chipsEnd = () => fdChips.classList.toggle('at-end', fdChips.scrollTop + fdChips.clientHeight >= fdChips.scrollHeight - 3);
   fdChips.addEventListener('scroll', chipsEnd, { passive: true });
   // the cards sit in a box that scrolls down: two rows in full, the third half-faded so you can tell there is more
+  // two full rows show first; «المزيد» opens three rows (the box scrolls for the rest)
+  let expanded = false;
+  let lastKey = '';
   const fit = () => requestAnimationFrame(() => {
+    const key = `${kind}|${field?.k}|${lv}`;
+    if (key !== lastKey) { lastKey = key; expanded = false; }
     const g = box?.querySelector('.fd-grid');
     const c = g?.querySelector('.fd-card');
     if (!g || !c) return;
     const gap = parseFloat(getComputedStyle(g).rowGap) || 10;
-    g.style.maxHeight = `${Math.round(c.offsetHeight * 1.65 + gap)}px`; // the first card in full, the second fading: there is more below
+    const rows = expanded ? 3 : 2;
+    g.style.maxHeight = `${Math.round(c.offsetHeight * rows + gap * (rows - 1) + 22)}px`;
+    // the fetch-more button waits until the box is opened
+    const moreRow = box.querySelector('.more-row');
+    box.querySelector('.fd-expand-row')?.remove();
+    const cols = Math.max(1, getComputedStyle(g).gridTemplateColumns.split(' ').length);
+    if (!expanded && g.children.length > 2 * cols) {
+      moreRow?.classList.add('hidden');
+      box.insertAdjacentHTML('beforeend', '<div class="more-row fd-expand-row"><button type="button" class="btn sm" id="fdExpand">المزيد ▾</button></div>');
+    } else moreRow?.classList.remove('hidden');
     const end = () => g.classList.toggle('at-end', g.scrollTop + g.clientHeight >= g.scrollHeight - 4);
     g.addEventListener('scroll', end, { passive: true });
     end();
@@ -703,6 +717,7 @@ export function bindFields(view) {
       if (kind === 'channels' && field) check(field);
       return;
     }
+    if (e.target.closest('#fdExpand')) { expanded = true; draw(); return; }
     if (e.target.closest('#fdMore')) {
       if (kind === 'sites') { siteShown[field.k] = (siteShown[field.k] || STEP) + STEP; draw(); return; }
       more();
