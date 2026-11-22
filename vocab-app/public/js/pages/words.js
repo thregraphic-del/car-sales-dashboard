@@ -88,7 +88,7 @@ export async function render(view, { params }) {
     $('#selectToggle').classList.toggle('on', select);
     $('#wsearch').classList.toggle('hidden', panel !== 'search' && !f.q);
     const defs = barDefs();
-    $('#filters').innerHTML = panel === 'filter' ? filterBarHtml(defs.filter((d) => d.k !== 'sort'), fbOpen) : panel === 'sort' ? `<div class="wd-sort" role="radiogroup" aria-label="الترتيب">${[['new', 'الأحدث'], ['old', 'الأقدم'], ['az', 'أبجدي']].map(([k, l]) => `<button type="button" role="radio" aria-checked="${(f.sort || 'new') === k}" class="sopt${(f.sort || 'new') === k ? ' active' : ''}" data-sortv="${k}">${l}</button>`).join('')}</div>` : '';
+    $('#filters').innerHTML = panel === 'filter' ? `<div class="pb-filters wd-fl">${filterBarHtml(defs.filter((d) => d.k !== 'sort'), fbOpen)}</div>` : panel === 'sort' ? `<div class="wd-sort" role="radiogroup" aria-label="الترتيب">${[['new', 'الأحدث'], ['old', 'الأقدم'], ['az', 'أبجدي']].map(([k, l]) => `<button type="button" role="radio" aria-checked="${(f.sort || 'new') === k}" class="sopt${(f.sort || 'new') === k ? ' active' : ''}" data-sortv="${k}">${l}</button>`).join('')}</div>` : '';
     placeMenus($('#filters'));
     // 📁 groups: the panel of every group + «مجموعة جديدة» + «إدارة المجموعات» (opened by the folder icon)
     const gSel = state.groups.find((x) => x.id === f.group);
