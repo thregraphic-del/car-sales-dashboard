@@ -398,7 +398,8 @@ async function openCalendar() {
   const sel = (path, opts, cur) => `<select class="input rg-sel" data-ff="${path}">${opts.map(([v, l]) => `<option value="${v}" ${String(v) === String(cur) ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
   const yOpts = () => years().map((v) => [v, v]);
   const mOpts = (yy) => MONTHS.map((n, i) => [i, n]).filter(([i]) => new Date(yy, i, 1) <= now);
-  const wOpts = (yy, mm) => Array.from({ length: weeksIn(yy, mm) }, (_, i) => [i + 1, i + 1]);
+  const wSpan = (yy, mm, n) => `\u2066${(n - 1) * 7 + 1}–${Math.min(new Date(yy, mm + 1, 0).getDate(), n * 7)}\u2069`; // the days of week n inside its month, e.g. 8–14
+  const wOpts = (yy, mm) => Array.from({ length: weeksIn(yy, mm) }, (_, i) => [i + 1, `${i + 1} · ${wSpan(yy, mm, i + 1)}`]);
   const date = (path, v) => `<input class="input en-inline" type="date" data-ff="${path}" value="${v}" max="${key(now)}">`;
   const lab = (t, inner) => `<label>${t}${inner}</label>`;
   const two = (a, b2) => `<div class="rg-two">${a}${b2}</div>`;
@@ -416,7 +417,7 @@ async function openCalendar() {
     if (u === 'week') {
       if (mode === 'last') return lastChips('week', [1, 2, 4, 8], 'أسبوع');
       if (mode === 'range') return step('١) اختر الشهر', ctxMonth()) + step('٢) من أسبوع رقم … إلى أسبوع رقم', two(lab('من أسبوع', sel('w.from', wOpts(F.y, F.m), F.w.from)), lab('إلى أسبوع', sel('w.to', wOpts(F.y, F.m), F.w.to))));
-      if (mode === 'set') return step('١) اختر الشهر', ctxMonth()) + step('٢) رقم الأسبوع (تقدر أكثر من أسبوع)', `<div class="rg-chips rg-nums">${wOpts(F.y, F.m).map(([n]) => chip('data-ft', `w.set:${n}`, n, F.w.set.includes(n))).join('')}</div>`);
+      if (mode === 'set') return step('١) اختر الشهر', ctxMonth()) + step('٢) أسابيع هذا الشهر — رقم الأسبوع وأيامه (تقدر أكثر من أسبوع)', `<div class="rg-chips rg-nums">${wOpts(F.y, F.m).map(([n]) => chip('data-ft', `w.set:${n}`, `<b>${n}</b><small>${wSpan(F.y, F.m, n)}</small>`, F.w.set.includes(n))).join('')}</div>`);
       const one = (id, X, t) => step(t, two(lab('السنة', sel(`w.${id}.y`, yOpts(), X.y)), lab('الشهر', sel(`w.${id}.m`, mOpts(X.y), X.m))) + lab('رقم الأسبوع', sel(`w.${id}.w`, wOpts(X.y, X.m), X.w)));
       return one('A', F.w.A, 'الأسبوع الأول') + one('B', F.w.B, 'الأسبوع الثاني');
     }
@@ -433,8 +434,8 @@ async function openCalendar() {
     return step('قارن بين سنتين', two(lab('السنة الأولى', sel('yr.A', yOpts(), F.yr.A)), lab('السنة الثانية', sel('yr.B', yOpts(), F.yr.B))));
   };
   const panel = () => `<div class="rg-panel">
-      <div class="rg-chips rg-units">${Object.entries(UNITS).map(([k, l]) => chip('data-fu', k, l, F.unit === k)).join('')}</div>
       <div class="rg-chips rg-modes">${Object.entries(MODES).map(([k, l]) => chip('data-fm', k, l, F.mode === k)).join('')}</div>
+      <div class="rg-chips rg-units">${Object.entries(UNITS).map(([k, l]) => chip('data-fu', k, l, F.unit === k)).join('')}</div>
       ${optionsHtml()}</div>`;
   const RG_IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>';
   const draw = () => {
