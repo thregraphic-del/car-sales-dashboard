@@ -1521,7 +1521,7 @@ export async function render(view, { segments, params }) {
     try {
       for (let step = 0; alive && showAr && step < APP_CONFIG.maxAiSteps; step += 1) {
         const have = data.lines.filter((l) => l.text_ar).length;
-        setTrNote(`<span class="spinner"></span> نجهّز الترجمة العربية… ${have}/${data.lines.length}`);
+        setTrNote(`<span class="spinner"></span> ${source.ar2en ? 'نترجم الفيديو للإنجليزي (تقدر تتابع المشاهدة)…' : 'نجهّز الترجمة العربية…'} ${have}/${data.lines.length}`);
         // a step that timed out or lost its connection is tried again quietly (3 times)
         let r;
         for (let t = 0; ; t++) {
@@ -1530,14 +1530,17 @@ export async function render(view, { segments, params }) {
             await sleep(1500 * (t + 1));
           }
         }
-        for (const { id: lineId, ar } of r.lines || []) {
+        for (const { id: lineId, ar, en } of r.lines || []) {
           const line = data.lines.find((l) => l.id === lineId);
+          // an Arabic video: the English becomes the text (the words to learn) and the Arabic original moves beside it
+          if (en && line && !line.text_ar) { line.text = en; line.text_ar = ar; redrawLine(line); continue; }
           if (line && !line.text_ar) {
             line.text_ar = ar;
             if (!line.align) redrawLine(line);
           }
         }
         if (r.complete) {
+          if (r.reload && !r.ai_error) { toast('✓ تمت الترجمة للإنجليزي'); setTimeout(() => location.reload(), 600); break; } // the English words were just picked: show them
           if (r.ai_error && missingAr()) setTrNote(`ما قدرنا نترجم: ${esc(r.ai_error)} <button class="link-btn" id="retryTr">أعد المحاولة</button>`);
           else setTrNote('');
           break;

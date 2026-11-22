@@ -53,7 +53,11 @@ router.post('/article', wrap(async (req) => {
 }));
 
 router.get('/', wrap(async (req) => sources.withTextPreviews(await sources.listSources(req.userId))));
-router.get('/:id', wrap(async (req) => sources.sourceView(idParam(req), req.userId)));
+router.get('/:id', wrap(async (req) => {
+  const id = idParam(req);
+  const v = await sources.sourceView(id, req.userId);
+  return { ...v, source: { ...v.source, ar2en: await service.sourceAr2en(id) } }; // an Arabic video still being translated to English
+}));
 router.delete('/:id', wrap(async (req) => {
   await sources.deleteSource(idParam(req), req.userId);
   return { ok: true };

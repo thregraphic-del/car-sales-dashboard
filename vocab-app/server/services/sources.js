@@ -93,6 +93,58 @@ export async function fetchTranscript(videoId, origin) {
   }
 }
 
+// 🌐 A video whose words are Arabic: it is kept at once (Arabic on the left), then translated to ENGLISH step by step
+// (the reader asks again and again, like the Arabic subtitles of an English video). Each step swaps a few lines:
+// the English becomes the line's text (the words to learn) and the Arabic original moves beside it. When all lines are done,
+// the useful English words are picked. The marker lives in app_settings (no new table).
+const ar2enKey = (id) => `ar2en:${id}`;
+export const sourceAr2en = async (id) => !!(await get('SELECT 1 AS x FROM app_settings WHERE key = ?', ar2enKey(id)));
+const markAr2en = (id) => run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', ar2enKey(id), 'pending');
+
+async function finishAr2en(sourceId, userId, src) {
+  const rows = await all('SELECT idx, start_seconds AS start, text FROM transcript_lines WHERE source_id = ? ORDER BY idx', sourceId);
+  const lines = rows.map((r) => ({ idx: r.idx, start: r.start, text: r.text }));
+  let items = [];
+  let rest = [];
+  let engine = 'dictionary';
+  let wordCount = lines.reduce((n, l) => n + l.text.split(/\s+/).length, 0);
+  try {
+    ({ items, rest = [], engine, word_count: wordCount } = await extractVocabulary({ title: src.title, channel: src.channel, lines }));
+  } catch (err) {
+    if (!(err instanceof ExtractionError) || err.status !== 422) throw err;
+  }
+  if (items.length) await sources.addItemsToSource(sourceId, items);
+  await sources.linkSavedWords(sourceId, userId);
+  await run('UPDATE sources SET word_count = ?, extractor = ? WHERE id = ?', wordCount, engine, sourceId);
+  if (rest.length) await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', `idxrest:${sourceId}`, JSON.stringify(rest));
+  await run('DELETE FROM app_settings WHERE key = ?', ar2enKey(sourceId));
+  await sources.setTranslationStatus(sourceId, 'done');
+}
+
+async function arabicToEnglishStep(sourceId, userId, src) {
+  const count = () => sources.translationCounts(sourceId);
+  const before = await count();
+  const batch = await sources.untranslatedLines(sourceId, 25);
+  if (!batch.length) { await finishAr2en(sourceId, userId, src); return { complete: true, total: before.total, done: before.translated, status: 'done', reload: true }; }
+  if (!aiAvailable()) return { complete: true, total: before.total, done: before.translated, status: 'unavailable', ai_error: unavailableMessage() };
+  let map;
+  try {
+    map = await translateToEnglishWithAi(batch, src.title);
+  } catch (err) {
+    if (!(err instanceof AiError)) throw err;
+    return { complete: true, total: before.total, done: before.translated, status: 'failed', ai_error: err.message };
+  }
+  const pairs = batch.filter((l) => String(map.get(l.idx) || '').trim()).map((l) => ({ id: l.id, ar: l.text, en: String(map.get(l.idx)).trim() }));
+  if (!pairs.length) return { complete: true, total: before.total, done: before.translated, status: 'failed', ai_error: OFFLINE_MESSAGE };
+  await tx(async () => {
+    for (const p of pairs) await run('UPDATE transcript_lines SET text_ar = text, text = ? WHERE id = ? AND text_ar IS NULL', p.en, p.id);
+  });
+  const after = await count();
+  if (after.translated < after.total) return { complete: false, total: after.total, done: after.translated, status: 'running', lines: pairs };
+  await finishAr2en(sourceId, userId, src);
+  return { complete: true, total: after.total, done: after.translated, status: 'done', lines: pairs, reload: true };
+}
+
 /** Analyse a YouTube video (or its pasted transcript) and store it. */
 export async function analyzeYoutube({ url, transcript, force, origin }, userId) {
   const youtubeId = parseYoutubeId(url);
@@ -102,10 +154,14 @@ export async function analyzeYoutube({ url, transcript, force, origin }, userId)
   const mark = (step) => console.log(`[add ${youtubeId}] ${step} ${Date.now() - t0}ms`);
   const existing = await sources.findSourceByYoutubeId(youtubeId, userId);
   if (existing && !force && !transcript?.trim() && await sources.lineCount(existing.id)) {
-    // a video saved earlier with ARABIC words (before the site said so) must not be handed back as if it were fine
+    if (await sourceAr2en(existing.id)) return { source_id: existing.id, cached: true, ar2en: true };
+    // a video saved earlier with ARABIC words (before the site could translate it): start its English translation now
     const head = await all('SELECT text FROM transcript_lines WHERE source_id = ? ORDER BY idx LIMIT 40', existing.id);
     if (!isArabicText(head.map((l) => l.text).join(' '))) return { source_id: existing.id, cached: true };
-    throw httpError(422, ARABIC_VIDEO_MESSAGE);
+    if (!aiAvailable()) throw httpError(503, ARABIC_VIDEO_NEEDS_AI);
+    await run('UPDATE transcript_lines SET text_ar = NULL WHERE source_id = ?', existing.id);
+    await markAr2en(existing.id);
+    return { source_id: existing.id, cached: true, ar2en: true };
   }
   let meta;
   let segments;
@@ -124,8 +180,14 @@ export async function analyzeYoutube({ url, transcript, force, origin }, userId)
   const lines = toLines(segments);
   mark(`transcript (${transcriptSource}, ${lines.length} lines)`);
   if (!lines.length) throw httpError(422, 'ما لقينا نصًا في هذا الفيديو.');
-  // a video whose words are Arabic: the site teaches English from English videos — a clear message instead of an Arabic-to-Arabic page
-  if (isArabicText(lines.slice(0, 60).map((l) => l.text).join(' '))) throw httpError(422, ARABIC_VIDEO_MESSAGE);
+  // a video whose words are Arabic: keep it now, then the reader translates it to English step by step
+  if (isArabicText(lines.slice(0, 60).map((l) => l.text).join(' '))) {
+    if (!aiAvailable()) throw httpError(503, ARABIC_VIDEO_NEEDS_AI);
+    const arId = await sources.saveSource({ ...meta, kind: 'youtube', transcript_source: transcriptSource, extractor: 'ar2en', word_count: 0 }, lines, [], userId);
+    await markAr2en(arId);
+    mark('arabic video saved');
+    return { source_id: arId, cached: false, ai: true, ar2en: true };
+  }
   let items = [];
   let rest = [];
   let engine = 'dictionary';
@@ -167,7 +229,7 @@ export function isArabicText(text) {
   const en = (s.match(/[A-Za-z]/g) || []).length;
   return ar >= 12 && ar > en * 1.5;
 }
-const ARABIC_VIDEO_MESSAGE = 'هذا الفيديو نصه بالعربي. الموقع يعلّمك الإنجليزي من فيديوهات إنجليزية — اختر فيديو بالإنجليزي، أو الصق جزءًا من نصه العربي في «أضف» وبنترجمه لك للإنجليزي. (والنسخة العربية المحفوظة سابقًا تقدر تحذفها من «نشاطي».)';
+const ARABIC_VIDEO_NEEDS_AI = 'هذا الفيديو نصه بالعربي، وترجمته للإنجليزي تحتاج الذكاء الاصطناعي وهو غير متاح الحين. جرّب لاحقًا.';
 const AR_MAX_CHARS = 6000; // an Arabic text is translated before it is saved, inside one request
 
 /** Arabic lines → English lines that keep the Arabic beside them (the site teaches English). */
@@ -278,6 +340,7 @@ export async function refineSource(sourceId, userId) {
 /** One step of subtitle translation. {complete, total, done, status, ai_error, lines} */
 export async function translateSource(sourceId, userId) {
   const src = await requireSource(sourceId, userId);
+  if (await sourceAr2en(sourceId)) return arabicToEnglishStep(sourceId, userId, src);
   const progress = async () => {
     const c = await sources.translationCounts(sourceId);
     return { total: c.total, done: c.translated };
