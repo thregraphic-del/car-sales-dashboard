@@ -6,7 +6,7 @@ import crypto from 'node:crypto';
 import { wrap, str } from '../http.js';
 import { httpError } from '../lib/errors.js';
 import { get, run } from '../db/index.js';
-import { findByUsername, getUser } from '../data/users.js';
+import { findByLogin, getUser } from '../data/users.js';
 import { listWords } from '../data/words.js';
 import { streak } from '../data/learning.js';
 import { startOfDay } from '../lib/time.js';
@@ -72,10 +72,11 @@ router.get('/friends', wrap(async (req) => {
 }));
 
 router.post('/friends', wrap(async (req) => {
-  const username = str(req.body?.username, 60).replace(/^@/, '').trim();
-  if (!username) throw httpError(400, 'اكتب اسم المستخدم.');
-  const u = await findByUsername(username);
-  if (!u) throw httpError(404, 'ما لقينا مستخدم بهذا الاسم.');
+  // the friend can be found by username, email or phone number (the same ways an account can sign in)
+  const login = str(req.body?.login ?? req.body?.username, 120).replace(/^@/, '').trim();
+  if (!login) throw httpError(400, 'اكتب اسم المستخدم أو الإيميل أو الجوال.');
+  const u = await findByLogin(login);
+  if (!u) throw httpError(404, 'ما لقينا حساب بهذا الاسم أو الإيميل أو الجوال.');
   if (u.id === req.userId) throw httpError(400, 'هذا حسابك 🙂');
   for (const [a, b] of [[req.userId, u.id], [u.id, req.userId]]) {
     const list = await kvGet(`friends:${a}`, []);

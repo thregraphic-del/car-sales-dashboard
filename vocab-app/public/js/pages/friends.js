@@ -31,8 +31,8 @@ export async function render(view, { params }) {
       </div>
       <div class="card fr-card">
         <b>➕ أضف صديق</b>
-        ${me ? `<p class="small ink-2">اسم المستخدم حقك: <b class="en-inline">@${esc(me)}</b> — أرسله لصديقك ليضيفك.</p>` : '<p class="small ink-2">لتضيف أصدقاء لازم يكون لكل واحد حساب باسم مستخدم.</p>'}
-        <form class="url-row" id="addF"><input class="input en" id="fu" placeholder="username" autocapitalize="off" autocomplete="off"><button class="btn" type="submit">أضف</button></form>
+        ${me ? `<p class="small ink-2">اسم المستخدم حقك: <b class="en-inline">@${esc(me)}</b> — أو يقدر يضيفك من إيميلك أو رقمك.</p>` : '<p class="small ink-2">لتضيف أصدقاء لازم يكون لكل واحد حساب باسم مستخدم.</p>'}
+        <form class="url-row" id="addF"><input class="input en" id="fu" placeholder="اسم المستخدم أو الإيميل أو الرقم" dir="auto" autocapitalize="off" autocomplete="off"><button class="btn" type="submit">أضف</button></form>
       </div>
       <div class="card fr-card">
         <b>🏆 ترتيب هذا الأسبوع</b>

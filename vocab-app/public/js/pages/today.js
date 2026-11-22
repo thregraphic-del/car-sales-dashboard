@@ -160,7 +160,7 @@ export async function render(view) {
         <div class="th-stat" aria-label="كلمات"><span class="th-si">${icon.library}</span><b>${stats.week?.saved || 0}</b></div>
         <div class="th-stat" aria-label="دقائق"><span class="th-si">${icon.clock}</span><b>${weekMinutes()}</b></div>
       </div></div>
-    <div class="card th-today-card" aria-label="دقائق اليوم"><span class="th-si">${icon.clock}</span><b class="en-inline">${todayMinutes()}</b><span class="tiny muted">اليوم</span></div>
+    <p class="th-spent" aria-label="دقائق اليوم">قضيت اليوم ${todayMinutes().toLocaleString('ar-EG')} د</p>
   </div>`;
 
   const act = (a) => {
