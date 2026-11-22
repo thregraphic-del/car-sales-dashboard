@@ -92,7 +92,7 @@ export async function render(view, { params }) {
     if (sorters[f.sort]) shown.sort(sorters[f.sort]);
     if (f.count) shown = shown.slice(0, f.count);
     $('#list').innerHTML = shown.length
-      ? `<div class="row between" style="margin:4px 0 10px"><span class="small muted">${shown.length} كلمة</span><span class="btn-row">${select ? '' : `<button class="btn sm" id="selectAllQuick">☑ تحديد الكل</button>`}<button class="btn sm ${select ? 'primary' : ''}" id="selectToggle">${icon.check} ${select ? 'إنهاء التحديد' : 'تحديد'}</button></span></div>
+      ? `<div class="row between" style="margin:4px 0 10px"><span class="small muted">${shown.length} كلمة</span><span class="btn-row"><button class="btn sm ${select ? 'primary' : ''}" id="selectToggle">${icon.check} ${select ? 'إنهاء التحديد' : 'تحديد'}</button></span></div>
          <div class="word-list">${shown.map((w) => wordRowHtml(w, { selectable: select, selected: selected.has(w.uv_id) })).join('')}</div>`
       : all.length
         ? emptyState('🔍', 'ما فيه كلمات هنا', f.group ? 'أضف كلمات إلى هذه المجموعة من بطاقة أي كلمة.' : 'جرّب بحثًا أو فلترًا آخر.')
