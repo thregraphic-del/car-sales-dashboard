@@ -2639,3 +2639,23 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 @keyframes addPop { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: none; } }
 @keyframes starPop { 0% { transform: scale(.6); } 60% { transform: scale(1.25); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .fd-card, .fd-pk, .add-kind, .fd-menu, .fd-fav svg, .fd-sq svg { animation: none !important; } }
+/* «أضف» — like the mock: a field pill, then a plain two-column grid (level dot on each card) */
+.fd-dom { display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 14px 0 12px; border-radius: 99px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; margin-bottom: 10px; }
+.fd-dom .ic { display: inline-grid; place-items: center; color: var(--accent); } .fd-dom .ic svg { width: 18px; height: 18px; }
+.fd-dom .fd-domn { color: var(--muted); font-weight: 500; }
+.fd-dom .fd-caret { opacity: .6; }
+#fdSlot .fd-head { display: none; }
+#fdSlot .fd-item { border: 0; background: none; overflow: visible; }
+#fdSlot .fd-body { padding: 0; }
+#fdSlot .fd-grid.fd-rows2 { display: grid; grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; grid-auto-columns: auto; overflow: visible; gap: 10px; padding: 0; }
+@media (min-width: 720px) { #fdSlot .fd-grid.fd-rows2 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+#fdSlot .fd-card { justify-items: start; text-align: start; padding: 14px 12px 12px; gap: 8px; border-radius: 18px; border: 0; box-shadow: var(--shadow); }
+#fdSlot .fd-card .ch-ava { width: 48px; height: 48px; }
+#fdSlot .fd-card b { font-size: 14.5px; }
+.fd-lvl { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.fd-lvl i { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+.fd-lvl[data-lv="1"] i { background: var(--good); } .fd-lvl[data-lv="2"] i { background: var(--warn); } .fd-lvl[data-lv="3"] i { background: var(--bad); }
+.src-tabs .section-title, .fd-tools ~ .section-title { margin-top: 26px; }
+#fdSlot .fd-go { display: grid; justify-items: start; text-align: start; gap: 8px; width: 100%; padding-top: 2px; }
+#fdSlot .fd-go b, #fdSlot .fd-go .fd-desc { text-align: start; }
+#fdSlot .fd-go b.en { text-align: left; }
