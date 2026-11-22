@@ -36,7 +36,7 @@ export function filterBarHtml(defs, open = '') {
   return `<div class="fbar" role="toolbar" aria-label="الفلاتر">${defs.map((d) => {
     const active = d.multi ? d.value.length > 0 : String(d.value) !== String(d.opts[0]?.[0] ?? '');
     return `<div class="dd fb${open === d.k ? ' open' : ''}">
-      <button type="button" class="dd-btn fb-btn${active ? ' set' : ''}" data-fb="${d.k}" aria-expanded="${open === d.k}" title="${esc(d.t)}"><span class="fb-ic" aria-hidden="true">${ICONS[d.k] || ''}</span><span class="fb-txt"><span class="dd-t">${esc(d.t)}</span><span class="dd-v">${esc(current(d))} ▾</span></span></button>
+      <button type="button" class="dd-btn fb-btn${active ? ' set' : ''}" data-fb="${d.k}" aria-expanded="${open === d.k}" title="${esc(d.t)}"><span class="fb-txt"><span class="dd-t">${esc(d.t)}</span>${active ? `<span class="dd-v">${esc(current(d))}</span>` : ''}</span><svg class="fb-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button>
       ${open === d.k ? `<div class="dd-menu fb-menu${d.video ? ' fb-menu-vid' : ''}" role="listbox"${d.multi ? ' aria-multiselectable="true"' : ''}>${d.opts.map((o) => optHtml(d, o)).join('') || '<span class="tiny muted" style="padding:10px">ما فيه</span>'}${d.k === 'count' ? `<div class="fb-custom"><input type="number" class="input en-inline" min="1" max="5000" inputmode="numeric" placeholder="اكتب العدد" aria-label="اكتب العدد" data-fbn="${d.k}" value="${d.opts.some(([v]) => String(v) === String(d.value)) ? '' : esc(String(d.value))}"><button type="button" class="btn sm primary" data-fbgo="${d.k}">تم</button></div>` : ''}</div>` : ''}
     </div>`;
   }).join('')}</div>`;

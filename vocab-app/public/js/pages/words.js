@@ -45,7 +45,6 @@ export async function render(view, { params }) {
     <div class="wd-tools" id="wdTools">
       <button type="button" class="wd-t" data-wt="search" aria-label="بحث" title="بحث">${icon.search}</button>
       <button type="button" class="wd-t" data-wt="filter" aria-label="فلاتر" title="فلاتر">${WI.filter}</button>
-      <button type="button" class="wd-t" data-wt="view" aria-label="الأوضح: كلمة بسيطة لكل معنى" title="الأوضح">${WI.grid}</button>
       <button type="button" class="wd-t" data-wt="sort" aria-label="ترتيب" title="ترتيب">${WI.sort}</button>
       <button type="button" class="wd-t" id="selectToggle" aria-label="تحديد" title="تحديد">${icon.check}</button>
       <button type="button" class="wd-t" data-wt="groups" aria-label="المجموعات" title="المجموعات">${icon.folder}</button>
