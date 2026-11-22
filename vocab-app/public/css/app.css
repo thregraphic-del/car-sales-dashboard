@@ -2951,4 +2951,38 @@ body.clipset-on .info-btn.desk { display: none; }
 .soc-ic { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--accent); border: 1px solid var(--line, rgba(0,0,0,.08)); transition: transform .15s, background .15s, color .15s; }
 .soc-ic svg { width: 19px; height: 19px; }
 .soc-ic:hover, .soc-ic:focus-visible { transform: translateY(-2px); background: var(--accent); color: #fff; }
-.cd-edit { margin-inline-start: auto; font-size: 12px; padding: 4px 10px; }
+
+/* 📅 the activity dashboard: goal filter · view filter · range filter · goal line · day · four columns · edit goals */
+.cal-ctl { display: grid; gap: 8px; }
+.cal-ctl2 { display: flex; align-items: center; gap: 8px; }
+.cal-ctl2 .segmented { flex: none; }
+.rg-btn { flex: 1; min-width: 0; height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 0 12px; border: 1.5px solid var(--line); border-radius: 17px; background: var(--surface); color: var(--ink); font: 700 13px var(--font-ar, inherit); cursor: pointer; }
+.rg-btn svg { width: 18px; height: 18px; flex: none; color: #0ABAB5; }
+.rg-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rg-btn.open { border-color: #0ABAB5; background: color-mix(in srgb, #0ABAB5 10%, var(--surface)); }
+.rg-panel { display: grid; gap: 10px; padding: 10px; border: 1.5px solid #0ABAB5; border-radius: 19px; background: color-mix(in srgb, #0ABAB5 6%, var(--surface)); }
+.rg-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rg-chip { border: 1px solid var(--line); background: var(--surface); color: var(--ink-2); border-radius: 99px; padding: 6px 12px; font: 600 12.5px var(--font-ar, inherit); cursor: pointer; }
+.rg-chip.on { background: #0ABAB5; border-color: #0ABAB5; color: #fff; }
+.rg-custom { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.rg-custom label { display: grid; gap: 3px; font-size: 12px; color: var(--ink-2); }
+.rg-custom .input { padding: 7px 8px; font-size: 13px; min-width: 0; }
+@media (max-width: 440px) { .cal-ctl2 .cs-t { display: none; } .cal-ctl2 .segmented button { padding: 8px 12px; } }
+.cal-g.tiles { grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); }
+.cal-bars.dense .cb { font-size: 9px; } .cal-bars.dense .cb span { font-size: 9px; }
+.cal-bars.dense .cb i { border-radius: 5px; max-width: 14px; } .cal-bars.dense .cb i b { border-radius: 5px; }
+.cal-bars.dense { gap: 2px; }
+.cd-cols { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+.cd-col { display: grid; grid-template-rows: auto 120px auto auto; justify-items: center; gap: 4px; min-width: 0; }
+.cd-v { font: 800 17px var(--font-en, inherit); color: var(--ink); }
+.cd-tr { width: 100%; max-width: 46px; height: 100%; display: flex; align-items: flex-end; border-radius: 15px; background: color-mix(in srgb, var(--ink) 7%, var(--surface)); overflow: hidden; }
+.cd-tr b { display: block; width: 100%; border-radius: 15px; background: var(--accent); min-height: 0; }
+.cd-col.ok .cd-tr b { background: #0ABAB5; } .cd-col.ok .cd-v { color: #0ABAB5; }
+.cd-n { font-size: 12px; font-weight: 700; color: var(--ink-2); text-align: center; line-height: 1.25; }
+.cd-editbtn { display: flex; width: 100%; justify-content: center; margin-top: 12px; min-height: 46px; border: 0; border-radius: 99px; background: #0ABAB5; color: #fff; font-weight: 800; font-size: 15px; box-shadow: 0 6px 16px -6px rgba(10,186,181,.7); }
+.cd-editbtn:hover, .cd-editbtn:focus-visible { filter: brightness(.95); }
+.cal > *, .cal-ctl > *, .rg-panel > * { min-width: 0; }
+.rg-custom { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.rg-custom .input { width: 100%; box-sizing: border-box; }
+.cal-w, .cal-g { max-width: 520px; width: 100%; margin-inline: auto; }
+.cal-ctl { max-width: 560px; width: 100%; margin-inline: auto; }

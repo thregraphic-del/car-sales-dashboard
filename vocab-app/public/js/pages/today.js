@@ -211,87 +211,115 @@ async function openCalendar() {
   let y = now.getFullYear();
   let m = now.getMonth();
   let metric = metricPref();
-  let shape = ['squares', 'bars', 'line'].includes(ls('today.shape', 'squares')) ? ls('today.shape', 'squares') : 'squares';
-  let pick = now.toISOString().slice(0, 10);
+  let shape = ['squares', 'bars', 'line'].includes(ls('today.shape', 'bars')) ? ls('today.shape', 'bars') : 'bars';
+  const RANGES = { last7: 'آخر أسبوع', last30: 'آخر ٣٠ يوم', month: 'هذا الشهر', monthend: 'أواخر الشهر', weeks: 'أسابيع', months: 'شهور', years: 'سنوات', custom: 'نطاق معين' };
+  let rng = RANGES[ls('today.range', 'last30')] ? ls('today.range', 'last30') : 'last30';
   const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
-  const at = (n) => { const d = new Date(now); d.setDate(now.getDate() - n); return d; };
+  const addD = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
   const key = (d) => d.toISOString().slice(0, 10);
-  const val = (d) => dayValue(d, days, metric);
+  const parse = (k) => new Date(`${k}T12:00:00`);
+  let custom = { from: key(addD(now, -29)), to: key(now) };
+  try { const c = JSON.parse(ls('today.rcustom', 'null')); if (c?.from && c?.to) custom = c; } catch { /* default */ }
+  let rangeOpen = false;
+  let pick = '';
+  const memo = new Map();
+  const A = (d) => { const k = key(d); if (!memo.has(k)) memo.set(k, dayAll(d, days)); return memo.get(k); };
   const unit = () => METRICS[metric].unit;
-  const lvl = (v, max) => { if (!v) return 0; const p = v / max; return p >= 0.75 ? 4 : p >= 0.5 ? 3 : p >= 0.25 ? 2 : 1; };
   const goalN = () => goalFor(METRICS[metric].goal); // the learner's own number (or the default) for the chosen measure
-  const goalTxt = () => `${goalN()} ${unit()}`;
-  const maxOf = (list) => Math.max(metric === 'time' ? 10 : 5, goalN(), ...list.map(val));
-  const rangeDays = (n) => Array.from({ length: n }, (_, i) => at(n - 1 - i));
+  const lvl = (v, max) => { if (!v) return 0; const p = v / max; return p >= 0.75 ? 4 : p >= 0.5 ? 3 : p >= 0.25 ? 2 : 1; };
+
+  // one bucket = a day, a week, a month or a year: its totals for the four measures and how many days it spans (the goal grows with them)
+  const mkB = (from, to, gran, span, label, sub, tl) => {
+    const t = { time: 0, words: 0, practice: 0, rules: 0 };
+    for (let d = new Date(from); d <= to && d <= now; d = addD(d, 1)) { const a = A(d); Object.keys(t).forEach((k) => { t[k] += a[k]; }); }
+    return { id: key(from), from, to, gran, span, label, sub, tl, t };
+  };
+  const dayList = (from, to) => { const o = []; for (let d = new Date(from); d <= to && d <= now; d = addD(d, 1)) o.push(mkB(d, d, 'day', 1, String(d.getDate()), WD[d.getDay()], `${d.getDate()}/${d.getMonth() + 1}`)); return o; };
+  const weekChunks = (from, to) => { const o = []; for (let f = new Date(from); f <= to; f = addD(f, 7)) { const e = addD(f, 6) > to ? to : addD(f, 6); o.push(mkB(f, e, 'week', Math.round((e - f) / 864e5) + 1, String(f.getDate()), String(f.getMonth() + 1), `${f.getDate()}/${f.getMonth() + 1}`)); } return o; };
+  const monthChunks = (from, to) => { const o = []; for (let f = new Date(from.getFullYear(), from.getMonth(), 1, 12); f <= to; f = new Date(f.getFullYear(), f.getMonth() + 1, 1, 12)) { const e = new Date(f.getFullYear(), f.getMonth() + 1, 0, 12); o.push(mkB(f, e, 'month', e.getDate(), String(f.getMonth() + 1), MONTHS[f.getMonth()].slice(0, 3), MONTHS[f.getMonth()])); } return o; };
+  const build = () => {
+    if (rng === 'last7') return { gran: 'day', list: dayList(addD(now, -6), now) };
+    if (rng === 'last30') return { gran: 'day', list: dayList(addD(now, -29), now) };
+    if (rng === 'month') return { gran: 'day', nav: true, list: dayList(new Date(y, m, 1, 12), new Date(y, m + 1, 0, 12)) };
+    if (rng === 'monthend') { const len = new Date(y, m + 1, 0).getDate(); return { gran: 'day', nav: true, list: dayList(new Date(y, m, Math.max(1, len - 9), 12), new Date(y, m, len, 12)) }; }
+    if (rng === 'weeks') return { gran: 'week', list: weekChunks(addD(now, -83), now) };
+    if (rng === 'months') return { gran: 'month', list: monthChunks(new Date(now.getFullYear(), now.getMonth() - 11, 1, 12), now) };
+    if (rng === 'years') {
+      const o = []; const y0 = Math.max(now.getFullYear() - 4, Math.min(first.getFullYear(), now.getFullYear()));
+      for (let yy = y0; yy <= now.getFullYear(); yy += 1) { const e = new Date(yy, 11, 31, 12); o.push(mkB(new Date(yy, 0, 1, 12), e, 'year', Math.round((e - new Date(yy, 0, 1, 12)) / 864e5) + 1, String(yy), '', String(yy))); }
+      return { gran: 'year', list: o };
+    }
+    let f = parse(custom.from); let t = parse(custom.to);
+    if (f > t) [f, t] = [t, f];
+    if (t > now) t = now;
+    if (f > t) f = t;
+    const n = Math.round((t - f) / 864e5) + 1;
+    if (n <= 62) return { gran: 'day', list: dayList(f, t) };
+    return n <= 400 ? { gran: 'week', list: weekChunks(f, t) } : { gran: 'month', list: monthChunks(f, t) };
+  };
+  const GRAN = { day: 'يوم', week: 'أسبوع', month: 'شهر', year: 'سنة' };
+  let V = build();
+  const val = (b) => b.t[metric];
+  const lineGoal = () => goalN() * Math.max(1, ...V.list.map((b) => b.span));
+  const goalTxt = () => `${lineGoal()} ${unit()}${V.gran === 'day' ? '' : ` لكل ${GRAN[V.gran]}`}`;
+  const maxOf = () => Math.max(metric === 'time' ? 10 : 5, lineGoal(), ...V.list.map(val));
+  const hit = (b) => val(b) >= goalN() * b.span;
 
   const squares = () => {
-    const start = new Date(y, m, 1, 12);
-    const count = new Date(y, m + 1, 0).getDate();
-    const list = Array.from({ length: count }, (_, i) => new Date(y, m, i + 1, 12));
-    const mx = maxOf(list);
-    const cells = [];
-    for (let i = 0; i < start.getDay(); i += 1) cells.push('<span></span>');
-    list.forEach((d) => {
-      const v = val(d);
-      const k = key(d);
-      cells.push(`<button type="button" class="cal-d l${lvl(v, mx)}${dayActive(d, days) && !v ? ' act' : ''}${v >= goalN() ? ' hit' : ''} ${pick === k ? 'pick' : ''} ${k === key(now) ? 'today' : ''}" data-d="${k}"><b>${d.getDate()}</b><small>${v || ''}</small></button>`);
-    });
-    return `<div class="row between"><button class="btn icon sm ghost" data-m="1" ${new Date(y, m + 1, 1) > now ? 'disabled' : ''} aria-label="الشهر التالي">${icon.next}</button><b>${MONTHS[m]} ${y}</b><button class="btn icon sm ghost" data-m="-1" ${new Date(y, m, 1) <= new Date(first.getFullYear(), first.getMonth(), 1) ? 'disabled' : ''} aria-label="الشهر السابق">${icon.prev}</button></div>
-      <div class="cal-w">${['أحد', 'إثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت'].map((d) => `<span>${d}</span>`).join('')}</div>
-      <div class="cal-g">${cells.join('')}</div>`;
+    const mx = maxOf();
+    const cell = (b) => `<button type="button" class="cal-d l${lvl(val(b), mx)}${val(b) >= goalN() * b.span ? ' hit' : ''} ${pick === b.id ? 'pick' : ''}${b.from <= now && b.to >= now ? ' today' : ''}" data-d="${b.id}"><b>${V.gran === 'day' ? b.label : b.tl}</b><small>${val(b) || ''}</small></button>`;
+    if (V.gran !== 'day') return `<div class="cal-g tiles">${V.list.map(cell).join('')}</div>`;
+    const pad = Array.from({ length: V.list[0]?.from.getDay() || 0 }, () => '<span></span>').join('');
+    return `<div class="cal-w">${['أحد', 'إثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت'].map((d) => `<span>${d}</span>`).join('')}</div><div class="cal-g">${pad}${V.list.map(cell).join('')}</div>`;
   };
   const bars = () => {
-    const list = rangeDays(14);
-    const mx = maxOf(list);
-    return `<div class="cal-bars" style="--g:${(goalN() / mx).toFixed(3)}"><div class="cb-goal" aria-hidden="true"><span>الهدف ${goalTxt()}</span></div>${list.map((d) => {
-      const v = val(d); const k = key(d);
-      const pct = v ? Math.max(8, Math.round((100 * v) / mx)) : 0;
-      return `<button type="button" class="cb${pick === k ? ' pick' : ''}${k === key(now) ? ' today' : ''}${v >= goalN() ? ' hit' : ''}" data-d="${k}"><em>${v || ''}</em><i><b class="l${lvl(v, mx)}" style="height:${pct}%"></b></i><span>${d.getDate()}</span><small>${WD[d.getDay()]}</small></button>`;
+    const mx = maxOf(); const n = V.list.length; const step = Math.ceil(n / 12);
+    return `<div class="cal-bars${n > 16 ? ' dense' : ''}" style="--g:${(lineGoal() / mx).toFixed(3)}"><div class="cb-goal" aria-hidden="true"><span>الهدف ${goalTxt()}</span></div>${V.list.map((b, i) => {
+      const v = val(b);
+      const pct = v ? Math.max(8, Math.min(100, Math.round((100 * v) / mx))) : 0;
+      const showL = n <= 16 || i % step === 0 || i === n - 1;
+      return `<button type="button" class="cb${pick === b.id ? ' pick' : ''}${b.from <= now && b.to >= now ? ' today' : ''}${hit(b) ? ' hit' : ''}" data-d="${b.id}"><em>${n > 16 ? '' : (v || '')}</em><i><b class="l${lvl(v, mx)}" style="height:${pct}%"></b></i><span>${showL ? b.label : ''}</span><small>${n > 16 ? '' : b.sub}</small></button>`;
     }).join('')}</div>`;
   };
   const line = () => {
-    const list = rangeDays(30);
-    const mx = maxOf(list);
+    const list = V.list; const N = list.length; const mx = maxOf();
     const W = 320; const H = 130; const px = 14; const py = 14;
-    const X = (i) => W - px - (i * (W - 2 * px)) / 29; // oldest at the right, like the columns and the week (Arabic reads right to left)
-    const Y = (v) => H - py - ((H - 2 * py) * v) / mx;
-    const pts = list.map((d, i) => [X(i), Y(val(d))]);
+    const X = (i) => W - px - (i * (W - 2 * px)) / Math.max(1, N - 1); // oldest at the right (Arabic reads right to left)
+    const Yv = (v) => H - py - ((H - 2 * py) * v) / mx;
+    const pts = list.map((b, i) => [X(i), Yv(val(b))]);
     const path = pts.map((q, i) => `${i ? 'L' : 'M'}${q[0].toFixed(1)} ${q[1].toFixed(1)}`).join(' ');
-    const area = `${path} L${X(29).toFixed(1)} ${H - py} L${X(0).toFixed(1)} ${H - py} Z`;
-    const lab = (i) => `${list[i].getDate()}/${list[i].getMonth() + 1}`;
-    return `<svg class="cal-line" viewBox="0 0 ${W} ${H + 16}" role="img" aria-label="منحنى آخر ٣٠ يوم">
+    const area = `${path} L${X(N - 1).toFixed(1)} ${H - py} L${X(0).toFixed(1)} ${H - py} Z`;
+    const lab = (i) => list[i].tl;
+    const mid = Math.floor((N - 1) / 2);
+    return `<svg class="cal-line" viewBox="0 0 ${W} ${H + 16}" role="img" aria-label="المنحنى">
       <path d="M${px} ${H - py} H${W - px}" class="cl-axis"/><path class="cl-area" d="${area}"/>
-      <path class="cl-goal" d="M${px} ${Y(goalN()).toFixed(1)} H${W - px}"/><text class="cl-gt" x="${px}" y="${(Y(goalN()) - 4).toFixed(1)}" text-anchor="start">الهدف ${goalTxt()}</text>
+      <path class="cl-goal" d="M${px} ${Yv(lineGoal()).toFixed(1)} H${W - px}"/><text class="cl-gt" x="${W - px}" y="${(Yv(lineGoal()) - 4).toFixed(1)}" text-anchor="start">الهدف ${goalTxt()}</text>
       <path class="cl-path" d="${path}"/>
-      ${list.map((d, i) => `<circle class="cl-dot${key(d) === pick ? ' pick' : ''}${val(d) ? ' on' : ''}${val(d) >= goalN() ? ' hit' : ''}" cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="${key(d) === pick ? 5 : 3}"/><circle class="cl-hit" data-d="${key(d)}" cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="9"/>`).join('')}
-      <text class="cl-t" x="${X(0)}" y="${H + 12}" text-anchor="end">${lab(0)}</text><text class="cl-t" x="${X(15)}" y="${H + 12}" text-anchor="middle">${lab(15)}</text><text class="cl-t" x="${X(29)}" y="${H + 12}" text-anchor="start">${lab(29)}</text></svg>`;
+      ${list.map((b, i) => `<circle class="cl-dot${b.id === pick ? ' pick' : ''}${val(b) ? ' on' : ''}${hit(b) ? ' hit' : ''}" cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="${b.id === pick ? 5 : N > 40 ? 2 : 3}"/><circle class="cl-hit" data-d="${b.id}" cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="${N > 40 ? 5 : 9}"/>`).join('')}
+      <text class="cl-t" x="${X(0)}" y="${H + 12}" text-anchor="end">${lab(0)}</text>${N > 2 ? `<text class="cl-t" x="${X(mid)}" y="${H + 12}" text-anchor="middle">${lab(mid)}</text>` : ''}${N > 1 ? `<text class="cl-t" x="${X(N - 1)}" y="${H + 12}" text-anchor="start">${lab(N - 1)}</text>` : ''}</svg>`;
   };
-  const shapeHtml = () => (shape === 'bars' ? bars() : shape === 'line' ? line() : squares());
+  const shapeHtml = () => (!V.list.length ? '<p class="tiny muted" style="text-align:center">ما فيه أيام في هذي المدة.</p>' : shape === 'bars' ? bars() : shape === 'line' ? line() : squares());
+  const navRow = () => (V.nav ? `<div class="row between"><button class="btn icon sm ghost" data-m="1" ${new Date(y, m + 1, 1) > now ? 'disabled' : ''} aria-label="الشهر التالي">${icon.next}</button><b>${MONTHS[m]} ${y}</b><button class="btn icon sm ghost" data-m="-1" ${new Date(y, m, 1) <= new Date(first.getFullYear(), first.getMonth(), 1) ? 'disabled' : ''} aria-label="الشهر السابق">${icon.prev}</button></div>` : '');
+  const rangeTitle = () => (rng === 'month' ? `${MONTHS[m]} ${y}` : rng === 'monthend' ? `أواخر ${MONTHS[m]}` : rng === 'custom' ? `${parse(custom.from).getDate()}/${parse(custom.from).getMonth() + 1} ← ${parse(custom.to).getDate()}/${parse(custom.to).getMonth() + 1}` : RANGES[rng]);
   const rangeNote = () => {
-    const list = shape === 'bars' ? rangeDays(14) : shape === 'line' ? rangeDays(30) : Array.from({ length: new Date(y, m + 1, 0).getDate() }, (_, i) => new Date(y, m, i + 1, 12));
-    const sum = (k) => list.reduce((s, d) => s + dayAll(d, days)[k], 0);
-    const act = list.filter((d) => dayActive(d, days)).length;
-    return `${shape === 'bars' ? 'آخر ١٤ يوم' : shape === 'line' ? 'آخر ٣٠ يوم' : `${MONTHS[m]}`} · ${act} يوم نشاط · ${sum('time')} دقيقة · ${sum('words')} كلمة · ${sum('practice')} تدريب · ${sum('rules')} قاعدة`;
+    const sum = (k) => V.list.reduce((s, b) => s + b.t[k], 0);
+    return `المجموع · ${sum('time')} دقيقة · ${sum('words')} كلمة · ${sum('practice')} تدريب · ${sum('rules')} قاعدة`;
   };
   const dash = () => {
-    const d = new Date(`${pick}T12:00:00`);
-    const x = days[pick] || { answers: 0, right: 0, saved: 0, seen: 0 };
-    const a = dayAll(d, days);
-    const rate = x.answers ? Math.round((100 * x.right) / x.answers) : 0;
-    const nothing = !a.time && !a.words && !a.practice && !a.rules && !x.saved && !x.seen;
-    // the four goals of the day, each against its own number: the learner sees every side of the day at a glance
-    const rows = Object.entries(METRICS).map(([k, mt]) => {
-      const got = a[k]; const gl = goalFor(mt.goal);
+    const b = V.list.find((x) => x.id === pick) || V.list[V.list.length - 1];
+    if (!b) return '';
+    const cur = b.from <= now && b.to >= now;
+    const title = b.gran === 'day' ? `${DAY_NAMES[b.from.getDay()]} ${b.from.getDate()}/${b.from.getMonth() + 1}` : b.gran === 'week' ? `من ${b.from.getDate()}/${b.from.getMonth() + 1} إلى ${b.to.getDate()}/${b.to.getMonth() + 1}` : b.gran === 'month' ? `${MONTHS[b.from.getMonth()]} ${b.from.getFullYear()}` : `سنة ${b.from.getFullYear()}`;
+    const nothing = Object.values(b.t).every((v) => !v);
+    const cols = Object.entries(METRICS).map(([k, mt]) => {
+      const got = b.t[k]; const gl = goalFor(mt.goal) * b.span;
       const pct = Math.min(100, Math.round((100 * got) / gl));
-      return `<div class="cd-g${got >= gl ? ' ok' : ''}"><span class="cd-gl">${mt.label}</span><span class="cd-gs"><b class="en-inline">${got}</b><span class="tiny muted"> / ${gl} ${mt.unit}</span>${got >= gl ? ' ✓' : ''}</span><i class="cd-meter"><b style="width:${pct}%"></b></i></div>`;
+      return `<div class="cd-col${got >= gl ? ' ok' : ''}"><b class="en-inline cd-v">${got}</b><i class="cd-tr"><b style="height:${pct}%"></b></i><span class="cd-n">${mt.label}</span><small class="tiny muted en-inline">${gl}</small></div>`;
     }).join('');
-    return `<div class="cal-dash"><div class="cd-head"><b>${DAY_NAMES[d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}</b>${pick === key(now) ? '<span class="th-chip">اليوم</span>' : ''}<button type="button" class="btn ghost sm cd-edit" data-editgoals>✏️ عدّل أهدافك</button></div>
-      <div class="cd-goals">${rows}</div>
-      ${nothing ? '<p class="tiny muted" style="margin:6px 0 0">ما فيه نشاط هذا اليوم.</p>' : ''}
-      <div class="cd-grid">
-        <div class="cd-card"><span class="cd-i">📚</span><b>${x.saved}</b><small>كلمة تعلّمتها (حفظتها)</small></div>
-        <div class="cd-card"><span class="cd-i">🎯</span><b>${x.answers ? `${rate}٪` : '—'}</b><small>دقة التدريب${x.answers ? ` · ${x.answers} إجابة` : ''}</small>${x.answers ? `<i class="cd-meter"><b style="width:${rate}%"></b></i>` : ''}</div>
-      </div></div>`;
+    return `<div class="cal-dash"><div class="cd-head"><b>${title}</b>${cur ? `<span class="th-chip">${b.gran === 'day' ? 'اليوم' : 'الحالي'}</span>` : ''}</div>
+      <div class="cd-cols">${cols}</div>
+      ${nothing ? '<p class="tiny muted" style="margin:6px 0 0;text-align:center">ما فيه نشاط في هذي الفترة.</p>' : ''}
+      <button type="button" class="btn cd-editbtn" data-editgoals>✏️ عدّل أهدافك</button></div>`;
   };
   // 🎯 the goals editor lives here (it used to be in the settings page)
   let editing = false;
@@ -307,32 +335,49 @@ async function openCalendar() {
       <span class="tiny muted" id="goalNow">${p.combo ? '<b>هدف مركّب</b> — ' : ''}اليوم: ${p.items.map((i) => `${i.short} <b class="en-inline">${i.count}/${i.n}</b>${i.done ? ' ✓' : ''}`).join(' · ')}</span>
       <div class="btn-row" style="justify-content:center;margin-top:12px"><button class="btn primary" data-donegoals>تم</button></div></div>`;
   };
+  const rangePanel = () => (!rangeOpen ? '' : `<div class="rg-panel">
+      <div class="rg-chips">${Object.entries(RANGES).map(([k, l]) => `<button type="button" class="rg-chip${rng === k ? ' on' : ''}" data-rg="${k}">${l}</button>`).join('')}</div>
+      ${rng === 'custom' ? `<div class="rg-custom"><label>من<input class="input en-inline" type="date" id="rgFrom" value="${custom.from}" max="${key(now)}"></label><label>إلى<input class="input en-inline" type="date" id="rgTo" value="${custom.to}" max="${key(now)}"></label></div>` : ''}
+    </div>`);
   const draw = () => {
     if (editing) return drawGoals();
+    V = build();
+    if (!V.list.some((b) => b.id === pick)) pick = V.list[V.list.length - 1]?.id || '';
     box.innerHTML = `<div class="cal">
       <div class="cal-ctl">
         <div class="segmented seg4" id="calMetric">${Object.entries(METRICS).map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'active' : ''}">${mt.label}</button>`).join('')}</div>
-        <div class="segmented" id="calShape">${[['squares', 'مربعات'], ['bars', 'أعمدة'], ['line', 'منحنى']].map(([k, l]) => `<button type="button" data-cs="${k}" class="${shape === k ? 'active' : ''}" aria-label="${l}" title="${l}"><span class="cs-i">${SHAPE_IC[k]}</span><span class="cs-t">${l}</span></button>`).join('')}</div>
+        <div class="cal-ctl2">
+          <div class="segmented" id="calShape">${[['squares', 'مربعات'], ['bars', 'أعمدة'], ['line', 'منحنى']].map(([k, l]) => `<button type="button" data-cs="${k}" class="${shape === k ? 'active' : ''}" aria-label="${l}" title="${l}"><span class="cs-i">${SHAPE_IC[k]}</span><span class="cs-t">${l}</span></button>`).join('')}</div>
+          <button type="button" class="rg-btn${rangeOpen ? ' open' : ''}" data-rgtoggle aria-expanded="${rangeOpen}" title="المدة"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg><span>${rangeTitle()}</span></button>
+        </div>
+        ${rangePanel()}
       </div>
+      ${navRow()}
       <div class="cal-shape">${shapeHtml()}</div>
       <div class="cal-key tiny"><span>أقل</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>أكثر</span><span class="muted">· ${METRICS[metric].key}</span><span class="cal-gkey"><i></i> الهدف ${goalTxt()}</span></div>
-      ${dash()}
       <p class="cal-range tiny muted">${rangeNote()}</p>
+      ${dash()}
       <div class="btn-row" style="justify-content:center"><button class="btn ghost" data-close>إغلاق</button></div></div>`;
   };
   box.addEventListener('change', (e) => {
+    if (e.target.id === 'rgFrom' || e.target.id === 'rgTo') {
+      const f = $v('#rgFrom'); const t = $v('#rgTo');
+      if (f && t) { custom = { from: f, to: t }; lsSet('today.rcustom', JSON.stringify(custom)); pick = ''; draw(); }
+      return;
+    }
     if (!editing) return;
     const c = e.target.closest('[data-gc]'); const n = e.target.closest('[data-gn]');
     if (e.target.id === 'goalAlert') { lsSet('goal.off', e.target.checked ? '0' : '1'); return; }
     if (c) {
-      const now = new Set(goalTypes());
-      if (c.checked) now.add(c.dataset.gc); else now.delete(c.dataset.gc);
-      if (!now.size) { toast('لازم يبقى هدف واحد على الأقل'); drawGoals(); return; }
-      setGoalTypes([...now]);
+      const sel = new Set(goalTypes());
+      if (c.checked) sel.add(c.dataset.gc); else sel.delete(c.dataset.gc);
+      if (!sel.size) { toast('لازم يبقى هدف واحد على الأقل'); drawGoals(); return; }
+      setGoalTypes([...sel]);
     }
     if (n) setGoalN(n.dataset.gn, Number(n.value));
     drawGoals();
   });
+  const $v = (sel) => box.querySelector(sel)?.value;
   box.addEventListener('click', (e) => {
     if (e.target.closest('[data-editgoals]')) { editing = true; draw(); return; }
     if (e.target.closest('[data-donegoals]')) { editing = false; draw(); return; }
@@ -340,8 +385,17 @@ async function openCalendar() {
     if (cm && METRICS[cm.dataset.cm]) { metric = cm.dataset.cm; lsSet('today.metric', metric); draw(); return; }
     const cs = e.target.closest('[data-cs]');
     if (cs) { shape = cs.dataset.cs; lsSet('today.shape', shape); draw(); return; }
+    if (e.target.closest('[data-rgtoggle]')) { rangeOpen = !rangeOpen; draw(); return; }
+    const rg = e.target.closest('[data-rg]');
+    if (rg && RANGES[rg.dataset.rg]) {
+      rng = rg.dataset.rg; lsSet('today.range', rng); pick = '';
+      y = now.getFullYear(); m = now.getMonth();
+      if (rng === 'monthend' && now.getDate() < new Date(y, m + 1, 0).getDate() - 5) { m -= 1; if (m < 0) { m = 11; y -= 1; } }
+      if (rng !== 'custom') rangeOpen = false;
+      draw(); return;
+    }
     const nav = e.target.closest('[data-m]');
-    if (nav && !nav.disabled) { m -= Number(nav.dataset.m) * -1; if (m < 0) { m = 11; y -= 1; } if (m > 11) { m = 0; y += 1; } draw(); return; }
+    if (nav && !nav.disabled) { m += Number(nav.dataset.m); if (m < 0) { m = 11; y -= 1; } if (m > 11) { m = 0; y += 1; } pick = ''; draw(); return; }
     const d = e.target.closest('[data-d]');
     if (d) { pick = d.dataset.d; draw(); }
   });
