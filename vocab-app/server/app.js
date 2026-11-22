@@ -86,6 +86,22 @@ export function createApp() {
     next();
   });
   app.use(express.json({ limit: config.limits.jsonBody }));
+  // 📅 the daily reminder as a calendar file. It must be a real address with the right type so iPhone's Safari
+  // offers «Add to Calendar» (a downloaded data: link does nothing there). Nothing private in it: time and days only.
+  app.get('/api/reminder.ics', (req, res) => {
+    const time = /^([01]\d|2[0-3]):[0-5]\d$/.test(String(req.query.time)) ? String(req.query.time) : '21:00';
+    const BY = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+    const days = [...new Set(String(req.query.days || '').split(',').map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6))];
+    const by = (days.length ? days : [0, 1, 2, 3, 4, 5, 6]).map((d) => BY[d]).join(',');
+    const start = /^\d{8}$/.test(String(req.query.start)) ? String(req.query.start) : new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const stamp = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15);
+    const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').replace(/[^\w.:-]/g, '');
+    const proto = req.headers['x-forwarded-proto'] === 'http' ? 'http' : 'https';
+    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//3Goal//AR', 'CALSCALE:GREGORIAN', 'BEGIN:VEVENT', `UID:3goal-reminder-${stamp}@lexitube`, `DTSTAMP:${stamp}Z`,
+      `DTSTART:${start}T${time.replace(':', '')}00`, 'DURATION:PT10M', `RRULE:FREQ=WEEKLY;BYDAY=${by}`, 'SUMMARY:3Goal — كمّل إنجازك', 'DESCRIPTION:كمّل إنجازك اليوم في 3Goal', `URL:${proto}://${host}`,
+      'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:3Goal — كمّل إنجازك', 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
+    res.set({ 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': 'inline; filename="3goal-reminder.ics"', 'Cache-Control': 'no-store' }).send(ics);
+  });
   app.use('/api', sameOrigin);
   // Diagnostics for the operator (INTERNAL_API_KEY): what YouTube allows from this server.
   app.get('/api/internal/youtube-probe', async (req, res, next) => {

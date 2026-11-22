@@ -45,13 +45,19 @@ export function buildIcs({ time, days }) {
     `DTSTART:${ymd}T${h}${m}00`, 'DURATION:PT10M', `RRULE:FREQ=WEEKLY;BYDAY=${by.join(',')}`, 'SUMMARY:3Goal — كمّل إنجازك', `DESCRIPTION:كمّل إنجازك اليوم في 3Goal`, `URL:${location.origin}`,
     'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:3Goal — كمّل إنجازك', 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
 }
+// iPhone ignores a downloaded data: link, so the calendar file comes from a real address that answers with
+// «text/calendar» — Safari then offers «Add to Calendar» by itself (other browsers download the .ics).
 function openCalendarFile(r) {
-  const a = document.createElement('a');
-  a.href = `data:text/calendar;charset=utf-8,${encodeURIComponent(buildIcs(r))}`;
-  a.download = '3goal-reminder.ics';
-  a.target = '_blank';
-  a.rel = 'noopener';
-  document.body.appendChild(a); a.click(); a.remove();
+  const [h, m] = r.time.split(':');
+  const now = new Date();
+  let first = new Date(now);
+  for (let i = 0; i < 8; i += 1) {
+    const cand = new Date(now); cand.setDate(now.getDate() + i);
+    const past = i === 0 && (now.getHours() > Number(h) || (now.getHours() === Number(h) && now.getMinutes() >= Number(m)));
+    if (r.days.includes(String(cand.getDay())) && !past) { first = cand; break; }
+  }
+  const q = new URLSearchParams({ time: r.time, days: r.days.join(','), start: dayStr(first).replace(/-/g, '') });
+  window.location.href = `/api/reminder.ics?${q}`;
 }
 
 const chips = (sel) => DAYS.map(([v, short, name]) => `<button type="button" class="rem-day${sel.includes(v) ? ' on' : ''}" data-d="${v}" aria-pressed="${sel.includes(v)}" title="${name}">${short}</button>`).join('');
