@@ -2471,3 +2471,23 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 .rem-b-t span { color: var(--ink-2); font-size: 14px; }
 @keyframes remIn { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
 .btn.primary.rem-cal { background: #2f7bf5; border-color: #2f7bf5; box-shadow: 0 6px 16px rgba(47, 123, 245, .3); }
+
+/* «اليوم»: only icons and one word — 🔔 and 🔥 on top, «مراجعة السابق», the last 7 days (words · minutes), today's minutes */
+.th-top.th-top-min { justify-content: flex-start; gap: 10px; border-bottom: 0; padding-bottom: 2px; }
+.th-flame-btn { display: inline-flex; align-items: center; gap: 8px; height: 48px; padding: 0 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--surface); cursor: pointer; font: inherit; color: inherit; }
+.th-flame-btn .th-fl { font-size: 22px; line-height: 1; display: inline-flex; }
+.th-flame-btn .th-fl svg { width: 24px; height: 24px; color: #FF7A1A; }
+.th-flame-btn b { font-size: 20px; font-weight: 800; color: var(--accent); }
+.th-flame-btn.grey .th-fl { filter: grayscale(1); opacity: .55; }
+.th-flame-btn.grey b { color: var(--muted); }
+.th-review { width: 100%; justify-content: center; padding: 18px; font-size: 19px; font-weight: 700; border-radius: 18px; background: var(--accent); color: #fff; border: 0; text-decoration: none; cursor: pointer; box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 30%, transparent); }
+.th-cap { margin: 0 4px 6px; }
+.th-prog2 { grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px 18px; }
+.th-stat { display: flex; align-items: center; gap: 12px; }
+.th-stat b { font-size: 34px; font-weight: 800; color: var(--accent); line-height: 1; }
+.th-si { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 13px; background: color-mix(in srgb, var(--accent) 12%, var(--surface)); color: var(--accent); flex: none; }
+.th-si svg { width: 20px; height: 20px; }
+.th-today-card { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 18px; }
+.th-today-card .th-si { width: 32px; height: 32px; border-radius: 10px; }
+.th-today-card .th-si svg { width: 17px; height: 17px; }
+.th-today-card b { font-size: 24px; font-weight: 800; }

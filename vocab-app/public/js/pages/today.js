@@ -5,7 +5,7 @@ import { api } from '../api.js';
 import { maybeTour } from '../tour.js';
 import { state } from '../state.js';
 import { esc, icon, openModal, closeModal, toast } from '../ui.js';
-import { dayStr, goalFor, reachedOn as goalReachedOn } from '../goal.js';
+import { dayStr, goalFor } from '../goal.js';
 import { setPending, checkDouble, doubleInfo } from '../streak-rescue.js';
 import { getReminder, reminderSummary, openReminderFlow } from '../reminder.js';
 
@@ -15,10 +15,9 @@ const WD = ['ح', 'ن', 'ث', 'ر', 'خ', 'ج', 'س']; // Sun..Sat
 const DAY_NAMES = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 const shuffle = (a) => { const x = [...a]; for (let i = x.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [x[i], x[j]] = [x[j], x[i]]; } return x; };
 
-/** Minutes watched today, counted on this device: «أقل من دقيقة» until a full minute. */
+/** Minutes on the site today (activity based, counted on this device). */
 function todayMinutes() {
-  const sec = Number(ls(`lt.watch.${dayStr()}`, 0)) || 0;
-  return sec >= 60 ? `${Math.floor(sec / 60)} دقيقة` : sec > 0 ? 'أقل من دقيقة' : '٠ دقيقة';
+  return Math.floor((Number(ls(`lt.watch.${dayStr()}`, 0)) || 0) / 60);
 }
 
 /** What the dashboard measures: time watched on this device, or words learned (saved). */
@@ -136,14 +135,11 @@ export async function render(view) {
   const ld = lastDay(words);
   const items = newsItems(stats, ld);
   const unseen = items.length && ls('bell.seen', '') !== newsSig(items);
-  const name = state.user?.name && state.user.name !== 'Learner' ? ` ${esc(state.user.name)}` : '';
 
+  // the only words on the page: «مراجعة السابق» (the review of the last day's words, as before) — or «أضف مقطع» when nothing is saved yet
   const task = ld
-    ? `<div class="card th-task">
-        <span class="th-chip" style="justify-self:start">مهمتك اليوم</span><b class="th-task-t th-big">مراجعة كلمات آخر يوم</b>
-        <p class="ink-2 small">${ld.yesterday ? 'اختبر ذاكرتك واسترجع الكلمات اللي تعلمتها أمس.' : `ما تعلمت أمس — نقترح كلمات آخر يوم تعلمت فيه (${ld.name}).`}</p>
-        <button class="btn th-go" id="rvStart">ابدأ المراجعة ←</button></div>`
-    : `<a class="card th-task" href="#/add"><b class="th-task-t">ابدأ بأول كلماتك</b><div class="th-big">أضف مقطع</div><p class="ink-2 small">الصق رابط يوتيوب، ونجهّز لك كلماته — وبكرة تراجعها هنا.</p><span class="btn th-go">أضف ←</span></a>`;
+    ? '<button type="button" class="btn th-review" id="rvStart">مراجعة السابق</button>'
+    : '<a class="btn th-review" href="#/add">أضف مقطع</a>';
 
   const dbl = doubleInfo();
   const sadFace = '<svg class="lost-svg" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g class="lost-head"><circle cx="30" cy="34" r="21"/><path d="M19.5 30.5l5.5-2.6M40.5 30.5l-5.5-2.6" stroke-width="2.2"/><circle cx="23" cy="34" r="1.7" fill="currentColor" stroke="none"/><circle cx="37" cy="34" r="1.7" fill="currentColor" stroke="none"/><path d="M22.5 46c2.2-3.6 12.8-3.6 15 0"/></g><path class="lost-tear" d="M42 38c-2 2.6-2.2 4.4-.6 5.3 1.6.9 3-.9 .6-5.3z" fill="currentColor" stroke="none"/><g class="lost-wave" stroke-width="2.2"><path d="M6 25c-2 3.2-2 7.8 0 11"/><path d="M1 21c-3.4 5.4-3.4 13.6 0 19"/></g></svg>';
@@ -153,43 +149,19 @@ export async function render(view) {
       <i class="th-lost-bar"><b style="width:${dbl.pct}%"></b></i>
       <button type="button" class="btn sm ghost" id="lostQuick">أو سوّ تدريب سريع (٥ كلمات) ←</button></div>` : '';
   view.innerHTML = `<div class="th">
-    <div class="th-top"><div><h1 class="th-hi">أهلًا بعودتك${name} 👋</h1><p class="th-sub">رحلة صغيرة اليوم، تقدّم أكبر غدًا.</p></div>
-      <button type="button" class="th-bell${unseen ? ' dot' : ''}" id="bell" aria-label="الجديد والتذكير">${icon.bell}</button></div>
-    ${lostCard}
-    <div class="th-streak${grey ? ' has-tip' : ''}">
-      <button type="button" class="th-flame${grey ? ' grey' : ''}" id="flame" aria-label="الأيام المتتالية">
-        ${grey ? '<span class="th-tip">ضاعف الهدف أو تدريب سريع ✨</span>' : ''}
-        <span class="th-fl">🔥</span><b>${flameN}</b><span class="th-fl-t">أيام متتالية</span></button>
-      <div class="th-weekwrap"><div class="th-week" id="week" role="button" tabindex="0" aria-label="تفاصيل الأسبوع"></div></div>
+    <div class="th-top th-top-min">
+      <button type="button" class="th-bell${unseen ? ' dot' : ''}" id="bell" aria-label="الجديد والتذكير">${icon.bell}</button>
+      <button type="button" class="th-flame-btn${grey ? ' grey' : ''}" id="flame" aria-label="أيامك المتتالية وكل التفاصيل"><span class="th-fl">🔥</span><b>${flameN}</b></button>
     </div>
+    ${lostCard}
     ${task}
-    <div class="card th-prog"><div class="row between"><b>تقدّمك هذا الأسبوع</b><span class="tiny muted">آخر ٧ أيام</span></div>
-      <div class="th-pn"><b>${stats.week?.saved || 0}</b> <span>كلمة تعلّمتها</span></div>
-      <div class="tiny muted">${icon.clock} ${weekMinutes()} دقيقة تعلّم</div>
-      <div class="th-today">اليوم <b class="en-inline">${todayMinutes()}</b> 💪</div></div>
+    <div class="th-prog-wrap"><div class="tiny muted th-cap">آخر ٧ أيام</div>
+      <div class="card th-prog th-prog2">
+        <div class="th-stat" aria-label="كلمات"><span class="th-si">${icon.library}</span><b>${stats.week?.saved || 0}</b></div>
+        <div class="th-stat" aria-label="دقائق"><span class="th-si">${icon.clock}</span><b>${weekMinutes()}</b></div>
+      </div></div>
+    <div class="card th-today-card" aria-label="دقائق اليوم"><span class="th-si">${icon.clock}</span><b class="en-inline">${todayMinutes()}</b><span class="tiny muted">اليوم</span></div>
   </div>`;
-
-  // this week (Saturday → Friday): from the outside only one answer per day — did the learner reach the goal?
-  // A coloured box with a spark = yes; a plain box with the day's letter = not yet. Tap = the full dashboard.
-  let weekDays = {};
-  const reachedOn = (d, days) => goalReachedOn(dayStr(d), { practice: days[d.toISOString().slice(0, 10)]?.answers });
-  const drawWeek = (days = weekDays) => {
-    weekDays = days;
-    const now = new Date(); now.setHours(12, 0, 0, 0);
-    const sat = new Date(now); sat.setDate(now.getDate() - ((now.getDay() + 1) % 7));
-    const out = [];
-    for (let i = 0; i < 7; i += 1) {
-      const d = new Date(sat); d.setDate(sat.getDate() + i);
-      const done = d <= now && reachedOn(d, days);
-      const isToday = d.toDateString() === now.toDateString();
-      out.push(`<span class="th-box${done ? ' done' : ''}${isToday ? ' today' : ''}${d > now ? ' future' : ''}" title="${DAY_NAMES[d.getDay()]}${done ? ' · حققت هدفك' : ''}">${done ? ORANGE_FLAME : WD[d.getDay()]}</span>`);
-    }
-    view.querySelector('#week').innerHTML = out.join('');
-  };
-  drawWeek();
-  api.calendar().then((r) => drawWeek(r.days || {})).catch(() => {});
-  view.querySelector('#week').addEventListener('click', openCalendar);
-  view.querySelector('#week').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCalendar(); } });
 
   const act = (a) => {
     if (a === 'rescue') return rescue();
@@ -202,7 +174,7 @@ export async function render(view) {
     if (!pool.length) { location.hash = '#/add'; return; }
     location.hash = `#/practice?mode=quiz&mix=random&rescue=1&exact=1&ids=${pool.slice(0, 5).map((w) => w.uv_id).join(',')}&n=${Date.now()}`;
   };
-  view.querySelector('#flame').addEventListener('click', () => (grey ? rescue() : openCalendar()));
+  view.querySelector('#flame').addEventListener('click', openCalendar);
   view.querySelector('#lostQuick')?.addEventListener('click', rescue);
   view.querySelector('#bell').addEventListener('click', () => { lsSet('bell.seen', newsSig(items)); view.querySelector('#bell').classList.remove('dot'); openBell(items, act); });
   view.querySelector('#rvStart')?.addEventListener('click', () => openReviewSetup(ld.words));
