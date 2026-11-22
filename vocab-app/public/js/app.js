@@ -122,6 +122,8 @@ function openCredits() {
 // The counters in the menu: read after practice, and at most once a minute while moving between pages
 // (fewer server calls = faster pages and fewer Netlify credits).
 let statsAt = 0;
+/** The home page already got the counters inside /api/today — don't ask again right after. */
+export const noteStatsFresh = () => { statsAt = Date.now(); };
 export async function refreshStats({ lazy = false } = {}) {
   if (lazy && Date.now() - statsAt < 180000 && state.stats) return; // asked again at most every 3 minutes (each ask is a server round trip)
   statsAt = Date.now();
@@ -254,6 +256,7 @@ function guestReminder(base) {
 
 /** Login / registration, shown instead of the app when needed (also at /login and /register). */
 async function showAuth(status) {
+  try { localStorage.removeItem('lt.seen'); } catch { /* ignore */ }
   document.body.classList.add('auth-mode');
   const { render } = await import(`./pages/login.js?v=${BUILD_ID}`);
   await render($('#view'), {
@@ -266,12 +269,32 @@ async function showAuth(status) {
   });
 }
 
+// ⚡ a returning visitor (the browser remembers they were signed in): ask for the settings, the groups and the home page
+// at the SAME moment as the sign-in check, instead of one trip after another. If it turns out they are not signed in, the
+// answers are simply dropped and the normal path runs.
+let pre = null;
+try {
+  const home = location.hash === '' || location.hash === '#/' || location.hash === '#';
+  if (localStorage.getItem('lt.seen') === '1' && !/^\/(login|register)\/?$/.test(location.pathname) && !location.hash.startsWith('#/p/')) {
+    const q = (p) => p.catch(() => null);
+    pre = { config: q(api.config()), groups: q(api.groups()), today: home ? q(api.today()) : null };
+  }
+} catch { pre = null; }
+/** The home page's data, if it was asked for early (used once). */
+export const takePreloadedToday = () => { const t = pre?.today || null; if (pre) pre.today = null; return t; };
+
 async function start() {
   try {
-    state.config = await api.config();
+    // the settings and the groups don't depend on each other: ask together (one trip instead of two in a row)
+    const early = pre; pre = pre && { ...pre, config: null, groups: null }; // keep only the early home data for later
+    const [config] = await Promise.all([
+      (early?.config && early.config.then((c) => c || api.config())) || api.config(),
+      (early?.groups && early.groups.then((g) => (g ? (state.groups = g) : loadGroups()))) || loadGroups(),
+    ]);
+    try { localStorage.setItem('lt.seen', '1'); } catch { /* ignore */ }
+    state.config = config;
     state.user = state.config.user;
     import('./tour.js').then((m) => m.syncTours(state.config.tours || [])).catch(() => {});
-    await loadGroups();
   } catch (err) {
     if (err.status === 401) return showAuth();
     $('#view').innerHTML = `<div class="card empty"><div class="icon">⚠️</div><h3>الخادم غير متاح</h3><p>${esc(err.message)}</p></div>`;

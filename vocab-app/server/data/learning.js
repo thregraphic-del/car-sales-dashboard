@@ -200,8 +200,8 @@ export async function rescueStreak(userId, { doubled = false } = {}) {
   return streak(userId);
 }
 
-export async function stats(userId) {
-  const words = await listWords(userId);
+export async function stats(userId, loaded = null) {
+  const words = loaded || await listWords(userId);
   const plan = await getTodayPlan(userId, words);
   const todayStart = startOfDay(0).toISOString();
   const attention = words

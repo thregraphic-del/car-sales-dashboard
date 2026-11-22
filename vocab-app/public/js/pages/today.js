@@ -4,6 +4,7 @@
 import { api } from '../api.js';
 import { maybeTour } from '../tour.js';
 import { state } from '../state.js';
+import { noteStatsFresh, takePreloadedToday } from '../app.js';
 import { esc, icon, openModal, closeModal, toast } from '../ui.js';
 import { dayStr, goalFor, dayCounts, GOAL_TYPES, goalTypes, setGoalTypes, setGoalN, progress } from '../goal.js';
 import { setPending, checkDouble, doubleInfo } from '../streak-rescue.js';
@@ -133,8 +134,11 @@ function openBell(items, onAct) {
 }
 
 export async function render(view) {
-  const [{ stats }, words] = await Promise.all([api.today(), api.words().catch(() => [])]);
+  const home = (await takePreloadedToday()) || await api.today();
+  const { stats } = home;
+  const words = home.brief || []; // uv_id · level · saved_at is all this page needs (the full words come only when a review starts)
   state.stats = stats;
+  noteStatsFresh();
   // 🔥 practised today after missing yesterday → the flame comes back
   if (stats.streak.rescue && stats.streak.studied_today) {
     try { stats.streak = await api.rescueStreak(); toast(`🔥 رجعت شعلتك — ${stats.streak.current} أيام متتالية`); } catch { /* ignore */ }

@@ -11,10 +11,12 @@ import { all } from '../db/index.js';
 const router = Router();
 
 router.get('/today', wrap(async (req) => {
-  const words = await listWords(req.userId);
-  const [plan, stats] = [await learning.getTodayPlan(req.userId, words), await learning.stats(req.userId)];
+  const words = await listWords(req.userId); // loaded ONCE and shared (it used to be loaded again inside stats)
+  const [plan, stats] = [await learning.getTodayPlan(req.userId, words), await learning.stats(req.userId, words)];
   const { viewsToday } = await import('../data/goal.js');
-  return { plan, stats, watch_goal: await viewsToday(req.userId) };
+  // the home page needs only these three fields of each word (the last-day review, the rescue) — not the whole word
+  const brief = words.map((w) => ({ uv_id: w.uv_id, level: w.level, saved_at: w.saved_at }));
+  return { plan, stats, watch_goal: await viewsToday(req.userId), brief };
 }));
 router.post('/streak/rescue', wrap(async (req) => learning.rescueStreak(req.userId, { doubled: req.body?.doubled === true })));
 router.post('/today/extend', wrap(async (req) => learning.extendTodayPlan(req.userId, Math.max(1, Math.min(20, num(req.body?.count) || 5)))));

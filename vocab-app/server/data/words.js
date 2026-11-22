@@ -170,9 +170,12 @@ async function hydrate(rows, userId) {
   const logs = new Map();
   if (rows.length && userId) {
     try {
-      for (const l of await all('SELECT user_vocabulary_id AS id, correct, created_at FROM review_logs WHERE user_id = ? ORDER BY created_at DESC, id DESC', userId)) {
+      // only each word's last 3 answers (a window query) — not every answer ever given, which grows forever
+      for (const l of await all(`SELECT id, correct, created_at FROM (
+          SELECT user_vocabulary_id AS id, correct, created_at, ROW_NUMBER() OVER (PARTITION BY user_vocabulary_id ORDER BY created_at DESC, id DESC) AS rn
+          FROM review_logs WHERE user_id = ?) t WHERE rn <= 3 ORDER BY id, rn`, userId)) {
         const list = logs.get(l.id) || [];
-        if (list.length < 3) { list.push(l); logs.set(l.id, list); }
+        list.push(l); logs.set(l.id, list);
       }
     } catch { /* states fall back to "new" */ }
   }
