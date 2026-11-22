@@ -41,13 +41,15 @@ export function openFeedback() {
 
 /** The card on the Settings page: the form, and the administrator's inbox. */
 export const feedbackCardHtml = () => `
-  <div class="card stack" id="feedbackCard">
-    <b>💡 اقتراحاتكم</b>
-    <p class="small ink-2" style="margin:0">ساعدنا نطوّر الموقع: اكتب أي فكرة أو ميزة تتمناها أو مشكلة واجهتك.</p>
-    ${formHtml()}
-    <button class="btn primary sm" id="fbSend" style="justify-self:start">إرسال</button>
-    <div id="fbInbox"></div>
-  </div>`;
+  <details class="card fb-fold" id="feedbackCard">
+    <summary class="fb-sum">💡 اقتراحاتكم</summary>
+    <div class="stack" style="margin-top:10px">
+      <p class="small ink-2" style="margin:0">اكتب أي فكرة أو ميزة تتمناها أو مشكلة واجهتك.</p>
+      ${formHtml()}
+      <button class="btn primary sm" id="fbSend" style="justify-self:start">إرسال</button>
+      <div id="fbInbox"></div>
+    </div>
+  </details>`;
 
 export function bindFeedbackCard(view) {
   const card = $('#feedbackCard', view);

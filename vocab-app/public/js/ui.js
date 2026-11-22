@@ -200,12 +200,50 @@ export function openModal(html, { wide = false, onClose } = {}) {
   };
   document.addEventListener('keydown', onKey);
   root.addEventListener('click', onClick);
+  bindSwipeClose(box);
   modalCleanup = () => {
     document.removeEventListener('keydown', onKey);
     root.removeEventListener('click', onClick);
     onClose?.();
   };
   return box;
+}
+
+/** Phones: a window slides down with a finger pulled from its top (or from anywhere while it is scrolled to its top) and closes when pulled far enough. */
+function bindSwipeClose(box) {
+  if (!window.matchMedia?.('(max-width: 640px)').matches) return;
+  let y0 = 0;
+  let dy = 0;
+  let t0 = 0;
+  let live = false;
+  // a list or text box inside the window that is scrolled down keeps its own scrolling
+  const innerScrolled = (el) => {
+    for (let n = el; n && n !== box; n = n.parentElement) {
+      if (n.scrollTop > 0 && n.scrollHeight > n.clientHeight) return true;
+    }
+    return false;
+  };
+  box.addEventListener('touchstart', (e) => {
+    live = false;
+    if (e.touches.length !== 1 || box.scrollTop > 0 || innerScrolled(e.target)) return;
+    y0 = e.touches[0].clientY; dy = 0; t0 = Date.now(); live = true;
+  }, { passive: true });
+  box.addEventListener('touchmove', (e) => {
+    if (!live) return;
+    dy = e.touches[0].clientY - y0;
+    if (dy <= 0) { box.style.transform = ''; box.style.transition = ''; return; }
+    if (e.cancelable) e.preventDefault(); // pulling the window, not bouncing the page
+    box.style.transition = 'none';
+    box.style.transform = `translateY(${Math.round(dy * 0.9)}px)`;
+  }, { passive: false });
+  const end = () => {
+    if (!live) return;
+    live = false;
+    box.style.transition = '';
+    if (dy > 110 || (dy > 50 && Date.now() - t0 < 250)) { box.style.transform = `translateY(110%)`; setTimeout(() => closeModal(true), 160); } else box.style.transform = '';
+  };
+  box.addEventListener('touchend', end);
+  box.addEventListener('touchcancel', end);
 }
 
 export function closeModal(immediate = false) {

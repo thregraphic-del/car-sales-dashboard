@@ -10,6 +10,7 @@ import { watchForUpdates } from './update-check.js';
 import { setPending, checkDouble, remindOnce } from './streak-rescue.js';
 import { openFeedback } from './feedback.js';
 import { goalText, noteActive, endSession } from './goal.js';
+import { startReminder } from './reminder.js';
 
 const NAV = [
   { path: '/', label: 'اليوم', icon: 'today', page: 'today', badge: true },
@@ -56,7 +57,7 @@ const SAD_BADGE = '<span class="sad-badge" title="شعلتك طفت — ضاعف
 function renderNav(active) {
   const s = state.stats;
   const left = s ? Math.max(0, s.plan.total - s.plan.completed) : 0;
-  const links = NAV.map((n) => `<a class="nav-link ${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? `<span class="badge">${left}</span>` : ''}${n.path === '/' && s?.streak?.rescue ? SAD_BADGE : ''}</a>`).join('');
+  const links = NAV.map((n) => `<a class="nav-link ${n.path === active ? 'active' : ''}${['/add', '/words', '/practice'].includes(n.path) ? ' tab-dup' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? `<span class="badge">${left}</span>` : ''}${n.path === '/' && s?.streak?.rescue ? SAD_BADGE : ''}</a>`).join('');
   $('#nav').innerHTML = `${links}<div class="nav-sep"></div><a class="nav-link ${active === '/friends' ? 'active' : ''}" href="#/friends">${icon.users}<span>أصدقائي</span></a><a class="nav-link ${active === '/notes' ? 'active' : ''}" href="#/notes">${icon.bookOpen}<span>أفكار</span></a><a class="nav-link ${active === '/settings' ? 'active' : ''}" href="#/settings">${icon.settings}<span>الإعدادات</span></a>`;
   // bottom bar on phones: only the three working pages (اليوم · الإعدادات · أصدقائي live in the ☰ menu)
   $('#tabbar').innerHTML = NAV.filter((n) => n.path !== '/').map((n) => `<a class="${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span></a>`).join('');
@@ -65,10 +66,7 @@ function renderNav(active) {
   const guestChip = state.user?.guest ? '<div class="guest-chip">👤 أنت ضيف — <a href="/register"><b>سجّل حسابك المجاني</b></a> وتنحفظ كلماتك. عندك حساب؟ <a href="/login"><b>ادخل</b></a></div>' : '';
   $('#sidebarFoot').innerHTML = s
     ? `${guestChip}<div class="row between sf-streak"><span>🔥 أيام متتالية</span><b class="en-inline">${s.streak.current}</b></div>
-       <div class="tiny muted" style="margin-top:6px">${state.config?.ai?.configured ? '✨ الذكاء الاصطناعي مفعّل' : '📘 القاموس المحلي'}</div>
-       ${creditsBell()}
-       <button type="button" class="link-btn small" id="feedbackLink" style="display:block;margin-top:8px">💡 اقتراحاتكم — ساعدنا نطوّر الموقع</button>
-       <div class="tiny muted en-inline" style="margin-top:4px">3Goal v${esc(state.config?.app?.version || '?')}</div>`
+       ${creditsBell()}`
     : '';
 }
 
@@ -203,6 +201,7 @@ async function route() {
 }
 
 watchForUpdates();
+startReminder();
 
 // ⏱ time on the site: every tap, key, scroll counts as activity (at most once a second); a hidden page ends the session
 (() => {

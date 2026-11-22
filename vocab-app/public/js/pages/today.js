@@ -7,6 +7,7 @@ import { state } from '../state.js';
 import { esc, icon, openModal, closeModal, toast } from '../ui.js';
 import { dayStr, goalFor, reachedOn as goalReachedOn } from '../goal.js';
 import { setPending, checkDouble, doubleInfo } from '../streak-rescue.js';
+import { getReminder, reminderSummary, openReminderFlow } from '../reminder.js';
 
 const ls = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch { /* storage off */ } };
@@ -104,40 +105,19 @@ const newsSig = (items) => items.map((i) => i[1]).join('|');
 
 function openBell(items, onAct) {
   const box = openModal('');
-  const t = ls('reminder.time', '');
+  const rem = getReminder();
   box.innerHTML = `<div class="bell-sheet stack">
     <h3 style="margin:0">${icon.bell} الجديد</h3>
     ${items.length ? `<div class="bell-list">${items.map(([ic, txt, act], i) => `<button type="button" class="bell-item" data-i="${i}"><span>${ic}</span><span>${esc(txt)}</span><span class="muted">‹</span></button>`).join('')}</div>` : '<p class="small muted">ما فيه شي جديد الحين 👌</p>'}
     <div class="divider"></div>
-    <b>⏰ منبّه يومي</b>
-    <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap"><span class="small">ذكّرني الساعة</span><input class="input en-inline" id="remT" type="time" value="${esc(t)}" style="width:130px">
-      <button class="btn sm primary" id="remSave">حفظ</button>${t ? '<button class="btn sm ghost" id="remOff">إيقاف</button>' : ''}</div>
-    <p class="tiny muted" id="remNote">${t ? `المنبّه مضبوط على <b class="en-inline">${esc(t)}</b>.` : 'اختر ساعة، ونذكّرك كل يوم.'} للتنبيه حتى والموقع مقفل: <button type="button" class="link-btn" id="remCal">أضفه لتقويم جوالك 📅</button></p>
+    <b>⏰ منبّه كمّل إنجازك</b>
+    <p class="tiny muted" id="remNote" style="margin:0">${rem.time ? `مضبوط: <b class="en-inline">${esc(reminderSummary(rem))}</b>` : 'اختر الساعة والأيام، وبنوريك كيف تحفظه في التقويم.'}</p>
+    <div class="btn-row"><button class="btn primary sm" id="remOpen">${rem.time ? 'تعديل المنبّه' : 'ضبط المنبّه ←'}</button></div>
   </div>`;
   box.addEventListener('click', async (e) => {
     const it = e.target.closest('[data-i]');
     if (it) { closeModal(); onAct(items[Number(it.dataset.i)][2]); return; }
-    if (e.target.closest('#remSave')) {
-      const v = box.querySelector('#remT').value;
-      if (!v) { toast('اختر الساعة أولًا'); return; }
-      lsSet('reminder.time', v);
-      try { if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission(); } catch { /* ignore */ }
-      toast(`⏰ نذكّرك كل يوم الساعة ${v}`);
-      closeModal();
-    }
-    if (e.target.closest('#remOff')) { try { localStorage.removeItem('reminder.time'); } catch { /* ignore */ } toast('أوقفنا المنبّه'); closeModal(); }
-    if (e.target.closest('#remCal')) {
-      const v = box.querySelector('#remT').value || t || '20:00';
-      const [h, m] = v.split(':');
-      const d = new Date(); const ymd = dayStr(d).replace(/-/g, '');
-      const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//3Goal//AR', 'BEGIN:VEVENT', `UID:3goal-reminder-${Date.now()}@lexitube`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`,
-        `DTSTART:${ymd}T${h}${m}00`, 'DURATION:PT10M', 'RRULE:FREQ=DAILY', 'SUMMARY:3Goal — راجع كلماتك 🔥', `URL:${location.origin}`,
-        'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:وقت مراجعة كلماتك', 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].join('\r\n');
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
-      a.download = '3goal-reminder.ics';
-      document.body.appendChild(a); a.click(); a.remove();
-    }
+    if (e.target.closest('#remOpen')) { closeModal(); openReminderFlow({ onDone: () => {} }); }
   });
 }
 

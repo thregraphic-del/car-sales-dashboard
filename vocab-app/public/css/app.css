@@ -2444,3 +2444,30 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
 /* the third row of field chips fades softly from its middle (a light gradient, not a cut) so it is clear there are more fields below */
 .fd-chips { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 50px), rgba(0, 0, 0, .16) 100%); mask-image: linear-gradient(to bottom, #000 calc(100% - 50px), rgba(0, 0, 0, .16) 100%); }
 .fd-chips.at-end { -webkit-mask-image: none; mask-image: none; }
+
+/* windows on phones: a small grip says they can be pulled down to close */
+@media (max-width: 640px) {
+  .modal::before { content: ''; display: block; width: 44px; height: 5px; border-radius: 99px; background: color-mix(in srgb, var(--ink) 20%, transparent); margin: -10px auto 12px; }
+  .modal { overscroll-behavior: contain; }
+}
+/* the drawer on phones: the three pages that the bottom bar already has are not repeated */
+@media (max-width: 900px) { .sidebar .nav-link.tab-dup { display: none; } }
+/* suggestions: one folded row in the settings */
+.fb-fold > summary { cursor: pointer; font-weight: 700; list-style: none; }
+.fb-fold > summary::-webkit-details-marker { display: none; }
+.fb-fold[open] > summary { margin-bottom: 4px; }
+/* ⏰ reminder: days, calendar steps, top banner */
+.rem-days { display: flex; gap: 6px; flex-wrap: wrap; }
+.rem-day { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--surface); font: inherit; font-weight: 700; color: var(--ink-2); cursor: pointer; }
+.rem-day.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.rem-how { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.rem-how li { display: flex; gap: 10px; align-items: flex-start; line-height: 1.7; }
+.rem-n { flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, var(--accent) 14%, var(--surface)); color: var(--accent); font-weight: 700; font-size: 14px; }
+.rem-cal { background: #2f7bf5; border-color: #2f7bf5; justify-content: center; }
+.rem-cal .ico svg { width: 20px; height: 20px; }
+.rem-banner { position: fixed; z-index: 120; top: calc(8px + env(safe-area-inset-top)); inset-inline: 10px; margin-inline: auto; max-width: 460px; display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-lg); animation: remIn .35s var(--ease); }
+.rem-banner img { border-radius: 8px; flex: none; }
+.rem-b-t { flex: 1; min-width: 0; display: grid; line-height: 1.35; }
+.rem-b-t span { color: var(--ink-2); font-size: 14px; }
+@keyframes remIn { from { opacity: 0; transform: translateY(-14px); } to { opacity: 1; transform: none; } }
+.btn.primary.rem-cal { background: #2f7bf5; border-color: #2f7bf5; box-shadow: 0 6px 16px rgba(47, 123, 245, .3); }
