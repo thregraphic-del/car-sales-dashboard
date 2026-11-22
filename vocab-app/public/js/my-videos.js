@@ -74,7 +74,7 @@ export function bindMyVideos(box, list, { onPrefs, onPick } = {}) {
       const first = box.querySelector('.mv');
       if (!wrap || !first) return;
       const h = first.offsetHeight + 12;
-      wrap.style.maxHeight = `${open ? h * 3 : h}px`;
+      wrap.style.maxHeight = `${Math.round(h * 1.65)}px`; // first row in full, the next one fading: scroll for more
     });
   }
 

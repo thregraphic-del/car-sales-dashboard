@@ -2902,3 +2902,23 @@ body.clipset-on .main { max-width: none; margin: 0; padding-top: calc(10px + env
 .act-bar .fd-kind button { padding: 0 8px; font-size: 12.5px; gap: 4px; }
 .act-bar .fd-selbtn { padding: 0 10px; font-size: 13px; }
 .act-bar .fd-sq { width: 40px; }
+/* ===== sources as tidy rows: icon on the right, name on the left, a short description under it ===== */
+#fdSlot .fd-grid.fd-rows2 { grid-template-columns: 1fr; gap: 8px;
+  -webkit-mask-image: linear-gradient(to bottom, #000 50%, rgba(0,0,0,.1) 100%); mask-image: linear-gradient(to bottom, #000 50%, rgba(0,0,0,.1) 100%); }
+#fdSlot .fd-grid.fd-rows2.at-end { -webkit-mask-image: none; mask-image: none; }
+@media (min-width: 720px) { #fdSlot .fd-grid.fd-rows2 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+#fdSlot .fd-card { padding: 10px 12px; border-radius: 20px; min-height: 66px; }
+#fdSlot .fd-go { display: grid !important; grid-template-columns: auto minmax(0, 1fr); grid-template-areas: "ava name" "ava desc"; align-items: center; justify-items: stretch; column-gap: 12px; row-gap: 1px; padding: 0 40px 0 0 !important; }
+#fdSlot .fd-go .ch-ava { grid-area: ava; width: 44px; height: 44px; }
+#fdSlot .fd-go b { grid-area: name; text-align: left; direction: ltr; font-size: 14.5px; -webkit-line-clamp: 1; }
+#fdSlot .fd-go .fd-desc { grid-area: desc; text-align: start; font-size: 12px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+#fdSlot .fd-go .fd-type { display: none; }
+#fdSlot .fd-fav { top: 50%; transform: translateY(-50%); inset-inline-end: 6px; }
+/* «نشاطي»: the first card in full, the next one fading; the list scrolls */
+.mv-wrap { overflow-y: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(to bottom, #000 50%, rgba(0,0,0,.1) 100%); mask-image: linear-gradient(to bottom, #000 50%, rgba(0,0,0,.1) 100%); }
+.mv-wrap::-webkit-scrollbar { display: none; }
+.mv-more { display: none; }
+#texts.tx-sec { max-height: 190px; overflow-y: auto; scrollbar-width: none; -webkit-mask-image: linear-gradient(to bottom, #000 55%, rgba(0,0,0,.1) 100%); mask-image: linear-gradient(to bottom, #000 55%, rgba(0,0,0,.1) 100%); }
+#texts.tx-sec::-webkit-scrollbar { display: none; }
+#fdSlot .fd-go { padding: 0 !important; padding-inline-end: 38px !important; }
+#fdSlot .fd-go .fd-desc { text-align: end; }

@@ -608,7 +608,7 @@ export function bindFields(view) {
     const c = g?.querySelector('.fd-card');
     if (!g || !c) return;
     const gap = parseFloat(getComputedStyle(g).rowGap) || 10;
-    g.style.maxHeight = `${Math.round(c.offsetHeight * 2.5 + gap * 2)}px`;
+    g.style.maxHeight = `${Math.round(c.offsetHeight * 1.65 + gap)}px`; // the first card in full, the second fading: there is more below
     const end = () => g.classList.toggle('at-end', g.scrollTop + g.clientHeight >= g.scrollHeight - 4);
     g.addEventListener('scroll', end, { passive: true });
     end();
