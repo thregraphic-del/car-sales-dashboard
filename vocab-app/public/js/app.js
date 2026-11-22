@@ -297,7 +297,6 @@ async function start() {
     }, 30000);
     window.addEventListener('hashchange', route);
     loadCredits(); // once per visit (owner only)
-    import('./tour.js').then((m) => m.mountHelp()).catch(() => {});
     if (state.config?.ai?.configured) import('./say-ar.js').then((m) => m.watchSayAr()).catch(() => {});
   }
   return route();

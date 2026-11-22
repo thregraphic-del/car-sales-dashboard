@@ -2885,3 +2885,8 @@ body.clipset-on .main { max-width: none; margin: 0; padding-top: calc(10px + env
 .nt-act:hover { border-color: var(--accent); }
 .nt-hint { margin: 0; }
 .nt-one { padding-bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
+/* the page tour: the lit element sits in a white ring, the rest of the page is grey */
+.tour-spot { box-shadow: 0 0 0 4px rgba(255,255,255,.95), 0 0 0 9999px rgba(108, 112, 122, .66); outline: 0; }
+.cs-copy { gap: 6px; border-radius: 99px; font-weight: 700; color: var(--accent); padding: 0 12px; height: 40px; display: inline-flex; align-items: center; }
+.cs-copy svg { width: 20px; height: 20px; }
+.cs-tools { align-items: center; gap: 6px; }
