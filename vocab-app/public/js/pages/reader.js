@@ -342,7 +342,7 @@ export async function render(view, { segments, params }) {
           <div class="srow sw-row"><span class="slabel">قائمة الكلمات</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="wbOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label>
             <div class="sw-sub"><span class="sopts">كل <input class="input sopt-num" id="wbN" type="number" min="3" max="300" inputmode="numeric"> <span class="tiny">كلمة</span></span>
             <span class="sopts" id="wbWhen"><button type="button" class="sopt" data-when="before">قبلها</button><button type="button" class="sopt" data-when="after">بعدها</button></span></div></div></div>
-          ${paid.recap ? `<div class="srow sw-row"><span class="slabel">ملخص كل فترة</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="recapOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label>
+          ${false ? `<div class="srow sw-row"><span class="slabel">ملخص كل فترة</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="recapOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label>
             <div class="sw-sub"><span class="sopts" id="recapMin"><span class="tiny">كل</span>${[3, 6].map((m) => `<button type="button" class="sopt en-inline" data-rmin="${m}">${m}د</button>`).join('')}<input class="input sopt-num" id="recapMinN" type="number" min="1" max="60" inputmode="numeric" placeholder="اكتب" aria-label="كل كم دقيقة"></span>
             <span class="sopts" id="recapWhen"><button type="button" class="sopt" data-rwhen="before">قبل</button><button type="button" class="sopt" data-rwhen="after">بعد</button></span>
             <span class="sopts" id="recapPause"><span class="tiny">لما يطلع:</span><button type="button" class="sopt" data-rpause="none">يكمّل المقطع</button><button type="button" class="sopt" data-rpause="read">يوقف بقدر قراءته</button><button type="button" class="sopt" data-rpause="5">يوقف ٥ ثواني</button></span></div></div></div>` : ''}` : ''}
@@ -368,10 +368,9 @@ export async function render(view, { segments, params }) {
           ${isVideo ? `<div class="srow sw-row"><span class="slabel">شرح التكبير 👆</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="shOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="shTxt"></span></label></div></div>` : ''}
           <div class="srow"><span class="slabel">بحث</span><div class="sopts tr-search"><input class="input sm" id="trQ" type="search" placeholder="ابحث في النص" aria-label="ابحث في النص"><span class="tiny muted" id="trQn"></span></div></div>
           <div class="sgroup">أدوات</div>
-          <div class="srow"><span class="slabel">شرح</span><div class="sopts"><button class="sopt" id="tourR">شرح الأزرار</button><button class="sopt" id="colorKey">🎨 مفتاح الألوان</button><button class="sopt" id="resetR">↺ رجّع كل الإعدادات للأصل</button></div></div>
           <div class="srow"><span class="slabel">أدوات</span><div class="sopts">
-            <button class="sopt" id="retrBtn">ترجمة أدق</button>${paid.summary ? '<button class="sopt" id="summaryBtn">📝 ملخص المقطع كامل</button>' : ''}<button class="sopt" id="copyAll">📋 نسخ كل النص</button><button class="sopt" id="saveGpt">💾 احفظ ملخص ChatGPT</button><button class="sopt" id="askGpt"><span class="ico" aria-hidden="true">${icon.gpt}</span> اسأل ChatGPT</button><button class="sopt" id="listenBtn">🎧 استماع</button>
-            ${source.youtube_id && !source.is_demo ? `<a class="sopt" href="https://www.youtube.com/watch?v=${esc(source.youtube_id)}" target="_blank" rel="noopener">يوتيوب ↗</a>` : ''}
+            <button class="sopt" id="ideasBtn" title="أفكار: اسأل ChatGPT، احفظ ملخصه، اكتب ملاحظة، انسخ النص">💡 أفكار</button>
+            <span hidden id="ideasSrc">${paid.summary ? '<button type="button" id="summaryBtn">summary</button>' : ''}<button type="button" id="copyAll">copy</button><button type="button" id="saveGpt">save</button><button type="button" id="askGpt">ask</button></span>
             <button class="sopt" id="del" style="color:var(--bad)">🗑 حذف</button></div></div>
           <button type="button" class="btn rset-reset" id="resetAll">↺ رجّع كل الإعدادات للأصل</button>
           <div class="rset-ok-row"><button type="button" class="btn primary rset-ok" id="setOk">اعتمد</button></div>
@@ -861,7 +860,7 @@ export async function render(view, { segments, params }) {
   view.addEventListener('click', (e) => { if (e.target.closest('#pfOpen')) openPracticeFilter(); });
 
   // 📝 What it is about, in a few words of everyday Saudi Arabic — when and how often the learner chooses.
-  let recapOn = paid.recap && pref('reader.recap3', '1') === '1' && !params.jump; // owner-only and off unless she switches it on in the settings
+  let recapOn = false; // owner-only and off unless she switches it on in the settings
   const recapBox = $('#recapOn', view);
   if (recapBox) {
     recapBox.checked = recapOn;
@@ -2612,6 +2611,26 @@ export async function render(view, { segments, params }) {
     document.body.appendChild(gptPill);
   };
   $('#saveGpt', view)?.addEventListener('click', keepGpt);
+  // 💡 «أفكار»: everything about ideas in one place — ask ChatGPT, keep its answer, write your own note, copy the text, the full summary (owner only)
+  $('#ideasBtn', view)?.addEventListener('click', () => {
+    toggleSet(false);
+    const box = openModal(`<div class="stack ideas-box"><h2 style="margin:0">💡 أفكار</h2>
+      <p class="tiny muted" style="margin:0">كل شي عن أفكارك لهذا المقطع في مكان واحد. ويتحفظ كله في «أفكار».</p>
+      <button type="button" class="idea-row" data-idea="ask"><span class="ico">${icon.gpt}</span><span><b>اسأل ChatGPT</b><span class="tiny muted">يجهّز رسالة تلخيص جاهزة ويفتح ChatGPT</span></span></button>
+      <button type="button" class="idea-row" data-idea="keep"><span class="ico">${icon.bookmark}</span><span><b>الصق ملخص ChatGPT واحفظه</b><span class="tiny muted">يظهر باسم المقطع في «أفكار»</span></span></button>
+      <button type="button" class="idea-row" data-idea="note"><span class="ico">${icon.note || icon.doc}</span><span><b>اكتب ملاحظة</b><span class="tiny muted">فكرة أعجبتك أو شي تبي تتذكره</span></span></button>
+      <button type="button" class="idea-row" data-idea="copy"><span class="ico">${icon.copy || icon.doc}</span><span><b>انسخ كل النص</b><span class="tiny muted">للصقه في ChatGPT أو أي مكان</span></span></button>
+      ${paid.summary ? `<button type="button" class="idea-row" data-idea="summary"><span class="ico">${icon.doc}</span><span><b>ملخص المقطع كامل</b><span class="tiny muted">بالذكاء الاصطناعي (يستهلك رصيد)</span></span></button>` : ''}
+      <a class="idea-row" href="#/notes" data-close><span class="ico">${icon.bookOpen}</span><span><b>افتح «أفكار»</b><span class="tiny muted">كل اللي حفظته من كل المقاطع</span></span></a></div>`);
+    box.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-idea]');
+      if (!b) return;
+      closeModal(true);
+      const k = b.dataset.idea;
+      if (k === 'note') return openGptNote({ sourceId: id, title: source.title, own: true });
+      return $(`#${{ ask: 'askGpt', keep: 'saveGpt', copy: 'copyAll', summary: 'summaryBtn' }[k]}`, view)?.click();
+    });
+  });
   view.querySelectorAll('#askGpt, #gptTop').forEach((btn) => btn.addEventListener('click', async () => {
     const body = data.lines.map((l) => l.text).join('\n');
     const head = 'أنت خبير تلخيص. لخّص لي النص التالي بالعربي بأسلوب علمي واضح وعملي، وبأقصر شكل: الزبدة فقط، بدون مقدمات ولا حشو ولا إعادة للنص.\n'

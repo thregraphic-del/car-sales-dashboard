@@ -2783,3 +2783,10 @@ body:has(.modal-root.open) .help-fab { display: none !important; }
   background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 72%, #fff) 0%, var(--accent) 100%); color: var(--accent-ink); box-shadow: 0 8px 18px -8px color-mix(in srgb, var(--accent) 55%, transparent); }
 .ah-foot .btn:disabled { background: var(--surface-3); color: var(--muted); box-shadow: none; opacity: 1; }
 .ah-foot .btn svg { width: 19px; height: 19px; }
+/* «أفكار» window of a clip */
+.ideas-box { gap: 10px; }
+.idea-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; border-radius: 20px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; text-align: start; text-decoration: none; cursor: pointer; }
+.idea-row > span:last-child { display: grid; gap: 1px; min-width: 0; }
+.idea-row:hover { border-color: var(--accent); }
+.idea-row .ico { width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; flex: none; background: var(--accent-soft); color: var(--accent); }
+.idea-row .ico svg { width: 21px; height: 21px; }

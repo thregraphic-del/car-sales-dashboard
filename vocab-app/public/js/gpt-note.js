@@ -7,19 +7,19 @@ import { filterBarHtml, filterBarClick, placeMenus } from './filter-bar.js';
 const thumbOf = (s) => s.thumbnail_url || (s.youtube_id ? `https://i.ytimg.com/vi/${encodeURIComponent(s.youtube_id)}/mqdefault.jpg` : '');
 
 /** @param {{sourceId?: number, title?: string, current?: string, onSaved?: (note:any)=>void}} o  — without sourceId the learner picks the video. */
-export async function openGptNote({ sourceId, title = '', current = '', onSaved } = {}) {
+export async function openGptNote({ sourceId, title = '', current = '', onSaved, own = false } = {}) {
   let choices = [];
   if (!sourceId) {
     try { choices = (await api.sources()).filter((s) => s && s.id); } catch { choices = []; }
     if (!choices.length) { toast('أضف مقطعًا أو نصًا أول، وبعدها احفظ له ملخص ChatGPT.'); return; }
   }
   const box = openModal(`<div class="stack gpt-save">
-      <h2 style="margin:0">احفظ ملخص ChatGPT</h2>
+      <h2 style="margin:0">${own ? 'اكتب ملاحظة' : 'احفظ ملخص ChatGPT'}</h2>
       ${sourceId
         ? `<p class="tiny muted en" dir="auto" style="margin:0">${esc(title)}</p>`
         : '<div class="field"><span class="tiny muted">اختر المقطع</span><div id="gnBar"></div></div>'}
-      <label class="field"><span class="tiny muted">الصق هنا ردّ ChatGPT (المس مطوّلًا ← لصق)</span><textarea class="input" id="gnText" rows="9" dir="auto" placeholder="الصق الملخص هنا…">${esc(current)}</textarea></label>
-      <div class="btn-row"><button type="button" class="btn primary" id="gnSave">احفظ باسم المقطع</button><button type="button" class="btn ghost" data-close>إلغاء</button></div>
+      <label class="field"><span class="tiny muted">${own ? 'اكتب فكرتك أو اللي أعجبك في المقطع' : 'الصق هنا ردّ ChatGPT (المس مطوّلًا ← لصق)'}</span><textarea class="input" id="gnText" rows="9" dir="auto" placeholder="${own ? 'اكتب ملاحظتك هنا…' : 'الصق الملخص هنا…'}">${esc(current)}</textarea></label>
+      <div class="btn-row"><button type="button" class="btn primary" id="gnSave">${own ? 'احفظ الملاحظة' : 'احفظ باسم المقطع'}</button><button type="button" class="btn ghost" data-close>إلغاء</button></div>
       <p class="tiny muted" style="margin:0">يظهر في «أفكار» تحت اسم المقطع، وتقدر تعدّله أو تحذفه (بحفظ نص فاضي).</p>
     </div>`);
   // the clip picker: the same list as «تدرّب» — each clip with its picture and title, opening as a menu under the button
