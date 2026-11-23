@@ -3160,3 +3160,15 @@ body.reader-focus #setBtn, body.reader-focus #wordsBtn, body.reader-focus #gptTo
 .wd-tools .wd-t svg { width: 20px; height: 20px; flex: none; color: var(--accent); }
 .wd-tools .wd-t.on svg { color: #fff; }
 @media (max-width: 360px) { .wd-tools .wd-t { font-size: 12.5px; gap: 5px; padding: 0 6px; } .wd-tools .wd-t svg { width: 18px; height: 18px; } }
+
+/* 🧭 the period filter as a short path: one choice at a time, nothing else on screen */
+.rg-panel.wz { gap: 10px; }
+.wz-crumb { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.wz-crumb span { padding: 2px 10px; border-radius: 99px; background: color-mix(in srgb, #0ABAB5 14%, var(--surface)); color: var(--accent); font-weight: 700; }
+.wz-t { font-size: 15px; font-weight: 800; color: var(--ink); }
+.wz-list { display: grid; gap: 6px; }
+.wz-opt { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 15px; background: var(--surface); color: var(--ink); font: 700 14.5px var(--font-ar, inherit); text-align: start; cursor: pointer; }
+.wz-opt.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); color: var(--accent); }
+.wz-opt::after { content: '‹'; color: var(--muted); font-size: 18px; line-height: 1; }
+.wz-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-top: 4px; }
+.wz-body .rg-two { gap: 8px; }

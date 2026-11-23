@@ -411,37 +411,57 @@ async function openCalendar() {
   const step = (t, inner) => `<div class="rg-step">${t ? `<b>${t}</b>` : ''}${inner}</div>`;
   const ctxMonth = () => two(lab('السنة', sel('y', yOpts(), F.y)), lab('الشهر', sel('m', mOpts(F.y), F.m)));
   const lastChips = (u, opts, word) => step(`آخر كم ${word}؟`, `<div class="rg-chips">${opts.map((n) => chip('data-fl', n, String(n), F.last[u] === n)).join('')}</div>`);
-  const optionsHtml = () => {
-    const { unit: u, mode } = F;
-    if (u === 'day') {
-      if (mode === 'last') return lastChips('day', [1, 7, 14, 30, 90], 'يوم');
-      if (mode === 'range') return step('نطاق من يوم إلى يوم', two(lab('من يوم', date('d.cf', F.d.cf)), lab('إلى يوم', date('d.ct', F.d.ct))));
-      if (mode === 'set') { const len = new Date(F.y, F.m + 1, 0).getDate(); return step('١) اختر الشهر', ctxMonth()) + step('٢) اختر الأيام (أكثر من يوم)', `<div class="rg-chips rg-nums">${Array.from({ length: len }, (_, i) => i + 1).filter((n) => new Date(F.y, F.m, n, 12) <= now).map((n) => chip('data-ft', `d.set:${n}`, n, F.d.set.includes(n))).join('')}</div>`); }
-      return step('قارن بين يومين', two(lab('اليوم الأول', date('d.A', F.d.A)), lab('اليوم الثاني', date('d.B', F.d.B))));
-    }
-    if (u === 'week') {
-      if (mode === 'last') return lastChips('week', [1, 2, 4, 8], 'أسبوع');
-      if (mode === 'range') return step('١) اختر الشهر', ctxMonth()) + step('٢) من أسبوع رقم … إلى أسبوع رقم', two(lab('من أسبوع', sel('w.from', wOpts(F.y, F.m), F.w.from)), lab('إلى أسبوع', sel('w.to', wOpts(F.y, F.m), F.w.to))));
-      if (mode === 'set') return step('١) اختر الشهر', ctxMonth()) + step('٢) أسابيع هذا الشهر — رقم الأسبوع وأيامه (تقدر أكثر من أسبوع)', `<div class="rg-chips rg-nums">${wOpts(F.y, F.m).map(([n]) => chip('data-ft', `w.set:${n}`, `<b>${n}</b><small>${wSpan(F.y, F.m, n)}</small>`, F.w.set.includes(n))).join('')}</div>`);
-      const one = (id, X, t) => step(t, two(lab('السنة', sel(`w.${id}.y`, yOpts(), X.y)), lab('الشهر', sel(`w.${id}.m`, mOpts(X.y), X.m))) + lab('رقم الأسبوع', sel(`w.${id}.w`, wOpts(X.y, X.m), X.w)));
-      return one('A', F.w.A, 'الأسبوع الأول') + one('B', F.w.B, 'الأسبوع الثاني');
-    }
-    if (u === 'month') {
-      if (mode === 'last') return lastChips('month', [1, 3, 6, 12], 'شهر');
-      if (mode === 'range') return step('١) اختر السنة', lab('', sel('y', yOpts(), F.y))) + step('٢) من شهر … إلى شهر', two(lab('من شهر', sel('mo.from', mOpts(F.y), F.mo.from)), lab('إلى شهر', sel('mo.to', mOpts(F.y), F.mo.to))));
-      if (mode === 'set') return step('١) اختر السنة', lab('', sel('y', yOpts(), F.y))) + step('٢) اختر الشهور (أكثر من شهر)', `<div class="rg-chips">${mOpts(F.y).map(([i, n]) => chip('data-ft', `mo.set:${i}`, n, F.mo.set.includes(i))).join('')}</div>`);
-      const one = (id, X, t) => step(t, two(lab('السنة', sel(`mo.${id}.y`, yOpts(), X.y)), lab('الشهر', sel(`mo.${id}.m`, mOpts(X.y), X.m))));
-      return one('A', F.mo.A, 'الشهر الأول') + one('B', F.mo.B, 'الشهر الثاني');
-    }
-    if (mode === 'last') return lastChips('year', [1, 2, 3, 5], 'سنة');
-    if (mode === 'range') return step('نطاق من سنة إلى سنة', two(lab('من سنة', sel('yr.from', yOpts(), F.yr.from)), lab('إلى سنة', sel('yr.to', yOpts(), F.yr.to))));
-    if (mode === 'set') return step('اختر السنوات (أكثر من سنة)', `<div class="rg-chips">${years().map((v) => chip('data-ft', `yr.set:${v}`, v, F.yr.set.includes(v))).join('')}</div>`);
-    return step('قارن بين سنتين', two(lab('السنة الأولى', sel('yr.A', yOpts(), F.yr.A)), lab('السنة الثانية', sel('yr.B', yOpts(), F.yr.B))));
+  // 🧭 the period filter is a short path, one choice at a time (nothing else in sight):
+  //   نوع الفترة (آخر · نطاق · مجموعة · مقارنة) → الوحدة (يوم · أسبوع · شهر · سنة) → only the choices that kind needs → تم
+  let wiz = 0;
+  const stepsOf = () => {
+    const { unit: u, mode: m } = F; const S = ['mode', 'unit'];
+    if (m === 'last') S.push('n');
+    else if (m === 'range') S.push(...({ day: ['d.cf', 'd.ct'], week: ['w.month', 'w.from', 'w.to'], month: ['m.year', 'm.from', 'm.to'], year: ['y.from', 'y.to'] })[u]);
+    else if (m === 'set') S.push(...({ day: ['d.month', 'd.days'], week: ['w.month', 'w.weeks'], month: ['m.year', 'm.months'], year: ['y.years'] })[u]);
+    else S.push(...({ day: ['d.A', 'd.B'], week: ['wA.ym', 'wA.w', 'wB.ym', 'wB.w'], month: ['mA.ym', 'mB.ym'], year: ['y.A', 'y.B'] })[u]);
+    return S;
   };
-  const panel = () => `<div class="rg-panel">
-      <div class="rg-chips rg-modes">${Object.entries(MODES).map(([k, l]) => chip('data-fm', k, l, F.mode === k)).join('')}</div>
-      <div class="rg-chips rg-units">${Object.entries(UNITS).map(([k, l]) => chip('data-fu', k, l, F.unit === k)).join('')}</div>
-      ${optionsHtml()}</div>`;
+  const wzList = (entries, attr, cur) => `<div class="wz-list">${entries.map(([v, l]) => `<button type="button" class="wz-opt${String(cur) === String(v) ? ' on' : ''}" ${attr}="${v}">${l}</button>`).join('')}</div>`;
+  const wzPick = (path, entries, cur) => wzList(entries, 'data-wp', cur).replace(/data-wp="([^"]*)"/g, `data-wp="${path}:$1"`);
+  const STEP = {
+    mode: () => ({ t: 'اختر نوع الفترة', html: wzList(Object.entries(MODES), 'data-wm', F.mode) }),
+    unit: () => ({ t: 'اختر الوحدة', html: wzList(Object.entries(UNITS), 'data-wu', F.unit) }),
+    n: () => ({ t: `آخر كم ${{ day: 'يوم', week: 'أسبوع', month: 'شهر', year: 'سنة' }[F.unit]}؟`, html: `<div class="rg-chips">${({ day: [1, 7, 14, 30, 90], week: [1, 2, 4, 8], month: [1, 3, 6, 12], year: [1, 2, 3, 5] })[F.unit].map((n) => chip('data-fl', n, String(n), F.last[F.unit] === n)).join('')}</div>` }),
+    'd.cf': () => ({ t: 'من أي يوم؟', html: date('d.cf', F.d.cf), next: true }),
+    'd.ct': () => ({ t: 'إلى أي يوم؟', html: date('d.ct', F.d.ct) }),
+    'd.A': () => ({ t: 'اليوم الأول', html: date('d.A', F.d.A), next: true }),
+    'd.B': () => ({ t: 'اليوم الثاني', html: date('d.B', F.d.B) }),
+    'd.month': () => ({ t: 'اختر الشهر', html: ctxMonth(), next: true }),
+    'd.days': () => { const len = new Date(F.y, F.m + 1, 0).getDate(); return { t: 'اختر الأيام (أكثر من يوم)', html: `<div class="rg-chips rg-nums">${Array.from({ length: len }, (_, i) => i + 1).filter((n) => new Date(F.y, F.m, n, 12) <= now).map((n) => chip('data-ft', `d.set:${n}`, n, F.d.set.includes(n))).join('')}</div>` }; },
+    'w.month': () => ({ t: 'اختر الشهر أولًا', html: ctxMonth(), next: true }),
+    'w.from': () => ({ t: 'من أي أسبوع؟', html: wzPick('w.from', wOpts(F.y, F.m), F.w.from) }),
+    'w.to': () => ({ t: 'إلى أي أسبوع؟', html: wzPick('w.to', wOpts(F.y, F.m), F.w.to) }),
+    'w.weeks': () => ({ t: 'اختر الأسابيع (رقم الأسبوع وأيامه)', html: `<div class="rg-chips rg-nums">${wOpts(F.y, F.m).map(([n]) => chip('data-ft', `w.set:${n}`, `<b>${n}</b><small>${wSpan(F.y, F.m, n)}</small>`, F.w.set.includes(n))).join('')}</div>` }),
+    'wA.ym': () => ({ t: 'الأسبوع الأول — اختر الشهر', html: two(lab('السنة', sel('w.A.y', yOpts(), F.w.A.y)), lab('الشهر', sel('w.A.m', mOpts(F.w.A.y), F.w.A.m))), next: true }),
+    'wA.w': () => ({ t: 'الأسبوع الأول — أي أسبوع؟', html: wzPick('w.A.w', wOpts(F.w.A.y, F.w.A.m), F.w.A.w) }),
+    'wB.ym': () => ({ t: 'الأسبوع الثاني — اختر الشهر', html: two(lab('السنة', sel('w.B.y', yOpts(), F.w.B.y)), lab('الشهر', sel('w.B.m', mOpts(F.w.B.y), F.w.B.m))), next: true }),
+    'wB.w': () => ({ t: 'الأسبوع الثاني — أي أسبوع؟', html: wzPick('w.B.w', wOpts(F.w.B.y, F.w.B.m), F.w.B.w) }),
+    'm.year': () => ({ t: 'اختر السنة أولًا', html: wzPick('y', yOpts().map(([v]) => [v, v]), F.y) }),
+    'm.from': () => ({ t: 'من أي شهر؟', html: wzPick('mo.from', mOpts(F.y).map(([i, n]) => [i, n]), F.mo.from) }),
+    'm.to': () => ({ t: 'إلى أي شهر؟', html: wzPick('mo.to', mOpts(F.y).map(([i, n]) => [i, n]), F.mo.to) }),
+    'm.months': () => ({ t: 'اختر الشهور (أكثر من شهر)', html: `<div class="rg-chips">${mOpts(F.y).map(([i, n]) => chip('data-ft', `mo.set:${i}`, n, F.mo.set.includes(i))).join('')}</div>` }),
+    'mA.ym': () => ({ t: 'الشهر الأول', html: two(lab('السنة', sel('mo.A.y', yOpts(), F.mo.A.y)), lab('الشهر', sel('mo.A.m', mOpts(F.mo.A.y), F.mo.A.m))), next: true }),
+    'mB.ym': () => ({ t: 'الشهر الثاني', html: two(lab('السنة', sel('mo.B.y', yOpts(), F.mo.B.y)), lab('الشهر', sel('mo.B.m', mOpts(F.mo.B.y), F.mo.B.m))) }),
+    'y.from': () => ({ t: 'من أي سنة؟', html: wzPick('yr.from', yOpts(), F.yr.from) }),
+    'y.to': () => ({ t: 'إلى أي سنة؟', html: wzPick('yr.to', yOpts(), F.yr.to) }),
+    'y.years': () => ({ t: 'اختر السنوات (أكثر من سنة)', html: `<div class="rg-chips">${years().map((v) => chip('data-ft', `yr.set:${v}`, v, F.yr.set.includes(v))).join('')}</div>` }),
+    'y.A': () => ({ t: 'السنة الأولى', html: wzPick('yr.A', yOpts(), F.yr.A) }),
+    'y.B': () => ({ t: 'السنة الثانية', html: wzPick('yr.B', yOpts(), F.yr.B) }),
+  };
+  const panel = () => {
+    const S = stepsOf(); if (wiz >= S.length) wiz = S.length - 1;
+    const key0 = S[wiz]; const st = STEP[key0]();
+    const last = wiz === S.length - 1;
+    const crumb = wiz >= 1 ? `<div class="wz-crumb"><span>${MODES[F.mode]}</span>${wiz >= 2 ? `<i>›</i><span>${UNITS[F.unit]}</span>` : ''}</div>` : '';
+    const foot = `<div class="wz-foot">${wiz > 0 ? '<button type="button" class="btn ghost sm" data-wback>رجوع</button>' : '<span></span>'}${wiz >= 2 ? (last ? '<button type="button" class="btn primary sm" data-wdone>تم</button>' : (st.next || /^(n|d\.days|w\.weeks|m\.months|y\.years)$/.test(key0) ? '<button type="button" class="btn primary sm" data-wnext>' + (/^(n|d\.days|w\.weeks|m\.months|y\.years)$/.test(key0) ? 'تم' : 'التالي') + '</button>' : '')) : ''}</div>`;
+    return `<div class="rg-panel wz">${crumb}<b class="wz-t">${st.t}</b><div class="wz-body">${st.html}</div>${foot}</div>`;
+  };
   const RG_IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>';
   const draw = () => {
     if (editing) return drawGoals();
@@ -503,11 +523,16 @@ async function openCalendar() {
     const cs = e.target.closest('[data-cs]');
     if (cs) { shape = cs.dataset.cs; lsSet('today.shape', shape); openSh = false; draw(); return; }
     if (e.target.closest('[data-shtoggle]')) { openSh = !openSh; open = false; draw(); return; }
-    if (e.target.closest('[data-rgtoggle]')) { open = !open; openSh = false; draw(); return; }
-    const fu = e.target.closest('[data-fu]');
-    if (fu) { F.unit = fu.dataset.fu; pick = ''; saveF(); draw(); return; }
-    const fm = e.target.closest('[data-fm]');
-    if (fm) { F.mode = fm.dataset.fm; pick = ''; saveF(); draw(); return; }
+    if (e.target.closest('[data-rgtoggle]')) { open = !open; openSh = false; wiz = 0; draw(); return; }
+    const wm = e.target.closest('[data-wm]');
+    if (wm) { F.mode = wm.dataset.wm; pick = ''; wiz = 1; draw(); return; }
+    const wu = e.target.closest('[data-wu]');
+    if (wu) { F.unit = wu.dataset.wu; pick = ''; normalize(); wiz = 2; draw(); return; }
+    const wp = e.target.closest('[data-wp]');
+    if (wp) { const i = wp.dataset.wp.lastIndexOf(':'); setAt(wp.dataset.wp.slice(0, i), Number(wp.dataset.wp.slice(i + 1))); normalize(); pick = ''; const S = stepsOf(); if (wiz >= S.length - 1) { open = false; wiz = 0; } else wiz += 1; draw(); return; }
+    if (e.target.closest('[data-wnext]')) { const S = stepsOf(); if (wiz >= S.length - 1 || /^(n|d\.days|w\.weeks|m\.months|y\.years)$/.test(S[wiz])) { open = false; wiz = 0; } else wiz += 1; draw(); return; }
+    if (e.target.closest('[data-wdone]')) { open = false; wiz = 0; draw(); return; }
+    if (e.target.closest('[data-wback]')) { wiz = Math.max(0, wiz - 1); draw(); return; }
     const fl = e.target.closest('[data-fl]');
     if (fl) { F.last[F.unit] = Number(fl.dataset.fl); pick = ''; saveF(); draw(); return; }
     const ft = e.target.closest('[data-ft]');
