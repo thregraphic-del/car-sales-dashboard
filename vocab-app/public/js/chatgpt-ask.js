@@ -20,13 +20,16 @@ export async function askChatGpt(lines, { onTap } = {}) {
       toast(win ? '✓ فتحنا ChatGPT والرسالة جاهزة فيه — اضغط إرسال' : 'المتصفح منع فتح ChatGPT — افتحه والصق (الرسالة منسوخة)');
       return;
     }
-    // a long text: say first that it takes about a minute, copy the full message, and give one clear button
+    // a long text: the message is copied; one short card pair says what to do, one button opens ChatGPT
     const ok = await copyText(full);
-    openModal(`<div class="stack gpt-help">
-        <h2 style="margin:0">لخّص المقطع في ChatGPT</h2>
-        <p class="gpt-step">⏳ <b>النص طويل، فتجهيزه في ChatGPT ياخذ نحو دقيقة</b> قبل ما يشتغل زر الإرسال — انتظر لين يخلص الشريط «جارٍ إضافة النص».</p>
-        <p class="gpt-step">${ok ? '✓' : '⚠'} <b>${ok ? 'نُسخت الرسالة كاملة' : 'ما قدرنا ننسخ'}</b> (طلب «لخّص بالعربي، الزبدة فقط» ومعه النص كله)${ok ? '' : ' — استخدم «نسخ كل النص» من الإعدادات'}.</p>
-        <a class="btn primary" href="${url}" target="_blank" rel="noopener" data-close>افتح ChatGPT ↗</a>
-        <p class="gpt-step">${fits ? 'الرسالة بتكون جاهزة في المربع.' : '<b>بعد ما يفتح:</b> المس مربع الكتابة مطوّلًا ← «لصق» ← إرسال.'}</p>
+    const I = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+    openModal(`<div class="gpt2">
+        <div class="gpt2-logo"><span class="gpt-mark" aria-hidden="true"></span></div>
+        <div class="gpt2-steps" dir="ltr">
+          <div class="gpt2-card" dir="rtl"><i class="gpt2-n">1</i><span class="gpt2-ic">${I('<rect x="8" y="8" width="12" height="12" rx="3"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/>')}</span><b>الصق</b><p>${ok ? 'تم نسخ النص مع أمر لاستخراج الملخص.' : 'ما قدرنا ننسخ — بعد ما يفتح: المس مربع الكتابة مطوّلًا ← «لصق».'}</p></div>
+          <span class="gpt2-arrow" aria-hidden="true">›</span>
+          <div class="gpt2-card" dir="rtl"><i class="gpt2-n">2</i><span class="gpt2-ic">${I('<path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2V16h5v-.1c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z"/>')}</span><b>انسخ</b><p>يمكنك الاحتفاظ بالملخص في «أفكاري».</p></div>
+        </div>
+        <a class="btn primary gpt2-go" href="${url}" target="_blank" rel="noopener" data-close>${I('<path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4"/>')}<span>انتقل إلى ChatGPT</span></a>
       </div>`);
 }

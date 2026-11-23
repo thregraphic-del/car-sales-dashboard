@@ -3102,3 +3102,18 @@ body.clipset-on .info-btn.desk { display: none; }
 .sv-lv.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .sv-lv:disabled { opacity: .35; cursor: default; }
 .sv-go { margin-inline-start: auto; }
+
+/* 🧠 «اسأل ChatGPT» for a long text: logo · two short step cards · one button */
+.gpt2 { display: grid; gap: 16px; justify-items: center; padding: 6px 2px 2px; }
+.gpt2-logo { width: 74px; height: 74px; border-radius: 22px; display: grid; place-items: center; background: color-mix(in srgb, #0ABAB5 17%, var(--surface)); color: var(--accent); }
+.gpt2-logo .gpt-mark { width: 44px; height: 44px; }
+.gpt2-steps { display: flex; align-items: stretch; gap: 6px; width: 100%; }
+.gpt2-card { position: relative; flex: 1; min-width: 0; display: grid; justify-items: center; align-content: start; gap: 6px; padding: 22px 10px 14px; border-radius: 22px; background: color-mix(in srgb, var(--gold, #CBA55E) 9%, var(--surface-2)); text-align: center; }
+.gpt2-card b { font-size: 18px; font-weight: 800; color: var(--ink); }
+.gpt2-card p { margin: 0; font-size: 12.5px; line-height: 1.65; color: var(--ink-2); }
+.gpt2-ic { width: 38px; height: 38px; color: var(--ink); } .gpt2-ic svg { width: 100%; height: 100%; }
+.gpt2-n { position: absolute; top: -8px; right: -4px; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--gold, #CBA55E); color: #fff; font: 800 15px var(--font-en, inherit); font-style: normal; }
+.gpt2-arrow { align-self: center; color: #0ABAB5; font-size: 26px; line-height: 1; font-weight: 700; }
+.gpt2-go { width: 100%; justify-content: center; gap: 10px; min-height: 52px; border-radius: 99px; font-size: 16px; text-decoration: none; }
+.gpt2-go svg { width: 20px; height: 20px; }
+@media (max-width: 360px) { .gpt2-card p { font-size: 11.5px; } .gpt2-card { padding-inline: 6px; } }
