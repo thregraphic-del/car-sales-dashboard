@@ -52,7 +52,7 @@ export async function render(view, { segments, params }) {
       </section>
       <section class="cs-card cs-legend" data-tip="ألوان الكلمات داخل النص: البرتقالي لكلمة جديدة عليك، والتيفاني لكلمة كانت في كلماتك."><span class="cs-lg-t">الألوان:</span><span class="mk-l new">جديد</span><span>جديدة عليك</span><span class="mk-l mine">كلماتي</span><span>عندك</span></section>
     </div>
-    ${id && isVideo ? '<p class="cs-tip">💡 بمكانك <b>تكبّر الفيديو أو تصغّره</b> بسحب الخط تحته، و<b>تحفظ أي جزء بالتظليل عليه</b> ← «📌 احفظ في أفكاري».</p>' : ''}
+    ${id && isVideo ? '<div class="cs-tip"><p>↕️ <b>كبّر الفيديو أو صغّره</b> بسحب الخط تحته.</p><p>📌 <b>ظلّل أي جزء من النص</b> واحفظه في «أفكاري».</p></div>' : ''}
     <a class="btn primary lg cs-done" href="${clip}">تم</a>
   </div>`;
 
