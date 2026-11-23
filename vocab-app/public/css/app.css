@@ -3247,3 +3247,12 @@ body.reader-focus #setBtn, body.reader-focus #wordsBtn, body.reader-focus #gptTo
 .act-edit { display: block; margin: 8px auto 0; border: 0; background: none; color: var(--accent); font: 700 14px var(--font-ar, inherit); cursor: pointer; padding: 6px 10px; }
 .th-act .cal-key { margin-top: 6px; }
 .th-empty { display: grid; gap: 8px; } .th-empty p { color: var(--muted); font-size: 14px; text-align: center; padding: 26px 0; margin: 0; }
+
+/* ⚙️ settings: the basics on top (name · dark mode), everything else folded under «خيارات متقدمة» */
+.set-basic { display: grid; gap: 12px; margin-bottom: 14px; }
+.set-adv-all { margin-top: 4px; }
+.set-adv-all > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 8px; padding: 14px 18px; border: 1.5px solid var(--line); border-radius: 22px; background: var(--surface); font-weight: 800; font-size: 15px; }
+.set-adv-all > summary::-webkit-details-marker { display: none; }
+.set-adv-all > summary::after { content: '▾'; margin-inline-start: auto; color: var(--muted); }
+.set-adv-all[open] > summary { border-color: var(--accent); margin-bottom: 14px; }
+.set-adv-all[open] > summary::after { content: '▴'; }

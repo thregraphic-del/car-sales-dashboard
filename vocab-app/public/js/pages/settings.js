@@ -32,43 +32,32 @@ export async function render(view) {
 
   view.innerHTML = `
     <div class="page-head"><div><div class="eyebrow">Settings</div><h1>الإعدادات</h1></div></div>
+    <div class="set-list set-basic">
+      <section class="set-card">
+        <div class="set-line"><label class="set-lbl" for="name">الاسم</label><input class="input" id="name" value="${esc(u.name)}"><button class="btn primary sm" id="saveProfile">حفظ</button></div>
+        ${swItem('darkSw', '🌙 الوضع الداكن', '', '', theme === 'dark')}
+      </section>
+      ${cfg.auth?.required && u.guest ? `<section class="set-card guest-settings"><b>👤 أنت ضيف</b><a class="btn primary" href="/register" style="justify-self:start">سجّل حسابك المجاني</a><a class="link-btn small" href="/login" style="justify-self:start">عندي حساب</a></section>` : ''}
+      ${cfg.auth?.required && !u.guest ? '<button class="btn ghost" id="logout" style="justify-self:start">تسجيل الخروج</button>' : ''}
+    </div>
+    <details class="set-adv-all">
+      <summary>⚙️ خيارات متقدمة</summary>
     <div class="grid cols-2">
       <div class="set-list">
         <section class="set-card">
-          <h3 class="set-h">👤 الملف الشخصي</h3>
-          <div class="set-line"><label class="set-lbl" for="name">الاسم</label><input class="input" id="name" value="${esc(u.name)}"><button class="btn primary sm" id="saveProfile">حفظ</button></div>
-        </section>
-        <section class="set-card">
-          <h3 class="set-h">🔊 الصوت</h3>
+          <h3 class="set-h">🔊 التشغيل</h3>
           <div class="set-line"><span class="set-lbl">سرعة النطق</span><input type="range" id="rate" min="0.6" max="1.3" step="0.05" value="${u.speech_rate}" style="accent-color:var(--accent);flex:1"><b id="rateVal" class="en-inline">${u.speech_rate}×</b></div>
-          ${swItem('ar', 'انطق العربي أيضًا', 'بعد الكلمة الإنجليزية يقرأ معناها بالعربي', '', u.speak_arabic)}
+          ${swItem('ar', 'انطق العربي أيضًا', '', '', u.speak_arabic)}
+          ${swItem('wideSw', 'المقطع يفتح بشاشة موسّعة', '', '', ls('app.openWide', '0') === '1')}
+          ${swItem('autoSw', 'احفظ كلمات المقطع تلقائيًا', '', '', ls('app.autoSave', '0') === '1')}
           <button class="btn sm ghost" id="test" style="justify-self:start">${icon.speaker} جرّب الصوت</button>
         </section>
         <section class="set-card">
-          <h3 class="set-h">🎨 المظهر</h3>
-          ${swItem('darkSw', '🌙 الوضع الداكن', 'خلفية داكنة مريحة للعين في الليل', '', theme === 'dark')}
-        </section>
-        <section class="set-card">
-          <details class="set-adv">
-            <summary class="set-h">⚙️ أهداف متقدمة <small class="muted">(اختيارية)</small></summary>
-            <p class="tiny muted" style="margin:8px 0 0">أهدافك الأساسية: كلمات جديدة + أسئلة تدريب (تعدّلها من «نشاطي»). فعّل هنا هدف إضافي وحدد عدده، ويدخل مع أهدافك ويتحسب في نسبة التحقيق.</p>
-            ${ADVANCED_GOALS.map((k) => swItem(`adv_${k}`, `${k === 'watch' ? '⏱ كم قعدت في الموقع' : '📖 القواعد والأمثلة'}`, GOAL_TYPES[k].note, `<span class="goal-num"><input class="input en-inline" data-advn="${k}" type="number" inputmode="numeric" min="${GOAL_TYPES[k].min}" max="${GOAL_TYPES[k].max}" value="${goalFor(k)}"> <span class="small">${GOAL_TYPES[k].unit}</span></span>`, goalTypes().includes(k))).join('')}
-          </details>
-        </section>
-        <section class="set-card">
-          <h3 class="set-h">🎬 الفيديو</h3>
-          ${swItem('wideSw', 'يفتح بشاشة موسّعة', 'إذا طفيته يفتح عادي وكل الأزرار ظاهرة', '', ls('app.openWide', '0') === '1')}
-          ${swItem('autoSw', 'حفظ كلمات المقطع تلقائيًا', 'أول ما يفتح المقطع تنحفظ كلماته الجديدة — بدون «حفظ الكل»', '', ls('app.autoSave', '0') === '1')}
+          <h3 class="set-h">🎯 أهداف إضافية</h3>
+          ${ADVANCED_GOALS.map((k) => swItem(`adv_${k}`, `${k === 'watch' ? '⏱ كم قعدت في الموقع' : '📖 القواعد والأمثلة'}`, '', `<span class="goal-num"><input class="input en-inline" data-advn="${k}" type="number" inputmode="numeric" min="${GOAL_TYPES[k].min}" max="${GOAL_TYPES[k].max}" value="${goalFor(k)}"> <span class="small">${GOAL_TYPES[k].unit} كل يوم</span></span>`, goalTypes().includes(k))).join('')}
         </section>
       </div>
       ${feedbackCardHtml()}
-      ${cfg.auth?.required && u.guest ? `<div class="card stack guest-settings">
-        <b>الحساب</b>
-        <p class="small ink-2">👤 تستخدم الموقع كضيف — كلماتك وتقدّمك محفوظة على هالجهاز بس.</p>
-        <a class="btn primary" href="/register" style="justify-self:start">سجّل حسابك المجاني</a>
-        <p class="tiny muted">كل اللي سويته ينتقل لحسابك، وتدخل بالإيميل أو الجوال أو اسم المستخدم من أي جهاز.</p>
-        <a class="link-btn small" href="/login" style="justify-self:start">عندي حساب — تسجيل الدخول</a>
-      </div>` : ''}
       ${cfg.auth?.required && !u.guest ? `<div class="card stack">
         <b>الحساب</b>
         <div class="row between small"><span>اسم المستخدم</span><span class="chip en-inline">${esc(u.username || '')}</span></div>
@@ -83,7 +72,6 @@ export async function render(view) {
           <label class="field">كلمة مرور جديدة<input class="input en" type="password" id="pwNew" autocomplete="new-password" required></label>
           <button class="btn" type="submit" style="justify-self:start">تغيير كلمة المرور</button>
         </form>
-        <button class="btn ghost" id="logout" style="justify-self:start">تسجيل الخروج</button>
       </div>` : ''}
       ${teamCardHtml(cfg)}
       ${cfg.can_set_paid ? `<div class="card stack" style="grid-column:1/-1" id="paidCard">
@@ -126,7 +114,8 @@ export async function render(view) {
         <p class="small ink-2">إعادة تعيين البيانات التجريبية تحذف كل شيء (بما فيه كلماتك) وتعيد إنشاء الفيديوهات والكلمات التجريبية.</p>
         <button class="btn bad" id="reset" style="justify-self:start">${icon.trash} إعادة تعيين البيانات التجريبية</button>
       </div>` : ''}
-    </div>`;
+    </div>
+    </details>`;
 
   const $ = (s) => view.querySelector(s);
   $('#rate').addEventListener('input', (e) => ($('#rateVal').textContent = `${e.target.value}×`));
