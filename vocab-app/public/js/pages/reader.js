@@ -1365,6 +1365,8 @@ export async function render(view, { segments, params }) {
   const sideF = (() => { try { return { level: '', q: '', unsaved: false, ...JSON.parse(pref(sideKey, '{}')) }; } catch { return { level: '', q: '', unsaved: false }; } })();
   let sideLimit = 150;
   let sidePop = '';
+  let svOpen = false; // «حفظ مستوى معين» is unfolded
+  const svLv = new Set(); // the levels ticked there
   // Only NEW words are suggested: words already in «كلماتي» (or marked «أعرفها») before this
   // video was opened are left out; a word saved here stays in the list (with ✓) until you leave.
   const seenItems = new Set();
@@ -1418,6 +1420,7 @@ export async function render(view, { segments, params }) {
   const drawSide = () => {
     const shown = sideShown();
     const unsavedShown = shown.filter((i) => !i.user_state);
+    const unsavedAll = data.items.filter(isNew).filter((i) => !i.user_state && !isHidden(i.vocabulary_id, i.user_state));
     const fresh = data.items.filter(isNew);
     const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].filter((l) => fresh.some((i) => i.level === l));
     $('#wcount', view).textContent = fresh.length;
@@ -1425,20 +1428,21 @@ export async function render(view, { segments, params }) {
     view.querySelectorAll('[data-fx-count]').forEach((x) => { x.textContent = fresh.length; });
     const q = (extra) => `#/practice?${new URLSearchParams({ source: id, title: source.title.slice(0, 40), ...extra })}`;
     side.innerHTML = `<button type="button" class="side-rail" title="افتح قائمة الكلمات" aria-label="افتح قائمة الكلمات"><span class="sr-arrow">›</span>${icon.list}<b class="en-inline">${fresh.length}</b><span class="sr-t">الكلمات</span></button>
-      <div class="side-head">
-        <div class="row between"><b>الكلمات الجديدة <span class="tiny muted en-inline">${shown.length}${shown.length !== fresh.length ? `/${fresh.length}` : ''}</span></b>
-          <span class="row" style="gap:8px"><span class="u-dots u-keys" title="ألوان الكلمات حسب الصعوبة"><i class="u-d common">سهل</i><i class="u-d medium">متوسط</i><i class="u-d rare">متقدم</i></span><button type="button" class="pop-x side-close" id="sideClose" aria-label="إغلاق">✕</button></span></div>
-        <div class="glow-row">
-          ${unsavedShown.length ? `<button class="save-all-btn" id="saveAll" title="احفظ كل الكلمات الجديدة">${icon.bookmark}<span>حفظ الكل</span></button>` : ''}
-          ${fresh.some((i) => i.user_state === 'saved') ? `<button class="glow-ic ${sideF.show === 'saved' ? 'on' : ''}" id="savedOnly" title="اعرض المحفوظة فقط">${icon.check}<span>المحفوظة</span>${sideF.show === 'saved' ? '<b class="x">✕</b>' : ''}</button>` : ''}
-          ${data.items.length >= 4 ? `<button class="glow-ic" data-pop="prac" title="تدرّب">${icon.game}<span>تدرّب</span></button>` : ''}
-          ${levels.length > 1 ? `<button class="glow-ic ${sideF.level ? 'on' : ''}" data-pop="lv" title="المستوى">${icon.sliders}<span>${sideF.level || 'المستوى'}</span></button>` : ''}
-          <button class="glow-ic ${sideF.q ? 'on' : ''}" data-pop="q" title="بحث">${icon.search}</button>
-
+      <div class="side-head sh2">
+        <div class="sh-top"><b class="sh-title">الكلمات الجديدة <span class="sh-n en-inline">${shown.length}${shown.length !== fresh.length ? `/${fresh.length}` : ''}</span></b>
+          <span class="u-dots u-keys sh-keys" title="ألوان الكلمات حسب الصعوبة"><i class="u-d common">سهل</i><i class="u-d medium">متوسط</i><i class="u-d rare">متقدم</i></span>
+          <button type="button" class="pop-x side-close" id="sideClose" aria-label="إغلاق">✕</button></div>
+        <div class="sh-tools">
+          <button type="button" class="sh-tool${sidePop === 'save' ? ' open' : ''}" data-pop="save" title="حفظ">${icon.bookmark}<span>حفظ</span><i class="sh-caret">▾</i></button>
+          <button type="button" class="sh-tool${sideF.level ? ' on' : ''}${sidePop === 'lv' ? ' open' : ''}" data-pop="lv" title="فلتر المستوى">${icon.sliders}<span>${sideF.level || 'فلتر'}</span></button>
+          <button type="button" class="sh-tool sh-ic${sideF.q ? ' on' : ''}" data-pop="q" title="بحث" aria-label="بحث">${icon.search}</button>
         </div>
-        ${sidePop === 'save' ? `<div class="pop-menu">${unsavedShown.length ? `<button type="button" class="pop-opt" id="saveAll">${icon.save} احفظ الكل (${unsavedShown.length})</button>` : ''}<span class="tiny muted">عرض:</span>${[['all', 'الكل'], ['unsaved', 'غير المحفوظة'], ['saved', 'المحفوظة']].map(([k, l]) => `<button type="button" class="pop-opt ${(sideF.show || 'all') === k ? 'on' : ''}" data-show="${k}">${l}</button>`).join('')}<button type="button" class="pop-x" data-pop="">✕</button></div>` : ''}
-        ${sidePop === 'prac' ? `<div class="pop-menu"><a class="pop-opt" href="${q({ mode: 'cards' })}">بطاقات</a><a class="pop-opt" href="${q({ mode: 'games', type: 'meaning' })}">المعنى</a><a class="pop-opt" href="${q({ mode: 'games', type: 'listen' })}">استمع واختر</a><a class="pop-opt" href="${q({ mode: 'games', type: 'connect' })}">روابط</a><button type="button" class="pop-opt pf-open" id="pfOpen">اختر بدقة</button><button type="button" class="pop-x" data-pop="">✕</button></div>` : ''}
-        ${sidePop === 'lv' ? `<div class="pop-menu"><button class="pop-opt lv ${sideF.level ? '' : 'on'}" data-lv="">الكل</button>${levels.map((l) => `<button class="pop-opt lv ${sideF.level === l ? 'on' : ''}" data-lv="${l}">${l}</button>`).join('')}<button type="button" class="pop-x" data-pop="">✕</button></div>` : ''}
+        ${sidePop === 'save' ? `<div class="sv-menu">
+          <button type="button" class="sv-opt" id="saveAll" ${unsavedAll.length ? '' : 'disabled'}>${icon.bookmark}<span>حفظ الكل</span><b class="en-inline">${unsavedAll.length}</b></button>
+          <button type="button" class="sv-opt${svOpen ? ' open' : ''}" data-svlevel ${unsavedAll.length ? '' : 'disabled'}>${icon.sliders}<span>حفظ مستوى معين</span><i class="sh-caret">▾</i></button>
+          ${svOpen ? `<div class="sv-levels">${['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map((l) => { const n = unsavedAll.filter((i) => i.level === l).length; return `<button type="button" class="sv-lv${svLv.has(l) ? ' on' : ''}" data-svl="${l}" ${n ? '' : 'disabled'}>${l}<small class="en-inline">${n}</small></button>`; }).join('')}<button type="button" class="btn sm primary sv-go" id="saveLevels" ${svLv.size ? '' : 'disabled'}>حفظ</button></div>` : ''}
+          <button type="button" class="sv-opt${sideF.show === 'saved' ? ' on' : ''}" id="savedOnly">${icon.check}<span>المحفوظات</span><b class="en-inline">${fresh.filter((i) => i.user_state === 'saved').length}</b></button></div>` : ''}
+        ${sidePop === 'lv' ? `<div class="sv-menu sv-lvmenu"><div class="sv-levels"><button type="button" class="sv-lv${sideF.level ? '' : ' on'}" data-lv="">الكل</button>${['A1', 'A2', 'B1', 'B2', 'C1', 'C2'].map((l) => { const n = fresh.filter((i) => i.level === l).length; return `<button type="button" class="sv-lv${sideF.level === l ? ' on' : ''}" data-lv="${l}" ${n ? '' : 'disabled'}>${l}<small class="en-inline">${n}</small></button>`; }).join('')}</div></div>` : ''}
         ${sidePop === 'q' || sideF.q ? `<div class="row" style="gap:6px;margin-top:6px"><input class="input sm" id="sideQ" type="search" placeholder="ابحث…" value="${esc(sideF.q)}" style="flex:1;min-width:0"><button type="button" class="pop-x" data-clearq>✕</button></div>` : ''}
         <p class="tiny muted" id="refineNote" style="margin:4px 0 0">${source.extractor === 'dictionary' && state.config.ai.available ? '<span class="spinner"></span>' : ''}</p>
       </div>
@@ -1457,7 +1461,10 @@ export async function render(view, { segments, params }) {
     if (e.target.closest('[data-clearq]')) { sideF.q = ''; sidePop = ''; saveSideF(); drawSide(); return; }
     if (e.target.closest('#sideClose')) { if (wideScreen()) setSideMini(true); else switchTab('text'); return; }
     if (e.target.closest('.side-rail')) { setSideMini(false); return; }
-    if (e.target.closest('#savedOnly')) { sideF.show = sideF.show === 'saved' ? 'all' : 'saved'; saveSideF(); drawSide(); return; }
+    if (e.target.closest('[data-svlevel]')) { svOpen = !svOpen; drawSide(); return; }
+    const svl = e.target.closest('[data-svl]');
+    if (svl) { const l = svl.dataset.svl; if (svLv.has(l)) svLv.delete(l); else svLv.add(l); drawSide(); return; }
+    if (e.target.closest('#savedOnly')) { sideF.show = sideF.show === 'saved' ? 'all' : 'saved'; sidePop = ''; svOpen = false; saveSideF(); drawSide(); return; }
     const sh = e.target.closest('[data-show]');
     if (sh) { sideF.show = sh.dataset.show; sidePop = ''; saveSideF(); drawSide(); return; }
     const lv = e.target.closest('[data-lv]');
@@ -2435,7 +2442,7 @@ export async function render(view, { segments, params }) {
         return refresh();
       }
       if (e.target.closest('#saveAll')) {
-        const unsaved = sideShown().filter((i) => !i.user_state);
+        const unsaved = data.items.filter(isNew).filter((i) => !i.user_state && !isHidden(i.vocabulary_id, i.user_state));
         const btn = e.target.closest('#saveAll');
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner"></span> نحفظ…';
@@ -2445,6 +2452,18 @@ export async function render(view, { segments, params }) {
         // remembered for this video: every word that arrives later (now or on a later visit) is saved too
         autoSaveAll = true;
         try { localStorage.setItem(`reader.saveall.${id}`, '1'); } catch { /* ignore */ }
+        sideF.show = 'saved'; sidePop = ''; svOpen = false; saveSideF(); // the menu closes and the list shows what is saved
+        return refresh();
+      }
+      if (e.target.closest('#saveLevels')) {
+        const picked = data.items.filter(isNew).filter((i) => !i.user_state && svLv.has(i.level) && !isHidden(i.vocabulary_id, i.user_state));
+        if (!picked.length) return;
+        const btn = e.target.closest('#saveLevels');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>';
+        const r = await api.saveWordsBulk(picked.map((it) => ({ vocabulary_id: it.vocabulary_id, occurrence_id: it.occurrence_id })));
+        toast(`تم حفظ ${r.saved} كلمة (${[...svLv].join(' · ')}) ✓`);
+        svLv.clear(); sideF.show = 'saved'; sidePop = ''; svOpen = false; saveSideF();
         return refresh();
       }
       const item = e.target.closest('.side-item');

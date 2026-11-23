@@ -3074,3 +3074,31 @@ body.clipset-on .info-btn.desk { display: none; }
 .rem-en { color: var(--muted); font-size: 11.5px; font-weight: 500; text-align: start; }
 /* small phones: the hint goes under the buttons instead of being squeezed beside them */
 @media (max-width: 380px) { .ah-foot { flex-wrap: wrap; } .ah-foot .ah-actions { order: 1; margin-inline-start: auto; } .ah-foot .ah-hint { order: 2; flex-basis: 100%; text-align: center; } }
+
+/* 🧾 the new-words panel in two lines: title · count · colour key  /  save · filter · search (like «تدرّب» and «كلماتي») */
+.side-head.sh2 { padding: 12px 0 10px; }
+.sh-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sh-title { font-size: 16px; font-weight: 800; display: inline-flex; align-items: baseline; gap: 6px; }
+.sh-n { font-size: 14px; color: var(--accent); font-weight: 800; }
+.sh-keys { margin-inline-start: 2px; opacity: .6; gap: 3px; }
+.sh-keys .u-d { font-size: 9.5px; padding: 1px 6px; font-weight: 600; }
+.sh-top .side-close { margin-inline-start: auto; }
+.sh-tools { display: flex; gap: 8px; margin-top: 10px; }
+.sh-tool { flex: 1; min-width: 0; height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1.5px solid var(--line); border-radius: 17px; background: var(--surface); color: var(--ink); font: 700 13.5px var(--font-ar, inherit); cursor: pointer; }
+.sh-tool svg { width: 18px; height: 18px; color: var(--accent); flex: none; }
+.sh-tool.sh-ic { flex: 0 0 52px; }
+.sh-tool.on, .sh-tool.open { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.sh-caret { font-style: normal; font-size: 10px; color: var(--muted); }
+.sv-menu { display: grid; gap: 4px; margin-top: 8px; padding: 6px; border: 1.5px solid var(--accent); border-radius: 19px; background: var(--surface); animation: addPop .16s var(--ease); }
+.sv-opt { display: flex; align-items: center; gap: 10px; width: 100%; padding: 11px 12px; border: 0; border-radius: 14px; background: transparent; color: var(--ink); font: 700 14px var(--font-ar, inherit); text-align: start; cursor: pointer; }
+.sv-opt svg { width: 18px; height: 18px; color: var(--accent); flex: none; }
+.sv-opt span { flex: 1; }
+.sv-opt b { color: var(--muted); font-size: 13px; }
+.sv-opt:hover:not(:disabled), .sv-opt.open, .sv-opt.on { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); }
+.sv-opt:disabled { opacity: .45; cursor: default; }
+.sv-levels { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 6px 8px; align-items: center; }
+.sv-lv { display: inline-flex; align-items: baseline; gap: 4px; padding: 6px 12px; border: 1.5px solid var(--line); border-radius: 99px; background: var(--surface-2); color: var(--ink-2); font: 700 13px var(--font-en, inherit); cursor: pointer; }
+.sv-lv small { font-size: 10px; opacity: .7; }
+.sv-lv.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.sv-lv:disabled { opacity: .35; cursor: default; }
+.sv-go { margin-inline-start: auto; }
