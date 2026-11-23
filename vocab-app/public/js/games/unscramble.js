@@ -38,8 +38,14 @@ export default {
       });
       stage.querySelector('#check').addEventListener('click', () => {
         checked = true;
-        const ok = placed.map((p) => p.c).join('').toLowerCase() === target.replace(/ /g, '').toLowerCase();
-        reveal(stage, w, ok);
+        const want = target.replace(/ /g, '').toLowerCase();
+        const got = placed.map((p) => p.c).join('').toLowerCase();
+        // about half of the letters in their place or more counts as right (the word is shown to look over); less → review
+        const hit = [...want].filter((c, i) => got[i] === c).length;
+        const exact = got === want;
+        const close = !exact && hit >= Math.ceil(want.length / 2);
+        const ok = exact || close;
+        reveal(stage, w, ok, close ? ` — ${hit} من ${want.length} حروف في مكانها، راجع ترتيبها` : '', null, close ? 'قريب ✓' : '');
         stage.querySelector('#check').classList.add('hidden');
         stage.querySelector('#clear').classList.add('hidden');
         const next = stage.querySelector('#nextBtn');
