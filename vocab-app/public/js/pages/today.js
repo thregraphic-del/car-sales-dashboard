@@ -133,6 +133,21 @@ function openBell(items, onAct) {
   });
 }
 
+/** The last 7 days as small squares: each shows how much of the day's four goals was reached (the average, 100% at most). */
+function weekSquares() {
+  const now = new Date(); now.setHours(12, 0, 0, 0);
+  const cells = [];
+  for (let i = 6; i >= 0; i -= 1) {
+    const d = new Date(now); d.setDate(now.getDate() - i);
+    const a = dayAll(d, {});
+    const ents = Object.entries(METRICS);
+    const pct = Math.round((100 * ents.reduce((sum, [k, mt]) => sum + Math.min(1, a[k] / goalFor(mt.goal)), 0)) / ents.length);
+    const lv = pct >= 75 ? 4 : pct >= 50 ? 3 : pct >= 25 ? 2 : pct > 0 ? 1 : 0;
+    cells.push(`<button type="button" class="cal-d l${lv}${pct >= 100 ? ' hit' : ''}${i === 0 ? ' today' : ''}" data-weekday aria-label="${DAY_NAMES[d.getDay()]} ${pct}٪"><b>${WD[d.getDay()]}</b><small class="en-inline">${pct}٪</small></button>`);
+  }
+  return `<div class="th-week-wrap"><div class="tiny muted th-cap">نسبة تحقيق هدفك كل يوم</div><div class="th-week">${cells.join('')}</div></div>`;
+}
+
 export async function render(view) {
   const home = (await takePreloadedToday()) || await api.today();
   const { stats } = home;
@@ -176,7 +191,8 @@ export async function render(view) {
         <div class="th-stat" aria-label="كلمات"><span class="th-si">${icon.library}</span><b>${stats.week?.saved || 0}</b><span class="th-sl">كلمة</span></div>
         <div class="th-stat" aria-label="دقائق"><span class="th-si">${icon.clock}</span><b>${weekMinutes()}</b><span class="th-sl">دقيقة</span></div>
       </div></div>
-    <p class="th-spent" aria-label="دقائق اليوم">قضيت اليوم ${todayMinutes().toLocaleString('ar-EG')} د</p>
+    <p class="th-spent" aria-label="دقائق اليوم">قضيت اليوم ${todayMinutes().toLocaleString('ar-EG')} د · كلمات جديدة ${Math.max(dayCounts(dayStr()).pass, Number(stats.saved_today) || 0).toLocaleString('ar-EG')}</p>
+    ${weekSquares()}
   </div>`;
 
   const act = (a) => {
@@ -191,6 +207,7 @@ export async function render(view) {
     location.hash = `#/practice?mode=quiz&mix=random&rescue=1&exact=1&ids=${pool.slice(0, 5).map((w) => w.uv_id).join(',')}&n=${Date.now()}`;
   };
   view.querySelector('#flame').addEventListener('click', openCalendar);
+  view.querySelector('.th-week')?.addEventListener('click', openCalendar);
   view.querySelector('#lostQuick')?.addEventListener('click', rescue);
   view.querySelector('#bell').addEventListener('click', () => { lsSet('bell.seen', newsSig(items)); view.querySelector('#bell').classList.remove('dot'); openBell(items, act); });
   view.querySelector('#rvStart')?.addEventListener('click', () => openReviewSetup(ld.words));

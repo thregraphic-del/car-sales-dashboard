@@ -3174,3 +3174,9 @@ body.reader-focus #setBtn, body.reader-focus #wordsBtn, body.reader-focus #gptTo
 .wz-body .rg-two { gap: 8px; }
 
 .rg-n.c2 { color: var(--amber-ink, #2B1B00); }
+
+/* 🗓 the last 7 days on the home page: a square per day with the % of the day's goals reached */
+.th-week-wrap { margin-top: 14px; }
+.th-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; max-width: 520px; }
+.th-week .cal-d { aspect-ratio: 1 / 1.05; }
+.th-week .cal-d small { font-size: 11px; font-weight: 800; }
