@@ -3127,3 +3127,8 @@ body.clipset-on .info-btn.desk { display: none; }
 /* the muted mark is just a small speaker now (no words) */
 .sound-note { padding: 8px 11px !important; font-size: 16px !important; line-height: 1; inset-inline: auto 10px !important; margin-inline: 0 !important; }
 .nt-actions { grid-template-columns: repeat(2, 1fr); }
+.sel-demo-bar .sd-b { position: relative; transition: transform .15s, background .2s; }
+.sel-demo-bar .sd-tap { position: absolute; left: -30px; top: 50%; margin-top: -13px; font-style: normal; font-size: 22px; opacity: 0; transform: translateX(-10px); }
+.sel-demo-bar.press .sd-b { transform: scale(.93); background: #0ABAB5; }
+.sel-demo-bar.press .sd-tap { opacity: 1; transform: translateX(0); transition: opacity .2s, transform .3s; }
+.sel-demo-bar .sd-b { white-space: nowrap; }

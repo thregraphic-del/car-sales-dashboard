@@ -1273,12 +1273,15 @@ export async function render(view, { segments, params }) {
     const bar = document.createElement('div');
     bar.className = 'sel-demo-bar';
     bar.setAttribute('aria-hidden', 'true');
-    bar.innerHTML = '<span class="sd-b">📌 احفظ في «أفكاري»</span><small>ظلّل أي نص واحتفظ فيه 👆</small>';
+    bar.innerHTML = '<span class="sd-b"><span class="sd-t">📌 احفظ في «أفكاري»</span><i class="sd-tap" aria-hidden="true">👆</i></span><small>ظلّل أي جملة واحتفظ فيها</small>';
     bar.style.cssText = `top:${Math.max(8, r.top - 58)}px;left:${Math.max(8, Math.min(window.innerWidth - 232, r.left))}px`;
     document.body.append(hl, bar);
     const done = () => { hl.remove(); bar.remove(); document.removeEventListener('pointerdown', done, true); };
     document.addEventListener('pointerdown', done, true);
-    setTimeout(done, 2000);
+    // the sentence is shaded, then the button is pressed and says it was kept
+    setTimeout(() => bar.classList.add('press'), 1000);
+    setTimeout(() => { const t = bar.querySelector('.sd-t'); if (t) t.textContent = '✓ انحفظت في «أفكاري»'; }, 1350);
+    setTimeout(done, 2300);
   }
   if (isVideo) setTimeout(selectDemo, 3400);
   const drawSh = () => { const c = $('#shOn', view); if (c) c.checked = sizeHintOn(); const t = $('#shTxt', view); if (t) t.textContent = sizeHintOn() ? 'يطلع كل مرة' : 'مطفأ'; };
