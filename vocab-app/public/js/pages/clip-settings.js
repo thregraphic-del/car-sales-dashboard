@@ -32,7 +32,7 @@ export async function render(view, { segments, params }) {
     <header class="cs-head">
       <a class="btn icon ghost cs-x" href="${clip}" aria-label="إغلاق" title="إغلاق ورجوع للمقطع">✕</a>
       <h1>إعدادات المقطع</h1>
-      ${id ? `<span class="cs-tools"><button type="button" class="info-btn" id="infoBtnPage" aria-label="شرح هذه الصفحة" title="شرح هذه الصفحة">i</button><a class="btn sm ghost cs-copy" href="${clip}?copy=1" aria-label="نسخ النص" title="نسخ كل النص: للصقه في ChatGPT أو أي مكان">${COPY}<span>نسخ</span></a><a class="btn icon ghost cs-ideas" href="#/notes?source=${id}" aria-label="أفكار" title="أفكار: اسأل ChatGPT، الصق ملخصه، اكتب ملاحظة">${BULB}</a></span>` : ''}
+      ${id ? `<span class="cs-tools"><button type="button" class="info-btn" id="infoBtnPage" aria-label="شرح هذه الصفحة" title="شرح هذه الصفحة">i</button><a class="btn sm ghost cs-copy" href="${clip}?copy=1" aria-label="نسخ النص" title="نسخ كل النص: للصقه في ChatGPT أو أي مكان">${COPY}<span>نسخ</span></a><a class="btn sm ghost cs-copy cs-ideas" href="#/notes?source=${id}" aria-label="أفكاري" title="أفكاري: اسأل ChatGPT، الصق ملخصه، اكتب ملاحظة">${BULB}<span>أفكاري</span></a></span>` : ''}
     </header>
     <div class="cs-grid">
       <section class="cs-card">

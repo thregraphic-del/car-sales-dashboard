@@ -75,7 +75,7 @@ async function youtubePlayer(el, videoId, start, onState = () => {}) {
   return new Promise((resolve) => {
     const p = new YT.Player(el, {
       videoId,
-      playerVars: { playsinline: 1, rel: 0, modestbranding: 1, start: Math.floor(start || 0), cc_load_policy: 0 },
+      playerVars: { playsinline: 1, autoplay: 1, rel: 0, modestbranding: 1, start: Math.floor(start || 0), cc_load_policy: 0 },
       events: {
         onReady: () => {
           // ▶ starts by itself; if the phone blocks sound, it plays muted and offers «شغّل الصوت»
@@ -1258,6 +1258,29 @@ export async function render(view, { segments, params }) {
     setTimeout(close, 2000);
   }
   if (isVideo) setTimeout(sizeHint, 1200);
+  // ✍️ right after the zoom hint (2 s): a quick demo of «highlight a text → keep it in أفكاري» (the first few opens only)
+  function selectDemo() {
+    let n = 0; try { n = Number(localStorage.getItem('reader.selDemo')) || 0; } catch { /* ignore */ }
+    if (n >= 5 || !sizeHintOn()) return;
+    const cands = [...(linesEl.querySelector('.line-en, .c-en') ? linesEl.querySelectorAll('.line-en, .c-en') : linesEl.querySelectorAll('.line'))].filter((e) => { const r = e.getBoundingClientRect(); return r.height > 12 && r.width > 80 && r.top > 120 && r.bottom < window.innerHeight - 90; });
+    const el = cands[0];
+    if (!el) return;
+    try { localStorage.setItem('reader.selDemo', String(n + 1)); } catch { /* ignore */ }
+    const r = el.getBoundingClientRect();
+    const hl = document.createElement('div');
+    hl.className = 'sel-demo-hl';
+    hl.style.cssText = `top:${r.top}px;left:${r.left}px;width:${r.width}px;height:${Math.min(r.height, 44)}px`;
+    const bar = document.createElement('div');
+    bar.className = 'sel-demo-bar';
+    bar.setAttribute('aria-hidden', 'true');
+    bar.innerHTML = '<span class="sd-b">📌 احفظ في «أفكاري»</span><small>ظلّل أي نص واحتفظ فيه 👆</small>';
+    bar.style.cssText = `top:${Math.max(8, r.top - 58)}px;left:${Math.max(8, Math.min(window.innerWidth - 232, r.left))}px`;
+    document.body.append(hl, bar);
+    const done = () => { hl.remove(); bar.remove(); document.removeEventListener('pointerdown', done, true); };
+    document.addEventListener('pointerdown', done, true);
+    setTimeout(done, 2000);
+  }
+  if (isVideo) setTimeout(selectDemo, 3400);
   const drawSh = () => { const c = $('#shOn', view); if (c) c.checked = sizeHintOn(); const t = $('#shTxt', view); if (t) t.textContent = sizeHintOn() ? 'يطلع كل مرة' : 'مطفأ'; };
   drawSh();
   $('#shOn', view)?.addEventListener('change', (e) => { setPref('reader.sizeHint', e.target.checked ? '1' : '0'); drawSh(); });
@@ -2329,7 +2352,8 @@ export async function render(view, { segments, params }) {
       soundNote = document.createElement('button');
       soundNote.type = 'button';
       soundNote.className = 'sound-note';
-      soundNote.textContent = '🔇 المس هنا لتشغيل الصوت';
+      soundNote.textContent = '🔇'; // no words: the first touch anywhere turns the sound on by itself
+      soundNote.setAttribute('aria-label', 'تشغيل الصوت');
       ($('.player-box', view) || $('#vidPin', view) || view).appendChild(soundNote);
     }
     soundNote?.classList.toggle('hidden', !on);
@@ -2343,7 +2367,6 @@ export async function render(view, { segments, params }) {
       soundSaid = true;
       stopUnmute();
       window.__ytMuted = false;
-      toast('🔊 الصوت شغّال');
     }, 400);
   };
   const onMuted = () => {

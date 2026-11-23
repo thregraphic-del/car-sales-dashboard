@@ -3117,3 +3117,12 @@ body.clipset-on .info-btn.desk { display: none; }
 .gpt2-go { width: 100%; justify-content: center; gap: 10px; min-height: 52px; border-radius: 99px; font-size: 16px; text-decoration: none; }
 .gpt2-go svg { width: 20px; height: 20px; }
 @media (max-width: 360px) { .gpt2-card p { font-size: 11.5px; } .gpt2-card { padding-inline: 6px; } }
+
+/* ✍️ demo: highlight a text → keep it in «أفكاري» (2 seconds, after the zoom hint) */
+.sel-demo-hl { position: fixed; z-index: 70; pointer-events: none; border-radius: 6px; background: color-mix(in srgb, #0ABAB5 38%, transparent); transform-origin: right center; animation: selSweep .7s ease-out both; }
+@keyframes selSweep { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.sel-demo-bar { position: fixed; z-index: 71; pointer-events: none; display: grid; gap: 4px; justify-items: start; animation: addPop .25s .55s var(--ease) both; }
+.sel-demo-bar .sd-b { padding: 8px 14px; border-radius: 99px; background: var(--accent); color: #fff; font: 700 13px var(--font-ar, inherit); box-shadow: 0 8px 22px -8px rgba(0,0,0,.45); }
+.sel-demo-bar small { padding: 3px 10px; border-radius: 99px; background: rgba(0,0,0,.72); color: #fff; font-size: 11.5px; }
+/* the muted mark is just a small speaker now (no words) */
+.sound-note { padding: 8px 11px !important; font-size: 16px !important; line-height: 1; inset-inline: auto 10px !important; margin-inline: 0 !important; }
