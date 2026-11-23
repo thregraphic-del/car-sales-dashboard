@@ -269,6 +269,11 @@ async function showAuth(status) {
   });
 }
 
+// 🏁 opening the site lands directly on «أضف» (the home «اليوم» stays one tap away in the menu)
+try {
+  if ((location.hash === '' || location.hash === '#' || location.hash === '#/') && !/^\/(login|register)\/?$/.test(location.pathname)) history.replaceState(null, '', `${location.pathname}${location.search}#/add`);
+} catch { /* ignore */ }
+
 // ⚡ a returning visitor (the browser remembers they were signed in): ask for the settings, the groups and the home page
 // at the SAME moment as the sign-in check, instead of one trip after another. If it turns out they are not signed in, the
 // answers are simply dropped and the normal path runs.

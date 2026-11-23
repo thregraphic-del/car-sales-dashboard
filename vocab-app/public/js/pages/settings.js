@@ -61,7 +61,7 @@ export async function render(view) {
           <h3 class="set-h">🔊 التشغيل</h3>
           <div class="set-line"><span class="set-lbl">سرعة النطق</span><input type="range" id="rate" min="0.6" max="1.3" step="0.05" value="${u.speech_rate}" style="accent-color:var(--accent);flex:1"><b id="rateVal" class="en-inline">${u.speech_rate}×</b></div>
           ${swItem('ar', 'انطق العربي أيضًا', '', '', u.speak_arabic)}
-          ${swItem('wideSw', 'المقطع يفتح بشاشة موسّعة', '', '', ls('app.openWide', '0') === '1')}
+          ${swItem('wideSw', 'المقطع يفتح بشاشة موسّعة', '', '', ls('app.openWide2', '0') === '1')}
           ${swItem('autoSw', 'احفظ كلمات المقطع تلقائيًا', '', '', ls('app.autoSave', '0') === '1')}
           <button class="btn sm ghost" id="test" style="justify-self:start">${icon.speaker} جرّب الصوت</button>
         </section>
@@ -145,7 +145,7 @@ export async function render(view) {
   }));
   view.querySelectorAll('[data-advn]').forEach((i) => i.addEventListener('change', () => setGoalN(i.dataset.advn, Number(i.value))));
   bindSw('darkSw', (on) => { const t = on ? 'dark' : 'light'; try { localStorage.setItem('theme', t); } catch { /* ignore */ } applyTheme(t); });
-  bindSw('wideSw', (on) => lsSet('app.openWide', on ? '1' : '0'));
+  bindSw('wideSw', (on) => lsSet('app.openWide2', on ? '1' : '0'));
   bindSw('autoSw', (on) => lsSet('app.autoSave', on ? '1' : '0'));
   bindSw('ar', async (on) => { state.user = await api.updateMe({ speak_arabic: on }); });
   $('#reset')?.addEventListener('click', async () => {

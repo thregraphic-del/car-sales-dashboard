@@ -1208,7 +1208,7 @@ export async function render(view, { segments, params }) {
   let justAdded = false;
   try { justAdded = sessionStorage.getItem('reader.openWide') === String(id); sessionStorage.removeItem('reader.openWide'); } catch { /* ignore */ }
   // opens the way chosen in الإعدادات: «عادي» (default — every button in sight) or «شاشة موسّعة»
-  if (isVideo && pref('app.openWide', '0') === '1') setFocus(true);
+  if (isVideo && pref('app.openWide2', '0') === '1') setFocus(true);
   void justAdded;
   // The browser may leave full screen by itself (on iPad: scrolling up to read earlier lines).
   // Focus mode stays on — only the ✕ / shrink button takes the learner back.
