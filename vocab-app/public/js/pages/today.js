@@ -216,51 +216,29 @@ export async function render(view) {
 
 /* 📅 The dashboard: the days as squares, columns or a curve — filled by the time watched or the words learned
    (switch beside it) — and a tap on any day shows its numbers. */
-const SHAPE_IC = {
-  squares: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>',
-  bars: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 20V12M10 20V5M15 20V9M20 20V15"/></svg>',
-  line: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17c3-1 4-9 8-9s4 8 10 3"/></svg>',
-};
 async function openCalendar() {
   const box = openModal('<p class="tiny muted"><span class="spinner"></span></p>', { wide: true });
   let r;
   try { r = await api.calendar(); } catch (err) { box.innerHTML = `<p>${esc(err.message)}</p>`; return; }
   const days = r.days || {};
-  const keys = Object.keys(days).sort();
-  const first = keys[0] ? new Date(`${keys[0]}T12:00:00`) : new Date();
   const now = new Date(); now.setHours(12, 0, 0, 0);
   let metric = metricPref();
-  let shape = ['squares', 'bars', 'line'].includes(ls('today.shape', 'bars')) ? ls('today.shape', 'bars') : 'bars';
   const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
   const addD = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
   const key = (d) => d.toISOString().slice(0, 10);
-  const parse = (k) => new Date(`${k}T12:00:00`);
   const ny = now.getFullYear(); const nm = now.getMonth();
-  const years = () => { const o = []; for (let yy = Math.min(first.getFullYear(), ny - 1); yy <= ny; yy += 1) o.push(yy); return o; };
-  const weeksIn = (yy, mm) => { const len = new Date(yy, mm + 1, 0).getDate(); let n = 0; for (let d0 = 1; d0 <= len; d0 += 7) if (new Date(yy, mm, d0, 12) <= now) n += 1; return n; };
-  const curW = Math.max(1, weeksIn(ny, nm));
-  // ⚙️ the filter: first the unit (day · week · month · year), then what to do with it: last · range · a set of them · compare two
-  const UNITS = { day: 'يوم', week: 'أسبوع', month: 'شهر', year: 'سنة' };
-  const MODES = { last: 'آخر', range: 'نطاق', set: 'مجموعة', cmp: 'مقارنة' };
-  const prevM = nm === 0 ? { y: ny - 1, m: 11 } : { y: ny, m: nm - 1 };
-  const F = {
-    unit: 'day', mode: 'last', last: { day: 1, week: 1, month: 3, year: 1 }, y: ny, m: nm,
-    d: { cf: key(addD(now, -29)), ct: key(now), set: [], A: key(addD(now, -1)), B: key(now) },
-    w: { from: 1, to: curW, set: [curW], A: { y: ny, m: nm, w: 1 }, B: { y: ny, m: nm, w: curW } },
-    mo: { from: 0, to: nm, set: [nm], A: { ...prevM }, B: { y: ny, m: nm } },
-    yr: { from: ny - 1, to: ny, set: [ny], A: ny - 1, B: ny },
-  };
-  // every time the dashboard opens it starts on «آخر يوم» (the filter is not remembered on purpose)
+  // ⚙️ one filter, three choices: days (the last 30) · weeks (the last 8) · months (the last 12) — nothing else
+  const UNITS = [['day', 'أيام', 'آخر ٣٠ يوم'], ['week', 'أسابيع', 'آخر ٨ أسابيع'], ['month', 'شهور', 'آخر ١٢ شهر']];
+  let unitKey = 'day';
   let open = false;
-  let openSh = false;
   let pick = '';
+  let pickAuto = true; // the newest day / week / month is picked when the view changes
   const memo = new Map();
   const A = (d) => { const k = key(d); if (!memo.has(k)) memo.set(k, dayAll(d, days)); return memo.get(k); };
-  const unit = () => METRICS[metric].unit;
-  const goalN = () => goalFor(METRICS[metric].goal); // the learner's own number (or the default) for the chosen measure
+  const goalN = () => goalFor(METRICS[metric].goal); // the learner's own number for the chosen measure
   const lvl = (v, max) => { if (!v) return 0; const p = v / max; return p >= 0.75 ? 4 : p >= 0.5 ? 3 : p >= 0.25 ? 2 : 1; };
 
-  // one bucket = a day, a week, a month or a year: its totals for the four measures and the days that have passed in it (the goal grows with them)
+  // one bucket = a day, a week or a month: its totals for the measures and the days that have passed in it (the goal grows with them)
   const mkB = (from, to, gran, _x, label, sub, tl) => {
     const t = { time: 0, words: 0, practice: 0, rules: 0 };
     let n = 0;
@@ -268,99 +246,38 @@ async function openCalendar() {
     return { id: key(from), from, to, gran, span: n, label, sub, tl, t };
   };
   const dayB = (d) => mkB(d, d, 'day', 0, String(d.getDate()), WD[d.getDay()], `${d.getDate()}/${d.getMonth() + 1}`);
-  const wkB = (yy, mm, w) => { const len = new Date(yy, mm + 1, 0).getDate(); return mkB(new Date(yy, mm, (w - 1) * 7 + 1, 12), new Date(yy, mm, Math.min(len, w * 7), 12), 'week', 0, String(w), MONTHS[mm].slice(0, 3), `أ${w} ${MONTHS[mm]}`); };
   const monB = (yy, mm) => mkB(new Date(yy, mm, 1, 12), new Date(yy, mm + 1, 0, 12), 'month', 0, String(mm + 1), MONTHS[mm].slice(0, 3), MONTHS[mm]);
-  const yrB = (yy) => mkB(new Date(yy, 0, 1, 12), new Date(yy, 11, 31, 12), 'year', 0, String(yy), '', String(yy));
-  const started = (b) => b.from <= now;
-  const lo = (a, b2) => (a <= b2 ? [a, b2] : [b2, a]);
-  const asc = (arr) => [...arr].sort((p, q) => p - q);
   const build = () => {
-    const { unit: u, mode } = F;
-    let list = []; let gran = u;
-    if (u === 'day') {
-      if (mode === 'last') for (let i = F.last.day - 1; i >= 0; i -= 1) list.push(dayB(addD(now, -i)));
-      else if (mode === 'range') { let [f, e] = lo(parse(F.d.cf), parse(F.d.ct)); if (e > now) e = now; if (addD(e, -365) > f) f = addD(e, -365); for (let d = new Date(f); d <= e; d = addD(d, 1)) list.push(dayB(d)); }
-      else if (mode === 'set') list = asc(F.d.set).map((n) => dayB(new Date(F.y, F.m, n, 12))).filter(started);
-      else list = [dayB(parse(F.d.A)), dayB(parse(F.d.B))];
-    } else if (u === 'week') {
-      if (mode === 'last') for (let i = F.last.week - 1; i >= 0; i -= 1) { const to = addD(now, -7 * i); const f = addD(to, -6); list.push(mkB(f, to, 'week', 0, String(f.getDate()), String(f.getMonth() + 1), `${f.getDate()}/${f.getMonth() + 1}`)); }
-      else if (mode === 'range') { const [a, b2] = lo(F.w.from, F.w.to); for (let n = a; n <= b2; n += 1) list.push(wkB(F.y, F.m, n)); }
-      else if (mode === 'set') list = asc(F.w.set).map((n) => wkB(F.y, F.m, n));
-      else list = [wkB(F.w.A.y, F.w.A.m, F.w.A.w), wkB(F.w.B.y, F.w.B.m, F.w.B.w)];
-    } else if (u === 'month') {
-      if (mode === 'last') for (let i = F.last.month - 1; i >= 0; i -= 1) { const d = new Date(ny, nm - i, 1, 12); list.push(monB(d.getFullYear(), d.getMonth())); }
-      else if (mode === 'range') { const [a, b2] = lo(F.mo.from, F.mo.to); for (let n = a; n <= b2; n += 1) list.push(monB(F.y, n)); }
-      else if (mode === 'set') list = asc(F.mo.set).map((n) => monB(F.y, n));
-      else list = [monB(F.mo.A.y, F.mo.A.m), monB(F.mo.B.y, F.mo.B.m)];
-    } else {
-      if (mode === 'last') for (let i = F.last.year - 1; i >= 0; i -= 1) list.push(yrB(ny - i));
-      else if (mode === 'range') { const [a, b2] = lo(F.yr.from, F.yr.to); for (let n = a; n <= b2; n += 1) list.push(yrB(n)); }
-      else if (mode === 'set') list = asc(F.yr.set).map(yrB);
-      else list = [yrB(F.yr.A), yrB(F.yr.B)];
-    }
-    if (mode !== 'cmp') list = list.filter(started);
-    if (mode === 'cmp') { list[0].id += 'a'; list[1].id += 'b'; }
-    return { gran, list, cmp: mode === 'cmp' };
+    const list = [];
+    if (unitKey === 'day') for (let i = 29; i >= 0; i -= 1) list.push(dayB(addD(now, -i)));
+    else if (unitKey === 'week') for (let i = 7; i >= 0; i -= 1) { const to = addD(now, -7 * i); const f = addD(to, -6); list.push(mkB(f, to, 'week', 0, String(f.getDate()), String(f.getMonth() + 1), `${f.getDate()}/${f.getMonth() + 1}`)); }
+    else for (let i = 11; i >= 0; i -= 1) { const d = new Date(ny, nm - i, 1, 12); list.push(monB(d.getFullYear(), d.getMonth())); }
+    return { gran: unitKey, list };
   };
-  const GRAN = { day: 'يوم', week: 'أسبوع', month: 'شهر', year: 'سنة' };
+  const GRAN = { day: 'يوم', week: 'أسبوع', month: 'شهر' };
   let V = build();
   const val = (b) => b.t[metric];
   const lineGoal = () => goalN() * Math.max(1, ...V.list.map((b) => b.span));
-  const goalTxt = () => `${lineGoal()} ${unit()}${V.gran === 'day' ? '' : ` لكل ${GRAN[V.gran]}`}`;
-  const maxOf = () => Math.max(metric === 'time' ? 10 : 5, lineGoal(), ...V.list.map(val));
+  const goalTxt = () => `${lineGoal()} ${METRICS[metric].unit}${V.gran === 'day' ? '' : ` لكل ${GRAN[V.gran]}`}`;
   const hit = (b) => b.span > 0 && val(b) >= goalN() * b.span;
 
-  const squares = () => {
-    const mx = maxOf();
-    const cell = (b) => `<button type="button" class="cal-d l${lvl(val(b), mx)}${hit(b) ? ' hit' : ''} ${pick === b.id ? 'pick' : ''}${b.from <= now && b.to >= now ? ' today' : ''}" data-d="${b.id}"><b>${V.gran === 'day' ? b.label : b.tl}</b><small>${val(b) || ''}</small></button>`;
-    if (V.gran !== 'day' || F.mode === 'set' || V.cmp) return `<div class="cal-g tiles">${V.list.map(cell).join('')}</div>`;
-    const pad = Array.from({ length: V.list[0]?.from.getDay() || 0 }, () => '<span></span>').join('');
-    return `<div class="cal-w">${['أحد', 'إثن', 'ثلا', 'أرب', 'خمي', 'جمع', 'سبت'].map((d) => `<span>${d}</span>`).join('')}</div><div class="cal-g">${pad}${V.list.map(cell).join('')}</div>`;
-  };
+  // 📊 columns only; the goal line sits in the MIDDLE of the chart (a value of twice the goal fills the column)
   const bars = () => {
-    const mx = maxOf(); const n = V.list.length; const step = Math.ceil(n / 12);
-    return `<div class="cal-bars${n > 16 ? ' dense' : ''}" style="--g:${(lineGoal() / mx).toFixed(3)}"><div class="cb-goal" aria-hidden="true"><span>الهدف ${goalTxt()}</span></div>${V.list.map((b, i) => {
+    const mx = lineGoal() * 2; const n = V.list.length; const step = Math.ceil(n / 12);
+    return `<div class="cal-bars${n > 16 ? ' dense' : ''}" style="--g:.5"><div class="cb-goal" aria-hidden="true"><span>الهدف ${goalTxt()}</span></div>${V.list.map((b, i) => {
       const v = val(b);
-      const pct = v ? Math.max(8, Math.min(100, Math.round((100 * v) / mx))) : 0;
+      const pct = v ? Math.max(6, Math.min(100, Math.round((100 * v) / mx))) : 0;
       const showL = n <= 16 || i % step === 0 || i === n - 1;
       return `<button type="button" class="cb${pick === b.id ? ' pick' : ''}${b.from <= now && b.to >= now ? ' today' : ''}${hit(b) ? ' hit' : ''}" data-d="${b.id}"><em>${n > 16 ? '' : (v || '')}</em><i><b class="l${lvl(v, mx)}" style="height:${pct}%"></b></i><span>${showL ? b.label : ''}</span><small>${n > 16 ? '' : b.sub}</small></button>`;
     }).join('')}</div>`;
   };
-  const line = () => {
-    const list = V.list; const N = list.length; const mx = maxOf();
-    const W = 320; const H = 130; const px = 14; const py = 14;
-    const X = (i) => W - px - (i * (W - 2 * px)) / Math.max(1, N - 1); // oldest at the right (Arabic reads right to left)
-    const Yv = (v) => H - py - ((H - 2 * py) * v) / mx;
-    const pts = list.map((b, i) => [X(i), Yv(val(b))]);
-    const path = pts.map((q, i) => `${i ? 'L' : 'M'}${q[0].toFixed(1)} ${q[1].toFixed(1)}`).join(' ');
-    const area = `${path} L${X(N - 1).toFixed(1)} ${H - py} L${X(0).toFixed(1)} ${H - py} Z`;
-    const lab = (i) => list[i].tl;
-    const mid = Math.floor((N - 1) / 2);
-    return `<svg class="cal-line" viewBox="0 0 ${W} ${H + 16}" role="img" aria-label="المنحنى">
-      <path d="M${px} ${H - py} H${W - px}" class="cl-axis"/><path class="cl-area" d="${area}"/>
-      <path class="cl-goal" d="M${px} ${Yv(lineGoal()).toFixed(1)} H${W - px}"/><text class="cl-gt" x="${W - px}" y="${(Yv(lineGoal()) - 4).toFixed(1)}" text-anchor="start">الهدف ${goalTxt()}</text>
-      <path class="cl-path" d="${path}"/>
-      ${list.map((b, i) => `<circle class="cl-dot${b.id === pick ? ' pick' : ''}${val(b) ? ' on' : ''}${hit(b) ? ' hit' : ''}" cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="${b.id === pick ? 5 : N > 40 ? 2 : 3}"/><circle class="cl-hit" data-d="${b.id}" cx="${pts[i][0].toFixed(1)}" cy="${pts[i][1].toFixed(1)}" r="${N > 40 ? 5 : 9}"/>`).join('')}
-      <text class="cl-t" x="${X(0)}" y="${H + 12}" text-anchor="end">${lab(0)}</text>${N > 2 ? `<text class="cl-t" x="${X(mid)}" y="${H + 12}" text-anchor="middle">${lab(mid)}</text>` : ''}${N > 1 ? `<text class="cl-t" x="${X(N - 1)}" y="${H + 12}" text-anchor="start">${lab(N - 1)}</text>` : ''}</svg>`;
-  };
-  const shapeHtml = () => (!V.list.length ? '<p class="tiny muted" style="text-align:center">ما فيه أيام في هذي المدة — اختر شهرًا أو فترة ثانية.</p>' : shape === 'bars' ? bars() : shape === 'line' ? line() : squares());
-  const dm = (k) => { const d = parse(k); return `${d.getDate()}/${d.getMonth() + 1}`; };
-  const plural = (n, one, many) => (n === 1 ? `آخر ${one}` : `آخر ${n} ${many}`);
-  const fTitle = () => {
-    const { unit: u, mode } = F;
-    if (mode === 'cmp') return `مقارنة ${{ day: 'يومين', week: 'أسبوعين', month: 'شهرين', year: 'سنتين' }[u]}`;
-    if (u === 'day') return mode === 'last' ? plural(F.last.day, 'يوم', 'يوم') : mode === 'range' ? `${dm(F.d.cf)} ← ${dm(F.d.ct)}` : `${F.d.set.length} أيام · ${MONTHS[F.m]}`;
-    if (u === 'week') return mode === 'last' ? plural(F.last.week, 'أسبوع', 'أسابيع') : mode === 'range' ? `أسبوع ${F.w.from} ← ${F.w.to} · ${MONTHS[F.m]}` : `أسابيع ${asc(F.w.set).join('، ')} · ${MONTHS[F.m]}`;
-    if (u === 'month') return mode === 'last' ? plural(F.last.month, 'شهر', 'شهور') : mode === 'range' ? `${MONTHS[F.mo.from]} ← ${MONTHS[F.mo.to]} ${F.y}` : `${F.mo.set.length} شهور · ${F.y}`;
-    return mode === 'last' ? plural(F.last.year, 'سنة', 'سنوات') : mode === 'range' ? `${F.yr.from} ← ${F.yr.to}` : `سنوات ${asc(F.yr.set).join('، ')}`;
-  };
-  const bTitle = (b) => (b.gran === 'day' ? `${DAY_NAMES[b.from.getDay()]} ${b.from.getDate()}/${b.from.getMonth() + 1}` : b.gran === 'week' ? `من ${b.from.getDate()}/${b.from.getMonth() + 1} إلى ${b.to.getDate()}/${b.to.getMonth() + 1}` : b.gran === 'month' ? `${MONTHS[b.from.getMonth()]} ${b.from.getFullYear()}` : `سنة ${b.from.getFullYear()}`);
-  // 🧮 a summary of buckets: totals of the four measures and the days they cover — what the part below the chart shows
+  const bTitle = (b) => (b.gran === 'day' ? `${DAY_NAMES[b.from.getDay()]} ${b.from.getDate()}/${b.from.getMonth() + 1}` : b.gran === 'week' ? `من ${b.from.getDate()}/${b.from.getMonth() + 1} إلى ${b.to.getDate()}/${b.to.getMonth() + 1}` : `${MONTHS[b.from.getMonth()]} ${b.from.getFullYear()}`);
+
+  // 🧮 a summary of buckets: totals of the measures and the days they cover — what the part below the chart shows
   const summ = (list) => ({ t: list.reduce((o, b) => { Object.keys(o).forEach((k) => { o[k] += b.t[k]; }); return o; }, { time: 0, words: 0, practice: 0, rules: 0 }), days: list.reduce((n, b) => n + b.span, 0), from: list[0]?.from, to: list[list.length - 1]?.to, n: list.length });
   const activeG = () => goalTypes();
   const rows4 = (S) => Object.entries(METRICS).map(([k, mt]) => { const goal = goalFor(mt.goal) * Math.max(1, S.days); return { k, mt, got: S.t[k], goal, pct: S.t[k] / goal, on: activeG().includes(mt.goal) }; }).filter((x) => x.on);
-  const avgOf = (S) => { const rs = rows4(S).filter((x) => x.on); return rs.length ? Math.round((100 * rs.reduce((a, x) => a + Math.min(1, x.pct), 0)) / rs.length) : 0; };
-  // the window of the same length right before (the day before, the week before …)
+  const avgOf = (S) => { const rs = rows4(S); return rs.length ? Math.round((100 * rs.reduce((a, x) => a + Math.min(1, x.pct), 0)) / rs.length) : 0; };
   const before = (S) => { const len = Math.max(1, S.days); const f = addD(S.from, -len); return summ([mkB(f, addD(S.from, -1), 'x', 0, '', '', '')]); };
   const deltaHtml = (cur, prev, what) => {
     let cls = 'flat'; let sym = '＝'; let txt = '٠٪';
@@ -370,24 +287,15 @@ async function openCalendar() {
     }
     return `<div class="cd-delta ${cls}"><span class="cd-arr">${sym}</span><b class="en-inline">${txt}</b><small>${what}</small></div>`;
   };
-  const avgBlock = (S, deltaH, extra = '') => { const a = avgOf(S); return `<div class="cd-avg"><div class="cd-avg-top"><span>متوسط تحقيق أهدافك</span><b class="en-inline">${a}٪</b></div><i class="cd-meter"><b style="width:${a}%"></b></i>${extra}${deltaH}</div>`; };
-  const colsHtml = (S) => `<div class="cd-cols" style="--n:${rows4(S).length}">${rows4(S).map((x) => `<div class="cd-col${x.pct >= 1 ? ' ok' : ''}${x.on ? '' : ' off'}"><b class="en-inline cd-v">${x.got}</b><i class="cd-tr"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal}</small></div>`).join('')}</div>`;
-  const pairHtml = (S1, S2) => { const r1 = rows4(S1); const r2 = rows4(S2); return `<div class="cd-cols" style="--n:${r1.length}">${r1.map((x, i) => { const z = r2[i]; return `<div class="cd-col cd-pair${x.on ? '' : ' off'}"><div class="cd-vs"><b class="en-inline cd-v c1">${x.got}</b><b class="en-inline cd-v c2">${z.got}</b></div><div class="cd-trs"><i class="cd-tr c1"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><i class="cd-tr c2"><b style="height:${Math.min(100, Math.round(100 * z.pct))}%"></b></i></div><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal} · ${z.goal}</small></div>`; }).join('')}</div>`; };
+  const avgBlock = (S, deltaH) => { const a = avgOf(S); return `<div class="cd-avg"><div class="cd-avg-top"><span>متوسط تحقيق أهدافك</span><b class="en-inline">${a}٪</b></div><i class="cd-meter"><b style="width:${a}%"></b></i>${deltaH}</div>`; };
+  const colsHtml = (S) => { const rs = rows4(S); return `<div class="cd-cols" style="--n:${rs.length}">${rs.map((x) => `<div class="cd-col${x.pct >= 1 ? ' ok' : ''}"><b class="en-inline cd-v">${x.got}</b><i class="cd-tr"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal}</small></div>`).join('')}</div>`; };
 
   const dash = () => {
     if (!V.list.length) return '';
-    if (V.cmp) {
-      const S1 = summ([V.list[0]]); const S2 = summ([V.list[1]]);
-      const a1 = avgOf(S1); const a2 = avgOf(S2);
-      return `<div class="cal-dash"><div class="cd-head"><b>مقارنة</b></div>
-        <div class="cd-legend"><span class="c1"><i></i>١ · ${esc(bTitle(V.list[0]))} <small>(${S1.days} يوم)</small></span><span class="c2"><i></i>٢ · ${esc(bTitle(V.list[1]))} <small>(${S2.days} يوم)</small></span></div>
-        ${pairHtml(S1, S2)}
-        ${avgBlock(S1, deltaHtml(a1, a2, 'الأول مقارنة بالثاني'), `<div class="cd-avg2"><span>١: <b class="en-inline">${a1}٪</b></span><span>٢: <b class="en-inline">${a2}٪</b></span></div>`)}
-        <button type="button" class="btn cd-editbtn" data-editgoals>✏️ عدّل أهدافك</button></div>`;
-    }
     const b = pick ? V.list.find((x) => x.id === pick) : null;
     const S1 = b ? summ([b]) : summ(V.list);
-    const t1 = b ? bTitle(b) : `ملخص ${fTitle()}`;
+    const title = UNITS.find((u) => u[0] === unitKey)[2];
+    const t1 = b ? bTitle(b) : `ملخص ${title}`;
     const chip = b ? (b.from <= now && b.to >= now ? `<span class="th-chip">${b.gran === 'day' ? 'اليوم' : 'الحالي'}</span>` : '') : `<span class="th-chip">${S1.days} يوم</span>`;
     const back = b ? '<button type="button" class="btn ghost sm cd-back" data-clearpick>ملخص الفترة كلها</button>' : '';
     const prev = before(S1);
@@ -400,8 +308,7 @@ async function openCalendar() {
       <button type="button" class="btn cd-editbtn" data-editgoals>✏️ عدّل أهدافك</button></div>`;
   };
 
-  // 🎯 the goals editor lives here (it used to be in the settings page). Changing a goal never deletes what was done:
-  // the days stay as they were counted, they are only compared with the new numbers.
+  // 🎯 the goals editor (two basics). Changing a goal never deletes what was done: the days stay as counted.
   let editing = false;
   const drawGoals = () => {
     const off = ls('goal.off', '0') === '1';
@@ -416,121 +323,28 @@ async function openCalendar() {
       <div class="btn-row" style="justify-content:center;margin-top:12px"><button class="btn primary" data-donegoals>تم</button></div></div>`;
   };
 
-  // ---- the filter panel: unit → mode → only the choices that mode needs ----
-  const chip = (attr, val, label, on) => `<button type="button" class="rg-chip${on ? ' on' : ''}" ${attr}="${val}">${label}</button>`;
-  const sel = (path, opts, cur) => `<select class="input rg-sel" data-ff="${path}">${opts.map(([v, l]) => `<option value="${v}" ${String(v) === String(cur) ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
-  const yOpts = () => years().map((v) => [v, v]);
-  const mOpts = (yy) => MONTHS.map((n, i) => [i, n]).filter(([i]) => new Date(yy, i, 1) <= now);
-  const wSpan = (yy, mm, n) => `\u2066${(n - 1) * 7 + 1}–${Math.min(new Date(yy, mm + 1, 0).getDate(), n * 7)}\u2069`; // the days of week n inside its month, e.g. 8–14
-  const wOpts = (yy, mm) => Array.from({ length: weeksIn(yy, mm) }, (_, i) => [i + 1, `${i + 1} · ${wSpan(yy, mm, i + 1)}`]);
-  const date = (path, v) => `<input class="input en-inline" type="date" data-ff="${path}" value="${v}" max="${key(now)}">`;
-  const lab = (t, inner) => `<label>${t}${inner}</label>`;
-  const two = (a, b2) => `<div class="rg-two">${a}${b2}</div>`;
-  const step = (t, inner) => `<div class="rg-step">${t ? `<b>${t}</b>` : ''}${inner}</div>`;
-  const ctxMonth = () => two(lab('السنة', sel('y', yOpts(), F.y)), lab('الشهر', sel('m', mOpts(F.y), F.m)));
-  const lastChips = (u, opts, word) => step(`آخر كم ${word}؟`, `<div class="rg-chips">${opts.map((n) => chip('data-fl', n, String(n), F.last[u] === n)).join('')}</div>`);
-  // 🧭 the period filter is a short path, one choice at a time (nothing else in sight):
-  //   نوع الفترة (آخر · نطاق · مجموعة · مقارنة) → الوحدة (يوم · أسبوع · شهر · سنة) → only the choices that kind needs → تم
-  let wiz = 0;
-  const stepsOf = () => {
-    const { unit: u, mode: m } = F; const S = ['mode', 'unit'];
-    if (m === 'last') S.push('n');
-    else if (m === 'range') S.push(...({ day: ['d.cf', 'd.ct'], week: ['w.month', 'w.from', 'w.to'], month: ['m.year', 'm.from', 'm.to'], year: ['y.from', 'y.to'] })[u]);
-    else if (m === 'set') S.push(...({ day: ['d.month', 'd.days'], week: ['w.month', 'w.weeks'], month: ['m.year', 'm.months'], year: ['y.years'] })[u]);
-    else S.push(...({ day: ['d.A', 'd.B'], week: ['wA.ym', 'wA.w', 'wB.ym', 'wB.w'], month: ['mA.ym', 'mB.ym'], year: ['y.A', 'y.B'] })[u]);
-    return S;
-  };
-  const wzList = (entries, attr, cur) => `<div class="wz-list">${entries.map(([v, l]) => `<button type="button" class="wz-opt${String(cur) === String(v) ? ' on' : ''}" ${attr}="${v}">${l}</button>`).join('')}</div>`;
-  const wzPick = (path, entries, cur) => wzList(entries, 'data-wp', cur).replace(/data-wp="([^"]*)"/g, `data-wp="${path}:$1"`);
-  const STEP = {
-    mode: () => ({ t: 'اختر نوع الفترة', html: wzList(Object.entries(MODES), 'data-wm', F.mode) }),
-    unit: () => ({ t: 'اختر الوحدة', html: wzList(Object.entries(UNITS), 'data-wu', F.unit) }),
-    n: () => ({ t: `آخر كم ${{ day: 'يوم', week: 'أسبوع', month: 'شهر', year: 'سنة' }[F.unit]}؟`, html: `<div class="rg-chips">${({ day: [1, 7, 14, 30, 90], week: [1, 2, 4, 8], month: [1, 3, 6, 12], year: [1, 2, 3, 5] })[F.unit].map((n) => chip('data-fl', n, String(n), F.last[F.unit] === n)).join('')}</div>` }),
-    'd.cf': () => ({ t: 'من أي يوم؟', html: date('d.cf', F.d.cf), next: true }),
-    'd.ct': () => ({ t: 'إلى أي يوم؟', html: date('d.ct', F.d.ct) }),
-    'd.A': () => ({ t: 'اليوم الأول', html: date('d.A', F.d.A), next: true }),
-    'd.B': () => ({ t: 'اليوم الثاني', html: date('d.B', F.d.B) }),
-    'd.month': () => ({ t: 'اختر الشهر', html: ctxMonth(), next: true }),
-    'd.days': () => { const len = new Date(F.y, F.m + 1, 0).getDate(); return { t: 'اختر الأيام (أكثر من يوم)', html: `<div class="rg-chips rg-nums">${Array.from({ length: len }, (_, i) => i + 1).filter((n) => new Date(F.y, F.m, n, 12) <= now).map((n) => chip('data-ft', `d.set:${n}`, n, F.d.set.includes(n))).join('')}</div>` }; },
-    'w.month': () => ({ t: 'اختر الشهر أولًا', html: ctxMonth(), next: true }),
-    'w.from': () => ({ t: 'من أي أسبوع؟', html: wzPick('w.from', wOpts(F.y, F.m), F.w.from) }),
-    'w.to': () => ({ t: 'إلى أي أسبوع؟', html: wzPick('w.to', wOpts(F.y, F.m), F.w.to) }),
-    'w.weeks': () => ({ t: 'اختر الأسابيع (رقم الأسبوع وأيامه)', html: `<div class="rg-chips rg-nums">${wOpts(F.y, F.m).map(([n]) => chip('data-ft', `w.set:${n}`, `<b>${n}</b><small>${wSpan(F.y, F.m, n)}</small>`, F.w.set.includes(n))).join('')}</div>` }),
-    'wA.ym': () => ({ t: 'الأسبوع الأول — اختر الشهر', html: two(lab('السنة', sel('w.A.y', yOpts(), F.w.A.y)), lab('الشهر', sel('w.A.m', mOpts(F.w.A.y), F.w.A.m))), next: true }),
-    'wA.w': () => ({ t: 'الأسبوع الأول — أي أسبوع؟', html: wzPick('w.A.w', wOpts(F.w.A.y, F.w.A.m), F.w.A.w) }),
-    'wB.ym': () => ({ t: 'الأسبوع الثاني — اختر الشهر', html: two(lab('السنة', sel('w.B.y', yOpts(), F.w.B.y)), lab('الشهر', sel('w.B.m', mOpts(F.w.B.y), F.w.B.m))), next: true }),
-    'wB.w': () => ({ t: 'الأسبوع الثاني — أي أسبوع؟', html: wzPick('w.B.w', wOpts(F.w.B.y, F.w.B.m), F.w.B.w) }),
-    'm.year': () => ({ t: 'اختر السنة أولًا', html: wzPick('y', yOpts().map(([v]) => [v, v]), F.y) }),
-    'm.from': () => ({ t: 'من أي شهر؟', html: wzPick('mo.from', mOpts(F.y).map(([i, n]) => [i, n]), F.mo.from) }),
-    'm.to': () => ({ t: 'إلى أي شهر؟', html: wzPick('mo.to', mOpts(F.y).map(([i, n]) => [i, n]), F.mo.to) }),
-    'm.months': () => ({ t: 'اختر الشهور (أكثر من شهر)', html: `<div class="rg-chips">${mOpts(F.y).map(([i, n]) => chip('data-ft', `mo.set:${i}`, n, F.mo.set.includes(i))).join('')}</div>` }),
-    'mA.ym': () => ({ t: 'الشهر الأول', html: two(lab('السنة', sel('mo.A.y', yOpts(), F.mo.A.y)), lab('الشهر', sel('mo.A.m', mOpts(F.mo.A.y), F.mo.A.m))), next: true }),
-    'mB.ym': () => ({ t: 'الشهر الثاني', html: two(lab('السنة', sel('mo.B.y', yOpts(), F.mo.B.y)), lab('الشهر', sel('mo.B.m', mOpts(F.mo.B.y), F.mo.B.m))) }),
-    'y.from': () => ({ t: 'من أي سنة؟', html: wzPick('yr.from', yOpts(), F.yr.from) }),
-    'y.to': () => ({ t: 'إلى أي سنة؟', html: wzPick('yr.to', yOpts(), F.yr.to) }),
-    'y.years': () => ({ t: 'اختر السنوات (أكثر من سنة)', html: `<div class="rg-chips">${years().map((v) => chip('data-ft', `yr.set:${v}`, v, F.yr.set.includes(v))).join('')}</div>` }),
-    'y.A': () => ({ t: 'السنة الأولى', html: wzPick('yr.A', yOpts(), F.yr.A) }),
-    'y.B': () => ({ t: 'السنة الثانية', html: wzPick('yr.B', yOpts(), F.yr.B) }),
-  };
-  const panel = () => {
-    const S = stepsOf(); if (wiz >= S.length) wiz = S.length - 1;
-    const key0 = S[wiz]; const st = STEP[key0]();
-    const last = wiz === S.length - 1;
-    const crumb = wiz >= 1 ? `<div class="wz-crumb"><span>${MODES[F.mode]}</span>${wiz >= 2 ? `<i>›</i><span>${UNITS[F.unit]}</span>` : ''}</div>` : '';
-    const foot = `<div class="wz-foot">${wiz > 0 ? '<button type="button" class="btn ghost sm" data-wback>رجوع</button>' : '<span></span>'}${wiz >= 2 ? (last ? '<button type="button" class="btn primary sm" data-wdone>تم</button>' : (st.next || /^(n|d\.days|w\.weeks|m\.months|y\.years)$/.test(key0) ? '<button type="button" class="btn primary sm" data-wnext>' + (/^(n|d\.days|w\.weeks|m\.months|y\.years)$/.test(key0) ? 'تم' : 'التالي') + '</button>' : '')) : ''}</div>`;
-    return `<div class="rg-panel wz">${crumb}<b class="wz-t">${st.t}</b><div class="wz-body">${st.html}</div>${foot}</div>`;
-  };
-  const RG_IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>';
+  const FILTER_IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5h17l-6.5 8v5.5L10 20v-7z"/></svg>';
   const draw = () => {
     if (editing) return drawGoals();
     if (!METRICS[metric] || !activeG().includes(METRICS[metric].goal)) metric = Object.keys(METRICS).find((k) => activeG().includes(METRICS[k].goal)) || 'words';
     V = build();
-    if (pick && (V.cmp || !V.list.some((b) => b.id === pick))) pick = '';
+    if (pickAuto) { pick = V.list[V.list.length - 1]?.id || ''; pickAuto = false; }
+    if (pick && !V.list.some((b) => b.id === pick)) pick = '';
     box.innerHTML = `<div class="cal">
       <div class="cal-ctl">
         <div class="segmented seg4" id="calMetric">${Object.entries(METRICS).filter(([, mt]) => activeG().includes(mt.goal)).map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'active' : ''}">${mt.label}</button>`).join('')}</div>
-        <div class="cal-tools">
-          <button type="button" class="ct-btn${openSh ? ' open' : ''}" data-shtoggle aria-expanded="${openSh}"><span class="cs-i">${SHAPE_IC[shape]}</span><span>الأشكال</span></button>
-          <button type="button" class="ct-btn${open ? ' open' : ''}" data-rgtoggle aria-expanded="${open}"><span class="cs-i">${RG_IC}</span><span>الفترة</span></button>
-        </div>
-        ${openSh ? `<div class="rg-panel"><div class="rg-chips rg-shapes">${[['squares', 'مربعات'], ['bars', 'أعمدة'], ['line', 'منحنى']].map(([k, l]) => `<button type="button" class="rg-chip${shape === k ? ' on' : ''}" data-cs="${k}"><span class="cs-i">${SHAPE_IC[k]}</span>${l}</button>`).join('')}</div></div>` : ''}
-        <p class="rg-cap tiny"><span class="cs-i">${RG_IC}</span> ${esc(fTitle())}</p>
-        ${open ? panel() : ''}
+        <div class="cal-tools"><button type="button" class="ct-btn${open ? ' open' : ''}" data-fltoggle aria-expanded="${open}"><span class="cs-i">${FILTER_IC}</span><span>فلتر · ${UNITS.find((u) => u[0] === unitKey)[2]}</span></button></div>
+        ${open ? `<div class="rg-panel wz"><div class="wz-list">${UNITS.map(([k, l, d]) => `<button type="button" class="wz-opt${unitKey === k ? ' on' : ''}" data-unit="${k}"><span>${l}</span><small class="muted">${d}</small></button>`).join('')}</div></div>` : ''}
       </div>
-      <div class="cal-shape">${shapeHtml()}</div>
+      <div class="cal-shape">${bars()}</div>
       <div class="cal-key tiny"><span>أقل</span><i class="l0"></i><i class="l1"></i><i class="l2"></i><i class="l3"></i><i class="l4"></i><span>أكثر</span><span class="muted">· ${METRICS[metric].key}</span><span class="cal-gkey"><i></i> الهدف ${goalTxt()}</span></div>
       ${dash()}
       <div class="btn-row" style="justify-content:center"><button class="btn ghost" data-close>إغلاق</button></div></div>`;
   };
-  // keep every choice valid after any change (a week that does not exist, a month in the future, an empty set …)
-  const normalize = () => {
-    const capM = (yy) => (yy === ny ? nm : 11);
-    if (F.m > capM(F.y)) F.m = capM(F.y);
-    const nW = Math.max(1, weeksIn(F.y, F.m));
-    F.w.from = Math.min(Math.max(1, F.w.from), nW); F.w.to = Math.min(Math.max(1, F.w.to), nW);
-    F.w.set = F.w.set.filter((n) => n <= nW); if (!F.w.set.length) F.w.set = [nW];
-    for (const X of [F.w.A, F.w.B]) { if (X.m > capM(X.y)) X.m = capM(X.y); X.w = Math.min(Math.max(1, X.w), Math.max(1, weeksIn(X.y, X.m))); }
-    F.mo.from = Math.min(F.mo.from, capM(F.y)); F.mo.to = Math.min(F.mo.to, capM(F.y));
-    F.mo.set = F.mo.set.filter((n) => n <= capM(F.y)); if (!F.mo.set.length) F.mo.set = [capM(F.y)];
-    for (const X of [F.mo.A, F.mo.B]) if (X.m > capM(X.y)) X.m = capM(X.y);
-    const len = new Date(F.y, F.m + 1, 0).getDate(); F.d.set = F.d.set.filter((n) => n <= len && new Date(F.y, F.m, n, 12) <= now);
-    F.yr.set = F.yr.set.filter((v) => years().includes(v)); if (!F.yr.set.length) F.yr.set = [ny];
-  };
-  const getAt = (path) => path.split('.').reduce((o, k) => o[k], F);
-  const setAt = (path, v) => { const ks = path.split('.'); const last = ks.pop(); ks.reduce((o, k) => o[k], F)[last] = v; };
-  const saveF = () => {};
   box.addEventListener('change', (e) => {
-    const ff = e.target.closest('[data-ff]');
-    if (ff) { setAt(ff.dataset.ff, ff.type === 'date' ? ff.value : Number(ff.value)); normalize(); pick = ''; draw(); return; }
     if (!editing) return;
-    const c = e.target.closest('[data-gc]'); const n = e.target.closest('[data-gn]');
     if (e.target.id === 'goalAlert') { lsSet('goal.off', e.target.checked ? '0' : '1'); return; }
-    if (c) {
-      const sl = new Set(goalTypes());
-      if (c.checked) sl.add(c.dataset.gc); else sl.delete(c.dataset.gc);
-      if (!sl.size) { toast('لازم يبقى هدف واحد على الأقل'); drawGoals(); return; }
-      setGoalTypes([...sl]);
-    }
+    const n = e.target.closest('[data-gn]');
     if (n) setGoalN(n.dataset.gn, Number(n.value));
     drawGoals();
   });
@@ -539,30 +353,12 @@ async function openCalendar() {
     if (e.target.closest('[data-donegoals]')) { editing = false; draw(); return; }
     const cm = e.target.closest('[data-cm]');
     if (cm && METRICS[cm.dataset.cm]) { metric = cm.dataset.cm; lsSet('today.metric', metric); draw(); return; }
-    const cs = e.target.closest('[data-cs]');
-    if (cs) { shape = cs.dataset.cs; lsSet('today.shape', shape); openSh = false; draw(); return; }
-    if (e.target.closest('[data-shtoggle]')) { openSh = !openSh; open = false; draw(); return; }
-    if (e.target.closest('[data-rgtoggle]')) { open = !open; openSh = false; wiz = 0; draw(); return; }
-    const wm = e.target.closest('[data-wm]');
-    if (wm) { F.mode = wm.dataset.wm; pick = ''; wiz = 1; draw(); return; }
-    const wu = e.target.closest('[data-wu]');
-    if (wu) { F.unit = wu.dataset.wu; pick = ''; normalize(); wiz = 2; draw(); return; }
-    const wp = e.target.closest('[data-wp]');
-    if (wp) { const i = wp.dataset.wp.lastIndexOf(':'); setAt(wp.dataset.wp.slice(0, i), Number(wp.dataset.wp.slice(i + 1))); normalize(); pick = ''; const S = stepsOf(); if (wiz >= S.length - 1) { open = false; wiz = 0; } else wiz += 1; draw(); return; }
-    if (e.target.closest('[data-wnext]')) { const S = stepsOf(); if (wiz >= S.length - 1 || /^(n|d\.days|w\.weeks|m\.months|y\.years)$/.test(S[wiz])) { open = false; wiz = 0; } else wiz += 1; draw(); return; }
-    if (e.target.closest('[data-wdone]')) { open = false; wiz = 0; draw(); return; }
-    if (e.target.closest('[data-wback]')) { wiz = Math.max(0, wiz - 1); draw(); return; }
-    const fl = e.target.closest('[data-fl]');
-    if (fl) { F.last[F.unit] = Number(fl.dataset.fl); pick = ''; saveF(); draw(); return; }
-    const ft = e.target.closest('[data-ft]');
-    if (ft) { // a chip in a multi-choice set: tap to add it, tap again to take it out (at least one stays, except days)
-      const [path, v] = ft.dataset.ft.split(':'); const arr = getAt(path); const val = Number(v); const at = arr.indexOf(val);
-      if (at >= 0) { if (arr.length > 1 || path === 'd.set') arr.splice(at, 1); } else arr.push(val);
-      pick = ''; draw(); return;
-    }
+    if (e.target.closest('[data-fltoggle]')) { open = !open; draw(); return; }
+    const un = e.target.closest('[data-unit]');
+    if (un) { unitKey = un.dataset.unit; open = false; pickAuto = true; draw(); return; }
     if (e.target.closest('[data-clearpick]')) { pick = ''; draw(); return; }
     const d = e.target.closest('[data-d]');
-    if (d && !V.cmp) { pick = pick === d.dataset.d ? '' : d.dataset.d; draw(); } // a tap picks that day/week/month; the same tap again goes back to the summary of the whole period
+    if (d) { pick = pick === d.dataset.d ? '' : d.dataset.d; draw(); } // a tap picks that day/week/month; the same tap again goes back to the summary of the whole period
   });
   draw();
 }
