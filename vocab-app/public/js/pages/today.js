@@ -358,7 +358,7 @@ async function openCalendar() {
   // 🧮 a summary of buckets: totals of the four measures and the days they cover — what the part below the chart shows
   const summ = (list) => ({ t: list.reduce((o, b) => { Object.keys(o).forEach((k) => { o[k] += b.t[k]; }); return o; }, { time: 0, words: 0, practice: 0, rules: 0 }), days: list.reduce((n, b) => n + b.span, 0), from: list[0]?.from, to: list[list.length - 1]?.to, n: list.length });
   const activeG = () => goalTypes();
-  const rows4 = (S) => Object.entries(METRICS).map(([k, mt]) => { const goal = goalFor(mt.goal) * Math.max(1, S.days); return { k, mt, got: S.t[k], goal, pct: S.t[k] / goal, on: activeG().includes(mt.goal) }; });
+  const rows4 = (S) => Object.entries(METRICS).map(([k, mt]) => { const goal = goalFor(mt.goal) * Math.max(1, S.days); return { k, mt, got: S.t[k], goal, pct: S.t[k] / goal, on: activeG().includes(mt.goal) }; }).filter((x) => x.on);
   const avgOf = (S) => { const rs = rows4(S).filter((x) => x.on); return rs.length ? Math.round((100 * rs.reduce((a, x) => a + Math.min(1, x.pct), 0)) / rs.length) : 0; };
   // the window of the same length right before (the day before, the week before …)
   const before = (S) => { const len = Math.max(1, S.days); const f = addD(S.from, -len); return summ([mkB(f, addD(S.from, -1), 'x', 0, '', '', '')]); };
@@ -371,8 +371,8 @@ async function openCalendar() {
     return `<div class="cd-delta ${cls}"><span class="cd-arr">${sym}</span><b class="en-inline">${txt}</b><small>${what}</small></div>`;
   };
   const avgBlock = (S, deltaH, extra = '') => { const a = avgOf(S); return `<div class="cd-avg"><div class="cd-avg-top"><span>متوسط تحقيق أهدافك</span><b class="en-inline">${a}٪</b></div><i class="cd-meter"><b style="width:${a}%"></b></i>${extra}${deltaH}</div>`; };
-  const colsHtml = (S) => `<div class="cd-cols">${rows4(S).map((x) => `<div class="cd-col${x.pct >= 1 ? ' ok' : ''}${x.on ? '' : ' off'}"><b class="en-inline cd-v">${x.got}</b><i class="cd-tr"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal}</small></div>`).join('')}</div>`;
-  const pairHtml = (S1, S2) => { const r1 = rows4(S1); const r2 = rows4(S2); return `<div class="cd-cols">${r1.map((x, i) => { const z = r2[i]; return `<div class="cd-col cd-pair${x.on ? '' : ' off'}"><div class="cd-vs"><b class="en-inline cd-v c1">${x.got}</b><b class="en-inline cd-v c2">${z.got}</b></div><div class="cd-trs"><i class="cd-tr c1"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><i class="cd-tr c2"><b style="height:${Math.min(100, Math.round(100 * z.pct))}%"></b></i></div><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal} · ${z.goal}</small></div>`; }).join('')}</div>`; };
+  const colsHtml = (S) => `<div class="cd-cols" style="--n:${rows4(S).length}">${rows4(S).map((x) => `<div class="cd-col${x.pct >= 1 ? ' ok' : ''}${x.on ? '' : ' off'}"><b class="en-inline cd-v">${x.got}</b><i class="cd-tr"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal}</small></div>`).join('')}</div>`;
+  const pairHtml = (S1, S2) => { const r1 = rows4(S1); const r2 = rows4(S2); return `<div class="cd-cols" style="--n:${r1.length}">${r1.map((x, i) => { const z = r2[i]; return `<div class="cd-col cd-pair${x.on ? '' : ' off'}"><div class="cd-vs"><b class="en-inline cd-v c1">${x.got}</b><b class="en-inline cd-v c2">${z.got}</b></div><div class="cd-trs"><i class="cd-tr c1"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><i class="cd-tr c2"><b style="height:${Math.min(100, Math.round(100 * z.pct))}%"></b></i></div><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal} · ${z.goal}</small></div>`; }).join('')}</div>`; };
 
   const dash = () => {
     if (!V.list.length) return '';
@@ -404,14 +404,13 @@ async function openCalendar() {
   // the days stay as they were counted, they are only compared with the new numbers.
   let editing = false;
   const drawGoals = () => {
-    const sel = goalTypes(); const off = ls('goal.off', '0') === '1';
+    const off = ls('goal.off', '0') === '1';
     const p = progress();
     box.innerHTML = `<div class="cal"><h3 style="margin:0 0 4px">🎯 عدّل أهدافك</h3>
-      <p class="tiny muted" style="margin:0">اختر هدفًا واحدًا أو أكثر. لو اخترت أكثر من واحد يصير <b>هدفك مركّب</b>: يكتمل اليوم لما تحقق كلها، ولكل هدف عدده. <b>أداءك في الأيام الماضية ما ينحذف</b> — بس يتقارن بالأرقام الجديدة.</p>
-      <div class="goal-rows" id="goalRows">${Object.entries(GOAL_TYPES).filter(([k]) => !ADVANCED_GOALS.includes(k) || sel.includes(k)).map(([k, g]) => `<div class="goal-row${sel.includes(k) ? ' on' : ''}" data-gt="${k}">
-        <label class="goal-pick"><input type="checkbox" class="check" data-gc="${k}" ${sel.includes(k) ? 'checked' : ''}><span><b>${g.label}</b><span class="tiny muted">${g.note}</span></span></label>
-        <span class="goal-num"><input class="input en-inline" data-gn="${k}" type="number" inputmode="numeric" min="${g.min}" max="${g.max}" value="${goalFor(k)}" ${sel.includes(k) ? '' : 'disabled'}> <span class="small">${g.unit}</span></span></div>`).join('')}</div>
-      <p class="tiny muted goal-adv" style="margin:8px 0 0">⚙️ أهداف متقدمة (الوقت في الموقع · القواعد): تفعّلها من <a href="#/settings" data-close>الإعدادات العامة</a> وتحدد عددها.</p>
+      <p class="tiny muted" style="margin:0">هدفك اليومي: كم كلمة جديدة تتعلّم، وكم سؤال تتدرّب. يكتمل اليوم لما تحقق الاثنين. <b>أداءك في الأيام الماضية ما ينحذف</b> — بس يتقارن بالأرقام الجديدة.</p>
+      <div class="goal-rows" id="goalRows">${['pass', 'practice'].map((k) => { const g = GOAL_TYPES[k]; return `<div class="goal-row on" data-gt="${k}">
+        <span class="goal-pick"><span><b>${g.label}</b><span class="tiny muted">${g.note}</span></span></span>
+        <span class="goal-num"><input class="input en-inline" data-gn="${k}" type="number" inputmode="numeric" min="${g.min}" max="${g.max}" value="${goalFor(k)}"> <span class="small">${g.unit}</span></span></div>`; }).join('')}</div>
       <label class="goal-pick" style="margin-top:10px"><input type="checkbox" class="check" id="goalAlert" ${off ? '' : 'checked'}><span><b>نبّهني لما أوصل هدفي</b></span></label>
       <span class="tiny muted" id="goalNow">${p.combo ? '<b>هدف مركّب</b> — ' : ''}اليوم: ${p.items.map((i) => `${i.short} <b class="en-inline">${i.count}/${i.n}</b>${i.done ? ' ✓' : ''}`).join(' · ')}</span>
       <div class="btn-row" style="justify-content:center;margin-top:12px"><button class="btn primary" data-donegoals>تم</button></div></div>`;
@@ -484,11 +483,12 @@ async function openCalendar() {
   const RG_IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>';
   const draw = () => {
     if (editing) return drawGoals();
+    if (!METRICS[metric] || !activeG().includes(METRICS[metric].goal)) metric = Object.keys(METRICS).find((k) => activeG().includes(METRICS[k].goal)) || 'words';
     V = build();
     if (pick && (V.cmp || !V.list.some((b) => b.id === pick))) pick = '';
     box.innerHTML = `<div class="cal">
       <div class="cal-ctl">
-        <div class="segmented seg4" id="calMetric">${Object.entries(METRICS).map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'active' : ''}">${mt.label}</button>`).join('')}</div>
+        <div class="segmented seg4" id="calMetric">${Object.entries(METRICS).filter(([, mt]) => activeG().includes(mt.goal)).map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'active' : ''}">${mt.label}</button>`).join('')}</div>
         <div class="cal-tools">
           <button type="button" class="ct-btn${openSh ? ' open' : ''}" data-shtoggle aria-expanded="${openSh}"><span class="cs-i">${SHAPE_IC[shape]}</span><span>الأشكال</span></button>
           <button type="button" class="ct-btn${open ? ' open' : ''}" data-rgtoggle aria-expanded="${open}"><span class="cs-i">${RG_IC}</span><span>الفترة</span></button>

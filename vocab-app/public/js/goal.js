@@ -28,21 +28,17 @@ const clampN = (type, n) => {
 export const ADVANCED_GOALS = ['watch', 'rules']; // switched on from the general settings
 export const goalFor = (type) => clampN(type, get(`goal.n.${type}`, GOAL_TYPES[type].def));
 
-/** The chosen kinds (one or several). An old single choice (`goal.type`) still works. */
+/** The goals: always the two basics (new words + practice answers) plus any ADVANCED goal switched on in the settings. */
 export function goalTypes() {
-  let list = [];
-  try { list = JSON.parse(get('goal.types', 'null')) || []; } catch { list = []; }
-  list = ORDER.filter((t) => list.includes(t));
-  // the basics are two goals: new words + practice questions (time and rules are «advanced», switched on in the settings)
-  if (!list.length) list = GOAL_TYPES[get('goal.type', '')] ? [get('goal.type', '')] : ['pass', 'practice'];
-  return list;
+  let adv = [];
+  try { adv = JSON.parse(get('goal.adv', 'null')) || []; } catch { adv = []; }
+  return ['pass', 'practice', ...ORDER.filter((t) => ADVANCED_GOALS.includes(t) && adv.includes(t))];
 }
 
 const isCombo = () => goalTypes().length > 1;
 
 export function setGoalTypes(types) {
-  const list = ORDER.filter((t) => types.includes(t));
-  put('goal.types', JSON.stringify(list.length ? list : ['pass']));
+  put('goal.adv', JSON.stringify(ORDER.filter((t) => ADVANCED_GOALS.includes(t) && types.includes(t))));
   window.dispatchEvent(new CustomEvent('lexitube:goal-progress', { detail: progress() }));
 }
 
@@ -56,7 +52,6 @@ export function setGoalN(type, n) {
 export function setGoal(type, n) {
   if (!GOAL_TYPES[type]) return;
   put(`goal.n.${type}`, clampN(type, n));
-  if (!isCombo()) put('goal.types', JSON.stringify([type]));
   window.dispatchEvent(new CustomEvent('lexitube:goal-progress', { detail: progress() }));
 }
 

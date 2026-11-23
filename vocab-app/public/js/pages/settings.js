@@ -49,9 +49,11 @@ export async function render(view) {
           ${swItem('darkSw', '🌙 الوضع الداكن', 'خلفية داكنة مريحة للعين في الليل', '', theme === 'dark')}
         </section>
         <section class="set-card">
-          <h3 class="set-h">🎯 أهداف متقدمة</h3>
-          <p class="tiny muted" style="margin:0">أهدافك الأساسية: كلمات جديدة + أسئلة تدريب (تعدّلها من «نشاطي»). فعّل هنا هدف إضافي وحدد عدده، ويدخل مع أهدافك ويتحسب في نسبة التحقيق.</p>
-          ${ADVANCED_GOALS.map((k) => swItem(`adv_${k}`, `${k === 'watch' ? '⏱' : '📖'} ${GOAL_TYPES[k].label}`, GOAL_TYPES[k].note, `<span class="goal-num"><input class="input en-inline" data-advn="${k}" type="number" inputmode="numeric" min="${GOAL_TYPES[k].min}" max="${GOAL_TYPES[k].max}" value="${goalFor(k)}"> <span class="small">${GOAL_TYPES[k].unit}</span></span>`, goalTypes().includes(k))).join('')}
+          <details class="set-adv">
+            <summary class="set-h">⚙️ أهداف متقدمة <small class="muted">(اختيارية)</small></summary>
+            <p class="tiny muted" style="margin:8px 0 0">أهدافك الأساسية: كلمات جديدة + أسئلة تدريب (تعدّلها من «نشاطي»). فعّل هنا هدف إضافي وحدد عدده، ويدخل مع أهدافك ويتحسب في نسبة التحقيق.</p>
+            ${ADVANCED_GOALS.map((k) => swItem(`adv_${k}`, `${k === 'watch' ? '⏱ كم قعدت في الموقع' : '📖 القواعد والأمثلة'}`, GOAL_TYPES[k].note, `<span class="goal-num"><input class="input en-inline" data-advn="${k}" type="number" inputmode="numeric" min="${GOAL_TYPES[k].min}" max="${GOAL_TYPES[k].max}" value="${goalFor(k)}"> <span class="small">${GOAL_TYPES[k].unit}</span></span>`, goalTypes().includes(k))).join('')}
+          </details>
         </section>
         <section class="set-card">
           <h3 class="set-h">🎬 الفيديو</h3>
@@ -145,7 +147,6 @@ export async function render(view) {
   ADVANCED_GOALS.forEach((k) => bindSw(`adv_${k}`, (on) => {
     const now = new Set(goalTypes());
     if (on) now.add(k); else now.delete(k);
-    if (!now.size) { toast('لازم يبقى هدف واحد على الأقل'); $(`#adv_${k}`).checked = true; $(`#adv_${k}`).closest('.set-item')?.classList.add('on'); return; }
     setGoalTypes([...now]);
   }));
   view.querySelectorAll('[data-advn]').forEach((i) => i.addEventListener('change', () => setGoalN(i.dataset.advn, Number(i.value))));
