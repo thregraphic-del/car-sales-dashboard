@@ -3135,3 +3135,5 @@ body.clipset-on .info-btn.desk { display: none; }
 .sel-demo-bar .sd-b { white-space: nowrap; }
 .cs-tip { margin: 0; padding: 10px 14px; border-radius: 17px; background: color-mix(in srgb, var(--tiffany) 10%, var(--surface)); border: 1px solid color-mix(in srgb, var(--tiffany) 30%, var(--line)); color: var(--ink-2); font-size: 13px; line-height: 1.7; }
 .cs-tip b { color: var(--accent); }
+/* ⛶ expanded screen: only «رجوع» and play/pause stay on top — settings, words and ChatGPT would distract */
+body.reader-focus #setBtn, body.reader-focus #wordsBtn, body.reader-focus #gptTop { display: none !important; }
