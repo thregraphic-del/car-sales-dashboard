@@ -49,7 +49,7 @@ export async function render(view, { params }) {
       </div>
       <div class="ah-foot"><p class="ah-hint" id="hint">ما يهم التنسيق، إحنا نستخرجه تلقائيًا ✨</p>
         <div class="ah-actions"><button type="button" class="ah-clip" id="attachMenu" aria-label="استيراد ملف أو صورة" title="استيراد ملف أو صورة، أو التقاط صورة">${ICO.clip}</button>
-          <button class="btn primary" id="go" disabled><span id="goLabel">استخرج</span>${ICO.arrow}</button></div>
+          <button class="btn primary" id="go" disabled><span id="goLabel">استخرج</span>${ICO.arrow}</button></div></div>
       <div id="manual" class="hidden stack" style="margin-top:14px">
         <label class="field">الصق نص الفيديو (Transcript) من يوتيوب
           <textarea class="input en" id="transcript" rows="6" placeholder="0:05 So today I want to talk about…"></textarea></label>
