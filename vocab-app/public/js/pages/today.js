@@ -287,7 +287,7 @@ async function openCalendar() {
     }
     return `<div class="cd-delta ${cls}"><span class="cd-arr">${sym}</span><b class="en-inline">${txt}</b><small>${what}</small></div>`;
   };
-  const avgBlock = (S, deltaH) => { const a = avgOf(S); return `<div class="cd-avg"><div class="cd-avg-top"><span>متوسط تحقيق أهدافك</span><b class="en-inline">${a}٪</b></div><i class="cd-meter"><b style="width:${a}%"></b></i>${deltaH}</div>`; };
+  const avgBlock = (S, deltaH) => `<div class="cd-avg cd-avg-s"><div class="cd-avg-top"><span>نسبة تحقيق الهدف</span><b class="en-inline">${avgOf(S)}٪</b></div>${deltaH}</div>`;
   const colsHtml = (S) => { const rs = rows4(S); return `<div class="cd-cols" style="--n:${rs.length}">${rs.map((x) => `<div class="cd-col${x.pct >= 1 ? ' ok' : ''}"><b class="en-inline cd-v">${x.got}</b><i class="cd-tr"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal}</small></div>`).join('')}</div>`; };
 
   const dash = () => {
@@ -295,12 +295,12 @@ async function openCalendar() {
     const b = pick ? V.list.find((x) => x.id === pick) : null;
     const S1 = b ? summ([b]) : summ(V.list);
     const title = UNITS.find((u) => u[0] === unitKey)[2];
-    const t1 = b ? bTitle(b) : `ملخص ${title}`;
+    const t1 = b ? bTitle(b) : `الإجمالي · ${title}`;
     const chip = b ? (b.from <= now && b.to >= now ? `<span class="th-chip">${b.gran === 'day' ? 'اليوم' : 'الحالي'}</span>` : '') : `<span class="th-chip">${S1.days} يوم</span>`;
     const back = b ? '<button type="button" class="btn ghost sm cd-back" data-clearpick>ملخص الفترة كلها</button>' : '';
     const prev = before(S1);
     const nothing = Object.values(S1.t).every((v) => !v);
-    const what = b ? (b.gran === 'day' ? 'عن اليوم السابق' : `عن ${GRAN[b.gran]} قبله (نفس المدة)`) : `عن الفترة السابقة (${S1.days} يوم قبلها)`;
+    const what = b ? ({ day: 'عن اليوم السابق', week: 'عن الأسبوع السابق', month: 'عن الشهر السابق' }[b.gran]) : ({ day: 'عن الـ٣٠ يوم السابقة', week: 'عن الأسابيع الـ٨ السابقة', month: 'عن الشهور الـ١٢ السابقة' }[unitKey]);
     return `<div class="cal-dash"><div class="cd-head"><b>${esc(t1)}</b>${chip}${back}</div>
       ${colsHtml(S1)}
       ${nothing ? '<p class="tiny muted" style="margin:6px 0 0;text-align:center">ما فيه نشاط في هذي الفترة.</p>' : ''}
@@ -343,7 +343,7 @@ async function openCalendar() {
       <div class="cal-ctl">
         <div class="segmented seg4" id="calMetric">${Object.entries(METRICS).filter(([, mt]) => activeG().includes(mt.goal)).map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'active' : ''}">${mt.label}</button>`).join('')}</div>
         <div class="cal-tools"><button type="button" class="ct-btn${open ? ' open' : ''}" data-fltoggle aria-expanded="${open}"><span class="cs-i">${FILTER_IC}</span><span>فلتر · ${UNITS.find((u) => u[0] === unitKey)[2]}</span></button></div>
-        ${open ? `<div class="rg-panel wz"><div class="wz-list">${UNITS.map(([k, l, d]) => `<button type="button" class="wz-opt${unitKey === k ? ' on' : ''}" data-unit="${k}"><span>${l}</span><small class="muted">${d}</small></button>`).join('')}</div></div>` : ''}
+        ${open ? `<div class="rg-panel wz"><div class="wz-list">${UNITS.map(([k, l, d]) => `<button type="button" class="wz-opt${unitKey === k ? ' on' : ''}" data-unit="${k}"><span>${d}</span></button>`).join('')}</div></div>` : ''}
       </div>
       <div class="cal-shape">${bars()}</div>
       <div class="cal-key tiny"><span class="cal-gkey"><i></i> الهدف ${goalTxt()}</span></div>

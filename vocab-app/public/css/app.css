@@ -3194,3 +3194,12 @@ body.reader-focus #setBtn, body.reader-focus #wordsBtn, body.reader-focus #gptTo
 .gm-total select.input { width: auto; padding-inline: 10px; }
 .gm-eq { color: var(--accent); font-weight: 700; }
 .cal-key { justify-content: center; }
+/* the percentage: small and plain; under it a tiny arrow line (up / down against the period before) */
+.cd-avg.cd-avg-s { margin-top: 8px; padding: 4px 2px; gap: 1px; background: none; justify-items: center; text-align: center; }
+.cd-avg-s .cd-avg-top { justify-content: center; gap: 8px; font-size: 12.5px; }
+.cd-avg-s .cd-avg-top b { font-size: 15px; }
+.cd-avg-s .cd-delta { font-size: 11px; gap: 4px; justify-content: center; }
+.cd-avg-s .cd-delta small { font-size: 11px; }
+.cd-avg-s .cd-arr { font-size: 9px; }
+.wz-opt::after { content: none; }
+.cal-bars .cb-goal span { display: none; }
