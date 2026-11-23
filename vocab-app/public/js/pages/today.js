@@ -314,22 +314,17 @@ async function openCalendar() {
   const totalOf = (k) => { let o = null; try { o = JSON.parse(ls(`goal.total.${k}`, 'null')); } catch { /* none */ } return { n: Number(o?.n) || goalFor(k) * 30, per: Number(o?.per) || 1, u: [1, 7, 30].includes(Number(o?.u)) ? Number(o.u) : 30 }; };
   const drawGoals = () => {
     const off = ls('goal.off', '0') === '1';
-    const p = progress();
-    box.innerHTML = `<div class="cal"><h3 style="margin:0 0 4px">🎯 عدّل أهدافك</h3>
-      <p class="tiny muted" style="margin:0">هدفك اليومي: كم كلمة جديدة تتعلّم، وكم سؤال تتدرّب. يكتمل اليوم لما تحقق الاثنين. <b>أداءك في الأيام الماضية ما ينحذف</b> — بس يتقارن بالأرقام الجديدة.</p>
-      <div class="goal-rows" id="goalRows">${['pass', 'practice'].map((k) => {
-        const g = GOAL_TYPES[k]; const tot = totalOf(k); const mode = modeOf(k);
-        return `<div class="goal-row on goal-col" data-gt="${k}">
-        <span class="goal-pick"><span><b>${g.label}</b><span class="tiny muted">${g.note}</span></span></span>
-        <div class="gm-tabs" role="tablist"><button type="button" class="${mode === 'day' ? 'on' : ''}" data-gm="${k}:day">كل يوم</button><button type="button" class="${mode === 'total' ? 'on' : ''}" data-gm="${k}:total">عدد إجمالي</button></div>
+    const ICO = { pass: '📚', practice: '🎮' }; const NAME = { pass: 'كلمات جديدة', practice: 'أسئلة تدريب' };
+    box.innerHTML = `<div class="cal gl"><h3 class="gl-h">🎯 أهدافك</h3>
+      ${['pass', 'practice'].map((k) => {
+    const tot = totalOf(k); const mode = modeOf(k);
+    return `<div class="gl-row" data-gt="${k}"><b class="gl-t">${ICO[k]} ${NAME[k]}</b>
         ${mode === 'day'
-    ? `<span class="goal-num"><input class="input en-inline" data-gn="${k}" type="number" inputmode="numeric" min="${g.min}" max="${g.max}" value="${goalFor(k)}"> <span class="small">${g.unit} كل يوم</span></span>`
-    : `<div class="gm-total"><input class="input en-inline" data-gtot="${k}" type="number" inputmode="numeric" min="1" max="100000" value="${tot.n}"> <span class="small">${g.unit} خلال</span> <input class="input en-inline" data-gper="${k}" type="number" inputmode="numeric" min="1" max="365" value="${tot.per}"> <select class="input" data-gunit="${k}"><option value="1" ${tot.u === 1 ? 'selected' : ''}>يوم</option><option value="7" ${tot.u === 7 ? 'selected' : ''}>أسبوع</option><option value="30" ${tot.u === 30 ? 'selected' : ''}>شهر</option></select></div>
-        <span class="tiny gm-eq">توزّعها بالتساوي: <b class="en-inline">${goalFor(k)}</b> ${g.unit} كل يوم</span>`}
-      </div>`; }).join('')}</div>
-      <label class="goal-pick" style="margin-top:10px"><input type="checkbox" class="check" id="goalAlert" ${off ? '' : 'checked'}><span><b>نبّهني لما أوصل هدفي</b></span></label>
-      <span class="tiny muted" id="goalNow">${p.combo ? '<b>هدف مركّب</b> — ' : ''}اليوم: ${p.items.map((i) => `${i.short} <b class="en-inline">${i.count}/${i.n}</b>${i.done ? ' ✓' : ''}`).join(' · ')}</span>
-      <div class="btn-row" style="justify-content:center;margin-top:12px"><button class="btn primary" data-donegoals>تم</button></div></div>`;
+    ? `<div class="gl-in"><input class="input en-inline" data-gn="${k}" type="number" inputmode="numeric" min="1" value="${goalFor(k)}"><span>كل يوم</span></div><button type="button" class="gl-link" data-gm="${k}:total">أو عدد إجمالي</button>`
+    : `<div class="gl-in"><input class="input en-inline" data-gtot="${k}" type="number" inputmode="numeric" min="1" value="${tot.n}"><select class="input" data-gper="${k}"><option value="7" ${tot.per * tot.u === 7 ? 'selected' : ''}>في أسبوع</option><option value="30" ${tot.per * tot.u === 30 ? 'selected' : ''}>في شهر</option><option value="90" ${tot.per * tot.u === 90 ? 'selected' : ''}>في ٣ شهور</option></select></div><span class="gl-eq">= <b class="en-inline">${goalFor(k)}</b> كل يوم</span><button type="button" class="gl-link" data-gm="${k}:day">يومي</button>`}
+      </div>`; }).join('')}
+      <label class="gl-alert"><input type="checkbox" class="check" id="goalAlert" ${off ? '' : 'checked'}><span>نبّهني لما أوصل هدفي</span></label>
+      <div class="btn-row" style="justify-content:center"><button class="btn primary" data-donegoals>تم</button></div></div>`;
   };
 
   const FILTER_IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5h17l-6.5 8v5.5L10 20v-7z"/></svg>';
@@ -356,14 +351,13 @@ async function openCalendar() {
     const n = e.target.closest('[data-gn]');
     if (n) setGoalN(n.dataset.gn, Number(n.value));
     const row = e.target.closest('[data-gt]');
-    if (row && (e.target.closest('[data-gtot],[data-gper],[data-gunit]'))) {
+    if (row && e.target.closest('[data-gtot],[data-gper]')) {
       // a total over a period → shared equally on the days (rounded up so the total is reached)
       const k = row.dataset.gt;
       const nTot = Math.max(1, Number(row.querySelector('[data-gtot]').value) || 1);
-      const per = Math.max(1, Number(row.querySelector('[data-gper]').value) || 1);
-      const u = Number(row.querySelector('[data-gunit]').value) || 30;
-      lsSet(`goal.total.${k}`, JSON.stringify({ n: nTot, per, u }));
-      setGoalN(k, Math.ceil(nTot / (per * u)));
+      const per = Number(row.querySelector('[data-gper]').value) || 30;
+      lsSet(`goal.total.${k}`, JSON.stringify({ n: nTot, per, u: 1 }));
+      setGoalN(k, Math.ceil(nTot / per));
     }
     drawGoals();
   });

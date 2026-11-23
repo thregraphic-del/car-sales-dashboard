@@ -3203,3 +3203,15 @@ body.reader-focus #setBtn, body.reader-focus #wordsBtn, body.reader-focus #gptTo
 .cd-avg-s .cd-arr { font-size: 9px; }
 .wz-opt::after { content: none; }
 .cal-bars .cb-goal span { display: none; }
+
+/* 🎯 the goals editor, as simple as it gets */
+.gl { gap: 12px; }
+.gl-h { margin: 0; font-size: 18px; }
+.gl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 12px 14px; border: 1.5px solid var(--accent); border-radius: 19px; background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+.gl-t { flex: 1 1 100%; font-size: 15px; }
+.gl-in { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; color: var(--ink-2); }
+.gl-in .input { width: 84px; padding: 8px 10px; text-align: center; font-size: 17px; font-weight: 800; }
+.gl-in select.input { width: auto; font-size: 14px; font-weight: 700; padding-inline: 10px; }
+.gl-eq { font-size: 13px; color: var(--accent); font-weight: 700; }
+.gl-link { margin-inline-start: auto; border: 0; background: none; color: var(--accent); font: 700 12.5px var(--font-ar, inherit); text-decoration: underline; cursor: pointer; padding: 4px 2px; }
+.gl-alert { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 14px; }
