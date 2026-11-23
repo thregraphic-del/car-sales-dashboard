@@ -37,6 +37,7 @@ export async function render(view, { params }) {
     grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>',
     sort: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20V5M4.5 8.5 8 5l3.5 3.5M16 4v15M12.5 15.5 16 19l3.5-3.5"/></svg>',
   };
+  let renderLimit = 60; let listSig = ''; let moreObs = null;
   let panel = ''; // which icon's panel is open: search · filter · sort · groups
   view.innerHTML = `
     <div class="page-head compact"><div><h1>كلماتي</h1></div></div>
@@ -45,7 +46,6 @@ export async function render(view, { params }) {
     <div class="wd-tools" id="wdTools">
       <button type="button" class="wd-t" data-wt="search" aria-label="بحث" title="بحث">${icon.search}</button>
       <button type="button" class="wd-t" data-wt="filter" aria-label="فلاتر" title="فلاتر">${WI.filter}</button>
-      <button type="button" class="wd-t" data-wt="sort" aria-label="ترتيب" title="ترتيب">${WI.sort}</button>
       <button type="button" class="wd-t" id="selectToggle" aria-label="تحديد" title="تحديد">${icon.check}</button>
       <button type="button" class="wd-t" data-wt="groups" aria-label="المجموعات" title="المجموعات">${icon.folder}</button>
       <button type="button" class="wd-t" id="exportBtn" aria-label="تصدير" title="تصدير">${icon.download}</button>
@@ -88,7 +88,7 @@ export async function render(view, { params }) {
     $('#selectToggle').classList.toggle('on', select);
     $('#wsearch').classList.toggle('hidden', panel !== 'search' && !f.q);
     const defs = barDefs();
-    $('#filters').innerHTML = panel === 'filter' ? `<div class="pb-filters wd-fl">${filterBarHtml(defs.filter((d) => d.k !== 'sort'), fbOpen)}</div>` : panel === 'sort' ? `<div class="wd-sort" role="radiogroup" aria-label="الترتيب">${[['new', 'الأحدث'], ['old', 'الأقدم'], ['az', 'أبجدي']].map(([k, l]) => `<button type="button" role="radio" aria-checked="${(f.sort || 'new') === k}" class="sopt${(f.sort || 'new') === k ? ' active' : ''}" data-sortv="${k}">${l}</button>`).join('')}</div>` : '';
+    $('#filters').innerHTML = panel === 'filter' ? `<div class="pb-filters wd-fl">${filterBarHtml(defs, fbOpen)}</div>` : '';
     placeMenus($('#filters'));
     // 📁 groups: the panel of every group + «مجموعة جديدة» + «إدارة المجموعات» (opened by the folder icon)
     const gSel = state.groups.find((x) => x.id === f.group);
@@ -110,16 +110,25 @@ export async function render(view, { params }) {
       $('#selectBar').innerHTML = '';
       return;
     }
+    // the list is drawn in slices (60 first, more as you scroll): thousands of rows at once make a phone slow
+    const sig = JSON.stringify([f.filter, f.group, f.q, f.levels, f.when, f.source, f.sort, f.count, f.view]);
+    if (sig !== listSig) { listSig = sig; renderLimit = 60; }
     shown = all.filter(matches);
     const sorters = { old: (a, b) => new Date(a.saved_at) - new Date(b.saved_at), az: (a, b) => a.term.localeCompare(b.term), hard: (a, b) => (b.difficulty || 0) - (a.difficulty || 0) || a.mastery - b.mastery };
     if (sorters[f.sort]) shown.sort(sorters[f.sort]);
     if (f.count) shown = shown.slice(0, f.count);
     $('#list').innerHTML = shown.length
-      ? `         <div class="word-list">${shown.map((w) => wordRowHtml(w, { selectable: select, selected: selected.has(w.uv_id), compact: true })).join('')}</div>`
+      ? `<div class="word-list">${shown.slice(0, renderLimit).map((w) => wordRowHtml(w, { selectable: select, selected: selected.has(w.uv_id), compact: true })).join('')}</div>${shown.length > renderLimit ? `<button type="button" class="btn ghost wd-more" id="wdMore">عرض المزيد · ${(shown.length - renderLimit).toLocaleString('en-US')} كلمة</button>` : ''}`
       : all.length
         ? emptyState('🔍', 'ما فيه كلمات هنا', f.group ? 'أضف كلمات إلى هذه المجموعة من بطاقة أي كلمة.' : 'جرّب بحثًا أو فلترًا آخر.')
         : emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات وبنساعدك تختار اللي يستاهل.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`);
     $('#wCount').textContent = shown.length ? `(${shown.length.toLocaleString('en-US')})` : '';
+    moreObs?.disconnect();
+    const moreBtn = $('#wdMore');
+    if (moreBtn && 'IntersectionObserver' in window) {
+      moreObs = new IntersectionObserver((en) => { if (en.some((x) => x.isIntersecting)) { moreObs.disconnect(); renderLimit += 80; draw(); } }, { rootMargin: '700px' });
+      moreObs.observe(moreBtn);
+    }
     const allShownSelected = shown.length > 0 && shown.every((w) => selected.has(w.uv_id));
     const inGroup = state.groups.find((x) => x.id === f.group);
     const none = selected.size ? '' : 'disabled';
@@ -296,7 +305,6 @@ export async function render(view, { params }) {
         else if (fb.k === 'source') f.source = Number(fb.value) || null;
         else f[fb.k] = fb.value;
         if (fb.k === 'filter') f.view = 'list';
-        if (fb.k === 'sort') panel = '';
         if (fb.close) fbOpen = '';
       }
       return draw();
@@ -392,6 +400,7 @@ export async function render(view, { params }) {
 
   // Row click in select mode toggles selection instead of opening the card.
   $('#list').addEventListener('click', (e) => {
+    if (e.target.closest('#wdMore')) { renderLimit += 80; draw(); return; }
     if (!select) return;
     const row = e.target.closest('.word-row');
     if (!row) return;
