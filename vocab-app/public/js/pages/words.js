@@ -40,15 +40,13 @@ export async function render(view, { params }) {
   let renderLimit = 60; let listSig = ''; let moreObs = null;
   let panel = ''; // which icon's panel is open: search · filter · sort · groups
   view.innerHTML = `
-    <div class="page-head compact"><div><h1>كلماتي</h1></div></div>
+    <div class="page-head compact"><div><h1>كلماتي</h1></div><div class="wd-corner"><button type="button" class="wd-t wd-sm" data-wt="search" aria-label="بحث" title="بحث">${icon.search}</button><button type="button" class="wd-t wd-sm" id="exportBtn" aria-label="تنزيل" title="تنزيل">${icon.download}</button></div></div>
     <div class="card wd-stats" id="summary"></div>
     <div class="lib-tabs segmented wd-seg" role="tablist"><a href="#/words" role="tab" class="active">الكلمات <b id="wCount"></b></a><a href="#/words?tab=grammar" role="tab">القواعد <b id="gCount"></b></a></div>
     <div class="wd-tools" id="wdTools">
-      <button type="button" class="wd-t" data-wt="search" aria-label="بحث" title="بحث">${icon.search}</button>
-      <button type="button" class="wd-t" data-wt="filter" aria-label="فلاتر" title="فلاتر">${WI.filter}</button>
-      <button type="button" class="wd-t" id="selectToggle" aria-label="تحديد" title="تحديد">${icon.check}</button>
-      <button type="button" class="wd-t" data-wt="groups" aria-label="المجموعات" title="المجموعات">${icon.folder}</button>
-      <button type="button" class="wd-t" id="exportBtn" aria-label="تصدير" title="تصدير">${icon.download}</button>
+      <button type="button" class="wd-t" data-wt="filter" aria-label="فلاتر" title="فلاتر">${WI.filter}<span>فلاتر</span></button>
+      <button type="button" class="wd-t" id="selectToggle" aria-label="تحديد" title="تحديد">${icon.check}<span>تحديد</span></button>
+      <button type="button" class="wd-t" data-wt="groups" aria-label="المجموعات" title="المجموعات">${icon.folder}<span>مجموعات</span></button>
     </div>
     <div id="selectBar"></div>
     <div class="words-search hidden" id="wsearch"><span class="search-ico">${icon.search}</span><input class="input" id="q" type="search" placeholder="ابحث بالإنجليزية أو العربية…"></div>
@@ -81,7 +79,7 @@ export async function render(view, { params }) {
       ? `<span class="wd-sl">إجمالي الكلمات</span><b class="wd-sn en-inline">${all.length.toLocaleString('en-US')}</b><span class="wd-ss">${num(mastered)} متقنة · ${num(practice)} مراجعة</span>`
       : '<span class="wd-sl">ما حفظت كلمات للحين</span>';
     // which icon is lit, and which panel is open under the row
-    view.querySelectorAll('#wdTools [data-wt]').forEach((b) => {
+    view.querySelectorAll('[data-wt]').forEach((b) => {
       const k = b.dataset.wt;
       b.classList.toggle('on', k === 'view' ? f.view === 'clear' : panel === k || (k === 'filter' && fbOpen && panel === 'filter'));
     });
@@ -311,7 +309,7 @@ export async function render(view, { params }) {
     }
     const cl = e.target.closest('[data-cl]');
     if (cl) return openLadder(clusters[Number(cl.dataset.cl)]);
-    const wt = e.target.closest('#wdTools [data-wt]');
+    const wt = e.target.closest('[data-wt]');
     if (wt) {
       const k = wt.dataset.wt;
       if (k === 'view') { f.view = f.view === 'clear' ? 'list' : 'clear'; return draw(); }

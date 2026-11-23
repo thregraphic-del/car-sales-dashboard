@@ -3150,3 +3150,13 @@ body.reader-focus #setBtn, body.reader-focus #wordsBtn, body.reader-focus #gptTo
 .wd-more { width: 100%; justify-content: center; margin-top: 10px; }
 .fbar { display: flex !important; flex-wrap: wrap !important; overflow: visible !important; }
 @media (max-width: 520px) { .fbar .dd { flex: 0 0 calc(33.333% - 6px) !important; max-width: none !important; min-width: 0 !important; } .fbar .dd-btn.fb-btn { width: 100%; } }
+
+/* «كلماتي»: search + download sit in the top corner (rarely used); filters · select · groups below, named */
+.page-head .wd-corner { display: flex; gap: 8px; }
+.wd-t.wd-sm { flex: none; width: 42px; max-width: none; height: 42px; border-radius: 15px; }
+.wd-t.wd-sm svg { width: 20px; height: 20px; }
+.wd-tools { gap: 8px; justify-content: stretch; }
+.wd-tools .wd-t { flex: 1 1 0; max-width: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 10px; font: 700 14px var(--font-ar, inherit); }
+.wd-tools .wd-t svg { width: 20px; height: 20px; flex: none; color: var(--accent); }
+.wd-tools .wd-t.on svg { color: #fff; }
+@media (max-width: 360px) { .wd-tools .wd-t { font-size: 12.5px; gap: 5px; padding: 0 6px; } .wd-tools .wd-t svg { width: 18px; height: 18px; } }
