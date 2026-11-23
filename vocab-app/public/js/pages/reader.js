@@ -42,8 +42,8 @@ const setPref = (k, v) => {
 };
 
 // 🎨 word colours (the learner picks; kept for every video)
-const MK_NEW = [['#0ABAB5', 'تيفاني'], ['#22a35a', 'أخضر'], ['#3b82f6', 'أزرق'], ['#f59e0b', 'برتقالي'], ['#ec4899', 'وردي']];
-const MK_MINE = [['#8b5cf6', 'بنفسجي'], ['#3b82f6', 'أزرق'], ['#64748b', 'رمادي'], ['#CBA55E', 'ذهبي'], ['#ef4444', 'أحمر']];
+const MK_NEW = [['#FF8A24', 'برتقالي'], ['#0ABAB5', 'تيفاني'], ['#22a35a', 'أخضر'], ['#3b82f6', 'أزرق'], ['#ec4899', 'وردي']];
+const MK_MINE = [['#4FD6D0', 'تيفاني فاتح'], ['#0B7F7B', 'تيفاني غامق'], ['#8b5cf6', 'بنفسجي'], ['#64748b', 'رمادي'], ['#3b82f6', 'أزرق']];
 function applyMarkLook() {
   const r = document.documentElement;
   r.style.setProperty('--mk-new', pref('reader.mkNew', MK_NEW[0][0]));
