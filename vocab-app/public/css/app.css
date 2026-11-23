@@ -3256,3 +3256,20 @@ body.reader-focus #setBtn, body.reader-focus #wordsBtn, body.reader-focus #gptTo
 .set-adv-all > summary::after { content: '▾'; margin-inline-start: auto; color: var(--muted); }
 .set-adv-all[open] > summary { border-color: var(--accent); margin-bottom: 14px; }
 .set-adv-all[open] > summary::after { content: '▴'; }
+
+/* ⚙️ settings as main sections; tap one to open it */
+.set-secs { display: grid; gap: 10px; max-width: 720px; }
+.set-sec { border: 1.5px solid var(--line); border-radius: 22px; background: var(--surface); overflow: hidden; }
+.set-sec > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 12px; padding: 16px 18px; font-size: 16px; }
+.set-sec > summary::-webkit-details-marker { display: none; }
+.set-sec > summary::after { content: '‹'; margin-inline-start: auto; color: var(--muted); font-size: 22px; line-height: 1; transition: transform .2s; }
+.set-sec[open] > summary { border-bottom: 1px solid var(--line); }
+.set-sec[open] > summary::after { transform: rotate(-90deg); }
+.ss-i { width: 38px; height: 38px; border-radius: 13px; background: var(--accent-soft); display: grid; place-items: center; font-size: 19px; }
+.ss-body { padding: 14px 18px 18px; display: grid; gap: 12px; }
+.ss-body .card, .ss-body .set-card { border: 0; box-shadow: none; background: none; padding: 0; border-radius: 0; }
+.ss-body .card:not(:first-child), .ss-body .set-card:not(:first-child) { padding-top: 12px; border-top: 1px solid var(--line); }
+.ss-body .set-h { font-size: 14px; color: var(--muted); }
+.ss-body .set-h { display: none; }
+.set-sec > summary::after { content: '▾'; font-size: 14px; transform: none; }
+.set-sec[open] > summary::after { content: '▴'; transform: none; }

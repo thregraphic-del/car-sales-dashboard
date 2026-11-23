@@ -32,32 +32,14 @@ export async function render(view) {
 
   view.innerHTML = `
     <div class="page-head"><div><div class="eyebrow">Settings</div><h1>الإعدادات</h1></div></div>
-    <div class="set-list set-basic">
-      <section class="set-card">
+    <div class="set-secs">
+      <details class="set-sec"><summary><span class="ss-i">👤</span><b>حسابي</b></summary><div class="ss-body">
+        <section class="set-card">
         <div class="set-line"><label class="set-lbl" for="name">الاسم</label><input class="input" id="name" value="${esc(u.name)}"><button class="btn primary sm" id="saveProfile">حفظ</button></div>
         ${swItem('darkSw', '🌙 الوضع الداكن', '', '', theme === 'dark')}
-      </section>
+        </section>
       ${cfg.auth?.required && u.guest ? `<section class="set-card guest-settings"><b>👤 أنت ضيف</b><a class="btn primary" href="/register" style="justify-self:start">سجّل حسابك المجاني</a><a class="link-btn small" href="/login" style="justify-self:start">عندي حساب</a></section>` : ''}
       ${cfg.auth?.required && !u.guest ? '<button class="btn ghost" id="logout" style="justify-self:start">تسجيل الخروج</button>' : ''}
-    </div>
-    <details class="set-adv-all">
-      <summary>⚙️ خيارات متقدمة</summary>
-    <div class="grid cols-2">
-      <div class="set-list">
-        <section class="set-card">
-          <h3 class="set-h">🔊 التشغيل</h3>
-          <div class="set-line"><span class="set-lbl">سرعة النطق</span><input type="range" id="rate" min="0.6" max="1.3" step="0.05" value="${u.speech_rate}" style="accent-color:var(--accent);flex:1"><b id="rateVal" class="en-inline">${u.speech_rate}×</b></div>
-          ${swItem('ar', 'انطق العربي أيضًا', '', '', u.speak_arabic)}
-          ${swItem('wideSw', 'المقطع يفتح بشاشة موسّعة', '', '', ls('app.openWide', '0') === '1')}
-          ${swItem('autoSw', 'احفظ كلمات المقطع تلقائيًا', '', '', ls('app.autoSave', '0') === '1')}
-          <button class="btn sm ghost" id="test" style="justify-self:start">${icon.speaker} جرّب الصوت</button>
-        </section>
-        <section class="set-card">
-          <h3 class="set-h">🎯 أهداف إضافية</h3>
-          ${ADVANCED_GOALS.map((k) => swItem(`adv_${k}`, `${k === 'watch' ? '⏱ كم قعدت في الموقع' : '📖 القواعد والأمثلة'}`, '', `<span class="goal-num"><input class="input en-inline" data-advn="${k}" type="number" inputmode="numeric" min="${GOAL_TYPES[k].min}" max="${GOAL_TYPES[k].max}" value="${goalFor(k)}"> <span class="small">${GOAL_TYPES[k].unit} كل يوم</span></span>`, goalTypes().includes(k))).join('')}
-        </section>
-      </div>
-      ${feedbackCardHtml()}
       ${cfg.auth?.required && !u.guest ? `<div class="card stack">
         <b>الحساب</b>
         <div class="row between small"><span>اسم المستخدم</span><span class="chip en-inline">${esc(u.username || '')}</span></div>
@@ -73,14 +55,28 @@ export async function render(view) {
           <button class="btn" type="submit" style="justify-self:start">تغيير كلمة المرور</button>
         </form>
       </div>` : ''}
+      </div></details>
+      <details class="set-sec"><summary><span class="ss-i">🔊</span><b>التشغيل (الصوت والفيديو)</b></summary><div class="ss-body">
+        <section class="set-card">
+          <h3 class="set-h">🔊 التشغيل</h3>
+          <div class="set-line"><span class="set-lbl">سرعة النطق</span><input type="range" id="rate" min="0.6" max="1.3" step="0.05" value="${u.speech_rate}" style="accent-color:var(--accent);flex:1"><b id="rateVal" class="en-inline">${u.speech_rate}×</b></div>
+          ${swItem('ar', 'انطق العربي أيضًا', '', '', u.speak_arabic)}
+          ${swItem('wideSw', 'المقطع يفتح بشاشة موسّعة', '', '', ls('app.openWide', '0') === '1')}
+          ${swItem('autoSw', 'احفظ كلمات المقطع تلقائيًا', '', '', ls('app.autoSave', '0') === '1')}
+          <button class="btn sm ghost" id="test" style="justify-self:start">${icon.speaker} جرّب الصوت</button>
+        </section>
+      </div></details>
+      <details class="set-sec"><summary><span class="ss-i">🎯</span><b>أهداف إضافية</b></summary><div class="ss-body">
+        <section class="set-card">
+          <h3 class="set-h">🎯 أهداف إضافية</h3>
+          ${ADVANCED_GOALS.map((k) => swItem(`adv_${k}`, `${k === 'watch' ? '⏱ كم قعدت في الموقع' : '📖 القواعد والأمثلة'}`, '', `<span class="goal-num"><input class="input en-inline" data-advn="${k}" type="number" inputmode="numeric" min="${GOAL_TYPES[k].min}" max="${GOAL_TYPES[k].max}" value="${goalFor(k)}"> <span class="small">${GOAL_TYPES[k].unit} كل يوم</span></span>`, goalTypes().includes(k))).join('')}
+        </section>
+      </div></details>
+      <details class="set-sec"><summary><span class="ss-i">🤝</span><b>الفريق والتواصل</b></summary><div class="ss-body">
+      ${feedbackCardHtml()}
       ${teamCardHtml(cfg)}
-      ${cfg.can_set_paid ? `<div class="card stack" style="grid-column:1/-1" id="paidCard">
-        <b>🔒 ميزات مدفوعة — لك أنتِ فقط</b>
-        <p class="tiny muted" style="margin:0">تستهلك رصيد الذكاء الاصطناعي، فهي <b>مطفية</b> عندك وغير موجودة أصلًا عند غيرك. شغّليها للضرورة وأطفيها بعدها. (البديل المجاني: زر ChatGPT.)</p>
-        <div class="row between small"><span>📝 ملخص المقطع كامل</span><label class="tg-switch"><input type="checkbox" data-paid="summary" ${cfg.paid?.summary ? 'checked' : ''}><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div>
-        <div class="row between small"><span>السوالف باختصار (كل فترة داخل الفيديو)</span><label class="tg-switch"><input type="checkbox" data-paid="recap" ${cfg.paid?.recap ? 'checked' : ''}><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div>
-      </div>` : ''}
-      ${!cfg.auth?.required || u.role === 'admin' ? costReportHtml() : ''}
+      </div></details>
+      <details class="set-sec"><summary><span class="ss-i">💾</span><b>بياناتي</b></summary><div class="ss-body">
       <div class="card stack" style="grid-column:1/-1">
         <b>بياناتك</b>
         <div id="counts" class="small muted">…</div>
@@ -109,13 +105,22 @@ export async function render(view) {
         <div class="row between small"><span>قاعدة البيانات</span><span class="chip en-inline">${cfg.database.engine === 'postgres' ? 'Postgres' : 'SQLite (محلي)'}</span></div>
         </div></details>
       </div>
+      </div></details>
+      ${cfg.can_set_paid || !cfg.auth?.required || u.role === 'admin' || cfg.features?.demo_reset ? `<details class="set-sec"><summary><span class="ss-i">🔒</span><b>للمالك</b></summary><div class="ss-body">
+      ${cfg.can_set_paid ? `<div class="card stack" style="grid-column:1/-1" id="paidCard">
+        <b>🔒 ميزات مدفوعة — لك أنتِ فقط</b>
+        <p class="tiny muted" style="margin:0">تستهلك رصيد الذكاء الاصطناعي، فهي <b>مطفية</b> عندك وغير موجودة أصلًا عند غيرك. شغّليها للضرورة وأطفيها بعدها. (البديل المجاني: زر ChatGPT.)</p>
+        <div class="row between small"><span>📝 ملخص المقطع كامل</span><label class="tg-switch"><input type="checkbox" data-paid="summary" ${cfg.paid?.summary ? 'checked' : ''}><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div>
+        <div class="row between small"><span>السوالف باختصار (كل فترة داخل الفيديو)</span><label class="tg-switch"><input type="checkbox" data-paid="recap" ${cfg.paid?.recap ? 'checked' : ''}><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div>
+      </div>` : ''}
+      ${!cfg.auth?.required || u.role === 'admin' ? costReportHtml() : ''}
       ${cfg.features?.demo_reset ? `<div class="card stack">
         <b>البيانات التجريبية (محلي فقط)</b>
         <p class="small ink-2">إعادة تعيين البيانات التجريبية تحذف كل شيء (بما فيه كلماتك) وتعيد إنشاء الفيديوهات والكلمات التجريبية.</p>
         <button class="btn bad" id="reset" style="justify-self:start">${icon.trash} إعادة تعيين البيانات التجريبية</button>
       </div>` : ''}
-    </div>
-    </details>`;
+      </div></details>` : ''}
+    </div>`;
 
   const $ = (s) => view.querySelector(s);
   $('#rate').addEventListener('input', (e) => ($('#rateVal').textContent = `${e.target.value}×`));
