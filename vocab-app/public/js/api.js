@@ -18,7 +18,13 @@ async function tidyNow() {
     }
   } catch { /* the next save (or the weekly check) will do it */ } finally { tidyBusy = false; }
 }
-const afterSave = (p) => p.then((r) => { clearTimeout(tidyTimer); tidyTimer = setTimeout(tidyNow, 4000); return r; });
+// After a save the words are tidied at once (compound pieces → their one word, every word in its simplest form).
+// A group save waits for it, so the list the learner sees next is already tidy; a single word is tidied ~1s later.
+const afterSave = (p, { wait = false } = {}) => p.then(async (r) => {
+  clearTimeout(tidyTimer);
+  if (wait) { try { await tidyNow(); } catch { /* the next save will do it */ } } else tidyTimer = setTimeout(tidyNow, 1000);
+  return r;
+});
 
 // Thin JSON client for the LexiTube API.
 async function request(method, url, body, retried = false) {
@@ -103,7 +109,7 @@ export const api = {
 
   lookup: (params) => request('GET', `/api/lookup${qs(params)}`),
   saveWord: (vocabulary_id, occurrence_id, group_ids, bulk = false) => afterSave(request('POST', '/api/words', { vocabulary_id, occurrence_id, group_ids, bulk })),
-  saveWordsBulk: (items) => afterSave(request('POST', '/api/words/bulk', { items })),
+  saveWordsBulk: (items) => afterSave(request('POST', '/api/words/bulk', { items }), { wait: true }),
   ensureLevels: (sourceId) => request('POST', '/api/levels', sourceId ? { source_id: sourceId } : {}),
   simplifyWords: () => request('POST', '/api/words/simplify', {}),
   tidyWords: () => request('POST', '/api/words/tidy', {}),
@@ -121,7 +127,7 @@ export const api = {
 
   importPreview: (text) => request('POST', '/api/import/preview', { text }),
   importEnrich: (items) => request('POST', '/api/import/enrich', { items }),
-  importSave: (items, group_ids) => afterSave(request('POST', '/api/import/save', { items, group_ids })),
+  importSave: (items, group_ids) => afterSave(request('POST', '/api/import/save', { items, group_ids }), { wait: true }),
 
   groups: () => request('GET', '/api/groups'),
   createGroup: (name) => request('POST', '/api/groups', { name }),

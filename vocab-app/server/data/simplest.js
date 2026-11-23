@@ -411,7 +411,7 @@ export async function tidyUserExpressions(userId, { batch = 12 } = {}) {
   const rows = await all(
     `SELECT uv.id AS uv_id, uv.review_count, v.id, v.term, v.level FROM user_vocabulary uv JOIN vocabulary v ON v.id = uv.vocabulary_id
      WHERE uv.user_id = ? AND uv.state = 'saved' AND v.term LIKE '% %' ORDER BY uv.id`, userId);
-  const keyOf = (t) => `tidy:${String(t).toLowerCase().trim()}`;
+  const keyOf = (t) => `tidy2:${String(t).toLowerCase().trim()}`; // v2: stricter — only phrasal verbs / idioms whose meaning changes stay
   const decided = new Map();
   for (let i = 0; i < rows.length; i += 400) {
     const part = rows.slice(i, i + 400).map((r) => keyOf(r.term));
