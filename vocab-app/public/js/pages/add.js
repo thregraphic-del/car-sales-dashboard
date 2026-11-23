@@ -14,6 +14,8 @@ const ICO = {
   arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>',
 };
 // the three platforms a link can come from (simple marks, shown inside the empty box)
+// three ready clips for someone who has none yet: a tap pastes the link and starts the normal extraction
+const SAMPLES = ['vLijZb9BpkE', 'hChen6uzSPI', 'j1pKDa1sHqI'];
 const LOGO = {
   tiktok: '<svg viewBox="0 0 24 24" aria-label="TikTok"><path fill="currentColor" d="M16.6 5.8A4.3 4.3 0 0 1 15.6 3h-3.1v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.7a5.8 5.8 0 1 0 5 5.7V9a7.4 7.4 0 0 0 4.3 1.4V7.3a4.3 4.3 0 0 1-3.4-1.5z"/></svg>',
   instagram: '<svg viewBox="0 0 24 24" aria-label="Instagram"><defs><linearGradient id="igg" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#F9A03F"/><stop offset=".5" stop-color="#E1306C"/><stop offset="1" stop-color="#7B3FE4"/></linearGradient></defs><rect x="3" y="3" width="18" height="18" rx="5.5" fill="none" stroke="url(#igg)" stroke-width="2"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="url(#igg)" stroke-width="2"/><circle cx="17.2" cy="6.8" r="1.2" fill="#E1306C"/></svg>',
@@ -62,6 +64,10 @@ export async function render(view, { params }) {
       <div id="status"></div>
     </div>
     <div id="result"></div>
+    <section class="add-sec hidden" id="sampleSec">
+      <div class="section-title"><h2>جرّب بمقطع جاهز</h2></div>
+      <div class="sample-row">${SAMPLES.map((id, i) => `<button type="button" class="sample" data-sample="${id}" aria-label="مقطع تجريبي ${i + 1}"><img src="https://i.ytimg.com/vi/${id}/mqdefault.jpg" alt="" loading="lazy"><span class="sample-play">▶</span><b>مقطع ${i + 1}</b></button>`).join('')}</div>
+    </section>
     <section class="add-sec hidden" id="srcSec">
     <div class="src-tabs hidden" id="srcTabs">
       <div class="section-title"><h2>نشاطي</h2></div>
@@ -91,6 +97,7 @@ export async function render(view, { params }) {
   const drawTabs = () => {
     view.querySelector('#srcTabs').classList.toggle('hidden', !counts[0] && !counts[1]);
     view.querySelector('#srcSec').classList.toggle('hidden', !counts[0] && !counts[1]);
+    view.querySelector('#sampleSec').classList.toggle('hidden', !!(counts[0] || counts[1])); // the samples show only until the first clip exists
     view.querySelector('#cV').textContent = `(${counts[0]})`;
     view.querySelector('#cT').textContent = `(${counts[1]})`;
     view.querySelectorAll('#srcKind [data-sk]').forEach((b) => b.classList.toggle('active', b.dataset.sk === srcKind));
@@ -159,6 +166,15 @@ export async function render(view, { params }) {
     if (!isYoutube(v)) manual.classList.add('hidden');
   };
   input.addEventListener('input', update);
+  view.querySelectorAll('.sample img').forEach((im) => im.addEventListener('error', () => { im.style.visibility = 'hidden'; }));
+  view.querySelector('#sampleSec').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-sample]');
+    if (!b) return;
+    input.value = `https://www.youtube.com/watch?v=${b.dataset.sample}`;
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    go.click();
+  });
   // «رابط» / «نص»: aim the box (the file cell opens the picker by itself)
   view.querySelector('#ahStrip')?.addEventListener('click', (e) => {
     const c = e.target.closest('[data-cell]');
