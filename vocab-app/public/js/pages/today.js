@@ -133,19 +133,15 @@ function openBell(items, onAct) {
   });
 }
 
-/** The last 7 days as small squares: each shows how much of the day's four goals was reached (the average, 100% at most). */
-function weekSquares() {
+const GOAL_ROW = { pass: ['📚', 'كلمات جديدة', 'words'], practice: ['🎮', 'أسئلة تدريب', 'practice'], watch: ['⏱', 'وقت في الموقع', 'time'], rules: ['📖', 'قواعد', 'rules'] };
+/** Today's goals: one line each with a thin bar (only the goals that are on). */
+function goalsToday() {
   const now = new Date(); now.setHours(12, 0, 0, 0);
-  const cells = [];
-  for (let i = 6; i >= 0; i -= 1) {
-    const d = new Date(now); d.setDate(now.getDate() - i);
-    const a = dayAll(d, {});
-    const ents = Object.entries(METRICS).filter(([, mt]) => goalTypes().includes(mt.goal));
-    const pct = Math.round((100 * ents.reduce((sum, [k, mt]) => sum + Math.min(1, a[k] / goalFor(mt.goal)), 0)) / Math.max(1, ents.length));
-    const lv = pct >= 75 ? 4 : pct >= 50 ? 3 : pct >= 25 ? 2 : pct > 0 ? 1 : 0;
-    cells.push(`<button type="button" class="cal-d l${lv}${pct >= 100 ? ' hit' : ''}${i === 0 ? ' today' : ''}" data-weekday aria-label="${DAY_NAMES[d.getDay()]} ${pct}٪"><b>${WD[d.getDay()]}</b><small class="en-inline">${pct}٪</small></button>`);
-  }
-  return `<div class="th-week-wrap"><div class="tiny muted th-cap">نسبة تحقيق هدفك كل يوم</div><div class="th-week">${cells.join('')}</div></div>`;
+  const a = dayAll(now, {});
+  return `<div class="card th-goals">${goalTypes().map((g) => {
+    const [ic, name, k] = GOAL_ROW[g]; const got = a[k]; const goal = goalFor(g);
+    return `<div class="thg"><span class="thg-i">${ic}</span><div class="thg-m"><b>${name}</b><i class="thg-bar"><b style="width:${Math.min(100, Math.round((100 * got) / goal))}%"></b></i></div><span class="thg-v en-inline" dir="ltr">${got}<small> / ${goal}</small></span></div>`;
+  }).join('')}</div>`;
 }
 
 export async function render(view) {
@@ -168,6 +164,7 @@ export async function render(view) {
   const unseen = items.length && ls('bell.seen', '') !== newsSig(items);
 
   // the only words on the page: «مراجعة السابق» (the review of the last day's words, as before) — or «أضف مقطع» when nothing is saved yet
+  const fresh = !ld && !(stats.total > 0); // nothing saved yet: no chart, just the invitation
   const task = ld
     ? '<button type="button" class="btn th-review" id="rvStart">مراجعة السابق</button>'
     : '<a class="btn th-review" href="#/add">أضف مقطع</a>';
@@ -182,18 +179,16 @@ export async function render(view) {
   view.innerHTML = `<div class="th">
     <div class="th-top th-top-min">
       <button type="button" class="th-bell${unseen ? ' dot' : ''}" id="bell" aria-label="الجديد والتذكير">${icon.bell}</button>
-      <button type="button" class="th-flame-btn${grey ? ' grey' : ''}" id="flame" aria-label="أيامك المتتالية وكل التفاصيل"><span class="th-fl">🔥</span><b>${flameN}</b></button>
+      <button type="button" class="th-flame-btn${grey ? ' grey' : ''}" id="flame" aria-label="أيامك المتتالية"><span class="th-fl">🔥</span><b>${flameN}</b></button>
+      <span class="th-spent2">قضيت ${todayMinutes().toLocaleString('ar-EG')} د في المقاطع</span>
     </div>
     ${lostCard}
     ${task}
-    <div class="th-prog-wrap"><div class="tiny muted th-cap">آخر ٧ أيام</div>
-      <div class="card th-prog th-prog2">
-        <div class="th-stat" aria-label="كلمات"><span class="th-si">${icon.library}</span><b>${stats.week?.saved || 0}</b><span class="th-sl">كلمة</span></div>
-        <div class="th-stat" aria-label="دقائق"><span class="th-si">${icon.clock}</span><b>${weekMinutes()}</b><span class="th-sl">دقيقة</span></div>
-      </div></div>
-    <p class="th-spent" aria-label="دقائق اليوم">قضيت اليوم ${todayMinutes().toLocaleString('ar-EG')} د · كلمات جديدة ${Math.max(dayCounts(dayStr()).pass, Number(stats.saved_today) || 0).toLocaleString('ar-EG')}</p>
-    ${weekSquares()}
+    <div class="th-sec">إنجاز اليوم</div>
+    ${goalsToday()}
+    ${fresh ? '<div class="card th-act th-empty"><b>آخر ٧ أيام</b><p>أضف أول مقطع وتبدأ أعمدتك تطلع</p></div>' : '<div class="card th-act" id="actBox"></div>'}
   </div>`;
+  if (!fresh) mountActivity(view.querySelector('#actBox'));
 
   const act = (a) => {
     if (a === 'rescue') return rescue();
@@ -206,8 +201,7 @@ export async function render(view) {
     if (!pool.length) { location.hash = '#/add'; return; }
     location.hash = `#/practice?mode=quiz&mix=random&rescue=1&exact=1&ids=${pool.slice(0, 5).map((w) => w.uv_id).join(',')}&n=${Date.now()}`;
   };
-  view.querySelector('#flame').addEventListener('click', openCalendar);
-  view.querySelector('.th-week')?.addEventListener('click', openCalendar);
+  view.querySelector('#flame').addEventListener('click', () => view.querySelector('#actBox')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   view.querySelector('#lostQuick')?.addEventListener('click', rescue);
   view.querySelector('#bell').addEventListener('click', () => { lsSet('bell.seen', newsSig(items)); view.querySelector('#bell').classList.remove('dot'); openBell(items, act); });
   view.querySelector('#rvStart')?.addEventListener('click', () => openReviewSetup(ld.words));
@@ -216,11 +210,9 @@ export async function render(view) {
 
 /* 📅 The dashboard: the days as squares, columns or a curve — filled by the time watched or the words learned
    (switch beside it) — and a tap on any day shows its numbers. */
-async function openCalendar() {
-  const box = openModal('<p class="tiny muted"><span class="spinner"></span></p>', { wide: true });
-  let r;
-  try { r = await api.calendar(); } catch (err) { box.innerHTML = `<p>${esc(err.message)}</p>`; return; }
-  const days = r.days || {};
+/** The activity chart + totals, drawn inside the home page (it was a separate window before). */
+function mountActivity(box) {
+  let days = {}; // this device's counters first; the server's days (words saved, answers) join a moment later
   const now = new Date(); now.setHours(12, 0, 0, 0);
   let metric = metricPref();
   const MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
@@ -228,8 +220,8 @@ async function openCalendar() {
   const key = (d) => d.toISOString().slice(0, 10);
   const ny = now.getFullYear(); const nm = now.getMonth();
   // ⚙️ one filter, three choices: days (the last 30) · weeks (the last 8) · months (the last 12) — nothing else
-  const UNITS = [['day', 'أيام', 'آخر ٣٠ يوم'], ['week', 'أسابيع', 'آخر ٨ أسابيع'], ['month', 'شهور', 'آخر ١٢ شهر']];
-  let unitKey = 'day';
+  const UNITS = [['d7', 'أيام', 'آخر ٧ أيام'], ['day', 'أيام', 'آخر ٣٠ يوم'], ['week', 'أسابيع', 'آخر ٨ أسابيع'], ['month', 'شهور', 'آخر ١٢ شهر']];
+  let unitKey = 'd7';
   let open = false;
   let pick = '';
   let pickAuto = true; // the newest day / week / month is picked when the view changes
@@ -249,10 +241,11 @@ async function openCalendar() {
   const monB = (yy, mm) => mkB(new Date(yy, mm, 1, 12), new Date(yy, mm + 1, 0, 12), 'month', 0, String(mm + 1), MONTHS[mm].slice(0, 3), MONTHS[mm]);
   const build = () => {
     const list = [];
-    if (unitKey === 'day') for (let i = 29; i >= 0; i -= 1) list.push(dayB(addD(now, -i)));
+    if (unitKey === 'd7') for (let i = 6; i >= 0; i -= 1) list.push(dayB(addD(now, -i)));
+    else if (unitKey === 'day') for (let i = 29; i >= 0; i -= 1) list.push(dayB(addD(now, -i)));
     else if (unitKey === 'week') for (let i = 7; i >= 0; i -= 1) { const to = addD(now, -7 * i); const f = addD(to, -6); list.push(mkB(f, to, 'week', 0, String(f.getDate()), String(f.getMonth() + 1), `${f.getDate()}/${f.getMonth() + 1}`)); }
     else for (let i = 11; i >= 0; i -= 1) { const d = new Date(ny, nm - i, 1, 12); list.push(monB(d.getFullYear(), d.getMonth())); }
-    return { gran: unitKey, list };
+    return { gran: unitKey === 'd7' ? 'day' : unitKey, list };
   };
   const GRAN = { day: 'يوم', week: 'أسبوع', month: 'شهر' };
   let V = build();
@@ -290,22 +283,17 @@ async function openCalendar() {
   const avgBlock = (S, deltaH) => `<div class="cd-avg cd-avg-s"><div class="cd-avg-top"><span>نسبة تحقيق الهدف</span><b class="en-inline">${avgOf(S)}٪</b></div>${deltaH}</div>`;
   const colsHtml = (S) => { const rs = rows4(S); return `<div class="cd-cols" style="--n:${rs.length}">${rs.map((x) => `<div class="cd-col${x.pct >= 1 ? ' ok' : ''}"><b class="en-inline cd-v">${x.got}</b><i class="cd-tr"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal}</small></div>`).join('')}</div>`; };
 
+  const lineHtml = (S) => `<div class="det-line" dir="ltr">${rows4(S).map((x) => `<span>${x.mt.label.split(' ')[0]} <b class="en-inline">${x.got}</b></span>`).join('<i>·</i>')}</div>`;
   const dash = () => {
     if (!V.list.length) return '';
     const b = pick ? V.list.find((x) => x.id === pick) : null;
     const S1 = b ? summ([b]) : summ(V.list);
     const title = UNITS.find((u) => u[0] === unitKey)[2];
-    const t1 = b ? bTitle(b) : `الإجمالي · ${title}`;
-    const chip = b ? (b.from <= now && b.to >= now ? `<span class="th-chip">${b.gran === 'day' ? 'اليوم' : 'الحالي'}</span>` : '') : `<span class="th-chip">${S1.days} يوم</span>`;
-    const back = b ? '<button type="button" class="btn ghost sm cd-back" data-clearpick>ملخص الفترة كلها</button>' : '';
+    const t1 = b ? (b.from <= now && b.to >= now && b.gran === 'day' ? 'اليوم' : bTitle(b)) : `الإجمالي · ${title}`;
+    const back = b ? '<button type="button" class="cd-back" data-clearpick>الإجمالي</button>' : '';
     const prev = before(S1);
-    const nothing = Object.values(S1.t).every((v) => !v);
-    const what = b ? ({ day: 'عن اليوم السابق', week: 'عن الأسبوع السابق', month: 'عن الشهر السابق' }[b.gran]) : ({ day: 'عن الـ٣٠ يوم السابقة', week: 'عن الأسابيع الـ٨ السابقة', month: 'عن الشهور الـ١٢ السابقة' }[unitKey]);
-    return `<div class="cal-dash"><div class="cd-head"><b>${esc(t1)}</b>${chip}${back}</div>
-      ${colsHtml(S1)}
-      ${nothing ? '<p class="tiny muted" style="margin:6px 0 0;text-align:center">ما فيه نشاط في هذي الفترة.</p>' : ''}
-      ${avgBlock(S1, deltaHtml(avgOf(S1), avgOf(prev), what))}
-      <button type="button" class="btn cd-editbtn" data-editgoals>✏️ عدّل أهدافك</button></div>`;
+    const what = b ? ({ day: 'عن اليوم السابق', week: 'عن الأسبوع السابق', month: 'عن الشهر السابق' }[b.gran]) : ({ d7: 'عن الـ٧ أيام السابقة', day: 'عن الـ٣٠ يوم السابقة', week: 'عن الأسابيع الـ٨ السابقة', month: 'عن الشهور الـ١٢ السابقة' }[unitKey]);
+    return `<div class="det"><div class="det-top"><b>${esc(t1)}</b>${back}${lineHtml(S1)}</div>${avgBlock(S1, deltaHtml(avgOf(S1), avgOf(prev), what))}</div>`;
   };
 
   // 🎯 the goals editor (two basics). Changing a goal never deletes what was done: the days stay as counted.
@@ -334,16 +322,16 @@ async function openCalendar() {
     V = build();
     if (pickAuto) { pick = V.list[V.list.length - 1]?.id || ''; pickAuto = false; }
     if (pick && !V.list.some((b) => b.id === pick)) pick = '';
-    box.innerHTML = `<div class="cal">
-      <div class="cal-ctl">
-        <div class="segmented seg4" id="calMetric">${Object.entries(METRICS).filter(([, mt]) => activeG().includes(mt.goal)).map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'active' : ''}">${mt.label}</button>`).join('')}</div>
-        <div class="cal-tools"><button type="button" class="ct-btn${open ? ' open' : ''}" data-fltoggle aria-expanded="${open}"><span class="cs-i">${FILTER_IC}</span><span>فلتر · ${UNITS.find((u) => u[0] === unitKey)[2]}</span></button></div>
-        ${open ? `<div class="rg-panel wz"><div class="wz-list">${UNITS.map(([k, l, d]) => `<button type="button" class="wz-opt${unitKey === k ? ' on' : ''}" data-unit="${k}"><span>${d}</span></button>`).join('')}</div></div>` : ''}
-      </div>
+    const title = UNITS.find((u) => u[0] === unitKey)[2];
+    const mets = Object.entries(METRICS).filter(([, mt]) => activeG().includes(mt.goal));
+    box.innerHTML = `<div class="cal act">
+      <div class="ch"><b>${title}</b><span class="ch-tools">${mets.length > 1 ? `<span class="segmented seg-mini" id="calMetric">${mets.map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'active' : ''}" aria-label="${mt.label.replace(/^\S+\s/, '')}">${mt.label.split(' ')[0]}</button>`).join('')}</span>` : ''}<button type="button" class="flt${open ? ' on' : ''}" data-fltoggle aria-expanded="${open}" aria-label="فلتر الفترة">${FILTER_IC}</button></span></div>
+      ${open ? `<div class="wz-list act-menu">${UNITS.map(([k, , d]) => `<button type="button" class="wz-opt${unitKey === k ? ' on' : ''}" data-unit="${k}"><span>${d}</span></button>`).join('')}</div>` : ''}
       <div class="cal-shape">${bars()}</div>
-      <div class="cal-key tiny"><span class="cal-gkey"><i></i> الهدف ${goalTxt()}</span></div>
       ${dash()}
-      <div class="btn-row" style="justify-content:center"><button class="btn ghost" data-close>إغلاق</button></div></div>`;
+      <div class="cal-key tiny"><span class="cal-gkey"><i></i> الهدف ${goalTxt()}</span></div>
+      <button type="button" class="act-edit" data-editgoals>✏️ عدّل أهدافك</button>
+    </div>`;
   };
   box.addEventListener('change', (e) => {
     if (!editing) return;
@@ -376,4 +364,5 @@ async function openCalendar() {
     if (d) { pick = pick === d.dataset.d ? '' : d.dataset.d; draw(); } // a tap picks that day/week/month; the same tap again goes back to the summary of the whole period
   });
   draw();
+  api.calendar().then((r) => { days = r.days || {}; memo.clear(); if (!editing) draw(); }).catch(() => {});
 }
