@@ -162,7 +162,6 @@ export async function render(view, { params } = {}) {
 /* ------------------------------------------------ one clip's ideas (opened from the 💡 in the clip) */
 const IC_GPT = '<span class="gpt-mark" aria-hidden="true"></span>';
 const IC_PASTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="26" height="26" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>';
-const IC_NOTE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="26" height="26" aria-hidden="true"><path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>';
 
 async function renderOne(view, id) {
   let data;
@@ -175,7 +174,6 @@ async function renderOne(view, id) {
     <div class="nt-actions" role="group" aria-label="أدوات الأفكار">
       <button type="button" class="nt-act" id="ntAsk" title="اسأل ChatGPT: يجهّز رسالة تلخيص جاهزة ويفتح ChatGPT">${IC_GPT}<span>اسأل ChatGPT</span></button>
       <button type="button" class="nt-act" id="ntPaste" title="الصق تلخيص ChatGPT واحفظه هنا">${IC_PASTE}<span>الصق تلخيص ChatGPT</span></button>
-      <button type="button" class="nt-act" id="ntWrite" title="اكتب ملاحظة عن المقطع">${IC_NOTE}<span>اكتب ملاحظة</span></button>
     </div>
     <p class="tiny muted nt-hint">وهنا تنحفظ أفكارك: الجمل اللي ظلّلتها من المقطع، وملاحظتك، وملخص ChatGPT.</p>
     <div class="stack" id="ntList"><p class="tiny muted"><span class="spinner"></span></p></div></div>`;
@@ -192,7 +190,6 @@ async function renderOne(view, id) {
   draw();
   view.querySelector('#ntAsk').addEventListener('click', () => askChatGpt(lines));
   view.querySelector('#ntPaste').addEventListener('click', () => openGptNote({ sourceId: id, title: src.title, current: notes[0]?.gpt || '', onSaved: reload }));
-  view.querySelector('#ntWrite').addEventListener('click', () => listEl.querySelector('[data-edit]')?.click());
   const linesOf = lines.length ? Promise.resolve((data.lines || []).filter((l) => l.start_seconds != null)) : Promise.resolve([]);
   listEl.addEventListener('click', async (e) => {
     const card = e.target.closest('[data-src]');

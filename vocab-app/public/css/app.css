@@ -3126,3 +3126,4 @@ body.clipset-on .info-btn.desk { display: none; }
 .sel-demo-bar small { padding: 3px 10px; border-radius: 99px; background: rgba(0,0,0,.72); color: #fff; font-size: 11.5px; }
 /* the muted mark is just a small speaker now (no words) */
 .sound-note { padding: 8px 11px !important; font-size: 16px !important; line-height: 1; inset-inline: auto 10px !important; margin-inline: 0 !important; }
+.nt-actions { grid-template-columns: repeat(2, 1fr); }
