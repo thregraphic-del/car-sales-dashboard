@@ -6,7 +6,7 @@ import { maybeTour } from '../tour.js';
 import { state } from '../state.js';
 import { noteStatsFresh, takePreloadedToday } from '../app.js';
 import { esc, icon, openModal, closeModal, toast } from '../ui.js';
-import { dayStr, goalFor, dayCounts, GOAL_TYPES, goalTypes, setGoalTypes, setGoalN, progress } from '../goal.js';
+import { dayStr, goalFor, dayCounts, GOAL_TYPES, goalTypes, setGoalTypes, setGoalN, progress, ADVANCED_GOALS } from '../goal.js';
 import { setPending, checkDouble, doubleInfo } from '../streak-rescue.js';
 import { getReminder, reminderSummary, openReminderFlow } from '../reminder.js';
 
@@ -140,8 +140,8 @@ function weekSquares() {
   for (let i = 6; i >= 0; i -= 1) {
     const d = new Date(now); d.setDate(now.getDate() - i);
     const a = dayAll(d, {});
-    const ents = Object.entries(METRICS);
-    const pct = Math.round((100 * ents.reduce((sum, [k, mt]) => sum + Math.min(1, a[k] / goalFor(mt.goal)), 0)) / ents.length);
+    const ents = Object.entries(METRICS).filter(([, mt]) => goalTypes().includes(mt.goal));
+    const pct = Math.round((100 * ents.reduce((sum, [k, mt]) => sum + Math.min(1, a[k] / goalFor(mt.goal)), 0)) / Math.max(1, ents.length));
     const lv = pct >= 75 ? 4 : pct >= 50 ? 3 : pct >= 25 ? 2 : pct > 0 ? 1 : 0;
     cells.push(`<button type="button" class="cal-d l${lv}${pct >= 100 ? ' hit' : ''}${i === 0 ? ' today' : ''}" data-weekday aria-label="${DAY_NAMES[d.getDay()]} ${pct}٪"><b>${WD[d.getDay()]}</b><small class="en-inline">${pct}٪</small></button>`);
   }
@@ -357,8 +357,9 @@ async function openCalendar() {
   const bTitle = (b) => (b.gran === 'day' ? `${DAY_NAMES[b.from.getDay()]} ${b.from.getDate()}/${b.from.getMonth() + 1}` : b.gran === 'week' ? `من ${b.from.getDate()}/${b.from.getMonth() + 1} إلى ${b.to.getDate()}/${b.to.getMonth() + 1}` : b.gran === 'month' ? `${MONTHS[b.from.getMonth()]} ${b.from.getFullYear()}` : `سنة ${b.from.getFullYear()}`);
   // 🧮 a summary of buckets: totals of the four measures and the days they cover — what the part below the chart shows
   const summ = (list) => ({ t: list.reduce((o, b) => { Object.keys(o).forEach((k) => { o[k] += b.t[k]; }); return o; }, { time: 0, words: 0, practice: 0, rules: 0 }), days: list.reduce((n, b) => n + b.span, 0), from: list[0]?.from, to: list[list.length - 1]?.to, n: list.length });
-  const rows4 = (S) => Object.entries(METRICS).map(([k, mt]) => { const goal = goalFor(mt.goal) * Math.max(1, S.days); return { k, mt, got: S.t[k], goal, pct: S.t[k] / goal }; });
-  const avgOf = (S) => { const rs = rows4(S); return Math.round((100 * rs.reduce((a, x) => a + Math.min(1, x.pct), 0)) / rs.length); };
+  const activeG = () => goalTypes();
+  const rows4 = (S) => Object.entries(METRICS).map(([k, mt]) => { const goal = goalFor(mt.goal) * Math.max(1, S.days); return { k, mt, got: S.t[k], goal, pct: S.t[k] / goal, on: activeG().includes(mt.goal) }; });
+  const avgOf = (S) => { const rs = rows4(S).filter((x) => x.on); return rs.length ? Math.round((100 * rs.reduce((a, x) => a + Math.min(1, x.pct), 0)) / rs.length) : 0; };
   // the window of the same length right before (the day before, the week before …)
   const before = (S) => { const len = Math.max(1, S.days); const f = addD(S.from, -len); return summ([mkB(f, addD(S.from, -1), 'x', 0, '', '', '')]); };
   const deltaHtml = (cur, prev, what) => {
@@ -369,9 +370,9 @@ async function openCalendar() {
     }
     return `<div class="cd-delta ${cls}"><span class="cd-arr">${sym}</span><b class="en-inline">${txt}</b><small>${what}</small></div>`;
   };
-  const avgBlock = (S, deltaH, extra = '') => { const a = avgOf(S); return `<div class="cd-avg"><div class="cd-avg-top"><span>متوسط تحقيق الأهداف الأربعة</span><b class="en-inline">${a}٪</b></div><i class="cd-meter"><b style="width:${a}%"></b></i>${extra}${deltaH}</div>`; };
-  const colsHtml = (S) => `<div class="cd-cols">${rows4(S).map((x) => `<div class="cd-col${x.pct >= 1 ? ' ok' : ''}"><b class="en-inline cd-v">${x.got}</b><i class="cd-tr"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal}</small></div>`).join('')}</div>`;
-  const pairHtml = (S1, S2) => { const r1 = rows4(S1); const r2 = rows4(S2); return `<div class="cd-cols">${r1.map((x, i) => { const z = r2[i]; return `<div class="cd-col cd-pair"><div class="cd-vs"><b class="en-inline cd-v c1">${x.got}</b><b class="en-inline cd-v c2">${z.got}</b></div><div class="cd-trs"><i class="cd-tr c1"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><i class="cd-tr c2"><b style="height:${Math.min(100, Math.round(100 * z.pct))}%"></b></i></div><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal} · ${z.goal}</small></div>`; }).join('')}</div>`; };
+  const avgBlock = (S, deltaH, extra = '') => { const a = avgOf(S); return `<div class="cd-avg"><div class="cd-avg-top"><span>متوسط تحقيق أهدافك</span><b class="en-inline">${a}٪</b></div><i class="cd-meter"><b style="width:${a}%"></b></i>${extra}${deltaH}</div>`; };
+  const colsHtml = (S) => `<div class="cd-cols">${rows4(S).map((x) => `<div class="cd-col${x.pct >= 1 ? ' ok' : ''}${x.on ? '' : ' off'}"><b class="en-inline cd-v">${x.got}</b><i class="cd-tr"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal}</small></div>`).join('')}</div>`;
+  const pairHtml = (S1, S2) => { const r1 = rows4(S1); const r2 = rows4(S2); return `<div class="cd-cols">${r1.map((x, i) => { const z = r2[i]; return `<div class="cd-col cd-pair${x.on ? '' : ' off'}"><div class="cd-vs"><b class="en-inline cd-v c1">${x.got}</b><b class="en-inline cd-v c2">${z.got}</b></div><div class="cd-trs"><i class="cd-tr c1"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><i class="cd-tr c2"><b style="height:${Math.min(100, Math.round(100 * z.pct))}%"></b></i></div><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal} · ${z.goal}</small></div>`; }).join('')}</div>`; };
 
   const dash = () => {
     if (!V.list.length) return '';
@@ -407,9 +408,10 @@ async function openCalendar() {
     const p = progress();
     box.innerHTML = `<div class="cal"><h3 style="margin:0 0 4px">🎯 عدّل أهدافك</h3>
       <p class="tiny muted" style="margin:0">اختر هدفًا واحدًا أو أكثر. لو اخترت أكثر من واحد يصير <b>هدفك مركّب</b>: يكتمل اليوم لما تحقق كلها، ولكل هدف عدده. <b>أداءك في الأيام الماضية ما ينحذف</b> — بس يتقارن بالأرقام الجديدة.</p>
-      <div class="goal-rows" id="goalRows">${Object.entries(GOAL_TYPES).map(([k, g]) => `<div class="goal-row${sel.includes(k) ? ' on' : ''}" data-gt="${k}">
+      <div class="goal-rows" id="goalRows">${Object.entries(GOAL_TYPES).filter(([k]) => !ADVANCED_GOALS.includes(k) || sel.includes(k)).map(([k, g]) => `<div class="goal-row${sel.includes(k) ? ' on' : ''}" data-gt="${k}">
         <label class="goal-pick"><input type="checkbox" class="check" data-gc="${k}" ${sel.includes(k) ? 'checked' : ''}><span><b>${g.label}</b><span class="tiny muted">${g.note}</span></span></label>
         <span class="goal-num"><input class="input en-inline" data-gn="${k}" type="number" inputmode="numeric" min="${g.min}" max="${g.max}" value="${goalFor(k)}" ${sel.includes(k) ? '' : 'disabled'}> <span class="small">${g.unit}</span></span></div>`).join('')}</div>
+      <p class="tiny muted goal-adv" style="margin:8px 0 0">⚙️ أهداف متقدمة (الوقت في الموقع · القواعد): تفعّلها من <a href="#/settings" data-close>الإعدادات العامة</a> وتحدد عددها.</p>
       <label class="goal-pick" style="margin-top:10px"><input type="checkbox" class="check" id="goalAlert" ${off ? '' : 'checked'}><span><b>نبّهني لما أوصل هدفي</b></span></label>
       <span class="tiny muted" id="goalNow">${p.combo ? '<b>هدف مركّب</b> — ' : ''}اليوم: ${p.items.map((i) => `${i.short} <b class="en-inline">${i.count}/${i.n}</b>${i.done ? ' ✓' : ''}`).join(' · ')}</span>
       <div class="btn-row" style="justify-content:center;margin-top:12px"><button class="btn primary" data-donegoals>تم</button></div></div>`;

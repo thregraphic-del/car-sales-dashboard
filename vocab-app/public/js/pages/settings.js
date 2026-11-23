@@ -1,4 +1,5 @@
 import { api } from '../api.js';
+import { GOAL_TYPES, goalTypes, setGoalTypes, setGoalN, goalFor, ADVANCED_GOALS } from '../goal.js';
 import { state } from '../state.js';
 import { speak } from '../audio.js';
 import { esc, icon, toast, num, openModal, closeModal, applyTheme } from '../ui.js';
@@ -46,6 +47,11 @@ export async function render(view) {
         <section class="set-card">
           <h3 class="set-h">🎨 المظهر</h3>
           ${swItem('darkSw', '🌙 الوضع الداكن', 'خلفية داكنة مريحة للعين في الليل', '', theme === 'dark')}
+        </section>
+        <section class="set-card">
+          <h3 class="set-h">🎯 أهداف متقدمة</h3>
+          <p class="tiny muted" style="margin:0">أهدافك الأساسية: كلمات جديدة + أسئلة تدريب (تعدّلها من «نشاطي»). فعّل هنا هدف إضافي وحدد عدده، ويدخل مع أهدافك ويتحسب في نسبة التحقيق.</p>
+          ${ADVANCED_GOALS.map((k) => swItem(`adv_${k}`, `${k === 'watch' ? '⏱' : '📖'} ${GOAL_TYPES[k].label}`, GOAL_TYPES[k].note, `<span class="goal-num"><input class="input en-inline" data-advn="${k}" type="number" inputmode="numeric" min="${GOAL_TYPES[k].min}" max="${GOAL_TYPES[k].max}" value="${goalFor(k)}"> <span class="small">${GOAL_TYPES[k].unit}</span></span>`, goalTypes().includes(k))).join('')}
         </section>
         <section class="set-card">
           <h3 class="set-h">🎬 الفيديو</h3>
@@ -135,6 +141,14 @@ export async function render(view) {
     e.target.closest('.set-item')?.classList.toggle('on', e.target.checked);
     onChange(e.target.checked);
   });
+  // 🎯 advanced goals: switching one on adds it to the goals (the number is set beside it); at least one goal always stays
+  ADVANCED_GOALS.forEach((k) => bindSw(`adv_${k}`, (on) => {
+    const now = new Set(goalTypes());
+    if (on) now.add(k); else now.delete(k);
+    if (!now.size) { toast('لازم يبقى هدف واحد على الأقل'); $(`#adv_${k}`).checked = true; $(`#adv_${k}`).closest('.set-item')?.classList.add('on'); return; }
+    setGoalTypes([...now]);
+  }));
+  view.querySelectorAll('[data-advn]').forEach((i) => i.addEventListener('change', () => setGoalN(i.dataset.advn, Number(i.value))));
   bindSw('darkSw', (on) => { const t = on ? 'dark' : 'light'; try { localStorage.setItem('theme', t); } catch { /* ignore */ } applyTheme(t); });
   bindSw('wideSw', (on) => lsSet('app.openWide', on ? '1' : '0'));
   bindSw('autoSw', (on) => lsSet('app.autoSave', on ? '1' : '0'));

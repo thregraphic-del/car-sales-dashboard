@@ -25,6 +25,7 @@ const clampN = (type, n) => {
 };
 
 /** The number the learner set (or the default) for one kind of goal. */
+export const ADVANCED_GOALS = ['watch', 'rules']; // switched on from the general settings
 export const goalFor = (type) => clampN(type, get(`goal.n.${type}`, GOAL_TYPES[type].def));
 
 /** The chosen kinds (one or several). An old single choice (`goal.type`) still works. */
@@ -32,7 +33,8 @@ export function goalTypes() {
   let list = [];
   try { list = JSON.parse(get('goal.types', 'null')) || []; } catch { list = []; }
   list = ORDER.filter((t) => list.includes(t));
-  if (!list.length) list = [GOAL_TYPES[get('goal.type', '')] ? get('goal.type', '') : 'pass'];
+  // the basics are two goals: new words + practice questions (time and rules are «advanced», switched on in the settings)
+  if (!list.length) list = GOAL_TYPES[get('goal.type', '')] ? [get('goal.type', '')] : ['pass', 'practice'];
   return list;
 }
 
