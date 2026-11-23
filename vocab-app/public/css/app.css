@@ -3185,3 +3185,12 @@ body.reader-focus #setBtn, body.reader-focus #wordsBtn, body.reader-focus #gptTo
 .set-adv > summary::-webkit-details-marker { display: none; }
 .set-adv > summary::after { content: '▾'; margin-inline-start: auto; color: var(--muted); }
 .set-adv[open] > summary::after { content: '▴'; }
+.goal-row.goal-col { display: grid; gap: 10px; }
+.gm-tabs { display: inline-flex; padding: 3px; border-radius: 99px; background: var(--surface-2); gap: 2px; width: max-content; }
+.gm-tabs button { border: 0; background: transparent; padding: 5px 14px; border-radius: 99px; font: 700 12.5px var(--font-ar, inherit); color: var(--ink-2); cursor: pointer; }
+.gm-tabs button.on { background: var(--accent); color: #fff; }
+.gm-total { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.gm-total .input { width: 78px; padding: 8px 10px; text-align: center; }
+.gm-total select.input { width: auto; padding-inline: 10px; }
+.gm-eq { color: var(--accent); font-weight: 700; }
+.cal-key { justify-content: center; }

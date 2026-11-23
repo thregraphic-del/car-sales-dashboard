@@ -6,8 +6,8 @@
 // Everything is counted all the time; the chosen ones are the goal. With several chosen, the day is done when ALL are reached.
 
 export const GOAL_TYPES = {
-  pass: { label: 'أمرّ على كلمات جديدة', short: 'كلمات مرّت', unit: 'كلمة', def: 15, min: 3, max: 500, note: 'كل كلمة جديدة تمر عليك في مقطع أو نص — بدون ما تفتحها' },
-  practice: { label: 'أتدرّب على كلمات', short: 'إجابات تدريب', unit: 'سؤال', def: 20, min: 3, max: 500, note: 'كل إجابة في بطاقات وألعاب الكلمات' },
+  pass: { label: 'أمرّ على كلمات جديدة', short: 'كلمات مرّت', unit: 'كلمة', def: 15, min: 1, max: 500, note: 'كل كلمة جديدة تمر عليك في مقطع أو نص — بدون ما تفتحها' },
+  practice: { label: 'أتدرّب على كلمات', short: 'إجابات تدريب', unit: 'سؤال', def: 20, min: 1, max: 500, note: 'كل إجابة في بطاقات وألعاب الكلمات' },
   watch: { label: 'أقضي وقتًا في الموقع', short: 'دقائق تعلّم', unit: 'دقيقة', def: 20, min: 1, max: 600, note: 'كل وقت نشاطك في الموقع: مشاهدة وتدريب ومراجعة وتنقل — يتوقف العدّ لما تسكت أكثر من دقيقتين' },
   rules: { label: 'أمرّ على قواعد وأمثلة', short: 'قواعد وأمثلة', unit: 'قاعدة', def: 10, min: 1, max: 300, note: 'كل قاعدة أو مثال تفتحه أو تتدرّب عليه في القواعد (مرة باليوم لكل واحدة)' },
 };
