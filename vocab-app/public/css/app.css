@@ -3277,3 +3277,9 @@ body.reader-focus #setBtn, body.reader-focus #wordsBtn, body.reader-focus #gptTo
 .sv-lvmenu .sv-levels { flex-wrap: nowrap; gap: 4px; padding: 2px; }
 .sv-lvmenu .sv-lv { flex: 1 1 0; min-width: 0; display: inline-flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 2px; font-size: 13px; line-height: 1.1; border-radius: 14px; }
 .sv-lvmenu .sv-lv small { font-size: 10px; }
+
+/* filter menus (تدرّب · كلماتي): a chosen row is a light tiffany tint with dark readable text (names and counts included) */
+.fb-opt.on { background: color-mix(in srgb, var(--accent) 14%, var(--surface)) !important; border-color: var(--accent) !important; color: var(--ink) !important; font-weight: 800; }
+.fb-opt.on .tiny, .fb-opt.on .muted, .fb-opt.on .fb-c { color: var(--accent) !important; opacity: 1; }
+.fb-opt.on .fb-tick { background: var(--accent); border-color: var(--accent); color: #fff; }
+.fb-opt .tiny.muted { color: var(--ink-2); }
