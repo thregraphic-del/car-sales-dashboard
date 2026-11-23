@@ -1,6 +1,6 @@
 /* the owner's panel — separate from the learner site, same palette */
-:root { --bg:#F3F1EC; --surface:#fff; --surface-2:#EEEBE4; --ink:#1B263A; --ink-2:#4A5468; --muted:#667085; --line:#E3DFD6; --accent:#0B7F7B; --accent-ink:#fff; --accent-soft:#DFF5F4; --gold:#1FA8A3; --good:#2e7d4f; --warn:#a8701c; --bad:#b2463b; --radius:22px; color-scheme: light; }
-@media (prefers-color-scheme: dark) { :root { --bg:#0F1724; --surface:#182338; --surface-2:#1F2D46; --ink:#EDEBE6; --ink-2:#BFC3CC; --muted:#8A91A0; --line:#2D3B55; --accent:#34CFC9; --accent-ink:#04302E; --accent-soft:#123B3C; --gold:#7FE0DB; --good:#6cc391; --warn:#e0ad5c; --bad:#e98a7f; color-scheme: dark; } }
+:root { --bg:#F3F1EC; --surface:#fff; --surface-2:#EEEBE4; --ink:#1B263A; --ink-2:#4A5468; --muted:#667085; --line:#E3DFD6; --accent:#0B7F7B; --accent-ink:#fff; --accent-soft:#DFF5F4; --gold:#F29F1D; --good:#2e7d4f; --warn:#a8701c; --bad:#b2463b; --radius:22px; color-scheme: light; }
+@media (prefers-color-scheme: dark) { :root { --bg:#0F1724; --surface:#182338; --surface-2:#1F2D46; --ink:#EDEBE6; --ink-2:#BFC3CC; --muted:#8A91A0; --line:#2D3B55; --accent:#34CFC9; --accent-ink:#04302E; --accent-soft:#123B3C; --gold:#FFB547; --good:#6cc391; --warn:#e0ad5c; --bad:#e98a7f; color-scheme: dark; } }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif; font-size: 15px; line-height: 1.6; }
 button, input, select, textarea { font: inherit; color: inherit; }
