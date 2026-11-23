@@ -3273,3 +3273,7 @@ body.reader-focus #setBtn, body.reader-focus #wordsBtn, body.reader-focus #gptTo
 .ss-body .set-h { display: none; }
 .set-sec > summary::after { content: '▾'; font-size: 14px; transform: none; }
 .set-sec[open] > summary::after { content: '▴'; transform: none; }
+/* the six level chips + «الكل» stay on ONE line (code over its count) */
+.sv-lvmenu .sv-levels { flex-wrap: nowrap; gap: 4px; padding: 2px; }
+.sv-lvmenu .sv-lv { flex: 1 1 0; min-width: 0; display: inline-flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 2px; font-size: 13px; line-height: 1.1; border-radius: 14px; }
+.sv-lvmenu .sv-lv small { font-size: 10px; }
