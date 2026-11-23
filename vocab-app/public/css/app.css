@@ -3124,8 +3124,6 @@ body.clipset-on .info-btn.desk { display: none; }
 .sel-demo-bar { position: fixed; z-index: 71; pointer-events: none; display: grid; gap: 4px; justify-items: start; animation: addPop .25s .55s var(--ease) both; }
 .sel-demo-bar .sd-b { padding: 8px 14px; border-radius: 99px; background: var(--accent); color: #fff; font: 700 13px var(--font-ar, inherit); box-shadow: 0 8px 22px -8px rgba(0,0,0,.45); }
 .sel-demo-bar small { padding: 3px 10px; border-radius: 99px; background: rgba(0,0,0,.72); color: #fff; font-size: 11.5px; }
-/* the muted mark is just a small speaker now (no words) */
-.sound-note { padding: 8px 11px !important; font-size: 16px !important; line-height: 1; inset-inline: auto 10px !important; margin-inline: 0 !important; }
 .nt-actions { grid-template-columns: repeat(2, 1fr); }
 .sel-demo-bar .sd-b { position: relative; transition: transform .15s, background .2s; }
 .sel-demo-bar .sd-tap { position: absolute; left: -30px; top: 50%; margin-top: -13px; font-style: normal; font-size: 22px; opacity: 0; transform: translateX(-10px); }

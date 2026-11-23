@@ -2355,8 +2355,7 @@ export async function render(view, { segments, params }) {
       soundNote = document.createElement('button');
       soundNote.type = 'button';
       soundNote.className = 'sound-note';
-      soundNote.textContent = '🔇'; // no words: the first touch anywhere turns the sound on by itself
-      soundNote.setAttribute('aria-label', 'تشغيل الصوت');
+      soundNote.textContent = '🔇 اضغط هنا ليشتغل الصوت'; // the phone blocks sound until a touch: the first touch anywhere turns it on
       ($('.player-box', view) || $('#vidPin', view) || view).appendChild(soundNote);
     }
     soundNote?.classList.toggle('hidden', !on);
@@ -2370,6 +2369,7 @@ export async function render(view, { segments, params }) {
       soundSaid = true;
       stopUnmute();
       window.__ytMuted = false;
+      toast('🔊 الصوت شغّال');
     }, 400);
   };
   const onMuted = () => {
