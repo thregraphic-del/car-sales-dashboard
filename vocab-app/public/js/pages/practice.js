@@ -199,7 +199,7 @@ export async function render(view, { params }) {
         const bar = stage.querySelector('#gbar');
         if (!bar) return;
         bar.style.width = `${Math.round((100 * done) / total)}%`;
-        stage.querySelector('#score').textContent = `✅ ${score.correct} · ❌ ${score.wrong}`;
+        stage.querySelector('#score').textContent = `✅ ${score.correct} · 🔁 ${score.wrong}`;
       },
     });
     if (!view.isConnected) return;
@@ -218,12 +218,12 @@ export async function render(view, { params }) {
         ${points !== undefined ? `<p class="ink-2">⭐ نقاطك في تحدّي الدقيقة: <b>${points}</b></p>` : ''}
         ${missed.length ? `
           <div class="replay-box">
-            <b>فاتتك ${missed.length} ${missed.length === 1 ? 'كلمة' : 'كلمات'}</b>
+            <b>${missed.length} ${missed.length === 1 ? 'كلمة تحتاج' : 'كلمات تحتاج'} مراجعة</b>
             <div class="missed-list">${missed.map((m) => `<span><b class="en-inline">${esc(m.term)}</b> <span class="small ink-2">${esc(m.arabic || '')}</span></span>`).join('')}</div>
             <a class="btn primary lg" href="${href({ mode: 'quiz', ids: missed.map((m) => m.uv_id).join(','), replay: 1 })}">${icon.repeat} تدرّب عليها الحين</a>
             <p class="tiny muted" style="margin-top:8px">ستعود هذه الكلمات أيضًا في خطتك خلال الأيام القادمة.</p>
           </div>`
-          : `<p class="ink-2">${replay ? 'ممتاز — أجبت عن كل الكلمات التي أخطأت فيها.' : 'ممتاز! ستتباعد مراجعة هذه الكلمات.'}</p>`}
+          : `<p class="ink-2">${replay ? 'ممتاز — راجعت كل الكلمات اللي كانت تحتاج مراجعة.' : 'ممتاز! ستتباعد مراجعة هذه الكلمات.'}</p>`}
         <div class="btn-row" style="justify-content:center;margin-top:18px">
           ${params.source ? sourceActions(missed) : `${mode === 'games' ? `<a class="btn" href="${href({ ...base, mode: 'games', type: undefined })}">${icon.game} لعبة أخرى</a>` : ''}
           <a class="btn" href="${href(mode === 'games' ? { ...base, mode: 'games', ids: undefined, replay: undefined } : { mode: 'quiz' })}">${icon.repeat} ${mode === 'games' ? 'العب مجددًا' : 'جولة جديدة'}</a>

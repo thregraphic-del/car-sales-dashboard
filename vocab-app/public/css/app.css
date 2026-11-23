@@ -3283,3 +3283,7 @@ body.reader-focus #setBtn, body.reader-focus #wordsBtn, body.reader-focus #gptTo
 .fb-opt.on .tiny, .fb-opt.on .muted, .fb-opt.on .fb-c { color: var(--accent) !important; opacity: 1; }
 .fb-opt.on .fb-tick { background: var(--accent); border-color: var(--accent); color: #fff; }
 .fb-opt .tiny.muted { color: var(--ink-2); }
+
+/* a miss is never red: it is a calm «needs review» (soft amber) */
+.feedback.no { background: color-mix(in srgb, var(--amber, #F29F1D) 14%, var(--surface)); color: var(--ink); border: 1px solid color-mix(in srgb, var(--amber, #F29F1D) 45%, transparent); }
+.option.wrong { border-color: var(--amber, #F29F1D); background: color-mix(in srgb, var(--amber, #F29F1D) 14%, var(--surface)); color: var(--ink); animation: none; }

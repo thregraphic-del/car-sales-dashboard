@@ -107,7 +107,7 @@ export function runGrammarRound(stage, { game = 'mixed', catId = '', n = 10, rul
     api.grammarSeen(q.rule.id).catch(() => {});
     const fb = stage.querySelector('#gpFb');
     fb.className = `feedback show ${right ? 'ok' : 'no'}`;
-    fb.innerHTML = `<b>${right ? 'صحيح ✓' : 'ليست صحيحة'}</b>${teachHtml(q.rule, { full: !right })}`;
+    fb.innerHTML = `<b>${right ? 'صحيح ✓' : 'يحتاج مراجعة'}</b>${teachHtml(q.rule, { full: !right })}`;
     fb.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); // the lesson is right there after the answer
     const next = stage.querySelector('#gpNext');
     next.classList.remove('hidden');

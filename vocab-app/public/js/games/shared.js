@@ -168,7 +168,7 @@ export function choice(stage, w, { prompt, options, text, after = '', sentence =
 export function reveal(stage, w, ok, extra = '', sentence = null) {
   const fb = stage.querySelector('#fb');
   fb.className = `feedback show ${ok ? 'ok' : 'no'}`;
-  fb.innerHTML = `<b>${ok ? 'صحيح ✓' : 'ليست صحيحة'}</b> — <span class="en-inline"><b>${esc(w.term)}</b></span> <button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="1" aria-label="استمع">🔊</button>: ${esc(w.arabic || '')}${extra}${exampleHtml(w, sentence)}`;
+  fb.innerHTML = `<b>${ok ? 'صحيح ✓' : 'يحتاج مراجعة'}</b> — <span class="en-inline"><b>${esc(w.term)}</b></span> <button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="1" aria-label="استمع">🔊</button>: ${esc(w.arabic || '')}${extra}${exampleHtml(w, sentence)}`;
   speak(w.term).catch(() => {}); // every game: hear the word after answering
 }
 

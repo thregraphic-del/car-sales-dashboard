@@ -25,11 +25,11 @@ export default {
     const input = stage.querySelector('#ans');
     input.focus();
     let done = false;
-    const finish = (ok) => {
+    const finish = (ok, extra = '') => {
       if (done) return;
       done = true;
       input.disabled = true;
-      reveal(stage, w, ok);
+      reveal(stage, w, ok, extra);
       const next = stage.querySelector('#nextBtn');
       next.classList.remove('hidden');
       next.focus();
@@ -41,7 +41,12 @@ export default {
       const re = termRegex(w.term);
       const given = norm(input.value);
       const right = given === norm(w.term) || (re && re.test(input.value.trim()) && given.split(' ').length <= norm(w.term).split(' ').length + 2);
-      finish(right && hints < 2); // two hints = you didn't really know it
+      // a right answer counts as right even after hints — only when MORE than half of the letters were shown it goes back for review
+      const total = w.term.replace(/[^a-z]/gi, '').length;
+      const shown = w.term.split(/\s+/).reduce((n, part) => n + Math.min(hints, part.length), 0);
+      const tooMany = shown > Math.floor(total / 2);
+      if (right && tooMany) { finish(false, ' — إجابتك صحيحة، بس استعنت بتلميحات كثيرة فبنرجّعها لك'); return; }
+      finish(right);
     });
     stage.querySelector('#hintBtn').addEventListener('click', () => {
       hints += 1;
