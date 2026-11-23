@@ -378,7 +378,6 @@ export async function render(view, { segments, params }) {
             ${isVideo && hasTimes ? '<div class="srow sw-row"><span class="slabel">شريط الوقت</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="stripToggleOld"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="stripTxt"></span></label></div></div>' : ''}
           </div></div>
           ${isVideo ? `<div class="srow"><span class="slabel">الفيديو</span><div class="sopts" id="vidPosOld"><button type="button" class="sopt" data-vpos="top">فوق</button><button type="button" class="sopt" data-vpos="bottom">تحت</button><button type="button" class="sopt" data-vpos="float">عائم</button></div></div>` : ''}
-          ${isVideo ? `<div class="srow sw-row"><span class="slabel">شرح التكبير 👆</span><div class="sopts"><label class="tg-switch"><input type="checkbox" id="shOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span><span class="tiny" id="shTxt"></span></label></div></div>` : ''}
           <div class="srow"><span class="slabel">بحث</span><div class="sopts tr-search"><input class="input sm" id="trQ" type="search" placeholder="ابحث في النص" aria-label="ابحث في النص"><span class="tiny muted" id="trQn"></span></div></div>
           <div class="sgroup">أدوات</div>
           <div class="srow"><span class="slabel">أدوات</span><div class="sopts">
@@ -477,7 +476,6 @@ export async function render(view, { segments, params }) {
       ['#timesToggle', 'يكتب وقت كل جملة جنبها، وتضغطه تروح لنفس اللحظة.', '.ts', ''],
       ['#stripToggle', 'شريط صغير تحت الفيديو يوريك وين وصلت وكم باقي، وتسحبه للتنقل.', '#timeStrip', ''],
       ['#vidPos', 'مكان الفيديو: فوق النص، أو تحته، أو عائم في زاوية.', '.player-box', ''],
-      ['#shOn', 'يوريك طريقة تكبير الفيديو وتصغيره بالخط اللي تحته.', '#split', ''],
     ];
     const fbName = $('#fbName', view);
     const fbNote = $('#fbNote', view);
@@ -1225,7 +1223,7 @@ export async function render(view, { segments, params }) {
     if (box) mainEl.style.setProperty('--ph', `${Math.round(box.getBoundingClientRect().height)}px`);
     return p;
   };
-  const sizeHintOn = () => true; // the zoom hint shows by itself for two seconds when a clip opens
+  const sizeHintOn = () => false; // no automatic zoom demo any more: it is explained in the «i» help and the clip settings
   // 👆 each opening (unless switched off in ⚙): the video starts a little smaller and a finger
   // shows — and plays — that dragging the line resizes it (up = smaller, down = bigger)
   try { if (localStorage.getItem('reader.sideMini') === '1') $('.reader-grid', view)?.classList.add('side-mini'); } catch { /* ignore */ }
@@ -1240,53 +1238,6 @@ export async function render(view, { segments, params }) {
   window.addEventListener('resize', fitText);
   setTimeout(fitText, 300); setTimeout(fitText, 1500);
   let splitPct = applySplit(isVideo && sizeHintOn() ? Math.min(85, Number(pref('reader.split', '70'))) : Number(pref('reader.split', '70')));
-  function sizeHint() {
-    const bar = $('#split', view);
-    if (!bar || !sizeHintOn() || !bar.offsetParent) return;
-    bar.insertAdjacentHTML('beforeend', '<div class="size-hint" aria-hidden="true"><i class="sh-finger">👆</i><b class="sh-txt">اسحب الخط: ↑ يصغر · ↓ يكبر</b></div>');
-    const h = bar.querySelector('.size-hint');
-    const base = splitPct;
-    const steps = [base - 12, base, Math.min(100, base + 10), base];
-    let k = 0;
-    const play = setInterval(() => {
-      if (k >= steps.length) { clearInterval(play); return; }
-      h.classList.toggle('up', steps[k] < base); h.classList.toggle('down', steps[k] > base);
-      splitPct = applySplit(steps[k]); k += 1;
-    }, 450);
-    const close = () => { clearInterval(play); splitPct = applySplit(base); h?.remove(); };
-    bar.addEventListener('pointerdown', () => { clearInterval(play); h?.remove(); }, { once: true });
-    setTimeout(close, 2000);
-  }
-  if (isVideo) setTimeout(sizeHint, 1200);
-  // ✍️ right after the zoom hint (2 s): a quick demo of «highlight a text → keep it in أفكاري» (the first few opens only)
-  function selectDemo() {
-    let n = 0; try { n = Number(localStorage.getItem('reader.selDemo')) || 0; } catch { /* ignore */ }
-    if (n >= 5 || !sizeHintOn()) return;
-    const cands = [...(linesEl.querySelector('.line-en, .c-en') ? linesEl.querySelectorAll('.line-en, .c-en') : linesEl.querySelectorAll('.line'))].filter((e) => { const r = e.getBoundingClientRect(); return r.height > 12 && r.width > 80 && r.top > 120 && r.bottom < window.innerHeight - 90; });
-    const el = cands[0];
-    if (!el) return;
-    try { localStorage.setItem('reader.selDemo', String(n + 1)); } catch { /* ignore */ }
-    const r = el.getBoundingClientRect();
-    const hl = document.createElement('div');
-    hl.className = 'sel-demo-hl';
-    hl.style.cssText = `top:${r.top}px;left:${r.left}px;width:${r.width}px;height:${Math.min(r.height, 44)}px`;
-    const bar = document.createElement('div');
-    bar.className = 'sel-demo-bar';
-    bar.setAttribute('aria-hidden', 'true');
-    bar.innerHTML = '<span class="sd-b"><span class="sd-t">📌 احفظ في «أفكاري»</span><i class="sd-tap" aria-hidden="true">👆</i></span><small>ظلّل أي جملة واحتفظ فيها</small>';
-    bar.style.cssText = `top:${Math.max(8, r.top - 58)}px;left:${Math.max(8, Math.min(window.innerWidth - 232, r.left))}px`;
-    document.body.append(hl, bar);
-    const done = () => { hl.remove(); bar.remove(); document.removeEventListener('pointerdown', done, true); };
-    document.addEventListener('pointerdown', done, true);
-    // the sentence is shaded, then the button is pressed and says it was kept
-    setTimeout(() => bar.classList.add('press'), 1000);
-    setTimeout(() => { const t = bar.querySelector('.sd-t'); if (t) t.textContent = '✓ انحفظت في «أفكاري»'; }, 1350);
-    setTimeout(done, 2300);
-  }
-  if (isVideo) setTimeout(selectDemo, 3400);
-  const drawSh = () => { const c = $('#shOn', view); if (c) c.checked = sizeHintOn(); const t = $('#shTxt', view); if (t) t.textContent = sizeHintOn() ? 'يطلع كل مرة' : 'مطفأ'; };
-  drawSh();
-  $('#shOn', view)?.addEventListener('change', (e) => { setPref('reader.sizeHint', e.target.checked ? '1' : '0'); drawSh(); });
   $('#split', view)?.addEventListener('pointerdown', (e) => {
     const box = $('.player-box', view);
     const startY = e.clientY;

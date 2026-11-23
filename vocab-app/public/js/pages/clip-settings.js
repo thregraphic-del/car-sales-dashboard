@@ -50,8 +50,9 @@ export async function render(view, { segments, params }) {
         ${hasTimes ? row('يكتب وقت كل جملة بجنبها، وتضغطه تروح لنفس اللحظة.', 'وقت كل جملة', 'يظهر وقت الجملة بجنبها', sw('csTimes', pref('reader.times', small ? '0' : '1') === '1')) : ''}
         ${hasTimes ? '<p class="cs-note">الشريط والأوقات مخفيّين تلقائيًا في الجوال الصغير، وتشغّلهم متى تبي.</p>' : ''}
       </section>
-      <section class="cs-card cs-legend" data-tip="ألوان الكلمات داخل النص: الأخضر المزرق لكلمة جديدة عليك، والبنفسجي لكلمة كانت في كلماتك."><span class="cs-lg-t">الألوان:</span><span class="mk-l new">جديد</span><span>جديدة عليك</span><span class="mk-l mine">كلماتي</span><span>عندك</span></section>
+      <section class="cs-card cs-legend" data-tip="ألوان الكلمات داخل النص: البرتقالي لكلمة جديدة عليك، والتيفاني لكلمة كانت في كلماتك."><span class="cs-lg-t">الألوان:</span><span class="mk-l new">جديد</span><span>جديدة عليك</span><span class="mk-l mine">كلماتي</span><span>عندك</span></section>
     </div>
+    ${id && isVideo ? '<p class="cs-tip">💡 بمكانك <b>تكبّر الفيديو أو تصغّره</b> بسحب الخط تحته، و<b>تحفظ أي جزء بالتظليل عليه</b> ← «📌 احفظ في أفكاري».</p>' : ''}
     <a class="btn primary lg cs-done" href="${clip}">تم</a>
   </div>`;
 
