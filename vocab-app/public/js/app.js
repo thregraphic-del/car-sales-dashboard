@@ -63,7 +63,11 @@ function renderNav(active) {
   const links = NAV.map((n) => `<a class="nav-link ${n.path === active ? 'active' : ''}${['/add', '/words', '/practice'].includes(n.path) ? ' tab-dup' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? `<span class="badge">${left}</span>` : ''}${n.path === '/' && s?.streak?.rescue ? SAD_BADGE : ''}</a>`).join('');
   $('#nav').innerHTML = `${links}<div class="nav-sep"></div><a class="nav-link ${active === '/notes' ? 'active' : ''}" href="#/notes">${icon.bookOpen}<span>أفكار</span></a><a class="nav-link ${active === '/settings' ? 'active' : ''}" href="#/settings">${icon.settings}<span>الإعدادات</span></a>`;
   // bottom bar on phones: only the three working pages (اليوم · الإعدادات · أصدقائي live in the ☰ menu)
-  $('#tabbar').innerHTML = NAV.filter((n) => n.path !== '/').map((n) => `<a class="${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span></a>`).join('');
+  // «أضف» sits in the middle of the bar, in its own colour (inside the bar, not floating above it)
+  const tabs = ['/words', '/add', '/practice'].map((pa) => NAV.find((n) => n.path === pa));
+  $('#tabbar').innerHTML = tabs.map((n) => (n.path === '/add'
+    ? `<a class="tab-add${n.path === active ? ' active' : ''}" href="#${n.path}"><span class="tab-add-ic">${icon[n.icon]}</span><span>${n.label}</span></a>`
+    : `<a class="${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span></a>`)).join('');
   const top = $('#topStreak');
   if (top && s) top.innerHTML = `🔥 <b class="en-inline">${s.streak.current}</b>${s.streak.rescue ? SAD_BADGE : ''}`;
   const guestChip = state.user?.guest ? '<div class="guest-chip">👤 أنت ضيف — <a href="/register"><b>سجّل حسابك المجاني</b></a> وتنحفظ كلماتك. عندك حساب؟ <a href="/login"><b>ادخل</b></a></div>' : '';

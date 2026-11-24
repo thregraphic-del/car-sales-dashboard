@@ -3318,3 +3318,11 @@ body.reader-focus #setBtn, body.reader-focus #wordsBtn, body.reader-focus #gptTo
 .acc-pw > summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--accent); list-style: none; padding: 4px 0; }
 .acc-pw > summary::-webkit-details-marker { display: none; }
 .acc-pw form { margin-top: 8px; }
+
+/* 📱 bottom bar: «أضف» in the middle with its own colour, inside the bar */
+.tabbar a.tab-add { color: var(--accent); font-weight: 700; }
+.tab-add-ic { width: 50px; height: 34px; border-radius: 17px; background: var(--accent); color: var(--accent-ink); display: grid; place-items: center; box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--accent) 70%, transparent); transition: transform .15s; }
+.tab-add-ic svg { width: 22px; height: 22px; }
+.tabbar a.tab-add:active .tab-add-ic { transform: scale(.94); }
+.tabbar a.tab-add.active .tab-add-ic { background: var(--accent); outline: 3px solid color-mix(in srgb, var(--accent) 22%, transparent); }
+.tabbar a.tab-add svg { color: inherit; }
