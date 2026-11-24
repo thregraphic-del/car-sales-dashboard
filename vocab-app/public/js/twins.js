@@ -8,6 +8,10 @@ import { esc, shuffle, toast, openModal, closeModal, icon } from './ui.js';
 
 const lower = (s) => String(s || '').toLowerCase();
 const groupsWord = (n) => (n === 1 ? 'مجموعة واحدة' : n === 2 ? 'مجموعتين' : `<b class="en-inline">${n}</b> ${n <= 10 ? 'مجموعات' : 'مجموعة'}`);
+const PART = 25; // groups per section (the file of 100 = 4 sections)
+const PKEY = 'twins.parts.v1';
+const readParts = () => { try { return JSON.parse(localStorage.getItem(PKEY) || '{}'); } catch { return {}; } };
+const saveBest = (src, part, pct) => { try { const d = readParts(); d[src] = d[src] || {}; d[src][part] = Math.max(d[src][part] || 0, pct); localStorage.setItem(PKEY, JSON.stringify(d)); } catch { /* storage unavailable */ } };
 const AUTO_MS = { ok: 900, no: 2100 };
 
 /** The groups of the learner's own words: curated groups that contain at least one saved word, plus look-alikes found among them. */
@@ -47,11 +51,31 @@ export async function runTwins(stage, { onExit } = {}) {
       </div>`);
     box.querySelectorAll('[data-src]').forEach((b) => b.addEventListener('click', () => {
       closeModal();
-      start(b.dataset.src === 'mine' ? myGroups : TWINS, b.dataset.src);
+      const src = b.dataset.src;
+      const all = src === 'mine' ? myGroups : TWINS;
+      if (all.length > PART) pickPart(all, src); else start(all, src, 0, 1);
     }));
   }
 
-  async function start(groups, src) {
+  // the file is split into sections (4 × 25 groups): one sitting = one section
+  function pickPart(all, src) {
+    const parts = Math.ceil(all.length / PART);
+    const best = readParts()[src] || {};
+    const lv = (list) => { const l = [...new Set(list.map((g) => g.level).filter(Boolean))]; return l.length ? ` · ${l[0]}${l.length > 1 ? `–${l[l.length - 1]}` : ''}` : ''; };
+    const box = openModal(`<h2 style="margin:0 0 4px">اختر القسم</h2>
+      <p class="small muted" style="margin:0">${all.length} مجموعة مقسّمة على ${parts} أقسام — كل قسم جلسة وحدة.</p>
+      <div class="tw-src">${Array.from({ length: parts }, (_, i) => {
+    const list = all.slice(i * PART, (i + 1) * PART);
+    return `<button type="button" class="tw-opt" data-part="${i}"><b>القسم ${i + 1}${best[i] !== undefined ? ` <span class="tw-best">✓ ${best[i]}%</span>` : ''}</b><span class="small muted">${list.length} مجموعة${lv(list)}</span></button>`;
+  }).join('')}</div>`);
+    box.querySelectorAll('[data-part]').forEach((b) => b.addEventListener('click', () => {
+      closeModal();
+      const i = Number(b.dataset.part);
+      start(all.slice(i * PART, (i + 1) * PART), src, i, parts, all);
+    }));
+  }
+
+  async function start(groups, src, part = 0, parts = 1, all = groups) {
     const done = []; // { group, right, total }
     const pool = [...TWINS.flatMap((g) => g.words), ...groups.flatMap((g) => g.words)];
     ended = false;
@@ -72,7 +96,7 @@ export async function runTwins(stage, { onExit } = {}) {
       if (stopped) return;
       if (!ended || answered === g.words.length) done.push({ group: g, right, total: g.words.length });
     }
-    if (!stopped) finish(done, groups.length, src);
+    if (!stopped) finish(done, groups.length, src, { part, parts, all });
   }
 
   const kinds = (w) => (w.def ? ['def', 'word', 'listen'] : ['word', 'listen']);
@@ -140,24 +164,27 @@ export async function runTwins(stage, { onExit } = {}) {
 
 
   // 3) the result and the offer to keep the groups
-  function finish(done, total, src) {
+  function finish(done, total, src, meta = { part: 0, parts: 1, all: [] }) {
     if (!done.length) { stage.innerHTML = `<div class="card tw-card"><p>ما أكملت أي مجموعة.</p><a class="btn" href="#/practice">رجوع</a></div>`; return; }
     const mastered = done.filter((d) => d.right === d.total).length;
     const pct = Math.round((100 * mastered) / done.length);
     const words = done.reduce((a, d) => a + d.total, 0);
     const right = done.reduce((a, d) => a + d.right, 0);
     const weak = done.filter((d) => d.right < d.total);
+    if (meta.parts > 1 && done.length === total) saveBest(src, meta.part, pct);
+    const hasNext = meta.parts > 1 && meta.part + 1 < meta.parts && done.length === total;
     stage.innerHTML = `<div class="card done-panel tw-done">
       <div class="big">${pct >= 80 ? '🏆' : pct >= 50 ? '👏' : '💪'}</div>
       <h2 style="margin:10px 0 4px">أتممت التدريب على ${groupsWord(done.length)}، وأتقنت <b class="en-inline">${pct}%</b> منها</h2>
-      <p class="ink-2 small">${right} من ${words} كلمة صحيحة${done.length < total ? ` · أنهيت قبل نهاية الملف (${total} مجموعة)` : ''}</p>
+      <p class="ink-2 small">${right} من ${words} كلمة صحيحة${done.length < total ? ` · أنهيت قبل نهاية القسم (${total} مجموعة)` : ''}</p>
       ${weak.length ? `<div class="replay-box"><b>تحتاج مراجعة:</b><div class="missed-list">${weak.slice(0, 12).map((d) => `<span>${d.group.words.map((w) => `<b class="en-inline">${esc(w.term)}</b>`).join(' / ')}</span>`).join('')}</div></div>` : ''}
       <div id="twOffer"><div class="divider"></div>
       <h3 style="margin:6px 0">هل ترغب في إضافة مجموعات المتشابهات إلى كلماتي؟</h3>
       <p class="tiny muted">تنضاف الكلمات ومعانيها في مجموعة اسمها «المتشابهات»، وما نكرر كلمة عندك.</p>
       <div class="btn-row" style="justify-content:center"><button class="btn primary" id="twYes">نعم، أضفها</button><button class="btn" id="twNo">لا، شكرًا</button></div></div>
-      <div class="btn-row" style="justify-content:center;margin-top:10px"><button class="btn ghost" id="twAgain">${icon.repeat} تدرّب مرة ثانية</button><a class="btn ghost" href="#/practice">انتهيت</a></div></div>`;
+      <div class="btn-row" style="justify-content:center;margin-top:10px">${hasNext ? '<button class="btn primary" id="twNext">القسم التالي ←</button>' : ''}<button class="btn ghost" id="twAgain">${icon.repeat} تدرّب مرة ثانية</button><a class="btn ghost" href="#/practice">انتهيت</a></div></div>`;
     stage.querySelector('#twAgain').addEventListener('click', choose);
+    stage.querySelector('#twNext')?.addEventListener('click', () => start(meta.all.slice((meta.part + 1) * PART, (meta.part + 2) * PART), src, meta.part + 1, meta.parts, meta.all));
     stage.querySelector('#twNo').addEventListener('click', () => stage.querySelector('#twOffer').remove());
     stage.querySelector('#twYes').addEventListener('click', async (e) => {
       e.target.disabled = true;
