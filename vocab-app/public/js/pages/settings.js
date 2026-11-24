@@ -1,14 +1,12 @@
 import { api } from '../api.js';
-import { GOAL_TYPES, goalTypes, setGoalTypes, setGoalN, goalFor, ADVANCED_GOALS } from '../goal.js';
 import { state } from '../state.js';
-import { speak } from '../audio.js';
 import { esc, icon, toast, num, openModal, closeModal, applyTheme } from '../ui.js';
 import { refreshStats } from '../app.js';
 import { readDataFiles, importSnapshot, countsOf, TABLES } from '../data-transfer.js';
 import { feedbackCardHtml, bindFeedbackCard } from '../feedback.js';
 import { costReportHtml, bindCostReport } from '../cost-report.js';
 import { bindTeamCard } from '../team.js';
-import { socialRow } from '../social.js';
+import { socialRowAll } from '../social.js';
 
 // one icon family for the page: thin outline, same size (the section icons come from the shared set)
 const SVG = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
@@ -16,9 +14,6 @@ const I = {
   user: SVG('<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>'),
   ticket: SVG('<path d="M4 8a2 2 0 0 0 0 8v2h16v-2a2 2 0 0 1 0-8V6H4z"/><path d="M10 9v6" stroke-dasharray="1.5 2.5"/>'),
 };
-// the colours the learner can give the words (same lists as the clip settings; the first of each is the default)
-const MK_NEW = [['#FF8A24', 'برتقالي'], ['#0ABAB5', 'تيفاني'], ['#22a35a', 'أخضر'], ['#3b82f6', 'أزرق'], ['#ec4899', 'وردي']];
-const MK_MINE = [['#4FD6D0', 'تيفاني فاتح'], ['#0B7F7B', 'تيفاني غامق'], ['#8b5cf6', 'بنفسجي'], ['#64748b', 'رمادي'], ['#3b82f6', 'أزرق']];
 
 const TABLE_LABELS = {
   sources: 'مصادر', transcript_lines: 'أسطر نص', vocabulary: 'مفردات', examples: 'أمثلة', occurrences: 'سياقات', user_vocabulary: 'كلماتك',
@@ -32,6 +27,7 @@ export async function render(view) {
   state.config = cfg;
   state.user = cfg.user;
   const u = cfg.user;
+  const isOwner = !!cfg.can_set_paid || !cfg.auth?.required;
   let theme = 'system';
   try {
     theme = localStorage.getItem('theme') === 'dark' ? 'dark' : 'light';
@@ -50,7 +46,7 @@ export async function render(view) {
         </section>
         ${cfg.auth?.required && u.guest ? `<section class="set-card guest-settings"><b>أنت ضيف</b><a class="btn primary" href="/register" style="justify-self:start">سجّل حسابك المجاني</a><a class="link-btn small" href="/login" style="justify-self:start">عندي حساب</a></section>` : ''}
       ${cfg.auth?.required && !u.guest ? `<section class="set-card acc">
-        <div class="mk-line"><span>اسم المستخدم</span><span class="chip en-inline">${esc(u.username || '')}</span></div>
+        <form id="unForm" class="acc-form"><label for="unIn">اسم المستخدم</label><input class="input en" id="unIn" autocomplete="username" maxlength="40" value="${esc(u.username || '')}"><button class="btn sm" type="submit">حفظ</button></form>
         <form id="emForm" class="acc-form"><label for="emIn">الإيميل</label><input class="input en" type="email" id="emIn" autocomplete="email" placeholder="you@gmail.com"><button class="btn sm" type="submit">حفظ</button></form>
         <form id="phForm" class="acc-form"><label for="phIn">الجوال</label><input class="input en" type="tel" inputmode="tel" id="phIn" autocomplete="tel" placeholder="05xxxxxxxx"><button class="btn sm" type="submit">حفظ</button></form>
         <details class="acc-pw"><summary>تغيير كلمة المرور</summary>
@@ -68,26 +64,17 @@ export async function render(view) {
       <details class="set-sec"><summary><span class="ss-i">${icon.palette}</span><b>المظهر والتفضيلات</b></summary><div class="ss-body">
         <h4 class="set-sub">المظهر</h4>
         ${swItem('darkSw', 'الوضع الداكن', '', '', theme === 'dark')}
-        <div class="mk-line"><span>لون الكلمات الجديدة</span><span class="mk-sws" data-mkrow="new">${MK_NEW.map(([c, n]) => `<button type="button" class="mk-sw${(ls('reader.mkNew', MK_NEW[0][0]) === c) ? ' on' : ''}" data-setmk="new:${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span></div>
-        <div class="mk-line"><span>لون كلماتي</span><span class="mk-sws" data-mkrow="mine">${MK_MINE.map(([c, n]) => `<button type="button" class="mk-sw${(ls('reader.mkMine', MK_MINE[0][0]) === c) ? ' on' : ''}" data-setmk="mine:${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span></div>
-        <h4 class="set-sub">الصوت</h4>
-          <div class="set-line"><span class="set-lbl">سرعة النطق</span><input type="range" id="rate" min="0.6" max="1.3" step="0.05" value="${u.speech_rate}" style="accent-color:var(--accent);flex:1"><b id="rateVal" class="en-inline">${u.speech_rate}×</b></div>
-        ${swItem('ar', 'انطق العربي أيضًا', '', '', u.speak_arabic)}
-        <button class="btn sm ghost" id="test" style="justify-self:start">${icon.speaker} جرّب الصوت</button>
-        <h4 class="set-sub">الأهداف اليومية</h4>
-        ${['pass', 'practice'].map((k) => `<div class="mk-line"><span>${k === 'pass' ? 'كلمات جديدة' : 'أسئلة تدريب'}</span><span class="goal-num"><input class="input en-inline" data-gbn="${k}" type="number" inputmode="numeric" min="1" max="${GOAL_TYPES[k].max}" value="${goalFor(k)}"> <span class="small">كل يوم</span></span></div>`).join('')}
-        ${ADVANCED_GOALS.map((k) => swItem(`adv_${k}`, k === 'watch' ? 'هدف وقت الموقع' : 'هدف القواعد', '', `<span class="goal-num"><input class="input en-inline" data-advn="${k}" type="number" inputmode="numeric" min="${GOAL_TYPES[k].min}" max="${GOAL_TYPES[k].max}" value="${goalFor(k)}"> <span class="small">${GOAL_TYPES[k].unit} كل يوم</span></span>`, goalTypes().includes(k))).join('')}
         <h4 class="set-sub">التشغيل</h4>
         ${swItem('wideSw', 'المقطع يفتح بشاشة موسّعة', '', '', ls('app.openWide2', '0') === '1')}
         ${swItem('autoSw', 'احفظ كلمات المقطع تلقائيًا', '', '', ls('app.autoSave', '0') === '1')}
       </div></details>
 
       <details class="set-sec"><summary><span class="ss-i">${icon.chat}</span><b>التواصل</b></summary><div class="ss-body">
-        ${socialRow(cfg.contact) || '<p class="small muted" style="margin:0">قريبًا.</p>'}
+        ${socialRowAll(cfg.contact)}
         ${feedbackCardHtml()}
       </div></details>
 
-      <details class="set-sec"><summary><span class="ss-i">${icon.settings}</span><b>متقدم</b></summary><div class="ss-body">
+      ${isOwner ? `<details class="set-sec"><summary><span class="ss-i">${icon.settings}</span><b>للمالك</b></summary><div class="ss-body">
       <div class="card stack" style="grid-column:1/-1">
         <b>بياناتك</b>
         <div id="counts" class="small muted">…</div>
@@ -129,44 +116,24 @@ ${cfg.can_set_paid ? '<a class="set-rowbtn" href="/admin.html"><span class="ss-i
         <p class="small ink-2">إعادة تعيين البيانات التجريبية تحذف كل شيء (بما فيه كلماتك) وتعيد إنشاء الفيديوهات والكلمات التجريبية.</p>
         <button class="btn bad" id="reset" style="justify-self:start">${icon.trash} إعادة تعيين البيانات التجريبية</button>
       </div>` : ''}
-      </div></details>
+      </div></details>` : ''}
 
       ${cfg.auth?.required && !u.guest ? '<button type="button" class="btn set-logout" id="logout">تسجيل الخروج</button>' : ''}
     </div>`;
 
   const $ = (s) => view.querySelector(s);
-  $('#rate').addEventListener('input', (e) => ($('#rateVal').textContent = `${e.target.value}×`));
   $('#saveProfile').addEventListener('click', async () => {
     state.user = await api.updateMe({ name: $('#name').value });
     toast('تم الحفظ');
   });
-  $('#rate').addEventListener('change', async (e) => {
-    state.user = await api.updateMe({ speech_rate: Number(e.target.value) });
-  });
-  $('#test').addEventListener('click', () => speak('I was reluctant to ask for help.').catch(() => toast('الصوت غير مدعوم في هذا المتصفح')));
   // 🔘 every switch: green = on (its options open), grey = off (they fold away)
   const bindSw = (id, onChange) => $(`#${id}`)?.addEventListener('change', (e) => {
     e.target.closest('.set-item')?.classList.toggle('on', e.target.checked);
     onChange(e.target.checked);
   });
-  // 🎯 advanced goals: switching one on adds it to the goals (the number is set beside it); at least one goal always stays
-  ADVANCED_GOALS.forEach((k) => bindSw(`adv_${k}`, (on) => {
-    const now = new Set(goalTypes());
-    if (on) now.add(k); else now.delete(k);
-    setGoalTypes([...now]);
-  }));
-  view.querySelectorAll('[data-advn]').forEach((i) => i.addEventListener('change', () => setGoalN(i.dataset.advn, Number(i.value))));
-  view.querySelectorAll('[data-setmk]').forEach((b) => b.addEventListener('click', () => {
-    const [which, color] = b.dataset.setmk.split(':');
-    lsSet(which === 'new' ? 'reader.mkNew' : 'reader.mkMine', color);
-    document.documentElement.style.setProperty(which === 'new' ? '--mk-new' : '--mk-mine', color);
-    b.parentElement.querySelectorAll('.mk-sw').forEach((x) => x.classList.toggle('on', x === b));
-  }));
-  view.querySelectorAll('[data-gbn]').forEach((i) => i.addEventListener('change', () => setGoalN(i.dataset.gbn, Number(i.value))));
   bindSw('darkSw', (on) => { const t = on ? 'dark' : 'light'; try { localStorage.setItem('theme', t); } catch { /* ignore */ } applyTheme(t); });
   bindSw('wideSw', (on) => lsSet('app.openWide2', on ? '1' : '0'));
   bindSw('autoSw', (on) => lsSet('app.autoSave', on ? '1' : '0'));
-  bindSw('ar', async (on) => { state.user = await api.updateMe({ speak_arabic: on }); });
   $('#reset')?.addEventListener('click', async () => {
     if (!confirm('سيتم حذف كل البيانات وإعادة إنشاء البيانات التجريبية. متابعة؟')) return;
     await api.resetDemo();
@@ -175,6 +142,11 @@ ${cfg.can_set_paid ? '<a class="set-rowbtn" href="/admin.html"><span class="ss-i
     location.hash = '#/';
   });
 
+  $('#unForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    try { const r = await api.changeUsername($('#unIn').value.trim()); $('#unIn').value = r.username; toast('تم حفظ اسم المستخدم ✓'); } catch (err) { toast(err.message); }
+  });
+  view.querySelectorAll('[data-soon]').forEach((b) => b.addEventListener('click', () => toast(`حساب ${b.dataset.soon} — قريبًا 🔜`)));
   if ($('#emForm')) {
     api.myEmail().then((r) => { if (r.email) $('#emIn').value = r.email; }).catch(() => {});
     $('#emForm').addEventListener('submit', async (e) => {
@@ -216,6 +188,7 @@ ${cfg.can_set_paid ? '<a class="set-rowbtn" href="/admin.html"><span class="ss-i
     } catch (err) { box.checked = !box.checked; toast(err.message); }
   }));
 
+  if (isOwner) {
   /* ---------------------------------------------------------- data */
   let current = {};
   const loadSummary = async () => {
@@ -317,6 +290,7 @@ ${cfg.can_set_paid ? '<a class="set-rowbtn" href="/admin.html"><span class="ss-i
       }
     });
   });
+  }
 }
 
 const REASONS = {

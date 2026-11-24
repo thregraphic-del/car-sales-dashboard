@@ -177,6 +177,7 @@ export const api = {
   shared: (token) => request('GET', `/api/social/share/${token}`),
   credits: () => request('GET', '/api/credits'),
   saveCredits: (body) => request('POST', '/api/credits', body),
+  changeUsername: (username) => request('POST', '/api/auth/username', { username }),
   changePassword: (current, password) => request('POST', '/api/auth/password', { current, password }),
 
   dataSummary: () => request('GET', '/api/data/summary'),

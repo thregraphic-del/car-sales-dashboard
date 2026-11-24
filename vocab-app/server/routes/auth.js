@@ -78,4 +78,11 @@ router.post('/password', wrap(async (req, res) => {
   return { ok: true };
 }));
 
+router.post('/username', wrap(async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'سجّل الدخول أولًا.', code: 'auth' });
+  const user = await auth.changeUsername(req.user, req.body?.username);
+  await startSession(res, user);
+  return { ok: true, username: user.username };
+}));
+
 export default router;

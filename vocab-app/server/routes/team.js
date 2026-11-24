@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { wrap } from '../http.js';
 import { httpError } from '../lib/errors.js';
 import { isGuest } from '../lib/guest.js';
+import { emailOf, phoneOf } from '../services/recovery.js';
 import { memberOfUser, join, summary, requestPayout, ackPayouts } from '../data/team.js';
 
 const router = Router();
@@ -14,7 +15,10 @@ router.get('/me', wrap(async (req) => {
 
 router.post('/join', wrap(async (req) => {
   if (isGuest(req.user)) throw httpError(403, 'سجّل حسابًا أولًا ثم انضم للفريق.');
-  const m = await join(req.userId, req.body || {});
+  // automatic: everything comes from the account (name, and email / phone when saved)
+  const b = req.body || {};
+  const [email, phone] = await Promise.all([emailOf(req.userId), phoneOf(req.userId)]);
+  const m = await join(req.userId, { name: b.name || req.user?.name || req.user?.username || 'عضو', email: b.email || email || '', phone: b.phone || phone || '' });
   return { ok: true, member: await summary(m) };
 }));
 

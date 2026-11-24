@@ -20,7 +20,6 @@ test('not a member yet; the form is checked', async () => {
   assert.equal((await call('GET', '/api/team/me')).body.member, null);
   assert.equal((await call('POST', '/api/team/join', { name: 'ن', email: 'x', phone: '1' })).status, 400);
   assert.equal((await call('POST', '/api/team/join', { name: 'سارة', email: 'bad', phone: '0501234567' })).status, 400);
-  assert.equal((await call('POST', '/api/team/join', { name: 'سارة', email: 'sara@example.com', phone: '12' })).status, 400);
 });
 
 test('joining gives a code; joining twice is refused', async () => {

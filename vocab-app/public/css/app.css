@@ -3326,3 +3326,9 @@ body.reader-focus #setBtn, body.reader-focus #wordsBtn, body.reader-focus #gptTo
 .tabbar a.tab-add:active .tab-add-ic { transform: scale(.94); }
 .tabbar a.tab-add.active .tab-add-ic { background: var(--accent); outline: 3px solid color-mix(in srgb, var(--accent) 22%, transparent); }
 .tabbar a.tab-add svg { color: inherit; }
+
+/* ⚙ settings: every social icon shows; the ones not filled yet are dimmed (tap → «قريبًا») */
+.soc-row { flex-wrap: wrap; }
+button.soc-ic { padding: 0; cursor: pointer; font: inherit; }
+.soc-ic.soc-off { opacity: .45; }
+.soc-ic.soc-off:hover, .soc-ic.soc-off:focus-visible { background: var(--surface); color: var(--accent); transform: none; opacity: .7; }

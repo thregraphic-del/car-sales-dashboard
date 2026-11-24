@@ -39,3 +39,12 @@ export function socialRow(c) {
   if (!links.length) return '';
   return `<div class="soc-row" aria-label="تواصل معنا">${links.map((l) => `<a class="soc-ic ${l.key}" href="${esc(l.href)}" ${l.href.startsWith('http') ? 'target="_blank" rel="noopener"' : ''} aria-label="${l.label}" title="${l.label}">${ICONS[l.key]}</a>`).join('')}</div>`;
 }
+
+const ALL = ['whatsapp', 'instagram', 'tiktok', 'youtube', 'snapchat', 'x', 'facebook', 'telegram', 'mail'];
+/** Every platform: the filled ones open our account, the empty ones show «قريبًا» (the owner fills them from the control panel). */
+export function socialRowAll(c) {
+  const have = Object.fromEntries(socialLinks(c).map((l) => [l.key, l]));
+  return `<div class="soc-row" aria-label="تواصل معنا">${ALL.map((k) => have[k]
+    ? `<a class="soc-ic ${k}" href="${esc(have[k].href)}" ${have[k].href.startsWith('http') ? 'target="_blank" rel="noopener"' : ''} aria-label="${LABEL[k]}" title="${LABEL[k]}">${ICONS[k]}</a>`
+    : `<button type="button" class="soc-ic ${k} soc-off" data-soon="${LABEL[k]}" aria-label="${LABEL[k]}" title="${LABEL[k]}">${ICONS[k]}</button>`).join('')}</div>`;
+}

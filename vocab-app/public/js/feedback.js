@@ -4,9 +4,7 @@ import { esc, toast, openModal, closeModal, relDate, $ } from './ui.js';
 
 const formHtml = () => `
   <label class="field">اقتراحك أو ملاحظتك
-    <textarea class="input" id="fbMsg" rows="4" maxlength="2000" placeholder="مثلًا: أتمنى إضافة… / واجهت مشكلة في…"></textarea></label>
-  <label class="field">وسيلة للتواصل معك (اختياري)
-    <input class="input" id="fbContact" maxlength="120" placeholder="بريد أو رقم — إن أردت أن نرد عليك"></label>`;
+    <textarea class="input" id="fbMsg" rows="4" maxlength="2000" placeholder="مثلًا: أتمنى إضافة… / واجهت مشكلة في…"></textarea></label>`;
 
 async function send(root) {
   const message = root.querySelector('#fbMsg').value.trim();
@@ -14,7 +12,7 @@ async function send(root) {
     toast('اكتب اقتراحك أولًا');
     return false;
   }
-  await api.sendFeedback({ message, contact: root.querySelector('#fbContact').value.trim(), page: location.hash.slice(0, 120) });
+  await api.sendFeedback({ message, page: location.hash.slice(0, 120) });
   toast('وصلنا اقتراحك — شكرًا لك! 💡');
   return true;
 }
@@ -22,7 +20,6 @@ async function send(root) {
 /** The suggestion form in a window (from the menu). */
 export function openFeedback() {
   openModal(`<h2 style="margin-bottom:6px">💡 اقتراحاتكم</h2>
-    <p class="small ink-2">ساعدنا نطوّر الموقع: اكتب أي فكرة أو ميزة تتمناها أو مشكلة واجهتك.</p>
     ${formHtml()}
     <div class="btn-row" style="margin-top:12px"><button class="btn primary" id="fbSend">إرسال</button><button class="btn ghost" data-close>إلغاء</button></div>`);
   const root = $('#modalRoot');
@@ -44,7 +41,6 @@ export const feedbackCardHtml = () => `
   <details class="card fb-fold" id="feedbackCard">
     <summary class="fb-sum">💡 اقتراحاتكم</summary>
     <div class="stack" style="margin-top:10px">
-      <p class="small ink-2" style="margin:0">اكتب أي فكرة أو ميزة تتمناها أو مشكلة واجهتك.</p>
       ${formHtml()}
       <button class="btn primary sm" id="fbSend" style="justify-self:start">إرسال</button>
       <div id="fbInbox"></div>

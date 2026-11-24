@@ -87,10 +87,10 @@ export async function join(userId, { name, email, phone }) {
   if (await memberOfUser(userId)) throw httpError(409, 'أنت عضو في الفريق من قبل.');
   const n = clean(name, 60);
   const e = clean(email, 120).toLowerCase();
-  const p = normPhone(phone);
+  const p = normPhone(phone) || '';
   if (n.length < 2) throw httpError(400, 'اكتب اسمك.');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e)) throw httpError(400, 'اكتب إيميلًا صحيحًا.');
-  if (!p) throw httpError(400, 'اكتب رقم جوال صحيحًا.');
+  // email / phone are optional now: they come from the account when it has them
+  if (e && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e)) throw httpError(400, 'اكتب إيميلًا صحيحًا.');
   for (let i = 0; i < 60; i += 1) {
     try {
       await insert('INSERT INTO team_members (user_id, name, email, phone, code, created_at) VALUES (?,?,?,?,?,?)', userId, n, e, p, makeCode(i < 40 ? 3 : 4), nowIso());

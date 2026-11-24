@@ -34,30 +34,15 @@ export function bindTeamCard(view) {
 }
 
 export async function openTeam() {
+  // not registered yet → the sign-up page first (the team code needs an account)
+  if (state.user?.guest) { toast('سجّل حسابك أولًا ثم ارجع لهنا'); location.href = '/register'; return; }
   let me;
-  try { me = (await api.teamMe()).member; } catch (err) { return toast(err.message); }
+  try {
+    me = (await api.teamMe()).member;
+    if (!me) me = (await api.teamJoin({})).member; // automatic: name / email / phone come from the account
+  } catch (err) { return toast(err.message); }
   const box = openModal('<div class="tm-modal" id="tmBody"><p class="muted"><span class="spinner"></span></p></div>');
   const body = box.querySelector('#tmBody');
-  const showForm = () => {
-    const u = state.user || {};
-    body.innerHTML = `<h3 style="margin:0 0 4px">انضم لفريقنا</h3>
-      <p class="small muted" style="margin:0 0 12px">اكتب بياناتك وبنعطيك كودًا خاصًا فيك. كل من يسجّل ويشترك بكودك تحصل على عمولة، وإذا وصل رصيدك للحد الأدنى تطلب التحويل.</p>
-      <form id="tmForm" class="stack" style="gap:10px">
-        <label class="field">الاسم<input class="input" id="tmName" maxlength="60" required value="${esc(u.name && u.name !== 'Learner' ? u.name : '')}" autocomplete="name"></label>
-        <label class="field">الإيميل<input class="input en" id="tmEmail" type="email" maxlength="120" required autocomplete="email"></label>
-        <label class="field">رقم الجوال<input class="input en" id="tmPhone" type="tel" inputmode="tel" maxlength="20" placeholder="05xxxxxxxx" required autocomplete="tel"></label>
-        <div class="alert bad hidden" id="tmErr" role="alert"></div>
-        <button class="btn primary lg" type="submit" id="tmGo">احصل على كودي</button>
-      </form>`;
-    body.querySelector('#tmForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = body.querySelector('#tmGo'); btn.disabled = true;
-      try {
-        me = (await api.teamJoin({ name: body.querySelector('#tmName').value, email: body.querySelector('#tmEmail').value, phone: body.querySelector('#tmPhone').value })).member;
-        showMe();
-      } catch (err) { const el = body.querySelector('#tmErr'); el.textContent = err.message; el.classList.remove('hidden'); btn.disabled = false; }
-    });
-  };
   const showMe = () => {
     const link = `${location.origin}/register?ref=${encodeURIComponent(me.code)}`;
     const pct = Math.min(100, Math.round((me.available / Math.max(1, me.min_payout_cents)) * 100));
@@ -69,9 +54,10 @@ export async function openTeam() {
       ${declined ? `<div class="alert bad">ما قدرنا ننفّذ آخر طلب تحويل${declined.note ? `: ${esc(declined.note)}` : ''}. تواصل معنا.</div>` : ''}
       <div class="tm-opt"><div class="tm-code"><span class="tiny muted">كودك</span><b class="en-inline" id="tmCode">${esc(me.code)}</b>
           <button type="button" class="btn sm ghost" id="tmCopy" aria-label="نسخ الكود" title="نسخ الكود">${IC.copy} نسخ</button></div>
-        <p class="tm-note"><b>بالكود:</b> قل لمن تبي «سجّل واكتب كودي <span class="en-inline">${esc(me.code)}</span> في خانة الكود».</p></div>
+        </div>
       <div class="tm-opt"><div class="tm-link"><div class="row" style="gap:8px"><input class="input en" id="tmLink" readonly value="${esc(link)}" aria-label="رابطك الخاص"><button type="button" class="btn sm" id="tmCopyLink">نسخ الرابط</button></div></div>
-        <p class="tm-note"><b>بالرابط:</b> أرسله له، وإذا فتحه وسجّل ينحسب لك بدون ما يكتب شيء.</p></div>
+        </div>
+      <p class="tm-note" style="text-align:center;margin:10px 0"><b>شاركه وبيرجع لك نقاط 🎯</b></p>
       <button type="button" class="btn lg tm-share" id="tmShare">شارك رابطك وكودك</button>
       <div class="tm-stats">
         <div><b>${me.referrals}</b><span class="tiny muted">سجّلوا بكودك</span></div>
@@ -105,5 +91,5 @@ export async function openTeam() {
     });
     if (thanks || declined) api.teamAck().catch(() => {});
   };
-  if (me) showMe(); else showForm();
+  showMe();
 }

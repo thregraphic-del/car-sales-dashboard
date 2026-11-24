@@ -168,6 +168,20 @@ export async function login({ username, password }, ip) {
   return user;
 }
 
+export async function changeUsername(user, username) {
+  if (!user.password_hash) throw httpError(400, 'سجّل حسابك أولًا.');
+  const { u } = validCredentials(username, 'x');
+  const other = await findByUsername(u);
+  if (other && other.id !== user.id) throw httpError(409, 'اسم المستخدم مستخدم بالفعل. اختر اسمًا آخر.');
+  try {
+    await setCredentials(user.id, u, user.password_hash);
+  } catch (err) {
+    if (/unique|duplicate/i.test(err.message)) throw httpError(409, 'اسم المستخدم مستخدم بالفعل. اختر اسمًا آخر.');
+    throw err;
+  }
+  return getUser(user.id);
+}
+
 export async function changePassword(user, { current, password }) {
   if (!await verifyPassword(String(current || ''), user.password_hash)) throw httpError(401, 'كلمة المرور الحالية غير صحيحة.');
   const { p } = validCredentials(user.username, password);
