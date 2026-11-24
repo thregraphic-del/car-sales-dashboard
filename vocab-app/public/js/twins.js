@@ -32,7 +32,7 @@ export async function runTwins(stage, { onExit } = {}) {
   const myGroups = groupsFromMyWords(mine);
 
   const choose = () => {
-    stage.innerHTML = `<div class="card tw-card"><div class="tw-big">${icon.search}</div><h2>Word Twins</h2>
+    stage.innerHTML = `<div class="card tw-card"><div class="tw-big">${icon.search}</div><h2>المتشابهة</h2>
       <p class="small ink-2">كلمات تتشابه في النطق أو الكتابة — تعرّف عليها ثم اختبر نفسك.</p>
       <button class="btn primary lg" id="twAsk">اختر مصدر التدريب</button></div>`;
     stage.querySelector('#twAsk').addEventListener('click', ask);

@@ -13,7 +13,7 @@ import { renderBuilder } from '../practice-builder.js';
 import { renderGrammarSection } from '../grammar-practice.js';
 import { runTwins } from '../twins.js';
 
-const twinsCard = () => `<a class="card tw-entry" href="#/practice?mode=twins"><span class="tw-entry-ic">${icon.search}</span><span><b>Word Twins</b><small>كلمات متشابهة في النطق أو الكتابة — تعرّف عليها واختبر نفسك</small></span><span class="tw-entry-go" aria-hidden="true">‹</span></a>`;
+const twinsCard = () => `<a class="card tw-entry" href="#/practice?mode=twins"><span class="tw-entry-ic">${icon.search}</span><span><b>المتشابهة</b><small>كلمات متشابهة في النطق أو الكتابة — تعرّف عليها واختبر نفسك</small></span><span class="tw-entry-go" aria-hidden="true">‹</span></a>`;
 
 // البطاقات والقصة صارت ضمن الألعاب (وفي اختيار التدريب)، وروابطها القديمة تعمل.
 const FOCUS = [
@@ -36,7 +36,7 @@ function saveSeen(id, set) {
 export async function render(view, { params }) {
   await loadGroups();
   if (params.mode === 'twins') {
-    view.innerHTML = `<div class="page-head compact"><div><h1>Word Twins</h1></div><a class="btn sm ghost" href="#/practice">${icon.prev} عد إلى الألعاب</a></div><div id="stage"></div>`;
+    view.innerHTML = `<div class="page-head compact"><div><h1>المتشابهة</h1></div><a class="btn sm ghost" href="#/practice">${icon.prev} عد إلى الألعاب</a></div><div id="stage"></div>`;
     const stopTwins = await runTwins(view.querySelector('#stage'));
     return () => stopTwins();
   }
@@ -122,7 +122,7 @@ export async function render(view, { params }) {
       { mode: 'cards', icon: icon.cards, name: 'البطاقات', desc: 'تذكّر وقيّم نفسك' },
       { mode: 'listen', icon: icon.headphones, name: 'استماع', desc: 'اسمع الكلمة ومعناها' },
       { mode: 'story', icon: icon.bookOpen, name: 'قصة', desc: 'قصة بكلماتك' },
-      { mode: 'twins', icon: icon.search, name: 'Word Twins', desc: 'كلمات متشابهة' },
+      { mode: 'twins', icon: icon.search, name: 'المتشابهة', desc: 'كلمات متشابهة' },
       ...GAME_ORDER.filter((k) => k !== 'similar').map((k) => ({ mode: 'games', type: k, icon: icon[TYPES[k].icon] || '🎮', name: TYPES[k].name, desc: TYPES[k].description })),
     ];
     renderBuilder(stage, {
