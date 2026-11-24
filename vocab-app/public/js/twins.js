@@ -139,7 +139,7 @@ export async function runTwins(stage, { onExit } = {}) {
           ? `<div class="prompt">استمع، ثم اختر المعنى</div><button type="button" class="btn lg" id="twSay">🔊 استمع</button><div class="q-big en tw-say-word" dir="ltr">${esc(w.term)}</div>${w.pr ? `<div class="tw-pr">تُنطق: <b>${esc(w.pr)}</b></div>` : ''}`
           : `<div class="prompt">ما معنى</div><div class="q-big en" dir="ltr">${esc(w.term)}</div>`;
       stage.innerHTML = `${head(gi, n)}<div class="tiny muted" style="margin-bottom:6px">سؤال ${qi + 1} من ${qn}</div>
-        <div class="card question">${prompt}${kind !== 'def' && w.def ? '<button type="button" class="link-btn small tw-hint-btn" id="twHint">💡 تلميح</button><div class="tw-hint hidden en-inline" id="twHintBox" dir="ltr"></div>' : ''}</div>
+        <div class="card question">${prompt}${w.exEn ? '<button type="button" class="link-btn small tw-hint-btn" id="twHint">💡 تلميح (مثال)</button><div class="tw-hint hidden" id="twHintBox"></div>' : ''}</div>
         <div class="options">${finalOpts.map((o, k) => `<button class="option" data-k="${k}">${esc(o)}</button>`).join('')}</div>
         <div class="feedback" id="fb"></div>`;
       stage.querySelector('#twEnd').addEventListener('click', () => { ended = true; clearTimeout(timer); resolve(null); });
@@ -147,7 +147,7 @@ export async function runTwins(stage, { onExit } = {}) {
         setTimeout(() => speak(w.term, { auto: true }).catch(() => {}), 250);
         stage.querySelector('#twSay').addEventListener('click', () => speak(w.term).catch(() => {}));
       }
-      stage.querySelector('#twHint')?.addEventListener('click', (e) => { const box = stage.querySelector('#twHintBox'); box.textContent = w.def; box.classList.remove('hidden'); e.currentTarget.remove(); });
+      stage.querySelector('#twHint')?.addEventListener('click', (e) => { const box = stage.querySelector('#twHintBox'); box.innerHTML = `<div class="en-inline" dir="ltr">${esc(w.exEn)}</div><div class="tw-hint-ar">${esc(w.exAr)}</div>`; box.classList.remove('hidden'); e.currentTarget.remove(); });
       let answered = false;
       stage.querySelectorAll('.option').forEach((btn) => btn.addEventListener('click', () => {
         if (answered) return;
