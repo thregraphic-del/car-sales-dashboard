@@ -1,7 +1,7 @@
 // 👯 Word Twins — look-alike / sound-alike words. Pick the source (the 100-group file or your own words),
 // see each group side by side, answer a question per word, then keep the groups in «كلماتي» if you want.
 import { api } from './api.js';
-import { speak } from './audio.js';
+import { speak, stop as stopSound } from './audio.js';
 import { TWINS } from './data/twins-data.js';
 import { buildGroups } from './games/similar.js';
 import { esc, shuffle, toast, openModal, closeModal, icon } from './ui.js';
@@ -29,7 +29,7 @@ export async function runTwins(stage, { onExit } = {}) {
   let stopped = false;
   let ended = false; // «أنهِ التدريب»: show the result of what was done
   let timer = null;
-  const stop = () => { stopped = true; clearTimeout(timer); };
+  const stop = () => { stopped = true; clearTimeout(timer); stopSound(); };
 
   let mine = [];
   try { mine = await api.words(); } catch { /* the file still works */ }
@@ -110,6 +110,7 @@ export async function runTwins(stage, { onExit } = {}) {
   // 1) the twins side by side
   function study(g, gi, n) {
     return new Promise((resolve) => {
+      stopSound(); // nothing from the previous word keeps playing
       stage.innerHTML = `${head(gi, n)}
         <div class="card tw-study" data-no-sayar><div class="tw-lead">انتبه للفرق بين هذه الكلمات ${g.level ? `<span class="chip tw-lv">${g.level}</span>` : ''}</div>
           <div class="tw-row">${g.words.map((w) => `<div class="tw-w">
@@ -128,6 +129,7 @@ export async function runTwins(stage, { onExit } = {}) {
   // 2) one question per word: pick the Arabic meaning (the question is shown in different ways)
   function question(g, { w, kind }, pool, gi, n, qi, qn) {
     return new Promise((resolve) => {
+      stopSound(); // a slow phone voice of the previous word must not play over this one
       const sib = g.words.filter((x) => x !== w).map((x) => x.ar);
       const extra = shuffle(pool.filter((x) => x.ar && x.ar !== w.ar && !sib.includes(x.ar)).map((x) => x.ar));
       const finalOpts = shuffle([w.ar, ...sib, ...extra].filter((a, i, arr) => a && arr.indexOf(a) === i).slice(0, 4));
@@ -165,6 +167,7 @@ export async function runTwins(stage, { onExit } = {}) {
 
   // 3) the result and the offer to keep the groups
   function finish(done, total, src, meta = { part: 0, parts: 1, all: [] }) {
+    stopSound();
     if (!done.length) { stage.innerHTML = `<div class="card tw-card"><p>ما أكملت أي مجموعة.</p><a class="btn" href="#/practice">رجوع</a></div>`; return; }
     const mastered = done.filter((d) => d.right === d.total).length;
     const pct = Math.round((100 * mastered) / done.length);
