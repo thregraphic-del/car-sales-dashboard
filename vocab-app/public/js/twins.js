@@ -134,7 +134,7 @@ export async function runTwins(stage, { onExit } = {}) {
       const prompt = kind === 'def'
         ? `<div class="prompt">أي معنى يناسب هذا التعريف؟</div><div class="q-big en tw-q-def" dir="ltr">${esc(w.def)}</div>`
         : kind === 'listen'
-          ? `<div class="prompt">استمع، ثم اختر المعنى</div><button type="button" class="btn lg" id="twSay">🔊 استمع</button>`
+          ? `<div class="prompt">استمع، ثم اختر المعنى</div><button type="button" class="btn lg" id="twSay">🔊 استمع</button><div class="q-big en tw-say-word" dir="ltr">${esc(w.term)}</div>${w.pr ? `<div class="tw-pr">تُنطق: <b>${esc(w.pr)}</b></div>` : ''}`
           : `<div class="prompt">ما معنى</div><div class="q-big en" dir="ltr">${esc(w.term)}</div>`;
       stage.innerHTML = `${head(gi, n)}<div class="tiny muted" style="margin-bottom:6px">سؤال ${qi + 1} من ${qn}</div>
         <div class="card question">${prompt}${kind !== 'def' && w.def ? '<button type="button" class="link-btn small tw-hint-btn" id="twHint">💡 تلميح</button><div class="tw-hint hidden en-inline" id="twHintBox" dir="ltr"></div>' : ''}</div>

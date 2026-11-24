@@ -3373,3 +3373,4 @@ button.soc-ic { padding: 0; cursor: pointer; font: inherit; }
 .tw-study .say-ar { display: none; }
 .tw-best { color: var(--accent); font-size: 12.5px; font-weight: 700; margin-inline-start: 6px; }
 .tw-pr { color: var(--muted); font-size: 13.5px; } .tw-pr b { color: var(--accent); font-size: 15px; }
+.tw-say-word { margin-top: 10px; font-size: 26px !important; }
