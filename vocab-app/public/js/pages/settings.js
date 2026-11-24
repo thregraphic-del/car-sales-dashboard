@@ -7,7 +7,18 @@ import { refreshStats } from '../app.js';
 import { readDataFiles, importSnapshot, countsOf, TABLES } from '../data-transfer.js';
 import { feedbackCardHtml, bindFeedbackCard } from '../feedback.js';
 import { costReportHtml, bindCostReport } from '../cost-report.js';
-import { teamCardHtml, bindTeamCard } from '../team.js';
+import { bindTeamCard } from '../team.js';
+import { socialRow } from '../social.js';
+
+// one icon family for the page: thin outline, same size (the section icons come from the shared set)
+const SVG = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const I = {
+  user: SVG('<circle cx="12" cy="8" r="3.6"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>'),
+  ticket: SVG('<path d="M4 8a2 2 0 0 0 0 8v2h16v-2a2 2 0 0 1 0-8V6H4z"/><path d="M10 9v6" stroke-dasharray="1.5 2.5"/>'),
+};
+// the colours the learner can give the words (same lists as the clip settings; the first of each is the default)
+const MK_NEW = [['#FF8A24', 'برتقالي'], ['#0ABAB5', 'تيفاني'], ['#22a35a', 'أخضر'], ['#3b82f6', 'أزرق'], ['#ec4899', 'وردي']];
+const MK_MINE = [['#4FD6D0', 'تيفاني فاتح'], ['#0B7F7B', 'تيفاني غامق'], ['#8b5cf6', 'بنفسجي'], ['#64748b', 'رمادي'], ['#3b82f6', 'أزرق']];
 
 const TABLE_LABELS = {
   sources: 'مصادر', transcript_lines: 'أسطر نص', vocabulary: 'مفردات', examples: 'أمثلة', occurrences: 'سياقات', user_vocabulary: 'كلماتك',
@@ -33,50 +44,50 @@ export async function render(view) {
   view.innerHTML = `
     <div class="page-head"><div><div class="eyebrow">Settings</div><h1>الإعدادات</h1></div></div>
     <div class="set-secs">
-      <details class="set-sec"><summary><span class="ss-i">👤</span><b>حسابي</b></summary><div class="ss-body">
+      <details class="set-sec" open><summary><span class="ss-i">${I.user}</span><b>بياناتي الشخصية</b></summary><div class="ss-body">
         <section class="set-card">
-        <div class="set-line"><label class="set-lbl" for="name">الاسم</label><input class="input" id="name" value="${esc(u.name)}"><button class="btn primary sm" id="saveProfile">حفظ</button></div>
-        ${swItem('darkSw', '🌙 الوضع الداكن', '', '', theme === 'dark')}
+          <div class="set-line"><label class="set-lbl" for="name">الاسم</label><input class="input" id="name" value="${esc(u.name)}"><button class="btn primary sm" id="saveProfile">حفظ</button></div>
         </section>
-      ${cfg.auth?.required && u.guest ? `<section class="set-card guest-settings"><b>👤 أنت ضيف</b><a class="btn primary" href="/register" style="justify-self:start">سجّل حسابك المجاني</a><a class="link-btn small" href="/login" style="justify-self:start">عندي حساب</a></section>` : ''}
-      ${cfg.auth?.required && !u.guest ? '<button class="btn ghost" id="logout" style="justify-self:start">تسجيل الخروج</button>' : ''}
-      ${cfg.auth?.required && !u.guest ? `<div class="card stack">
-        <b>الحساب</b>
-        <div class="row between small"><span>اسم المستخدم</span><span class="chip en-inline">${esc(u.username || '')}</span></div>
-        <div class="row between small"><span>نوع الحساب</span><span class="chip ar-chip">${u.role === 'admin' ? 'المسؤول' : 'متعلّم'}</span></div>
-        <p class="tiny muted">كلماتك ومجموعاتك وتقدّمك وفيديوهاتك خاصة بحسابك — لا يراها أي حساب آخر.</p>
-        <form id="emForm" class="row wrap" style="gap:8px;align-items:flex-end"><label class="field" style="flex:1;min-width:200px">✉️ الإيميل <span class="tiny muted">(يوصلك عليه كود إذا نسيت كلمة المرور)</span><input class="input en" type="email" id="emIn" autocomplete="email" placeholder="you@gmail.com"></label><button class="btn" type="submit">حفظ الإيميل</button></form>
-        <form id="phForm" class="row wrap" style="gap:8px;align-items:flex-end"><label class="field" style="flex:1;min-width:200px">📱 رقم الجوال <span class="tiny muted">(تقدر تدخل فيه بدل اسم المستخدم)</span><input class="input en" type="tel" inputmode="tel" id="phIn" autocomplete="tel" placeholder="05xxxxxxxx"></label><button class="btn" type="submit">حفظ الرقم</button></form>
-        <p class="tiny muted">تقدر تسجّل دخولك باسم المستخدم أو الإيميل أو رقم الجوال.</p>
-        <form id="pwForm" class="stack" autocomplete="on">
-          <input class="hidden" autocomplete="username" value="${esc(u.username || '')}" readonly>
-          <label class="field">كلمة المرور الحالية<input class="input en" type="password" id="pwOld" autocomplete="current-password" required></label>
-          <label class="field">كلمة مرور جديدة<input class="input en" type="password" id="pwNew" autocomplete="new-password" required></label>
-          <button class="btn" type="submit" style="justify-self:start">تغيير كلمة المرور</button>
-        </form>
-      </div>` : ''}
+        ${cfg.auth?.required && u.guest ? `<section class="set-card guest-settings"><b>أنت ضيف</b><a class="btn primary" href="/register" style="justify-self:start">سجّل حسابك المجاني</a><a class="link-btn small" href="/login" style="justify-self:start">عندي حساب</a></section>` : ''}
+      ${cfg.auth?.required && !u.guest ? `<section class="set-card acc">
+        <div class="mk-line"><span>اسم المستخدم</span><span class="chip en-inline">${esc(u.username || '')}</span></div>
+        <form id="emForm" class="acc-form"><label for="emIn">الإيميل</label><input class="input en" type="email" id="emIn" autocomplete="email" placeholder="you@gmail.com"><button class="btn sm" type="submit">حفظ</button></form>
+        <form id="phForm" class="acc-form"><label for="phIn">الجوال</label><input class="input en" type="tel" inputmode="tel" id="phIn" autocomplete="tel" placeholder="05xxxxxxxx"><button class="btn sm" type="submit">حفظ</button></form>
+        <details class="acc-pw"><summary>تغيير كلمة المرور</summary>
+          <form id="pwForm" class="stack" autocomplete="on">
+            <input class="hidden" autocomplete="username" value="${esc(u.username || '')}" readonly>
+            <input class="input en" type="password" id="pwOld" autocomplete="current-password" placeholder="الحالية" required>
+            <input class="input en" type="password" id="pwNew" autocomplete="new-password" placeholder="الجديدة" required>
+            <button class="btn sm" type="submit" style="justify-self:start">تغيير</button>
+          </form>
+        </details>
+      </section>` : ''}
+        <button type="button" class="set-rowbtn" id="joinTeam"><span class="ss-i sm">${I.ticket}</span><span><b>كود الخصم الخاص</b><small>احصل على كودك ورابطك</small></span></button>
       </div></details>
-      <details class="set-sec"><summary><span class="ss-i">🔊</span><b>التشغيل (الصوت والفيديو)</b></summary><div class="ss-body">
-        <section class="set-card">
-          <h3 class="set-h">🔊 التشغيل</h3>
+
+      <details class="set-sec"><summary><span class="ss-i">${icon.palette}</span><b>المظهر والتفضيلات</b></summary><div class="ss-body">
+        <h4 class="set-sub">المظهر</h4>
+        ${swItem('darkSw', 'الوضع الداكن', '', '', theme === 'dark')}
+        <div class="mk-line"><span>لون الكلمات الجديدة</span><span class="mk-sws" data-mkrow="new">${MK_NEW.map(([c, n]) => `<button type="button" class="mk-sw${(ls('reader.mkNew', MK_NEW[0][0]) === c) ? ' on' : ''}" data-setmk="new:${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span></div>
+        <div class="mk-line"><span>لون كلماتي</span><span class="mk-sws" data-mkrow="mine">${MK_MINE.map(([c, n]) => `<button type="button" class="mk-sw${(ls('reader.mkMine', MK_MINE[0][0]) === c) ? ' on' : ''}" data-setmk="mine:${c}" style="--c:${c}" title="${n}" aria-label="${n}"></button>`).join('')}</span></div>
+        <h4 class="set-sub">الصوت</h4>
           <div class="set-line"><span class="set-lbl">سرعة النطق</span><input type="range" id="rate" min="0.6" max="1.3" step="0.05" value="${u.speech_rate}" style="accent-color:var(--accent);flex:1"><b id="rateVal" class="en-inline">${u.speech_rate}×</b></div>
-          ${swItem('ar', 'انطق العربي أيضًا', '', '', u.speak_arabic)}
-          ${swItem('wideSw', 'المقطع يفتح بشاشة موسّعة', '', '', ls('app.openWide2', '0') === '1')}
-          ${swItem('autoSw', 'احفظ كلمات المقطع تلقائيًا', '', '', ls('app.autoSave', '0') === '1')}
-          <button class="btn sm ghost" id="test" style="justify-self:start">${icon.speaker} جرّب الصوت</button>
-        </section>
+        ${swItem('ar', 'انطق العربي أيضًا', '', '', u.speak_arabic)}
+        <button class="btn sm ghost" id="test" style="justify-self:start">${icon.speaker} جرّب الصوت</button>
+        <h4 class="set-sub">الأهداف اليومية</h4>
+        ${['pass', 'practice'].map((k) => `<div class="mk-line"><span>${k === 'pass' ? 'كلمات جديدة' : 'أسئلة تدريب'}</span><span class="goal-num"><input class="input en-inline" data-gbn="${k}" type="number" inputmode="numeric" min="1" max="${GOAL_TYPES[k].max}" value="${goalFor(k)}"> <span class="small">كل يوم</span></span></div>`).join('')}
+        ${ADVANCED_GOALS.map((k) => swItem(`adv_${k}`, k === 'watch' ? 'هدف وقت الموقع' : 'هدف القواعد', '', `<span class="goal-num"><input class="input en-inline" data-advn="${k}" type="number" inputmode="numeric" min="${GOAL_TYPES[k].min}" max="${GOAL_TYPES[k].max}" value="${goalFor(k)}"> <span class="small">${GOAL_TYPES[k].unit} كل يوم</span></span>`, goalTypes().includes(k))).join('')}
+        <h4 class="set-sub">التشغيل</h4>
+        ${swItem('wideSw', 'المقطع يفتح بشاشة موسّعة', '', '', ls('app.openWide2', '0') === '1')}
+        ${swItem('autoSw', 'احفظ كلمات المقطع تلقائيًا', '', '', ls('app.autoSave', '0') === '1')}
       </div></details>
-      <details class="set-sec"><summary><span class="ss-i">🎯</span><b>أهداف إضافية</b></summary><div class="ss-body">
-        <section class="set-card">
-          <h3 class="set-h">🎯 أهداف إضافية</h3>
-          ${ADVANCED_GOALS.map((k) => swItem(`adv_${k}`, `${k === 'watch' ? '⏱ كم قعدت في الموقع' : '📖 القواعد والأمثلة'}`, '', `<span class="goal-num"><input class="input en-inline" data-advn="${k}" type="number" inputmode="numeric" min="${GOAL_TYPES[k].min}" max="${GOAL_TYPES[k].max}" value="${goalFor(k)}"> <span class="small">${GOAL_TYPES[k].unit} كل يوم</span></span>`, goalTypes().includes(k))).join('')}
-        </section>
+
+      <details class="set-sec"><summary><span class="ss-i">${icon.chat}</span><b>التواصل</b></summary><div class="ss-body">
+        ${socialRow(cfg.contact) || '<p class="small muted" style="margin:0">قريبًا.</p>'}
+        ${feedbackCardHtml()}
       </div></details>
-      <details class="set-sec"><summary><span class="ss-i">🤝</span><b>الفريق والتواصل</b></summary><div class="ss-body">
-      ${feedbackCardHtml()}
-      ${teamCardHtml(cfg)}
-      </div></details>
-      <details class="set-sec"><summary><span class="ss-i">💾</span><b>بياناتي</b></summary><div class="ss-body">
+
+      <details class="set-sec"><summary><span class="ss-i">${icon.settings}</span><b>متقدم</b></summary><div class="ss-body">
       <div class="card stack" style="grid-column:1/-1">
         <b>بياناتك</b>
         <div id="counts" class="small muted">…</div>
@@ -105,8 +116,7 @@ export async function render(view) {
         <div class="row between small"><span>قاعدة البيانات</span><span class="chip en-inline">${cfg.database.engine === 'postgres' ? 'Postgres' : 'SQLite (محلي)'}</span></div>
         </div></details>
       </div>
-      </div></details>
-      ${cfg.can_set_paid || !cfg.auth?.required || u.role === 'admin' || cfg.features?.demo_reset ? `<details class="set-sec"><summary><span class="ss-i">🔒</span><b>للمالك</b></summary><div class="ss-body">
+${cfg.can_set_paid ? '<a class="set-rowbtn" href="/admin.html"><span class="ss-i sm">'+icon.sliders+'</span><span><b>لوحة التحكم</b></span></a>' : ''}
       ${cfg.can_set_paid ? `<div class="card stack" style="grid-column:1/-1" id="paidCard">
         <b>🔒 ميزات مدفوعة — لك أنتِ فقط</b>
         <p class="tiny muted" style="margin:0">تستهلك رصيد الذكاء الاصطناعي، فهي <b>مطفية</b> عندك وغير موجودة أصلًا عند غيرك. شغّليها للضرورة وأطفيها بعدها. (البديل المجاني: زر ChatGPT.)</p>
@@ -119,7 +129,9 @@ export async function render(view) {
         <p class="small ink-2">إعادة تعيين البيانات التجريبية تحذف كل شيء (بما فيه كلماتك) وتعيد إنشاء الفيديوهات والكلمات التجريبية.</p>
         <button class="btn bad" id="reset" style="justify-self:start">${icon.trash} إعادة تعيين البيانات التجريبية</button>
       </div>` : ''}
-      </div></details>` : ''}
+      </div></details>
+
+      ${cfg.auth?.required && !u.guest ? '<button type="button" class="btn set-logout" id="logout">تسجيل الخروج</button>' : ''}
     </div>`;
 
   const $ = (s) => view.querySelector(s);
@@ -144,6 +156,13 @@ export async function render(view) {
     setGoalTypes([...now]);
   }));
   view.querySelectorAll('[data-advn]').forEach((i) => i.addEventListener('change', () => setGoalN(i.dataset.advn, Number(i.value))));
+  view.querySelectorAll('[data-setmk]').forEach((b) => b.addEventListener('click', () => {
+    const [which, color] = b.dataset.setmk.split(':');
+    lsSet(which === 'new' ? 'reader.mkNew' : 'reader.mkMine', color);
+    document.documentElement.style.setProperty(which === 'new' ? '--mk-new' : '--mk-mine', color);
+    b.parentElement.querySelectorAll('.mk-sw').forEach((x) => x.classList.toggle('on', x === b));
+  }));
+  view.querySelectorAll('[data-gbn]').forEach((i) => i.addEventListener('change', () => setGoalN(i.dataset.gbn, Number(i.value))));
   bindSw('darkSw', (on) => { const t = on ? 'dark' : 'light'; try { localStorage.setItem('theme', t); } catch { /* ignore */ } applyTheme(t); });
   bindSw('wideSw', (on) => lsSet('app.openWide2', on ? '1' : '0'));
   bindSw('autoSw', (on) => lsSet('app.autoSave', on ? '1' : '0'));

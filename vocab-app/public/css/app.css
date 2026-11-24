@@ -3296,3 +3296,25 @@ body.reader-focus #setBtn, body.reader-focus #wordsBtn, body.reader-focus #gptTo
 .sample b { font-size: 13px; }
 .cs-tip { display: grid; gap: 6px; }
 .cs-tip p { margin: 0; }
+
+/* ⚙️ settings: one icon family (thin outline), clear groups, a lone red logout */
+.ss-i svg { width: 21px; height: 21px; color: var(--accent); }
+.ss-i.sm { width: 34px; height: 34px; border-radius: 12px; flex: none; } .ss-i.sm svg { width: 18px; height: 18px; }
+.set-sub { margin: 10px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 12.5px; font-weight: 800; color: var(--muted); letter-spacing: .2px; }
+.set-sub:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.mk-line { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-weight: 700; font-size: 14.5px; min-height: 38px; }
+.mk-sws { display: inline-flex; gap: 8px; }
+.mk-line .goal-num .input { width: 74px; padding: 7px 8px; text-align: center; }
+.set-rowbtn { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 14px; border: 1.5px solid var(--line); border-radius: 17px; background: var(--surface); color: var(--ink); text-align: start; cursor: pointer; text-decoration: none; font: inherit; }
+.set-rowbtn b { display: block; font-size: 14.5px; } .set-rowbtn small { display: block; color: var(--muted); font-size: 12px; font-weight: 500; }
+.btn.set-logout { display: flex; width: 100%; max-width: 720px; justify-content: center; margin-top: 8px; min-height: 50px; border-radius: 99px; background: #D93025; border-color: #D93025; color: #fff; font-weight: 800; font-size: 16px; }
+.btn.set-logout:hover, .btn.set-logout:focus-visible { filter: brightness(.94); }
+.ss-body .soc-row { justify-content: flex-start; margin-top: 0; }
+.ss-body .fb-fold { border: 1.5px solid var(--line) !important; border-radius: 17px !important; padding: 10px 14px !important; }
+.acc { display: grid; gap: 10px; }
+.acc-form { display: grid; grid-template-columns: 62px 1fr auto; align-items: center; gap: 8px; }
+.acc-form label { font-weight: 700; font-size: 14px; }
+.acc-form .input { min-width: 0; padding: 9px 10px; }
+.acc-pw > summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--accent); list-style: none; padding: 4px 0; }
+.acc-pw > summary::-webkit-details-marker { display: none; }
+.acc-pw form { margin-top: 8px; }
