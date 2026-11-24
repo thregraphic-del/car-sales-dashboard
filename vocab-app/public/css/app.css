@@ -3363,3 +3363,11 @@ button.soc-ic { padding: 0; cursor: pointer; font: inherit; }
 .tw-def { color: var(--muted); font-size: 12px; line-height: 1.45; }
 .tw-q-def { font-size: 19px !important; line-height: 1.5; }
 .tw-done .missed-list span { display: inline-block; }
+
+/* 👯 المتشابهة: plain white cards, clearer question */
+.tw-w { background: var(--surface) !important; border: 1.5px solid var(--line) !important; }
+.tw-term { color: var(--ink) !important; }
+.tw-hint-btn { margin-top: 8px; }
+.tw-hint { margin-top: 8px; padding: 8px 12px; border-radius: 12px; background: var(--surface); border: 1px dashed var(--line); font-size: 14px; color: var(--ink-2, var(--muted)); }
+.tw-hint.hidden { display: none; }
+.tw-study .say-ar { display: none; }

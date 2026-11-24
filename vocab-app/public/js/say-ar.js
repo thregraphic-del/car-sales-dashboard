@@ -16,6 +16,7 @@ function fill(root = document) {
   const need = new Set();
   for (const b of btns) {
     b.dataset.sayar = '1';
+    if (b.closest('[data-no-sayar]')) continue; // the page shows its own pronunciation (e.g. the twins cards)
     const t = norm(b.dataset.say);
     if (!isWord(t) || b.dataset.lang === 'ar') continue;
     if (b.nextElementSibling?.classList.contains('say-ar')) continue;

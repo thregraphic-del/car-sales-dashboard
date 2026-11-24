@@ -87,7 +87,7 @@ export async function runTwins(stage, { onExit } = {}) {
   function study(g, gi, n) {
     return new Promise((resolve) => {
       stage.innerHTML = `${head(gi, n)}
-        <div class="card tw-study"><div class="tw-lead">انتبه للفرق بين هذه الكلمات ${g.level ? `<span class="chip tw-lv">${g.level}</span>` : ''}</div>
+        <div class="card tw-study" data-no-sayar><div class="tw-lead">انتبه للفرق بين هذه الكلمات ${g.level ? `<span class="chip tw-lv">${g.level}</span>` : ''}</div>
           <div class="tw-row">${g.words.map((w) => `<div class="tw-w">
             <button type="button" class="btn icon sm ghost" data-say="${esc(w.term)}" aria-label="استمع">🔊</button>
             <b class="tw-term en" dir="ltr">${esc(w.term)}</b>
@@ -113,7 +113,7 @@ export async function runTwins(stage, { onExit } = {}) {
           ? `<div class="prompt">استمع، ثم اختر المعنى</div><button type="button" class="btn lg" id="twSay">🔊 استمع</button>`
           : `<div class="prompt">ما معنى</div><div class="q-big en" dir="ltr">${esc(w.term)}</div>`;
       stage.innerHTML = `${head(gi, n)}<div class="tiny muted" style="margin-bottom:6px">سؤال ${qi + 1} من ${qn}</div>
-        <div class="card question">${prompt}</div>
+        <div class="card question">${prompt}${kind !== 'def' && w.def ? '<button type="button" class="link-btn small tw-hint-btn" id="twHint">💡 تلميح</button><div class="tw-hint hidden en-inline" id="twHintBox" dir="ltr"></div>' : ''}</div>
         <div class="options">${finalOpts.map((o, k) => `<button class="option" data-k="${k}">${esc(o)}</button>`).join('')}</div>
         <div class="feedback" id="fb"></div>`;
       stage.querySelector('#twEnd').addEventListener('click', () => { ended = true; clearTimeout(timer); resolve(null); });
@@ -121,6 +121,7 @@ export async function runTwins(stage, { onExit } = {}) {
         setTimeout(() => speak(w.term, { auto: true }).catch(() => {}), 250);
         stage.querySelector('#twSay').addEventListener('click', () => speak(w.term).catch(() => {}));
       }
+      stage.querySelector('#twHint')?.addEventListener('click', (e) => { const box = stage.querySelector('#twHintBox'); box.textContent = w.def; box.classList.remove('hidden'); e.currentTarget.remove(); });
       let answered = false;
       stage.querySelectorAll('.option').forEach((btn) => btn.addEventListener('click', () => {
         if (answered) return;
