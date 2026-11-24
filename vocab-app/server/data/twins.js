@@ -30,7 +30,7 @@ export async function saveTwins(userId, groups) {
       const items = g.map((w) => {
         const term = clean(w?.term, 60);
         const k = KNOWN.get(term.toLowerCase());
-        return { term, arabic: clean(k?.ar ?? w?.arabic, 120), ipa: clean(k?.ipa ?? w?.ipa, 60), def: clean(k?.def ?? w?.def, 160), level: k?.level ?? w?.level };
+        return { term, arabic: clean(k?.ar ?? w?.arabic, 120), ipa: clean(k?.pr ?? w?.ipa, 60), def: clean(k?.def ?? w?.def, 160), level: k?.level ?? w?.level };
       }).filter((x) => /^[A-Za-z][A-Za-z' -]{0,58}$/.test(x.term));
       if (items.length < 2) continue;
       used += 1;

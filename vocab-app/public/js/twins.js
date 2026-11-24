@@ -20,7 +20,7 @@ export function groupsFromMyWords(mine) {
   const curated = TWINS.filter((g) => g.words.some((w) => have.has(lower(w.term))));
   const known = new Set(curated.flatMap((g) => g.words.map((w) => lower(w.term))));
   const rest = buildGroups(mine.filter((w) => !known.has(lower(w.term))), 40)
-    .map((g, i) => ({ id: `m${i}`, level: null, words: g.words.map((w) => ({ term: w.term, ipa: w.pronunciation || '', ar: w.arabic, def: w.simple_english || '' })) }))
+    .map((g, i) => ({ id: `m${i}`, level: null, words: g.words.map((w) => ({ term: w.term, ipa: w.pronunciation || '', ar: w.arabic, def: w.simple_english || '', pr: /[\u0600-\u06FF]/.test(w.pronunciation || '') ? w.pronunciation : '' })) }))
     .filter((g) => g.words.length >= 2);
   return [...curated, ...rest];
 }
@@ -115,7 +115,7 @@ export async function runTwins(stage, { onExit } = {}) {
           <div class="tw-row">${g.words.map((w) => `<div class="tw-w">
             <button type="button" class="btn icon sm ghost" data-say="${esc(w.term)}" aria-label="استمع">🔊</button>
             <b class="tw-term en" dir="ltr">${esc(w.term)}</b>
-            ${w.ipa ? `<span class="tw-ipa en-inline" dir="ltr">${esc(w.ipa)}</span>` : ''}
+            ${w.pr ? `<span class="tw-pr">تُنطق: <b>${esc(w.pr)}</b></span>` : ''}
             <span class="tw-ar">${esc(w.ar || '')}</span>
             ${w.def ? `<span class="tw-def en-inline" dir="ltr">${esc(w.def)}</span>` : ''}</div>`).join('')}</div></div>
         <div class="btn-row" style="justify-content:center;margin-top:14px"><button class="btn primary lg" id="twGo">ابدأ الأسئلة ←</button></div>`;
@@ -155,7 +155,7 @@ export async function runTwins(stage, { onExit } = {}) {
         if (!ok) btn.classList.add('wrong');
         const fb = stage.querySelector('#fb');
         fb.className = `feedback show ${ok ? 'ok' : 'no'}`;
-        fb.innerHTML = `<b>${ok ? 'صحيح ✓' : 'الصحيح:'}</b> <span class="en-inline" dir="ltr">${esc(w.term)}</span> = ${esc(w.ar)}${w.ipa ? ` <span class="tiny muted en-inline" dir="ltr">${esc(w.ipa)}</span>` : ''}`;
+        fb.innerHTML = `<b>${ok ? 'صحيح ✓' : 'الصحيح:'}</b> <span class="en-inline" dir="ltr">${esc(w.term)}</span> = ${esc(w.ar)}${w.pr ? ` <span class="tiny muted">(${esc(w.pr)})</span>` : ''}`;
         speak(w.term).catch(() => {});
         timer = setTimeout(() => resolve(ok), ok ? AUTO_MS.ok : AUTO_MS.no); // straight to the next word
       }));
@@ -189,7 +189,7 @@ export async function runTwins(stage, { onExit } = {}) {
     stage.querySelector('#twYes').addEventListener('click', async (e) => {
       e.target.disabled = true;
       try {
-        const r = await api.saveTwins(done.map((d) => d.group.words.map((w) => ({ term: w.term, arabic: w.ar, ipa: w.ipa, def: w.def, level: d.group.level }))));
+        const r = await api.saveTwins(done.map((d) => d.group.words.map((w) => ({ term: w.term, arabic: w.ar, ipa: w.pr || w.ipa, def: w.def, level: d.group.level }))));
         toast(`أضفنا ${r.added} ${r.added === 1 ? 'كلمة' : 'كلمات'} إلى «المتشابهات»${r.existed ? ` (${r.existed} كانت عندك)` : ''} ✓`);
         e.target.closest('.btn-row').innerHTML = `<a class="btn primary" href="#/words?group=${r.group_id}">شوفها في كلماتي ←</a>`;
       } catch (err) {
