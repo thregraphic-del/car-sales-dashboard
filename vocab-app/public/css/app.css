@@ -3332,3 +3332,7 @@ body.reader-focus #setBtn, body.reader-focus #wordsBtn, body.reader-focus #gptTo
 button.soc-ic { padding: 0; cursor: pointer; font: inherit; }
 .soc-ic.soc-off { opacity: .45; }
 .soc-ic.soc-off:hover, .soc-ic.soc-off:focus-visible { background: var(--surface); color: var(--accent); transform: none; opacity: .7; }
+
+/* 📱 bottom bar: «أضف» sits on the same line as the others (pill as tall as the icons, labels level) */
+.tabbar a.tab-add .tab-add-ic { width: 46px; height: 26px; border-radius: 13px; margin: -2px 0; }
+.tabbar a.tab-add .tab-add-ic svg { width: 18px; height: 18px; }
