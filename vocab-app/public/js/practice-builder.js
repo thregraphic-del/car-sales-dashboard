@@ -194,11 +194,11 @@ export function renderBuilder(stage, { words: all, groups = [], games = [], tabs
     ];
     stage._defs = defs;
     // the short form: [filter icon] [N words · «تدرّب»], the tabs, six game tiles (the rest one tap away)
-    const MAIN = ['quiz:', 'cards:', 'listen:', 'story:', 'games:speed', 'games:similar'];
+    const MAIN = ['quiz:', 'cards:', 'listen:', 'story:', 'games:speed', 'twins:'];
     const gkey = (g) => `${g.mode}:${g.type || ''}`;
     const main = MAIN.map((k) => games.find((g) => gkey(g) === k)).filter(Boolean);
     const rest = games.filter((g) => !MAIN.includes(gkey(g)));
-    const tile = (g) => `<button type="button" class="pb-game pb-tile" data-game="${gkey(g)}" ${chosen.length ? '' : 'disabled'}><span class="pb-gi">${g.icon}</span><b>${g.name}</b></button>`;
+    const tile = (g) => `<button type="button" class="pb-game pb-tile" data-game="${gkey(g)}" ${chosen.length || g.mode === 'twins' ? '' : 'disabled'}><span class="pb-gi">${g.icon}</span><b>${g.name}</b></button>`;
     const fSet = F.levels.length > 0 || F.perf.length > 0 || F.from !== 'all' || (F.when && F.when !== 'all') || Number(F.count) > 0;
     const FUNNEL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 5h17l-6.5 7.8V19l-4 2v-8.2z"/></svg>';
     stage.innerHTML = `<div class="pb5">

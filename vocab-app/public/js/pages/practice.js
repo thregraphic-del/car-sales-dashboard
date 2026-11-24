@@ -122,13 +122,13 @@ export async function render(view, { params }) {
       { mode: 'cards', icon: icon.cards, name: 'البطاقات', desc: 'تذكّر وقيّم نفسك' },
       { mode: 'listen', icon: icon.headphones, name: 'استماع', desc: 'اسمع الكلمة ومعناها' },
       { mode: 'story', icon: icon.bookOpen, name: 'قصة', desc: 'قصة بكلماتك' },
-      ...GAME_ORDER.map((k) => ({ mode: 'games', type: k, icon: icon[TYPES[k].icon] || '🎮', name: TYPES[k].name, desc: TYPES[k].description })),
+      { mode: 'twins', icon: icon.search, name: 'Word Twins', desc: 'كلمات متشابهة' },
+      ...GAME_ORDER.filter((k) => k !== 'similar').map((k) => ({ mode: 'games', type: k, icon: icon[TYPES[k].icon] || '🎮', name: TYPES[k].name, desc: TYPES[k].description })),
     ];
     renderBuilder(stage, {
       words: all, groups: state.groups, games, tabs: tabsHtml,
-      onGo: (list, m, t) => { location.hash = href({ mode: m, type: t, ids: list.map((w) => w.uv_id).slice(0, m === 'story' ? 30 : 1000).join(','), exact: 1, n: Date.now() }); },
+      onGo: (list, m, t) => { if (m === 'twins') { location.hash = '#/practice?mode=twins'; return; } location.hash = href({ mode: m, type: t, ids: list.map((w) => w.uv_id).slice(0, m === 'story' ? 30 : 1000).join(','), exact: 1, n: Date.now() }); },
     });
-    stage.insertAdjacentHTML('afterbegin', twinsCard());
     fillGrammarCount();
     return;
   }
