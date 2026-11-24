@@ -3,6 +3,7 @@
 import { all, get, run, tx } from '../db/index.js';
 import { cacheKey, readCache } from '../services/ai.js';
 import { findVocabulary, upsertVocabulary } from './vocabulary.js';
+import { isTwinTerm } from './twins.js';
 
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const lv = (l) => (LEVELS.includes(l) ? LEVELS.indexOf(l) : 9);
@@ -301,7 +302,7 @@ const MAYBE = /(s|ed|ing|er|or|ion|ment|ance|ence|al|ness|ly|ous)$|\s/;
 
 /** The vocabulary id to save for a word: its simplest form (created for an inflection). */
 export async function baseVocabId(v) {
-  if (!v?.term || !MAYBE.test(v.term.toLowerCase())) return v?.id;
+  if (!v?.term || isTwinTerm(v.term) || !MAYBE.test(v.term.toLowerCase())) return v?.id;
   const s = await simpleTerm(v.term);
   if (s.kind === 'same' || s.term.toLowerCase() === v.term.toLowerCase()) return v.id;
   let to = s.row || (await findVocabulary(s.term));

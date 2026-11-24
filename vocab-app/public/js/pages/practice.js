@@ -11,6 +11,9 @@ import { runStory } from '../story.js';
 import { refreshStats } from '../app.js';
 import { renderBuilder } from '../practice-builder.js';
 import { renderGrammarSection } from '../grammar-practice.js';
+import { runTwins } from '../twins.js';
+
+const twinsCard = () => `<a class="card tw-entry" href="#/practice?mode=twins"><span class="tw-entry-ic">${icon.search}</span><span><b>Word Twins</b><small>كلمات متشابهة في النطق أو الكتابة — تعرّف عليها واختبر نفسك</small></span><span class="tw-entry-go" aria-hidden="true">‹</span></a>`;
 
 // البطاقات والقصة صارت ضمن الألعاب (وفي اختيار التدريب)، وروابطها القديمة تعمل.
 const FOCUS = [
@@ -32,6 +35,11 @@ function saveSeen(id, set) {
 
 export async function render(view, { params }) {
   await loadGroups();
+  if (params.mode === 'twins') {
+    view.innerHTML = `<div class="page-head compact"><div><h1>Word Twins</h1></div><a class="btn sm ghost" href="#/practice">${icon.prev} عد إلى الألعاب</a></div><div id="stage"></div>`;
+    const stopTwins = await runTwins(view.querySelector('#stage'));
+    return () => stopTwins();
+  }
   const mode = params.mode || (params.session === 'today' ? 'cards' : 'quiz');
   const focus = params.focus || 'smart';
   const group = params.group ? Number(params.group) : null;
@@ -104,7 +112,7 @@ export async function render(view, { params }) {
     }
     const all = await api.words();
     if (!all.length) {
-      stage.innerHTML = emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`);
+      stage.innerHTML = twinsCard() + emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`);
       return;
     }
     // one page: the smart filter on top, every way to practise right under it
@@ -120,6 +128,7 @@ export async function render(view, { params }) {
       words: all, groups: state.groups, games, tabs: tabsHtml,
       onGo: (list, m, t) => { location.hash = href({ mode: m, type: t, ids: list.map((w) => w.uv_id).slice(0, m === 'story' ? 30 : 1000).join(','), exact: 1, n: Date.now() }); },
     });
+    stage.insertAdjacentHTML('afterbegin', twinsCard());
     fillGrammarCount();
     return;
   }
