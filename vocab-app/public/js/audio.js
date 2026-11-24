@@ -3,6 +3,8 @@
 import { state } from './state.js';
 
 let currentAudio = null;
+// iPhone/iPad: sound only starts inside a tap. Anything started later (a timer, a finished download) is silently refused.
+const IOS = typeof navigator !== 'undefined' && (/iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
 let voiceList = [];
 function currentVoices() {
@@ -102,15 +104,17 @@ export function stop() {
  * Speech starts synchronously (no network wait first) so phones accept it as
  * part of the tap that asked for it.
  */
-export function speak(text, { rate = 1, lang = 'en' } = {}) {
+export function speak(text, { rate = 1, lang = 'en', auto = false } = {}) {
   if (!text) return Promise.resolve();
+  if (auto && IOS) return Promise.resolve(); // not started by a tap: the phone would refuse it (and it can block the next real tap)
   stop();
   const base = state.user?.speech_rate || 1;
   const finalRate = Math.max(0.5, Math.min(1.5, rate * base));
   const my = sayGen;
   const late = () => (my === sayGen ? browserSpeak(text, lang, finalRate) : undefined);
   if (lang === 'ar') text = arabicForSpeech(text) || text;
-  const single = lang === 'en' && !/\s/.test(text.trim());
+  // on iPhone the recorded file may fail and its fallback would start outside the tap: use the phone's own voice right away
+  const single = lang === 'en' && !IOS && !/\s/.test(text.trim());
   const key = text.trim().toLowerCase();
   if (single) {
     if (recordedReady.has(key)) {

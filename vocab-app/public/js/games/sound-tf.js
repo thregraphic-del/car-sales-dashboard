@@ -14,7 +14,7 @@ export default {
     const others = shuffle((pool || []).filter((x) => x.uv_id !== w.uv_id && x.arabic && x.arabic !== w.arabic));
     const truth = !others.length || Math.random() < 0.5;
     const shown = truth ? w.arabic : others[0].arabic;
-    setTimeout(() => speak(w.term).catch(() => {}), 250);
+    setTimeout(() => speak(w.term, { auto: true }).catch(() => {}), 250);
     stage.innerHTML = `<div class="card question"><div class="prompt">اسمع الكلمة… هل هذا معناها؟</div>
         <button class="big-play" data-say="${esc(w.term)}" aria-label="استمع">${icon.speaker}</button>
         <div class="tf-meaning" style="margin-top:10px">${esc(shown)}</div></div>

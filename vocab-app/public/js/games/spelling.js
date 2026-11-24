@@ -14,7 +14,7 @@ export default {
   /** Ask one word; resolves true (correct) or false. */
   play: (stage, w) => new Promise((resolve) => {
     const target = letters(w);
-    setTimeout(() => speak(target).catch(() => {}), 250);
+    setTimeout(() => speak(target, { auto: true }).catch(() => {}), 250);
     stage.innerHTML = `<div class="card question"><div class="prompt">استمع واكتب الكلمة</div>
         <button class="big-play" data-say="${esc(target)}" data-rate="1" aria-label="تشغيل">${icon.speaker}</button>
         <div style="margin-top:8px"><button class="btn sm ghost" data-say="${esc(target)}" data-rate="0.55">🐢 بطيء</button></div>

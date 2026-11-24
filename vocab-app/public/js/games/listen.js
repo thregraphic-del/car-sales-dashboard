@@ -13,7 +13,7 @@ export default {
   can: () => true,
   /** Ask one word; resolves true (correct) or false. */
   play: (stage, w, pool) => {
-    setTimeout(() => speak(w.term).catch(() => {}), 250);
+    setTimeout(() => speak(w.term, { auto: true }).catch(() => {}), 250);
     return choice(stage, w, {
       prompt: `<div class="prompt">استمع واختر الكلمة التي سمعتها</div>
         <button class="big-play" data-say="${esc(w.term)}" data-rate="1" aria-label="تشغيل">${icon.speaker}</button>

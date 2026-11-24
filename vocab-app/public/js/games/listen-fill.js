@@ -12,7 +12,7 @@ export default {
   can: (w) => !!blankable(w),
   play: (stage, w, pool) => {
     const b = blankable(w);
-    setTimeout(() => speak(b.sentence, { rate: 0.9 }).catch(() => {}), 300);
+    setTimeout(() => speak(b.sentence, { rate: 0.9, auto: true }).catch(() => {}), 300);
     return choice(stage, w, {
       prompt: `<div class="prompt">اسمع الجملة واختر الكلمة الناقصة</div>
         <button class="big-play" data-say="${esc(b.sentence)}" data-rate="0.9" aria-label="استمع">${icon.speaker}</button>

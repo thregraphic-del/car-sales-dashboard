@@ -141,7 +141,7 @@ function ask(stage, q) {
       <div class="feedback" id="fb"></div>
       <div class="next-wrap"><button class="btn primary hidden" id="nextBtn">التالي ←</button></div>`;
     if (type === 'listen') {
-      setTimeout(() => speak(word.term).catch(() => {}), 200);
+      setTimeout(() => speak(word.term, { auto: true }).catch(() => {}), 200);
       stage.querySelector('#simSay').addEventListener('click', () => speak(word.term).catch(() => {}));
     }
     let done = false;

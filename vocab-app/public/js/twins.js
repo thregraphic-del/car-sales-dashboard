@@ -118,7 +118,7 @@ export async function runTwins(stage, { onExit } = {}) {
         <div class="feedback" id="fb"></div>`;
       stage.querySelector('#twEnd').addEventListener('click', () => { ended = true; clearTimeout(timer); resolve(null); });
       if (kind === 'listen') {
-        setTimeout(() => speak(w.term).catch(() => {}), 250);
+        setTimeout(() => speak(w.term, { auto: true }).catch(() => {}), 250);
         stage.querySelector('#twSay').addEventListener('click', () => speak(w.term).catch(() => {}));
       }
       let answered = false;
