@@ -194,7 +194,7 @@ export function renderBuilder(stage, { words: all, groups = [], games = [], tabs
     ];
     stage._defs = defs;
     // the short form: [filter icon] [N words · «تدرّب»], the tabs, six game tiles (the rest one tap away)
-    const MAIN = ['quiz:', 'cards:', 'listen:', 'story:', 'games:speed', 'twins:'];
+    const MAIN = ['quiz:', 'cards:', 'listen:', 'story:', 'twins:', 'games:speed', 'games:choose', 'games:write', 'games:blank', 'games:build']; // the ten, all on show
     const gkey = (g) => `${g.mode}:${g.type || ''}`;
     const main = MAIN.map((k) => games.find((g) => gkey(g) === k)).filter(Boolean);
     const rest = games.filter((g) => !MAIN.includes(gkey(g)));

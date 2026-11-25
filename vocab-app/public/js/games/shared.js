@@ -62,12 +62,12 @@ export function hintLine(w) {
 /** 💡 the hints of a word, in order: easy English meaning → the meaning in Arabic → a sentence with it hidden */
 export function hintSteps(w) {
   const out = [];
+  const sent = hintSentence(w); // 1) a clear example (English with a dashed blank + its Arabic)
+  if (sent) out.push(sent);
   const def = String(w.simple_english || '').trim();
   const re = termRegex(w.term);
-  if (def && !(re && re.test(def))) out.push(`<div class="hint-box"><p class="tiny muted" style="margin:0 0 4px">بإنجليزي سهل:</p><p class="en" dir="ltr">${esc(def)}</p><p class="tiny muted" style="margin:4px 0 0">${esc(hintLine(w))}</p></div>`);
-  if (w.arabic) out.push(`<div class="hint-box"><p class="tiny muted" style="margin:0 0 4px">بالعربي:</p><p>${esc(w.arabic)}</p></div>`);
-  const sent = hintSentence(w);
-  if (sent) out.push(sent);
+  if (def && !(re && re.test(def))) out.push(`<div class="hint-box"><p class="tiny muted" style="margin:0 0 4px">بإنجليزي سهل:</p><p class="en" dir="ltr">${esc(def)}</p></div>`); // 2) the meaning in easy English
+  if (w.arabic) out.push(`<div class="hint-box"><p class="tiny muted" style="margin:0 0 4px">بالعربي:</p><p>${esc(w.arabic)}</p></div>`); // 3) the Arabic meaning
   if (!out.length) out.push(`<p class="tiny muted">${esc(hintLine(w))}</p>`);
   return out;
 }
@@ -84,8 +84,8 @@ export function hintSentence(w) {
   const ex = examplesFor(w)[0];
   if (!ex) return '';
   const re = termRegex(w.term);
-  const masked = re ? ex.sentence.replace(re, '_____') : ex.sentence;
-  return `<div class="hint-box"><p class="en" dir="ltr">${esc(masked)}</p>${ex.arabic ? `<p class="fb-ar" dir="rtl">${esc(ex.arabic)}</p>` : ''}</div>`;
+  const masked = esc(re ? ex.sentence.replace(re, '\u0000') : ex.sentence).replace(/\u0000/g, '<span class="tw-blank" aria-label="الكلمة المطلوبة"></span>');
+  return `<div class="hint-box"><p class="en" dir="ltr">${masked}</p>${ex.arabic ? `<p class="fb-ar" dir="rtl">${esc(ex.arabic)}</p>` : ''}</div>`;
 }
 
 /** Up to n other words whose key (meaning/term) differs from the target's. */

@@ -123,7 +123,7 @@ export async function render(view, { params }) {
       { mode: 'listen', icon: icon.headphones, name: 'استماع', desc: 'اسمع الكلمة ومعناها' },
       { mode: 'story', icon: icon.bookOpen, name: 'قصة', desc: 'قصة بكلماتك' },
       { mode: 'twins', icon: icon.search, name: 'المتشابهة', desc: 'كلمات متشابهة' },
-      ...GAME_ORDER.filter((k) => k !== 'similar').map((k) => ({ mode: 'games', type: k, icon: icon[TYPES[k].icon] || '🎮', name: TYPES[k].name, desc: TYPES[k].description })),
+      ...GAME_ORDER.map((k) => ({ mode: 'games', type: k, icon: icon[TYPES[k].icon] || '🎮', name: TYPES[k].name, desc: TYPES[k].description })),
     ];
     renderBuilder(stage, {
       words: all, groups: state.groups, games, tabs: tabsHtml,
@@ -278,7 +278,7 @@ export async function render(view, { params }) {
         <div class="stack" style="gap:8px;justify-items:end">
           <button class="btn primary lg" id="go">ابدأ ←</button>
           ${mode === 'quiz' ? `<select class="input sm-select" id="type" aria-label="نوع الأسئلة">
-            <option value="mixed">أسئلة متنوعة (مستحسن)</option>${Object.entries(TYPES).map(([k, t]) => `<option value="${k}" ${k === type ? 'selected' : ''}>${t.name}</option>`).join('')}</select>` : ''}
+            <option value="mixed">أسئلة متنوعة (مستحسن)</option>${GAME_ORDER.map((k) => [k, TYPES[k]]).map(([k, t]) => `<option value="${k}" ${k === type ? 'selected' : ''}>${t.name}</option>`).join('')}</select>` : ''}
         </div>
       </div>`;
     stage.querySelector('#go').addEventListener('click', start);

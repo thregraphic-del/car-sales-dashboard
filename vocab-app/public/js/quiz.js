@@ -4,7 +4,7 @@
 import { api } from './api.js';
 import { toast } from './ui.js';
 import { bindSpeech } from './components.js';
-import { GAMES, GAME_BY_KEY, chooseType } from './games/index.js';
+import { GAMES, ALL_GAMES, GAME_BY_KEY, chooseType } from './games/index.js';
 import { examplesFor } from './games/shared.js';
 import { state } from './state.js';
 import { stop as stopSound } from './audio.js';
@@ -24,13 +24,13 @@ export async function ensureExamples(words) {
   } catch { /* play with what we have */ }
 }
 
-export const TYPES = Object.fromEntries(GAMES.map((g) => [g.key, g]));
+export const TYPES = GAME_BY_KEY; // every format by key (old links too)
 export const GAME_ORDER = GAMES.map((g) => g.key);
 export { chooseType };
 
 /** 🎲 A different game each question (one-question games only, never the same twice in a row). */
 function randomType(w, prev) {
-  const ok = GAMES.filter((g) => g.play && !g.round && g.key !== prev && g.can(w)).map((g) => g.key);
+  const ok = ALL_GAMES.filter((g) => g.play && !g.round && g.key !== prev && g.can(w)).map((g) => g.key);
   return ok.length ? ok[Math.floor(Math.random() * ok.length)] : chooseType(w, 0);
 }
 
