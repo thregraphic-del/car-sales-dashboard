@@ -3375,3 +3375,4 @@ button.soc-ic { padding: 0; cursor: pointer; font: inherit; }
 .tw-pr { color: var(--muted); font-size: 13.5px; } .tw-pr b { color: var(--accent); font-size: 15px; }
 .tw-say-word { margin-top: 10px; font-size: 26px !important; }
 .tw-hint-ar { margin-top: 4px; font-weight: 700; color: var(--ink); }
+.tw-blank { display: inline-block; min-width: 56px; height: 1.1em; margin: 0 3px; vertical-align: -3px; border-bottom: 2px dashed var(--muted); }

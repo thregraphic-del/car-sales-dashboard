@@ -12,6 +12,14 @@ const PART = 25; // groups per section (the file of 100 = 4 sections)
 const PKEY = 'twins.parts.v1';
 const readParts = () => { try { return JSON.parse(localStorage.getItem(PKEY) || '{}'); } catch { return {}; } };
 const saveBest = (src, part, pct) => { try { const d = readParts(); d[src] = d[src] || {}; d[src][part] = Math.max(d[src][part] || 0, pct); localStorage.setItem(PKEY, JSON.stringify(d)); } catch { /* storage unavailable */ } };
+/** The example sentence with the answer word left as a dashed blank (the learner works it out; the Arabic below helps). */
+function blankSentence(sentence, term) {
+  const t = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const safe = esc(sentence);
+  const exact = new RegExp(`\\b${t}\\b`, 'i').test(safe);
+  const re = new RegExp(exact ? `\\b${t}\\b` : `\\b${t}\\w*`, 'gi'); // complements, devised, cells …
+  return safe.replace(re, '<span class="tw-blank" aria-label="الكلمة المطلوبة"></span>');
+}
 const AUTO_MS = { ok: 900, no: 2100 };
 
 /** The groups of the learner's own words: curated groups that contain at least one saved word, plus look-alikes found among them. */
@@ -147,7 +155,7 @@ export async function runTwins(stage, { onExit } = {}) {
         setTimeout(() => speak(w.term, { auto: true }).catch(() => {}), 250);
         stage.querySelector('#twSay').addEventListener('click', () => speak(w.term).catch(() => {}));
       }
-      stage.querySelector('#twHint')?.addEventListener('click', (e) => { const box = stage.querySelector('#twHintBox'); box.innerHTML = `<div class="en-inline" dir="ltr">${esc(w.exEn)}</div><div class="tw-hint-ar">${esc(w.exAr)}</div>`; box.classList.remove('hidden'); e.currentTarget.remove(); });
+      stage.querySelector('#twHint')?.addEventListener('click', (e) => { const box = stage.querySelector('#twHintBox'); box.innerHTML = `<div class="en-inline" dir="ltr">${blankSentence(w.exEn, w.term)}</div><div class="tw-hint-ar">${esc(w.exAr)}</div>`; box.classList.remove('hidden'); e.currentTarget.remove(); });
       let answered = false;
       stage.querySelectorAll('.option').forEach((btn) => btn.addEventListener('click', () => {
         if (answered) return;
