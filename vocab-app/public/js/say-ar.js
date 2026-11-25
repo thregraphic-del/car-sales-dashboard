@@ -16,7 +16,8 @@ function fill(root = document) {
   const need = new Set();
   for (const b of btns) {
     b.dataset.sayar = '1';
-    if (b.closest('[data-no-sayar]')) continue; // the page shows its own pronunciation (e.g. the twins cards)
+    if (b.closest('[data-no-sayar]')) continue;
+    if (b.classList.contains('big-play') || Number(b.dataset.rate) < 0.8) continue; // listening questions: the Arabic spelling would give the answer away (and show twice: normal + slow) // the page shows its own pronunciation (e.g. the twins cards)
     const t = norm(b.dataset.say);
     if (!isWord(t) || b.dataset.lang === 'ar') continue;
     if (b.nextElementSibling?.classList.contains('say-ar')) continue;
