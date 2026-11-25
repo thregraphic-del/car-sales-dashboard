@@ -17,7 +17,6 @@ export default {
     setTimeout(() => speak(target, { auto: true }).catch(() => {}), 250);
     stage.innerHTML = `<div class="card question"><div class="prompt">استمع واكتب الكلمة</div>
         <button class="big-play" data-say="${esc(target)}" data-rate="1" aria-label="تشغيل">${icon.speaker}</button>
-        <div style="margin-top:8px"><button class="btn sm ghost" data-say="${esc(target)}" data-rate="0.55">🐢 بطيء</button></div>
         ${w.arabic ? `<div class="small muted" style="margin-top:8px">التلميح: ${esc(w.arabic)}</div>` : ''}</div>
       <form id="sf" class="url-row" style="margin-top:14px"><input class="input en" id="ans" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type what you hear…"><button class="btn primary" type="submit">تحقّق</button></form>
       <div class="btn-row" style="justify-content:center;margin-top:10px"><button class="btn sm ghost" id="skip">لا أعرف</button></div>

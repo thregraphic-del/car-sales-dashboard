@@ -16,8 +16,7 @@ export default {
     setTimeout(() => speak(w.term, { auto: true }).catch(() => {}), 250);
     return choice(stage, w, {
       prompt: `<div class="prompt">استمع واختر الكلمة التي سمعتها</div>
-        <button class="big-play" data-say="${esc(w.term)}" data-rate="1" aria-label="تشغيل">${icon.speaker}</button>
-        <div style="margin-top:8px"><button class="btn sm ghost" data-say="${esc(w.term)}" data-rate="0.6">🐢 بطيء</button></div>`,
+        <button class="big-play" data-say="${esc(w.term)}" data-rate="1" aria-label="تشغيل">${icon.speaker}</button>`,
       options: distractors(w, pool, 3, (x) => x.term.toLowerCase()),
       text: (o) => `<span class="en-inline">${esc(o.term)}</span>`,
     });
