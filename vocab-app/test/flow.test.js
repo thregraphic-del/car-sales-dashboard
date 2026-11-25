@@ -64,10 +64,10 @@ test('YouTube transcript: preserved exactly, timestamps from the transcript, ana
   assert.deepEqual(v.lines.map((l) => l.start_seconds), [10, 21, 33, 45]);
   assert.equal(v.lines[1].text, 'We take so much for granted, and we procrastinate on what matters.');
   assert.deepEqual(v.lines.slice(0, 3).map((l) => l.duration), [11, 12, 12], 'subtitle durations come from the next line');
-  const granted = v.items.find((i) => i.term === 'take something for granted');
+  const granted = v.items.find((i) => i.term === 'procrastinate');
   assert.equal(granted.timestamp_seconds, 21);
   const mark = v.marks.find((m) => m.vocabulary_id === granted.vocabulary_id);
-  assert.equal(v.lines.find((l) => l.id === mark.line_id).text.slice(mark.start, mark.end), 'take so much for granted');
+  assert.equal(v.lines.find((l) => l.id === mark.line_id).text.slice(mark.start, mark.end), 'procrastinate');
   assert.equal((await words()).length, before, 'nothing is saved automatically');
   // Re-opening the same link uses the stored analysis.
   const again = await call('POST', '/api/sources/youtube', { url: 'https://www.youtube.com/watch?v=AAAAAAAAAAA' });
@@ -91,7 +91,7 @@ test('click lookup: known word in context, basic word, grammar word', async () =
 
 test('saving is explicit, idempotent and keeps the source context', async () => {
   const v = (await call('GET', `/api/sources/${sourceId}`)).body;
-  const item = v.items.find((i) => !i.user_state);
+  const item = v.items.find((i) => !i.user_state && i.term !== 'sustainable'); // «sustainable» is kept unsaved for the import test below
   const s1 = (await call('POST', '/api/words', { vocabulary_id: item.vocabulary_id, occurrence_id: item.occurrence_id })).body;
   assert.equal(s1.already, false);
   const s2 = (await call('POST', '/api/words', { vocabulary_id: item.vocabulary_id, occurrence_id: item.occurrence_id })).body;
@@ -144,7 +144,7 @@ test('import of free text becomes a readable source', async () => {
   assert.ok(p.source?.id);
   const v = (await call('GET', `/api/sources/${p.source.id}`)).body;
   assert.equal(v.source.kind, 'text');
-  assert.ok(v.items.some((i) => i.term === 'take something for granted'));
+  assert.ok(v.items.some((i) => i.term === 'reliable'));
   const tr = (await call('GET', `/api/sources/${p.source.id}/translation`)).body;
   assert.equal(tr.status, 'unavailable', 'no AI → honest status instead of fake translation');
 });

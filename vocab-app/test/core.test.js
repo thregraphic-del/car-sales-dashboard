@@ -74,7 +74,7 @@ test('YouTube transcript processing keeps every word, order and timestamps', () 
   assert.deepEqual(s.map((x) => x.start), [1, 1, 9]);
 });
 
-test('offline extraction finds phrases with their line, skips basic words and duplicates', async () => {
+test('offline extraction finds single words with their line, never phrases, skips basic words and duplicates', async () => {
   const lines = [
     'I was reluctant at first, and honestly it took a while to figure it out.',
     'Most people take their health for granted until something goes wrong.',
@@ -84,11 +84,10 @@ test('offline extraction finds phrases with their line, skips basic words and du
   const { items, engine } = await extractVocabulary({ title: 't', lines, engine: 'dictionary' });
   const terms = items.map((i) => i.term);
   assert.equal(engine, 'dictionary');
-  for (const t of ['reluctant', 'figure something out', 'take something for granted', 'come across', 'turn down', 'overwhelmed']) {
-    assert.ok(terms.includes(t), `missing ${t}`);
-  }
+  for (const t of ['reluctant', 'overwhelmed']) assert.ok(terms.includes(t), `missing ${t}`);
+  assert.ok(terms.every((t) => !/\s/.test(t)), 'one word per item — no phrasal verbs, idioms or compounds');
   assert.ok(!terms.includes('house') && !terms.includes('big'));
   assert.equal(terms.filter((t) => t === 'reluctant').length, 1);
-  assert.equal(items.find((i) => i.term === 'take something for granted').line, 1);
+  assert.equal(items.find((i) => i.term === 'reluctant').line, 0);
   assert.equal(items.find((i) => i.term === 'reluctant').contextual_meaning, null, 'offline meanings are not claimed to be contextual');
 });

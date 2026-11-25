@@ -449,7 +449,7 @@ export async function render(view, { params }) {
   // 2) every word to its simplest form (struggling → struggle, delusional → delusion).
   // New words are tidied the moment they are saved (see api.js), so opening «كلماتي» does not re-check them. This pass only catches
   // what an older version left (or what was saved while the AI was away): at most once a week, and quiet when it finds nothing.
-  const tidyKey = 'tidy.at';
+  const tidyKey = 'tidy3.at'; // v3: once more, so every multi-word item (phrasal verbs, idioms, compounds) becomes single words
   const tidyRecent = () => { try { return Date.now() - Number(localStorage.getItem(tidyKey) || 0) < 7 * 86400000; } catch { return false; } };
   (async () => {
     let changed = 0;

@@ -1,6 +1,6 @@
 // The simplest form of a word (appearance → appear, communication → communicate):
 // suggested words are shown and saved in their shortest, most basic form.
-import { all, get, run, tx } from '../db/index.js';
+import { all, get, run, insert, tx } from '../db/index.js';
 import { cacheKey, readCache } from '../services/ai.js';
 import { findVocabulary, upsertVocabulary } from './vocabulary.js';
 import { isTwinTerm } from './twins.js';
@@ -412,7 +412,7 @@ export async function tidyUserExpressions(userId, { batch = 12 } = {}) {
   const rows = await all(
     `SELECT uv.id AS uv_id, uv.review_count, v.id, v.term, v.level FROM user_vocabulary uv JOIN vocabulary v ON v.id = uv.vocabulary_id
      WHERE uv.user_id = ? AND uv.state = 'saved' AND v.term LIKE '% %' ORDER BY uv.id`, userId);
-  const keyOf = (t) => `tidy2:${String(t).toLowerCase().trim()}`; // v2: stricter — only phrasal verbs / idioms whose meaning changes stay
+  const keyOf = (t) => `tidy3:${String(t).toLowerCase().trim()}`; // v3: EVERY multi-word item becomes its single words (no phrase stays)
   const decided = new Map();
   for (let i = 0; i < rows.length; i += 400) {
     const part = rows.slice(i, i + 400).map((r) => keyOf(r.term));
@@ -426,23 +426,44 @@ export async function tidyUserExpressions(userId, { batch = 12 } = {}) {
     const { tidyTermsWithAi, aiAvailable } = await import('../services/extractor.js');
     if (!aiAvailable()) return { done: true, changed: 0, skipped: 'ai' };
     const r = await tidyTermsWithAi(todo);
+    const one = (w) => String(w || '').trim().toLowerCase();
     for (const t of todo) {
       const it = r.items.find((x) => String(x.term).toLowerCase().trim() === t.toLowerCase().trim()); // by term only, never by position
       if (!it) continue;
-      const d = { keep: !!it.keep, base: String(it.base || '').trim().toLowerCase(), arabic: it.arabic || '', level: it.level || null };
+      const d = {
+        base: one(it.base), arabic: it.arabic || '', level: it.level || null,
+        others: (it.others || []).map((o) => ({ word: one(o.word), arabic: o.arabic || '', level: o.level || null })).filter((o) => /^[a-z][a-z'-]*$/.test(o.word)).slice(0, 2),
+      };
       decided.set(keyOf(t), d);
       await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', keyOf(t), JSON.stringify(d));
     }
   }
   const changes = [];
+  // one more single word beside the main one: saved for the learner (never twice), in the groups the phrase was in
+  const addWord = async (r, o) => {
+    if (!o.arabic || o.word === r.term.toLowerCase()) return;
+    let vid = (await findVocabulary(o.word));
+    if (!vid || vid.term.toLowerCase() !== o.word) vid = { id: (await upsertVocabulary({ term: o.word, arabic: o.arabic, level: o.level, origin: 'ai', exact: true })).id };
+    const orig = await get('SELECT source_id, saved_at FROM user_vocabulary WHERE id = ?', r.uv_id);
+    const have = await get('SELECT id, state FROM user_vocabulary WHERE user_id = ? AND vocabulary_id = ?', userId, vid.id);
+    let uv = have?.id;
+    if (!have) uv = await insert(`INSERT INTO user_vocabulary (user_id, vocabulary_id, source_id, state, saved_at) VALUES (?,?,?, 'saved', ?)`, userId, vid.id, orig?.source_id ?? null, orig?.saved_at || new Date().toISOString());
+    else if (have.state !== 'saved') await run(`UPDATE user_vocabulary SET state = 'saved', saved_at = ? WHERE id = ?`, orig?.saved_at || new Date().toISOString(), uv);
+    else return; // already in «كلماتي»
+    for (const g of await all('SELECT group_id FROM word_group_items WHERE user_vocabulary_id = ?', r.uv_id)) {
+      await run('INSERT INTO word_group_items (group_id, user_vocabulary_id) VALUES (?, ?) ON CONFLICT DO NOTHING', g.group_id, uv);
+    }
+    changes.push(`${r.term}+${o.word}`);
+  };
   await tx(async () => {
     for (const r of rows) {
       const d = decided.get(keyOf(r.term));
-      if (!d || d.keep || !/^[a-z][a-z'-]*$/.test(d.base) || d.base === r.term.toLowerCase()) continue;
+      if (!d || !/^[a-z][a-z'-]*$/.test(d.base) || d.base === r.term.toLowerCase()) continue;
+      for (const o of d.others) await addWord(r, o);
       let to = await findVocabulary(d.base);
       if (!to || to.term.toLowerCase() !== d.base) {
         if (!d.arabic) continue;
-        to = { id: (await upsertVocabulary({ term: d.base, arabic: d.arabic, level: d.level, origin: 'ai' })).id };
+        to = { id: (await upsertVocabulary({ term: d.base, arabic: d.arabic, level: d.level, origin: 'ai', exact: true })).id };
       }
       const simple = await simpleTerm(d.base); // the one word, in its simplest form too
       const s2 = simple.row || (simple.term !== d.base ? await findVocabulary(simple.term) : null);

@@ -12,6 +12,9 @@ import { all } from '../db/index.js';
 const LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
 const TOPICS = ['business', 'work', 'academic', 'daily', 'media', 'tech', 'emotions', 'health', 'travel', 'society', 'finance', 'data'];
 const TYPES = ['word', 'phrasal verb', 'idiom', 'collocation', 'expression'];
+/** The site keeps ONE word per item: no spaces (phrasal verbs, idioms and compounds are not listed). */
+export const isSingleItem = (it) => isSingleWord(it?.term);
+export const isSingleWord = (t) => /^[A-Za-z][A-Za-z'’-]*$/.test(String(t || '').trim());
 const BANDS = ['basic', 'useful', 'advanced', 'specialized'];
 
 export class ExtractionError extends Error {
@@ -132,10 +135,11 @@ Grammar words (the, is, of, and, it…) are never listed. Choose a balanced mix 
 - B1–B2 words and expressions useful in conversation, university, work, media and everyday life (band "useful");
 - C1–C2 words and expressions (band "advanced");
 - domain terms that are central to this video and reusable in its field (band "specialized", e.g. finance or data terms);
-- SINGLE WORDS first. A multi-word item is allowed ONLY when it is a phrasal verb, an idiom or a fixed expression whose meaning CHANGES if its words are taken alone (give up, figure something out, take something for granted, in the long run), written in dictionary form with "something"/"someone" slots. NEVER list collocations, compound nouns or ordinary combinations whose meaning is just the sum of the words (personal growth, nervous system, state of being, make a decision, very important) — list the one useful word instead (growth, system, decide). Every word is in its SIMPLEST short dictionary form (verb: base form — run, not running or ran; noun: singular; adjective: plain form), the easiest form to memorise.
+- ONE WORD PER ITEM — always a single English word, never two words: no phrasal verbs, idioms, collocations or compound nouns (for "figure out" list "figure"; for "personal growth" list "growth"; for "nervous system" list "nervous" and "system" as two separate items only if each is worth learning). Every word is in its SIMPLEST short dictionary form (verb: base form — run, not running or ran; noun: singular; adjective: plain form), the easiest form to memorise.
 Never include names of people, brands or places, numbers, filler words, duplicates or inflected variants of an item already chosen, or archaic words.
 
-Quality over quantity: roughly 3 items per minute of video, every level represented when the video has it, never padding the list.
+Quality over quantity: roughly 3 items per minute of video, every level represented when the video has it. If the video has no word worth this learner's time, return an EMPTY list — that is fine; never pad the list and never invent words.
+The CEFR level is the one the Oxford 3000/5000 lists and the English Vocabulary Profile give for the meaning used; if you are not sure between two levels, take the one the learner dictionaries list for the most common meaning.
 
 For each item:
 - line: the number of the transcript line where it appears (use the [n] markers exactly).
@@ -163,9 +167,10 @@ async function extractWithAi({ title, channel, lines }) {
   });
   const valid = new Set(lines.map((l) => l.idx));
   return out.items
-    .filter((it) => valid.has(it.line))
+    .filter((it) => valid.has(it.line) && isSingleWord(it.term))
     .map((it) => ({
       ...it,
+      item_type: 'word',
       usefulness: Math.max(0, Math.min(100, Math.round(it.usefulness))),
       contextual_meaning: it.arabic,
       arabic: it.arabic_general || it.arabic,
@@ -204,7 +209,7 @@ export async function extractChunkWithAi({ title, lines }) {
   const transcript = lines.map((l) => `[${l.idx}] ${l.text}`).join('\n');
   const out = await jsonCall({
     task: 'extract_chunk_v3',
-    system: `${EXTRACT_SYSTEM}\n\nYou receive one part of a longer transcript. Choose only from these lines. Return 8–12 items spread over ALL levels present: at least 2–3 important A1–A2 words, 2–3 at B1, 2–3 at B2, and the C1–C2 words and expressions that appear. Set "level" honestly for each. Leave out example fields — they are not needed here.`,
+    system: `${EXTRACT_SYSTEM}\n\nYou receive one part of a longer transcript. Choose only from these lines. Return up to 8–12 SINGLE-WORD items spread over the levels present (important A1–A2 words, B1, B2, and the C1–C2 words that appear) — fewer, or none at all, when nothing in these lines is worth learning; never pad and never invent. Set "level" honestly for each. Leave out example fields — they are not needed here.`,
     user: `Title: ${title}\n\n<transcript>\n${transcript}\n</transcript>`,
     schema: CHUNK_SCHEMA,
     zod: ChunkZ,
@@ -213,7 +218,7 @@ export async function extractChunkWithAi({ title, lines }) {
   const valid = new Set(lines.map((l) => l.idx));
   const seen = new Set();
   return out.items
-    .filter((it) => valid.has(it.line))
+    .filter((it) => valid.has(it.line) && isSingleWord(it.term))
     .filter((it) => {
       const k = matchKey(it.term);
       if (!k || seen.has(k)) return false;
@@ -233,6 +238,7 @@ export async function extractChunkWithAi({ title, lines }) {
 export function extractWithDictionary({ lines }) {
   const hits = new Map();
   for (const { entry, re } of lexiconPatterns()) {
+    if (!isSingleWord(entry.term)) continue; // single words only
     for (const l of lines) {
       if (!re.test(l.text)) continue;
       const key = matchKey(entry.term);
@@ -298,8 +304,8 @@ export async function extractFromIndex({ lines }) {
       rows.push(...await all(`SELECT term, match_key, item_type, part_of_speech, level, usefulness, arabic, simple_english, topic FROM vocabulary WHERE arabic IS NOT NULL AND arabic <> '' AND level IS NOT NULL AND match_key IN (${part.map(() => '?').join(',')})`, ...part));
     } catch { /* the index is optional */ }
   }
-  return rows.map((r) => ({
-    term: r.term, item_type: r.item_type || 'word', part_of_speech: r.part_of_speech, level: r.level,
+  return rows.filter((r) => isSingleWord(r.term)).map((r) => ({
+    term: r.term, item_type: 'word', part_of_speech: r.part_of_speech, level: r.level,
     band: r.level === 'C1' || r.level === 'C2' ? 'advanced' : 'useful', usefulness: r.usefulness ?? 60,
     pronunciation: null, arabic: r.arabic, contextual_meaning: null, simple_english: r.simple_english,
     line: firstLine.get(r.match_key) ?? 0, context_arabic: null, topic: r.topic, example: null, example_arabic: null,
@@ -337,7 +343,7 @@ export async function extractVocabulary({ title, channel, lines, engine = 'dicti
     rest = idx.slice(40);
   }
   const seen = new Set();
-  items = items.filter((it) => {
+  items = items.filter(isSingleItem).filter((it) => {
     const key = matchKey(it.term);
     if (!key || seen.has(key)) return false;
     seen.add(key);
@@ -698,7 +704,7 @@ export async function suggestWordsWithAi({ count, topic = '', level = '', avoid 
   }
   return jsonCall({
     task: 'suggest_words',
-    system: 'You suggest English vocabulary for an Arabic-speaking learner of English. Suggest useful, commonly used words and expressions (single words, phrasal verbs, collocations) for the requested field and level, varied, in dictionary form, none of the listed words to avoid. "arabic" = short natural Arabic meaning; "example" = one natural example sentence (8–16 words); "example_ar" = its Arabic translation.',
+    system: 'You suggest English vocabulary for an Arabic-speaking learner of English. Suggest useful, commonly used SINGLE WORDS (one word each — never phrasal verbs, idioms or collocations) for the requested field and level, varied, in dictionary form, none of the listed words to avoid. "arabic" = short natural Arabic meaning; "example" = one natural example sentence (8–16 words); "example_ar" = its Arabic translation.',
     user: `Number of items: ${count}\nField: ${topic || 'general everyday English'}\nLevel: ${level || 'a balanced mix of ALL levels A1, A2, B1, B2, C1 and C2'}\nVariant: ${Date.now()}\nPrefer words starting with: ${slice}\nAvoid (the learner already has these): ${avoid.slice(0, 500).join(', ') || '(none)'}`,
     schema: SUGGEST_WORDS_SCHEMA,
     zod: SuggestWordsZ,
@@ -784,18 +790,20 @@ export async function summaryWithAi({ title, text }) {
 }
 
 /* ------------------------------------------- «كلماتي»: words and real expressions only */
-const TIDY_SCHEMA = obj({ items: { type: 'array', items: obj({ term: str, keep: { type: 'boolean' }, base: str, arabic: str, level: { type: 'string', enum: LEVELS } }) } });
-const TidyZ = z.object({ items: z.array(z.object({ term: z.string(), keep: z.boolean(), base: z.string().default(''), arabic: z.string().default(''), level: z.enum(LEVELS).catch('B1') })) });
-/** For multi-word items: keep real units (phrasal verbs, idioms, fixed expressions); turn free word
- *  combinations and sentence pieces into their one useful word, in its simplest dictionary form. */
+const WORD_PART = obj({ word: str, arabic: str, level: { type: 'string', enum: LEVELS } });
+const TIDY_SCHEMA = obj({ items: { type: 'array', items: obj({ term: str, base: str, arabic: str, level: { type: 'string', enum: LEVELS }, others: { type: 'array', items: WORD_PART } }) } });
+const PartZ = z.object({ word: z.string(), arabic: z.string().default(''), level: z.enum(LEVELS).catch('B1') });
+const TidyZ = z.object({ items: z.array(z.object({ term: z.string(), base: z.string().default(''), arabic: z.string().default(''), level: z.enum(LEVELS).catch('B1'), others: z.array(PartZ).default([]) })) });
+/** Multi-word items → single words. Every item (phrasal verb, idiom, collocation, compound, sentence piece) is split into its
+ *  useful single words in their simplest dictionary form; the first goes in "base", up to 2 more in "others". */
 export async function tidyTermsWithAi(terms) {
   return jsonCall({
-    task: 'tidy_terms_v2',
-    system: 'A learner\'s vocabulary list must hold only SINGLE WORDS, plus the rare phrasal verb, idiom or fixed expression whose meaning CHANGES when its words are taken alone. For each item decide: keep=true ONLY for a phrasal verb (give up, look after, figure out, ease into something), an idiom (take something for granted, in the long run) or a fixed expression whose meaning is not guessable from its words (thumbs up); keep=false for EVERYTHING else — collocations, compound nouns, free combinations and sentence pieces (personal growth, nervous system, state of being, make a decision, senior years, waste time on something, very important). When keep=false: "base" = the ONE most useful single word in it, in its simplest short dictionary form (verb: base form; noun: singular; adjective: plain) — e.g. growth, system, exist, decide, senior, waste — "arabic" = its short natural Arabic meaning, "level" = its CEFR level. When keep=true: "base" = the item in its standard dictionary form (thumbs up), "arabic" = "" and level as given. Return one item per input, same order, with "term" exactly as given.',
+    task: 'tidy_terms_v3',
+    system: 'A learner\'s vocabulary list must hold only SINGLE ENGLISH WORDS — one word per item, never two. Each input is a multi-word item (phrasal verb, idiom, collocation, compound noun or a sentence piece). Split it into its useful single words: "base" = the ONE most useful content word in it, in its simplest short dictionary form (verb: base form; noun: singular; adjective: plain) — e.g. "figure out" → figure, "personal growth" → growth, "nervous system" → system, "make a decision" → decide, "take something for granted" → grant; "others" = up to 2 MORE content words from the same item that are also worth learning (nervous, personal) — never grammar words, particles, pronouns, names or numbers, and never invent a word that is not in the item (or its simplest form). Every word is ONE word with letters only. For each word give a short natural Arabic meaning and its CEFR level as the Oxford 3000/5000 lists and the English Vocabulary Profile give it. If nothing in the item is worth keeping, base = "". Return one item per input, same order, with "term" exactly as given.',
     user: terms.map((t, i) => `${i + 1}. ${t}`).join('\n'),
     schema: TIDY_SCHEMA,
     zod: TidyZ,
-    maxTokens: Math.min(6000, 90 * terms.length + 400),
+    maxTokens: Math.min(7000, 130 * terms.length + 400),
   });
 }
 
