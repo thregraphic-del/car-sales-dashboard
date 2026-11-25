@@ -3406,3 +3406,4 @@ button.soc-ic { padding: 0; cursor: pointer; font: inherit; }
 .lt2-list li.done { opacity: .55; }
 .lt2-list li.on { background: var(--tf-light, #e0f6f5); border-color: var(--accent); opacity: 1; }
 .lt2-list li.on .lt2-en { color: var(--accent); }
+.big-play + .say-ar { display: block; margin: 8px auto 0; text-align: center; font-size: 13px; color: var(--muted); }

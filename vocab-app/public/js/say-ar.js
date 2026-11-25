@@ -17,7 +17,7 @@ function fill(root = document) {
   for (const b of btns) {
     b.dataset.sayar = '1';
     if (b.closest('[data-no-sayar]')) continue;
-    if (b.classList.contains('big-play') || Number(b.dataset.rate) < 0.8) continue; // listening questions: the Arabic spelling would give the answer away (and show twice: normal + slow) // the page shows its own pronunciation (e.g. the twins cards)
+    if (Number(b.dataset.rate) < 0.8) continue; // the «بطيء» button next to it: the Arabic spelling shows once only, under the main button // the page shows its own pronunciation (e.g. the twins cards)
     const t = norm(b.dataset.say);
     if (!isWord(t) || b.dataset.lang === 'ar') continue;
     if (b.nextElementSibling?.classList.contains('say-ar')) continue;
