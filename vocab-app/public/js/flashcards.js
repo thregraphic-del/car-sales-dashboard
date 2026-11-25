@@ -17,12 +17,31 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
   const total = words.length;
   let finished = 0;
 
+  // a clear translated example for every word: the ones missing it are asked in small batches (written once, saved for everyone)
+  const generated = new Map();
+  const asked = new Set();
+  const hasArabicExample = (w) => w.examples?.some((e) => e.arabic);
+  async function fillExamples(from) {
+    const need = queue.slice(from, from + 20).filter((w) => !hasArabicExample(w) && !asked.has(String(w.term).toLowerCase()));
+    if (!need.length) return;
+    need.forEach((w) => asked.add(String(w.term).toLowerCase()));
+    try {
+      const r = await api.simpleExamples(need.map((w) => ({ term: w.term, arabic: w.user_arabic || w.arabic })));
+      for (const [k, v] of Object.entries(r.examples || {})) if (v?.sentence && v?.arabic) generated.set(k.toLowerCase(), v);
+      if (container.isConnected && idx < queue.length && generated.has(String(queue[idx].term).toLowerCase())) card();
+    } catch { /* the card still shows what exists */ }
+  }
+
   let lastSaid = -1;
   function card() {
     const w = queue[idx];
-    const found = w.examples?.find((e) => e.kind === 'easy') || w.examples?.[0];
-    // the example: a saved easy one, or else the sentence of the video the word came from (with its translation when it has one)
-    const easy = found ? { sentence: found.sentence, arabic: found.arabic } : w.context_sentence ? { sentence: w.context_sentence, arabic: w.context_arabic } : null;
+    // the example, best first: a saved one that has its Arabic → one written once by AI (saved for everyone) → any saved one → the video's own sentence
+    const found = w.examples?.find((e) => e.kind === 'easy' && e.arabic) || w.examples?.find((e) => e.arabic) || w.examples?.find((e) => e.kind === 'easy') || w.examples?.[0];
+    const gen = generated.get(String(w.term).toLowerCase());
+    const easy = found?.arabic ? { sentence: found.sentence, arabic: found.arabic }
+      : gen ? { sentence: gen.sentence, arabic: gen.arabic }
+        : found ? { sentence: found.sentence, arabic: found.arabic }
+          : w.context_sentence ? { sentence: w.context_sentence, arabic: w.context_arabic } : null;
     const pct = Math.round((100 * finished) / total);
     container.innerHTML = `
       <div class="fc-wrap">
@@ -101,6 +120,7 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
       }
       idx += 1;
       flipped = false;
+      if (idx % 12 === 0) fillExamples(idx);
       if (idx >= queue.length) done();
       else card();
       refreshStats();
@@ -138,7 +158,7 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
   bindSpeech(container);
   container.addEventListener('click', onClick);
   document.addEventListener('keydown', onKey);
-  if (queue.length) card();
+  if (queue.length) { card(); fillExamples(0); }
   else done();
   return () => document.removeEventListener('keydown', onKey);
 }
