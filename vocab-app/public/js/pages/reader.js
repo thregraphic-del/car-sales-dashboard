@@ -314,6 +314,7 @@ export async function render(view, { segments, params }) {
       ${paid.summary && (isVideo || data.lines.length) ? `<button type="button" class="rb-btn sum-top" id="sumTop" title="ملخص المقطع كامل: أبرز الأفكار، خطوات عملية، الحكم والرسالة">${icon.doc}<span>ملخص المقطع</span></button>` : ''}
       ${data.lines.length ? `<button type="button" class="rb-btn rb-ic" id="gptTop" title="اسأل ChatGPT عن المقطع: ينسخ رسالة تلخيص جاهزة مع النص ويفتح ChatGPT" aria-label="اسأل ChatGPT">${icon.gpt}</button>` : ''}
       <button type="button" class="rb-btn words-btn" id="wordsBtn" aria-pressed="false" title="الكلمات الجديدة في المقطع">${icon.list}<span>الكلمات</span> <b id="wcount2">${data.items.length}</b></button>
+      ${data.lines.length ? `<button type="button" class="rb-btn rb-ic gram-btn" id="gramBtn" aria-pressed="false" title="وضع القواعد: فوق كل جملة قاعدتها" aria-label="وضع القواعد">${icon.book}<span>قواعد</span></button>` : ''}
       <button type="button" class="rb-btn rb-ic" id="focusBtn" aria-pressed="false" title="توسيع الشاشة">${icon.expand}</button>
       <button type="button" class="btn icon sm ghost set-btn" id="setBtn" aria-expanded="false" title="إعدادات المقطع">${icon.settings}</button>
     </div>
@@ -1491,9 +1492,18 @@ export async function render(view, { segments, params }) {
     isPlaying: () => playing, pause: () => { selfPause(); player?.pause?.(); }, play: () => player?.play?.(),
   });
   const gramToggle = $('#gramOn', view);
-  if (gramToggle) gramToggle.checked = pref('reader.grammar', '0') === '1';
-  grammar.set(pref('reader.grammar', '0') === '1');
-  gramToggle?.addEventListener('change', (e) => { setPref('reader.grammar', e.target.checked ? '1' : '0'); grammar.set(e.target.checked); });
+  const gramBtn = $('#gramBtn', view);
+  // one switch in two places: the visible «قواعد» button in the top row, and the one inside ⚙
+  const setGram = (on, say = false) => {
+    setPref('reader.grammar', on ? '1' : '0');
+    grammar.set(on);
+    if (gramToggle) gramToggle.checked = on;
+    if (gramBtn) { gramBtn.setAttribute('aria-pressed', String(on)); gramBtn.classList.toggle('primary', on); }
+    if (say) toast(on ? '📚 وضع القواعد شغّال: فوق كل جملة قاعدتها، واضغطها تشوف الشرح' : 'وضع القواعد انطفى');
+  };
+  setGram(pref('reader.grammar', '0') === '1');
+  gramToggle?.addEventListener('change', (e) => setGram(e.target.checked));
+  gramBtn?.addEventListener('click', () => setGram(pref('reader.grammar', '0') !== '1', true));
   // «احفظ الكل» was pressed on an earlier visit: words that arrived since are saved now
   if (autoSaveAll && data.items.some((it) => !it.user_state && newSet.has(it.vocabulary_id))) refresh().catch(() => {});
 

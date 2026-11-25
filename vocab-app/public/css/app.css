@@ -3443,3 +3443,6 @@ button.soc-ic { padding: 0; cursor: pointer; font: inherit; }
 .cb i b.mid, .cb.hit i b.mid { background: var(--accent); }
 .cb i b.hi, .cb.hit i b.hi { background: var(--tiffany); }
 .cb.hit i b.lo { background: var(--orange); }
+.gram-btn span { font-size: 12.5px; }
+.gram-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink, #fff); }
+@media (max-width: 360px) { .gram-btn span { display: none; } }
