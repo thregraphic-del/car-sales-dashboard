@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { state } from '../state.js';
+import { state, grammarOn, applyGrammarMode } from '../state.js';
 import { esc, icon, toast, num, openModal, closeModal, applyTheme } from '../ui.js';
 import { refreshStats } from '../app.js';
 import { readDataFiles, importSnapshot, countsOf, TABLES } from '../data-transfer.js';
@@ -65,6 +65,7 @@ export async function render(view) {
         <h4 class="set-sub">المظهر</h4>
         ${swItem('darkSw', 'الوضع الداكن', '', '', theme === 'dark')}
         <h4 class="set-sub">التشغيل</h4>
+        ${swItem('gramSw', 'وضع القواعد', 'يعرض القواعد في الكلمات والتدريب والمقاطع (مطفي للمبتدئ)', '', grammarOn())}
         ${swItem('wideSw', 'المقطع يفتح بشاشة موسّعة', '', '', ls('app.openWide2', '0') === '1')}
         ${swItem('autoSw', 'احفظ كلمات المقطع تلقائيًا', '', '', ls('app.autoSave', '0') === '1')}
       </div></details>
@@ -132,6 +133,7 @@ ${cfg.can_set_paid ? '<a class="set-rowbtn" href="/admin.html"><span class="ss-i
     onChange(e.target.checked);
   });
   bindSw('darkSw', (on) => { const t = on ? 'dark' : 'light'; try { localStorage.setItem('theme', t); } catch { /* ignore */ } applyTheme(t); });
+  bindSw('gramSw', (on) => { lsSet('app.grammar', on ? '1' : '0'); applyGrammarMode(); toast(on ? '📚 وضع القواعد شغّال' : 'وضع القواعد مطفي — اختفت القواعد من الموقع'); });
   bindSw('wideSw', (on) => lsSet('app.openWide2', on ? '1' : '0'));
   bindSw('autoSw', (on) => lsSet('app.autoSave', on ? '1' : '0'));
   $('#reset')?.addEventListener('click', async () => {

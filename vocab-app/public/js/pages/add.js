@@ -6,6 +6,7 @@ import { speak } from '../audio.js';
 import { state, loadGroups } from '../state.js';
 import { esc, icon, levelChip, thumbHtml, relDate, toast, fmtTime, $, openModal, closeModal } from '../ui.js';
 import { groupPickerHtml, bindGroupPicker } from '../components.js';
+import { pickBannerHtml, onPicked } from '../onboarding.js';
 import { bindAttach, packsHtml, bindPacks, suggestionsHtml, bindSuggestions, suggestWordsHtml, bindSuggestWords, channelsHtml, bindChannels, fieldsHtml, bindFields } from '../add-extras.js';
 
 const ICO = {
@@ -65,6 +66,7 @@ export async function render(view, { params }) {
     </div>
     <div id="result"></div>
     <section class="add-sec hidden" id="sampleSec">
+      ${pickBannerHtml()}
       <div class="section-title"><h2>جرّب بمقطع جاهز</h2></div>
       <div class="sample-row">${SAMPLES.map((id, i) => `<button type="button" class="sample" data-sample="${id}" aria-label="مقطع تجريبي ${i + 1}"><img src="https://i.ytimg.com/vi/${id}/mqdefault.jpg" alt="" loading="lazy"><span class="sample-play">▶</span><b>مقطع ${i + 1}</b></button>`).join('')}</div>
     </section>
@@ -98,6 +100,7 @@ export async function render(view, { params }) {
     view.querySelector('#srcTabs').classList.toggle('hidden', !counts[0] && !counts[1]);
     view.querySelector('#srcSec').classList.toggle('hidden', !counts[0] && !counts[1]);
     view.querySelector('#sampleSec').classList.toggle('hidden', !!(counts[0] || counts[1])); // the samples show only until the first clip exists
+    if (pickBannerHtml() && !(counts[0] || counts[1])) setTimeout(() => view.querySelector('#sampleSec')?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 500);
     view.querySelector('#cV').textContent = `(${counts[0]})`;
     view.querySelector('#cT').textContent = `(${counts[1]})`;
     view.querySelectorAll('#srcKind [data-sk]').forEach((b) => b.classList.toggle('active', b.dataset.sk === srcKind));
@@ -170,6 +173,7 @@ export async function render(view, { params }) {
   view.querySelector('#sampleSec').addEventListener('click', (e) => {
     const b = e.target.closest('[data-sample]');
     if (!b) return;
+    onPicked(); // a new account's guide goes on inside the clip
     input.value = `https://www.youtube.com/watch?v=${b.dataset.sample}`;
     input.dispatchEvent(new Event('input', { bubbles: true }));
     window.scrollTo({ top: 0, behavior: 'smooth' });

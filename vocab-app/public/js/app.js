@@ -1,6 +1,6 @@
 // App shell: four everyday destinations + settings, and a tiny hash router.
 import { api, warm } from './api.js';
-import { state, loadGroups } from './state.js';
+import { state, loadGroups, applyGrammarMode } from './state.js';
 import { stop as stopAudio, speak } from './audio.js';
 import { closeWordPanel, openWordPanel } from './components.js';
 import { icon, $, closeModal, esc, openModal, toast, applyTheme } from './ui.js';
@@ -290,10 +290,8 @@ async function showAuth(status) {
   });
 }
 
-// 🏁 opening the site lands directly on «أضف» (the home «اليوم» stays one tap away in the menu)
-try {
-  if ((location.hash === '' || location.hash === '#' || location.hash === '#/') && !/^\/(login|register)\/?$/.test(location.pathname)) history.replaceState(null, '', `${location.pathname}${location.search}#/add`);
-} catch { /* ignore */ }
+// 🏁 opening the site lands on «اليوم» (today's progress); «أضف» is one tap away in the bar
+applyGrammarMode();
 
 // ⚡ a returning visitor (the browser remembers they were signed in): ask for the settings, the groups and the home page
 // at the SAME moment as the sign-in check, instead of one trip after another. If it turns out they are not signed in, the

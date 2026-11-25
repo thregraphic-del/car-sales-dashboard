@@ -1,7 +1,9 @@
 // A page of its own for the clip's settings (not a sheet over the clip): speed, font size, where the video sits,
 // two switches for practising, the word list, the time strip and the sentence times. Choices are kept on this
 // device and the clip picks them up when it opens again. Nothing here runs in the background.
-import { icon, esc } from '../ui.js';
+import { onboardingStep, finishOnboarding } from '../onboarding.js';
+import { startTour } from '../tour.js';
+import { icon, esc, toast } from '../ui.js';
 
 const pref = (k, d) => { try { return localStorage.getItem(k) ?? d; } catch { return d; } };
 const setPref = (k, v) => { try { localStorage.setItem(k, v); } catch { /* ignore */ } };
@@ -83,4 +85,8 @@ export async function render(view, { segments, params }) {
     setPref('reader.font', String(font));
     location.hash = `${clip}?fontbar=1`;
   }));
+  // a new account's guide: every option of this page is explained, then the clip opens again
+  if (onboardingStep() === 'clipset') {
+    setTimeout(() => startTour('clipset', { onDone: () => { finishOnboarding(); toast('🎉 جاهز! الحين ابدأ تتعلم'); location.hash = clip; } }), 1000);
+  }
 }

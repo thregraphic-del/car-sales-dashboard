@@ -10,7 +10,8 @@
 // seeks the video there.
 import { api } from '../api.js';
 import { startTour, maybeTour } from '../tour.js';
-import { state } from '../state.js';
+import { onboardingStep, setOnboardingStep } from '../onboarding.js';
+import { state, grammarOn } from '../state.js';
 import { notePassed, noteWatched } from '../goal.js';
 import { summaryHtml } from '../summary-view.js';
 import { openGptNote } from '../gpt-note.js';
@@ -1501,7 +1502,7 @@ export async function render(view, { segments, params }) {
     if (gramBtn) { gramBtn.setAttribute('aria-pressed', String(on)); gramBtn.classList.toggle('primary', on); }
     if (say) toast(on ? '📚 وضع القواعد شغّال: فوق كل جملة قاعدتها، واضغطها تشوف الشرح' : 'وضع القواعد انطفى');
   };
-  setGram(pref('reader.grammar', '0') === '1');
+  setGram(pref('reader.grammar', '0') === '1' && grammarOn()); // the whole feature is off unless switched on in the settings
   gramToggle?.addEventListener('change', (e) => setGram(e.target.checked));
   gramBtn?.addEventListener('click', () => setGram(pref('reader.grammar', '0') !== '1', true));
   // «احفظ الكل» was pressed on an earlier visit: words that arrived since are saved now
@@ -2066,7 +2067,10 @@ export async function render(view, { segments, params }) {
   };
   $('#resetR', view)?.addEventListener('click', resetAll);
   $('#resetAll', view)?.addEventListener('click', resetAll);
-  maybeTour('reader');
+  // a new account: every icon is explained with «التالي», then the clip's settings page is opened and explained too
+  if (onboardingStep() === 'tour') {
+    setTimeout(() => startTour('reader', { onDone: () => { setOnboardingStep('clipset'); location.hash = `#/clip-settings/${id}?v=${isVideo ? 1 : 0}&t=${hasTimes ? 1 : 0}`; } }), 1300);
+  } else maybeTour('reader');
 
   // 🙈 Hide the Arabic until it is touched (try to understand first)
   let hideAr = false; // the «أخفه» button was removed (the «عربي» switch hides the Arabic)

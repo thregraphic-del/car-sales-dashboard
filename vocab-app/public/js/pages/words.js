@@ -1,6 +1,6 @@
 // كلماتي — everything saved, organised in learner-named groups.
 import { api } from '../api.js';
-import { state, loadGroups } from '../state.js';
+import { state, loadGroups, grammarOn } from '../state.js';
 import { esc, icon, emptyState, toast, openModal, closeModal, num, levelChip } from '../ui.js';
 import { wordRowHtml, bindWordList, openWordCard, bindSpeech } from '../components.js';
 import { libTabs } from '../grammar-library.js';
@@ -17,7 +17,7 @@ const FILTERS = [
 
 export async function render(view, { params }) {
   // 📚 «القواعد» lives beside the words in the same library
-  if (params.tab === 'grammar') return (await import('../grammar-library.js')).render(view, { params });
+  if (params.tab === 'grammar' && grammarOn()) return (await import('../grammar-library.js')).render(view, { params });
   let [all] = await Promise.all([api.words(), loadGroups()]); // both at once
   const f = { filter: params.filter || 'all', group: params.group ? Number(params.group) : null, q: '', levels: [], when: params.when || '', source: params.source ? Number(params.source) : null, sort: 'new', count: 0, view: 'list' };
   let fbOpen = '';

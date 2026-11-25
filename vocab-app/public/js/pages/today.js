@@ -3,6 +3,7 @@
 //   · «مراجعة كلمات آخر يوم» (the main task) · this week's progress.
 import { api } from '../api.js';
 import { maybeTour } from '../tour.js';
+import { maybeOnboard } from '../onboarding.js';
 import { state } from '../state.js';
 import { noteStatsFresh, takePreloadedToday } from '../app.js';
 import { esc, icon, openModal, closeModal, toast } from '../ui.js';
@@ -205,7 +206,7 @@ export async function render(view) {
   view.querySelector('#lostQuick')?.addEventListener('click', rescue);
   view.querySelector('#bell').addEventListener('click', () => { lsSet('bell.seen', newsSig(items)); view.querySelector('#bell').classList.remove('dot'); openBell(items, act); });
   view.querySelector('#rvStart')?.addEventListener('click', () => openReviewSetup(ld.words));
-  maybeTour('home');
+  if (!maybeOnboard()) maybeTour('home');
 }
 
 /* 📅 The dashboard: the days as squares, columns or a curve — filled by the time watched or the words learned

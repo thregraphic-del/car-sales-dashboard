@@ -3446,3 +3446,20 @@ button.soc-ic { padding: 0; cursor: pointer; font: inherit; }
 .gram-btn span { font-size: 12.5px; }
 .gram-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink, #fff); }
 @media (max-width: 360px) { .gram-btn span { display: none; } }
+
+/* 📚 grammar mode OFF (the default): nothing about the rules is shown anywhere */
+html[data-grammar="off"] .wd-seg, html[data-grammar="off"] .pb-seg, html[data-grammar="off"] #areaTabs, html[data-grammar="off"] .lib-tabs,
+html[data-grammar="off"] #gramBtn, html[data-grammar="off"] #gramOn, html[data-grammar="off"] .sw-row:has(#gramOn), html[data-grammar="off"] .g-tags,
+html[data-grammar="off"] [data-grammar-only] { display: none !important; }
+
+/* 👋 new-account guide */
+.onb { display: grid; gap: 14px; text-align: center; padding: 6px 2px 2px; }
+.onb-ic { font-size: 40px; }
+.onb h2 { margin: 0; }
+.onb p { margin: 0; }
+.onb-q { display: grid; gap: 10px; text-align: start; }
+.onb-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.onb-chip { flex: 1; min-width: 56px; padding: 12px 0; border-radius: 14px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 800; font-size: 17px; cursor: pointer; }
+.onb-chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink, #fff); }
+.onb-banner { display: grid; gap: 4px; padding: 12px 14px; margin-bottom: 12px; border-radius: 16px; background: var(--tf-light, #e0f6f5); border: 1.5px solid var(--accent); color: var(--ink); }
+.onb-banner span { font-size: 14px; color: var(--ink-2, var(--muted)); }

@@ -2,7 +2,7 @@
 // then due, then difficult, then new); the learner just presses start.
 // After every round, missed words can be replayed immediately.
 import { api } from '../api.js';
-import { state, loadGroups } from '../state.js';
+import { state, loadGroups, grammarOn } from '../state.js';
 import { esc, icon, emptyState } from '../ui.js';
 import { runQuiz, TYPES, canPlay, GAME_ORDER } from '../quiz.js';
 import { runFlashcards } from '../flashcards.js';
@@ -105,7 +105,7 @@ export async function render(view, { params }) {
   // No exact list asked for: the learner builds the session with the five filters.
   if (!label && mode !== 'story' && !params.focus && !params.type) {
     // two areas on one page: 🔤 الكلمات | 📚 القواعد (the grammar one has its own games that also TEACH the rule)
-    const area = params.area === 'grammar' ? 'grammar' : 'words';
+    const area = params.area === 'grammar' && grammarOn() ? 'grammar' : 'words';
     const tabsHtml = `<div class="lib-tabs segmented wd-seg" role="tablist" id="areaTabs"><a href="${href({})}" role="tab" class="${area === 'words' ? 'active' : ''}">الكلمات <b id="pCnt"></b></a><a href="${href({ area: 'grammar' })}" role="tab" class="${area === 'grammar' ? 'active' : ''}">القواعد <b id="gCnt"></b></a></div>`;
     // the lazy count of grammar rules (one light request), shown beside «القواعد»
     const fillGrammarCount = () => api.grammar().then((lib) => { const n = Object.values(lib.subs || {}).filter((e) => (e.examples?.length || 0) || e.seen || (e.status && e.status !== 'new')).length; const el = view.querySelector('#gCnt'); if (el && n) el.textContent = `(${n})`; }).catch(() => {});

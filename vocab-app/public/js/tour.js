@@ -195,9 +195,9 @@ export function syncTours(list = []) {
 }
 const visible = (el) => el && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden';
 
-export function startTour(kind = 'home') {
+export function startTour(kind = 'home', { onDone } = {}) {
   const steps = (TOURS[kind] || HOME).filter((st) => !st.s || st.s.some((q) => visible(document.querySelector(q))));
-  if (!steps.length) return;
+  if (!steps.length) { onDone?.(); return; }
   mark(kind);
   document.querySelector('.tour')?.remove();
   const root = document.createElement('div');
@@ -250,7 +250,7 @@ export function startTour(kind = 'home') {
     const b = e.target.closest('[data-t]')?.dataset.t;
     if (b === 'skip') return close();
     if (b === 'prev') { i = Math.max(0, i - 1); return draw(); }
-    if (b === 'next' || e.target === root || e.target === spot) { if (i >= steps.length - 1) return close(); i += 1; return draw(); }
+    if (b === 'next' || e.target === root || e.target === spot) { if (i >= steps.length - 1) { close(); onDone?.(); return undefined; } i += 1; return draw(); }
     return undefined;
   });
   window.addEventListener('resize', place);
