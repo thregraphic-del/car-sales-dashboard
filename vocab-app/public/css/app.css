@@ -3382,3 +3382,4 @@ button.soc-ic { padding: 0; cursor: pointer; font: inherit; }
 .fc-corner .chip { font-size: 11.5px; padding: 3px 9px; }
 .fc-say { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
 .fc-say .say-ar { font-size: 16px; color: var(--muted); }
+.fc-ex-ar { margin: -2px 0 0; font-size: 15.5px; font-weight: 600; color: var(--ink-2, var(--muted)); }
