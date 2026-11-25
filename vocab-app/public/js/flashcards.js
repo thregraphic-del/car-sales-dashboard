@@ -44,10 +44,9 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
             </div>
           </div>
         </div>
-        <div class="grade-row ${flipped ? '' : 'hidden'}" id="grades">
-          <button class="grade hard" data-g="hard"><span class="em">❌</span>صعبة<small>1 · سأراها قريبًا</small></button>
-          <button class="grade good" data-g="good"><span class="em">😐</span>جيدة<small>2</small></button>
-          <button class="grade easy" data-g="easy"><span class="em">✅</span>سهلة<small>3</small></button>
+        <div class="grade-row two ${flipped ? '' : 'hidden'}" id="grades">
+          <button class="grade hard" data-g="hard"><span class="em">🤔</span>ما أعرفها</button>
+          <button class="grade easy" data-g="good"><span class="em">✅</span>أعرفها</button>
         </div>
         ${flipped ? '' : `<div style="text-align:center;margin-top:18px"><button class="btn primary lg" id="flipBtn">اقلب البطاقة</button></div>`}
       </div>`;
@@ -62,10 +61,9 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
         <div class="big">🎉</div>
         <h2 style="margin:10px 0 6px">أحسنت! أنهيت ${total} ${total === 1 ? 'بطاقة' : 'بطاقات'}</h2>
         <p class="ink-2">تم تحديث جدول المراجعة: الكلمات الصعبة ستعود قريبًا، والسهلة ستتباعد.</p>
-        <div class="grid cols-3" style="margin:22px auto 0;max-width:420px">
-          <div class="card soft stat"><div class="value" style="color:var(--bad)">${results.hard}</div><div class="label">صعبة</div></div>
-          <div class="card soft stat"><div class="value" style="color:var(--warn)">${results.good}</div><div class="label">جيدة</div></div>
-          <div class="card soft stat"><div class="value" style="color:var(--good)">${results.easy}</div><div class="label">سهلة</div></div>
+        <div class="grid cols-2" style="margin:22px auto 0;max-width:340px;grid-template-columns:1fr 1fr">
+          <div class="card soft stat"><div class="value" style="color:var(--bad)">${results.hard}</div><div class="label">ما أعرفها</div></div>
+          <div class="card soft stat"><div class="value" style="color:var(--good)">${results.good + results.easy}</div><div class="label">أعرفها</div></div>
         </div>
         ${missed.size ? `<div class="replay-box"><b>صعبت عليك ${missed.size} ${missed.size === 1 ? 'كلمة' : 'كلمات'}</b>
           <div class="en small" style="margin:6px 0 10px">${[...missed.values()].map((m) => esc(m.term)).join(' · ')}</div>
@@ -132,8 +130,8 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
     if (e.code === 'Space') {
       e.preventDefault();
       flip();
-    } else if (flipped && ['1', '2', '3'].includes(e.key)) {
-      grade(['hard', 'good', 'easy'][Number(e.key) - 1]);
+    } else if (flipped && ['1', '2'].includes(e.key)) {
+      grade(['hard', 'good'][Number(e.key) - 1]);
     }
   };
   bindSpeech(container);
