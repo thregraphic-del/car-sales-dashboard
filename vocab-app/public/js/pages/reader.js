@@ -2422,13 +2422,29 @@ export async function render(view, { segments, params }) {
         const unsaved = data.items.filter(isNew).filter((i) => !i.user_state && !isHidden(i.vocabulary_id, i.user_state));
         const btn = e.target.closest('#saveAll');
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner"></span> نحفظ…';
-        // one request; "save all" does not count as words gone through
-        const r = await api.saveWordsBulk(unsaved.map((it) => ({ vocabulary_id: it.vocabulary_id, occurrence_id: it.occurrence_id })));
+        // a small bar under the button (no spinner): the words are saved in steps, and it is fine to keep browsing meanwhile
+        const prog = document.createElement('div');
+        prog.className = 'sv-prog';
+        prog.innerHTML = '<div class="bar"><span style="width:0%"></span></div><p class="tiny muted">كمّل تنقّلك — الحفظ يكمل هنا</p>';
+        btn.after(prog);
+        const total = unsaved.length;
+        btn.textContent = `نحفظ… 0/${total}`;
+        const r = { saved: 0 };
+        const STEP = 20;
+        for (let i = 0; i < total; i += STEP) {
+          const part = unsaved.slice(i, i + STEP).map((it) => ({ vocabulary_id: it.vocabulary_id, occurrence_id: it.occurrence_id }));
+          const out = await api.saveWordsBulk(part, i + STEP >= total); // "save all" does not count as words gone through
+          r.saved += out.saved || 0;
+          const done = Math.min(total, i + STEP);
+          btn.textContent = `نحفظ… ${done}/${total}`;
+          prog.querySelector('.bar span').style.width = `${Math.round((100 * done) / total)}%`;
+        }
+        prog.remove();
         toast(`تم حفظ ${r.saved} كلمة ✓`);
         // remembered for this video: every word that arrives later (now or on a later visit) is saved too
         autoSaveAll = true;
         try { localStorage.setItem(`reader.saveall.${id}`, '1'); } catch { /* ignore */ }
+        if (!side.isConnected) return undefined; // you moved on to another page meanwhile: the saving still finished
         sideF.show = 'saved'; sidePop = ''; svOpen = false; saveSideF(); // the menu closes and the list shows what is saved
         return refresh();
       }

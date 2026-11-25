@@ -148,7 +148,8 @@ export const api = {
 
   lookup: (params) => request('GET', `/api/lookup${qs(params)}`),
   saveWord: (vocabulary_id, occurrence_id, group_ids, bulk = false) => afterSave(request('POST', '/api/words', { vocabulary_id, occurrence_id, group_ids, bulk })),
-  saveWordsBulk: (items) => afterSave(request('POST', '/api/words/bulk', { items }), { wait: true }),
+  // «save all» goes in small steps (so the bar can move); the tidy-up runs once, after the last step
+  saveWordsBulk: (items, last = true) => (last ? afterSave(request('POST', '/api/words/bulk', { items }), { wait: true }) : request('POST', '/api/words/bulk', { items })),
   ensureLevels: (sourceId) => request('POST', '/api/levels', sourceId ? { source_id: sourceId } : {}),
   simplifyWords: () => request('POST', '/api/words/simplify', {}),
   tidyWords: () => request('POST', '/api/words/tidy', {}),

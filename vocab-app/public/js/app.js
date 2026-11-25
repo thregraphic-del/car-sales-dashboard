@@ -65,9 +65,7 @@ function renderNav(active) {
   // bottom bar on phones: only the three working pages (اليوم · الإعدادات · أصدقائي live in the ☰ menu)
   // «أضف» sits in the middle of the bar, in its own colour (inside the bar, not floating above it)
   const tabs = ['/words', '/add', '/practice'].map((pa) => NAV.find((n) => n.path === pa));
-  $('#tabbar').innerHTML = tabs.map((n) => (n.path === '/add'
-    ? `<a class="tab-add${n.path === active ? ' active' : ''}" href="#${n.path}"><span class="tab-add-ic">${icon[n.icon]}</span><span>${n.label}</span></a>`
-    : `<a class="${n.path === active ? 'active' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span></a>`)).join('');
+  $('#tabbar').innerHTML = tabs.map((n) => `<a class="${n.path === active ? 'active' : ''}" href="#${n.path}" ${n.path === active ? 'aria-current="page"' : ''}>${icon[n.icon]}<span>${n.label}</span></a>`).join('');
   const top = $('#topStreak');
   if (top && s) top.innerHTML = `🔥 <b class="en-inline">${s.streak.current}</b>${s.streak.rescue ? SAD_BADGE : ''}`;
   const guestChip = state.user?.guest ? '<div class="guest-chip">👤 أنت ضيف — <a href="/register"><b>سجّل حسابك المجاني</b></a> وتنحفظ كلماتك. عندك حساب؟ <a href="/login"><b>ادخل</b></a></div>' : '';
