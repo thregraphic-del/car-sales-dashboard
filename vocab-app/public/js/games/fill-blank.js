@@ -23,6 +23,7 @@ export default {
       options: distractors(w, pool, 3, (x) => x.term.toLowerCase()),
       text: (o) => `<span class="en-inline">${esc(o.term)}</span>`,
       sentence: b.sentence,
+      hintOpts: { sentence: false, arabic: false }, // the sentence, its Arabic and the meaning are already on the screen
     });
   },
 };

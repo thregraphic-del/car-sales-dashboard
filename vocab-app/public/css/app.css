@@ -3407,3 +3407,9 @@ button.soc-ic { padding: 0; cursor: pointer; font: inherit; }
 .lt2-list li.on { background: var(--tf-light, #e0f6f5); border-color: var(--accent); opacity: 1; }
 .lt2-list li.on .lt2-en { color: var(--accent); }
 .big-play + .say-ar { display: block; margin: 8px auto 0; text-align: center; font-size: 13px; color: var(--muted); }
+
+/* question wording: clear teal instead of pale grey; the sentence stays dark */
+.question .prompt { color: var(--accent); font-weight: 700; }
+.question .prompt b { color: var(--ink); }
+.question .q-sentence-ar { color: var(--ink-2, var(--ink)); }
+.question .small.muted { color: var(--ink-2, var(--muted)); }

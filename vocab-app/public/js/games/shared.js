@@ -60,14 +60,14 @@ export function hintLine(w) {
   return [pos, `يبدأ بـ ${w.term.trim()[0]?.toLowerCase() || ''}`, `${letters(w).replace(/\s/g, '').length} حروف`].filter(Boolean).join(' · ');
 }
 /** 💡 the hints of a word, in order: easy English meaning → the meaning in Arabic → a sentence with it hidden */
-export function hintSteps(w) {
+export function hintSteps(w, { sentence = true, arabic = true } = {}) {
   const out = [];
-  const sent = hintSentence(w); // 1) a clear example (English with a dashed blank + its Arabic)
+  const sent = sentence ? hintSentence(w) : ''; // 1) a clear example (English with a dashed blank + its Arabic)
   if (sent) out.push(sent);
   const def = String(w.simple_english || '').trim();
   const re = termRegex(w.term);
   if (def && !(re && re.test(def))) out.push(`<div class="hint-box"><p class="tiny muted" style="margin:0 0 4px">بإنجليزي سهل:</p><p class="en" dir="ltr">${esc(def)}</p></div>`); // 2) the meaning in easy English
-  if (w.arabic) out.push(`<div class="hint-box"><p class="tiny muted" style="margin:0 0 4px">بالعربي:</p><p>${esc(w.arabic)}</p></div>`); // 3) the Arabic meaning
+  if (arabic && w.arabic) out.push(`<div class="hint-box"><p class="tiny muted" style="margin:0 0 4px">بالعربي:</p><p>${esc(w.arabic)}</p></div>`); // 3) the Arabic meaning
   if (!out.length) out.push(`<p class="tiny muted">${esc(hintLine(w))}</p>`);
   return out;
 }
@@ -105,7 +105,7 @@ export function distractors(target, pool, n, key) {
 }
 
 /** A multiple-choice question; resolves true/false. */
-export function choice(stage, w, { prompt, options, text, after = '', sentence = null }) {
+export function choice(stage, w, { prompt, options, text, after = '', sentence = null, hintOpts = {} }) {
   return new Promise((resolve) => {
     const opts = shuffle([w, ...options]);
     // the English word is on the screen: it can be heard too (said once by itself)
@@ -122,7 +122,7 @@ export function choice(stage, w, { prompt, options, text, after = '', sentence =
     let tries = 0;
     let hinted = false;
     // 💡 hints one after another, as many as needed (no penalty): easy English → Arabic → a sentence
-    const hints = hintSteps(w);
+    const hints = hintSteps(w, hintOpts); // a hint never repeats what the question already shows
     let shownHints = 0;
     stage.querySelector('.question').insertAdjacentHTML('beforeend', `<div id="hintBox"></div><button type="button" class="btn sm ghost hint-btn" id="hintBtn">💡 تلميح</button>`);
     stage.querySelector('#hintBtn').addEventListener('click', (e) => {

@@ -23,6 +23,7 @@ export default {
         options: distractors(w, pool, 3, (x) => x.term.toLowerCase()),
         text: (o) => `<span class="en-inline">${esc(o.term)}</span>`,
         sentence: w.context_sentence,
+        hintOpts: { sentence: false, arabic: false },
       });
     }
     return choice(stage, w, {
@@ -32,6 +33,7 @@ export default {
       options: distractors(w, pool, 3, (x) => x.arabic),
       text: (o) => esc(o.arabic),
       sentence: w.context_sentence,
+      hintOpts: { sentence: false },
     });
   },
 };
