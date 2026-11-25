@@ -20,7 +20,9 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
   let lastSaid = -1;
   function card() {
     const w = queue[idx];
-    const easy = w.examples?.find((e) => e.kind === 'easy') || w.examples?.[0];
+    const found = w.examples?.find((e) => e.kind === 'easy') || w.examples?.[0];
+    // the example: a saved easy one, or else the sentence of the video the word came from (with its translation when it has one)
+    const easy = found ? { sentence: found.sentence, arabic: found.arabic } : w.context_sentence ? { sentence: w.context_sentence, arabic: w.context_arabic } : null;
     const pct = Math.round((100 * finished) / total);
     container.innerHTML = `
       <div class="fc-wrap">
@@ -38,7 +40,7 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
                 <div class="row" style="gap:4px"><button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="1" aria-label="عادي">${icon.speaker}</button>
                 </div></div>
               <div><div class="tiny muted">المعنى</div><div style="font-size:21px;font-weight:700">${w.arabic ? esc(w.arabic) : '<span class="muted" style="font-size:15px">بدون معنى محفوظ</span>'}</div></div>
-              ${easy ? `<div><div class="tiny muted">مثال</div><p class="en">${highlight(easy.sentence, w.term)} <button class="btn icon sm ghost" data-say="${esc(easy.sentence)}" data-rate="0.9" aria-label="استمع للمثال" style="vertical-align:middle">${icon.speaker}</button></p>${easy.arabic ? `<p class="fc-ex-ar">${esc(easy.arabic)}</p>` : ''}</div>` : ''}
+              ${easy ? `<div class="fc-ex"><div class="tiny muted">مثال</div><p class="en fc-ex-en">${highlight(easy.sentence, w.term)} <button class="btn icon sm ghost" data-say="${esc(easy.sentence)}" data-rate="0.9" aria-label="استمع للمثال" style="vertical-align:middle">${icon.speaker}</button></p>${easy.arabic ? `<p class="fc-ex-ar">${esc(easy.arabic)}</p>` : ''}</div>` : ''}
               ${w.source?.id && w.timestamp_seconds != null ? `<button type="button" class="fc-vid" data-ts>${icon.play} مثال من الفيديو <span class="en-inline">${Math.floor(w.timestamp_seconds / 60)}:${String(Math.floor(w.timestamp_seconds % 60)).padStart(2, '0')}</span></button>` : ''}
             </div>
           </div>
