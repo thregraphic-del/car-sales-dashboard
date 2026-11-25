@@ -330,7 +330,7 @@ export async function render(view, { segments, params }) {
             ${isVideo && hasTimes ? `<div class="nrow"><div class="nlab">السرعة</div><div class="sopts" id="speed">${[0.5, 0.75, 0.9, 1, 1.25, 1.5].map((r) => `<button type="button" class="sopt en-inline" data-rate="${r}">${r}×</button>`).join('')}</div></div>` : ''}
             <div class="nrow nrow-h"><div class="nlab">حجم الخط</div><span class="fsz"><button type="button" class="sopt" data-font="-1" aria-label="تصغير الخط">−</button><b class="en-inline" id="fontNow"></b><button type="button" class="sopt" data-font="1" aria-label="تكبير الخط">+</button></span></div>
             ${isVideo ? `<div class="nrow nrow-h"><div class="nlab">مكان الفيديو</div><div class="sopts" id="vidPos"><button type="button" class="sopt" data-vpos="top">فوق</button><button type="button" class="sopt" data-vpos="bottom">تحت</button></div></div>` : ''}
-            ${isVideo && hasTimes ? `<div class="nrow nrow-h"><div class="nlab">قف بعد كل جملة للترديد<span class="nsub">يقف بعد كل جملة لتعيدها</span></div><label class="tg-switch"><input type="checkbox" id="swShadow"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div>
+            ${isVideo && hasTimes ? `<div class="nrow nrow-h"><div class="nlab">قف بعد كل فقرة للترديد<span class="nsub">يقرأ التظليل الأخضر كامل (٣ أسطر تقريبًا) ثم يقف لتعيده</span></div><label class="tg-switch"><input type="checkbox" id="swShadow"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div>
             <div class="nrow nrow-h"><div class="nlab">تكرار الجملة<span class="nsub">كل جملة تنعاد مرتين</span></div><label class="tg-switch"><input type="checkbox" id="swRepeat"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div>` : ''}
             <div class="nrow nrow-h"><div class="nlab">قائمة الكلمات<span class="nsub">تطلع الكلمات الجديدة بعد كل ١٠ كلمات</span></div><label class="tg-switch"><input type="checkbox" id="wbOn"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div>
             ${isVideo && hasTimes ? `<div class="nrow nrow-h"><div class="nlab">شريط الوقت<span class="nsub">شريط صغير يوريك وين وصلت في المقطع</span></div><label class="tg-switch"><input type="checkbox" id="stripToggle"><span class="tg-track" aria-hidden="true"><span class="tg-knob"></span></span></label></div>` : ''}
@@ -463,7 +463,7 @@ export async function render(view, { segments, params }) {
     const T = [
       ['#speed', 'سرعة الفيديو: أبطأ تفهم أوضح، وأسرع توفّر وقتك.', '.player-box', ''],
       ['#syncRow', 'لو التظليل يسبق الصوت اضغط «أخّر»، ولو يتأخر عنه اضغط «قدّم». يتحرّك التظليل ووقفة «ردّد معي» معًا وينحفظ لهذا المقطع.', '.line.current', ''],
-      ['#amList', 'وش يصير بعد كل جملة: يكمّل، أو يوقف شوي، أو يوقف بقدر نطق الجملة عشان تردّدها (بدون ميكروفون) — يعلّمك النطق.', '.player-box', 'يظهر أثره وأنت تشغّل المقطع.'],
+      ['#amList', 'وش يصير بعد كل فقرة (التظليل الأخضر كامل): يكمّل، أو يوقف شوي، أو يوقف بقدر نطق الفقرة عشان تردّدها (بدون ميكروفون) — يعلّمك النطق.', '.player-box', 'يظهر أثره وأنت تشغّل المقطع.'],
       ['#wbOn', 'يعرض لك كلمات جديدة قبل ما تجي أو بعدها، عشان تتجهّز لها وما تفوتك.', '.reader-side', 'القائمة تظهر أثناء التشغيل.'],
       ['#recapOn', 'كل فترة يلخّص لك اللي مرّ بجملتين، عشان ما تضيع في المقطع.', '', 'يظهر الملخص وأنت تشغّل المقطع.'],
       ['#gramOn', 'يكتب فوق كل جملة قاعدتها، وتضغط تشوف الشرح — تتعلّم القواعد من المقطع نفسه.', '#lines', ''],
@@ -1872,7 +1872,7 @@ export async function render(view, { segments, params }) {
     const firstEntry = first && timeline.find((x) => String(x.id) === first.dataset.id);
     return { last, start: firstEntry ? firstEntry.start : entry.start };
   };
-  const pauseHere = () => true; // ردّد معي: after every line, not the whole paragraph
+  const pauseHere = (entry) => paraOf(entry).last; // ردّد معي: the whole green paragraph (~3 lines) plays through, then it waits
   // Continue the video after a pause and CHECK that it really went on (iPhone may refuse a start without a touch):
   // two quiet retries, then a clear «المس الشاشة للمتابعة» — a touch anywhere continues it.
   let resumeNote = null;
@@ -1909,7 +1909,7 @@ export async function render(view, { segments, params }) {
     selfPause(); player.pause();
     if (playMode === 'shadow') {
       // «ردّد معي»: the video waits as long as this sentence takes to say (at the current speed), then goes on — no microphone
-      const lineSecs = Math.max(0.5, (speechEnd(entry) - entry.start) / (rate || 1));
+      const lineSecs = Math.max(0.5, (speechEnd(entry) - paraOf(entry).start) / (rate || 1)); // as long as the whole green paragraph takes to say
       const wait = Math.min(20000, Math.max(1200, lineSecs * 1000 + 300));
       const until = Date.now() + wait;
       const tickNote = () => showSay(`🗣 ردّد الجملة… ${Math.max(0, Math.ceil((until - Date.now()) / 1000))}`);
@@ -1956,7 +1956,7 @@ export async function render(view, { segments, params }) {
   };
   $('#shadowBtn', view)?.addEventListener('click', () => {
     setMode(playMode === 'shadow' ? 'normal' : 'shadow');
-    toast(playMode === 'shadow' ? '🗣 ردّد معي: يقف بعد كل جملة بقدر ما تحتاج لنطقها، وبعدها يكمّل' : 'رجع التشغيل عادي');
+    toast(playMode === 'shadow' ? '🗣 ردّد معي: يقف بعد كل فقرة (التظليل الأخضر كامل) بقدر ما تحتاج لنطقها، وبعدها يكمّل' : 'رجع التشغيل عادي');
   });
   const modeMenu = $('#mode .speed-menu', view);
   const toggleMode = (open) => {
@@ -2020,7 +2020,7 @@ export async function render(view, { segments, params }) {
     drawAm();
   });
   view.addEventListener('click', (e) => { if (e.target.closest('#shadowBtn, #againBtn')) setTimeout(drawAm, 0); });
-  // ⚙ two plain switches: «قف بعد كل جملة للترديد» and «تكرار الجملة»
+  // ⚙ two plain switches: «قف بعد كل فقرة للترديد» and «تكرار الجملة»
   function drawSw() {
     try {
       const a = $('#swShadow', view); if (a) a.checked = playMode === 'shadow';
