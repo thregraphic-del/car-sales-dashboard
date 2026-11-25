@@ -228,7 +228,8 @@ function mountActivity(box) {
   const memo = new Map();
   const A = (d) => { const k = key(d); if (!memo.has(k)) memo.set(k, dayAll(d, days)); return memo.get(k); };
   const goalN = () => goalFor(METRICS[metric].goal); // the learner's own number for the chosen measure
-  const lvl = (v, max) => { if (!v) return 0; const p = v / max; return p >= 0.75 ? 4 : p >= 0.5 ? 3 : p >= 0.25 ? 2 : 1; };
+  // the column colour by the goal (the goal line sits at half of the chart): under it → orange · reached it → dark teal · well over it → light teal
+  const lvl = (v, max) => { if (!v) return 'z'; const p = v / max; return p < 0.5 ? 'lo' : p < 0.75 ? 'mid' : 'hi'; };
 
   // one bucket = a day, a week or a month: its totals for the measures and the days that have passed in it (the goal grows with them)
   const mkB = (from, to, gran, _x, label, sub, tl) => {
@@ -261,7 +262,7 @@ function mountActivity(box) {
       const v = val(b);
       const pct = v ? Math.max(6, Math.min(100, Math.round((100 * v) / mx))) : 0;
       const showL = n <= 16 || i % step === 0 || i === n - 1;
-      return `<button type="button" class="cb${pick === b.id ? ' pick' : ''}${b.from <= now && b.to >= now ? ' today' : ''}${hit(b) ? ' hit' : ''}" data-d="${b.id}"><em>${n > 16 ? '' : (v || '')}</em><i><b class="l${lvl(v, mx)}" style="height:${pct}%"></b></i><span>${showL ? b.label : ''}</span><small>${n > 16 ? '' : b.sub}</small></button>`;
+      return `<button type="button" class="cb${pick === b.id ? ' pick' : ''}${b.from <= now && b.to >= now ? ' today' : ''}${hit(b) ? ' hit' : ''}" data-d="${b.id}"><em>${n > 16 ? '' : (v || '')}</em><i><b class="${lvl(v, mx)}" style="height:${pct}%"></b></i><span>${showL ? b.label : ''}</span><small>${n > 16 ? '' : b.sub}</small></button>`;
     }).join('')}</div>`;
   };
   const bTitle = (b) => (b.gran === 'day' ? `${DAY_NAMES[b.from.getDay()]} ${b.from.getDate()}/${b.from.getMonth() + 1}` : b.gran === 'week' ? `من ${b.from.getDate()}/${b.from.getMonth() + 1} إلى ${b.to.getDate()}/${b.to.getMonth() + 1}` : `${MONTHS[b.from.getMonth()]} ${b.from.getFullYear()}`);

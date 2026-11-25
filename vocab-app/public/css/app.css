@@ -3437,3 +3437,9 @@ button.soc-ic { padding: 0; cursor: pointer; font: inherit; }
 /* the tab names are all the same grey (only the open tab's icon is the teal pill) */
 .tabbar a.active, .tabbar a.tab-add, .tabbar a.tab-add.active { color: var(--muted); font-weight: 500; }
 .tabbar a.active svg { color: var(--accent-ink, #fff); }
+
+/* 📊 the columns: three plain colours by the goal — no gradients */
+.cb i b.lo { background: var(--orange); }
+.cb i b.mid, .cb.hit i b.mid { background: var(--accent); }
+.cb i b.hi, .cb.hit i b.hi { background: var(--tiffany); }
+.cb.hit i b.lo { background: var(--orange); }
