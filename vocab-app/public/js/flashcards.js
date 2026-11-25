@@ -29,11 +29,9 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
         <div class="flashcard ${flipped ? 'flipped' : ''}" id="fc" tabindex="0" aria-label="اقلب البطاقة">
           <div class="fc-inner">
             <div class="fc-face fc-front">
-              <div class="row" style="gap:6px">${levelChip(w.level)}<span class="chip ar-chip">${esc(typeLabel(w))}</span></div>
+              <div class="fc-corner">${levelChip(w.level)}<span class="chip ar-chip">${esc(typeLabel(w))}</span></div>
               <div class="fc-term">${esc(w.term)}</div>
-              
-              <button class="btn sm ghost" data-say="${esc(w.term)}" data-rate="1">${icon.speaker} استمع</button>
-              <div class="fc-hint">اضغط على البطاقة لقلبها <span class="kbd">Space</span></div>
+              <div class="fc-say"><button type="button" class="btn icon ghost" data-say="${esc(w.term)}" data-rate="1" aria-label="استمع">${icon.speaker}</button></div>
             </div>
             <div class="fc-face fc-back">
               <div class="row between"><div class="en"><b class="display" style="font-size:22px">${esc(w.term)}</b></div>

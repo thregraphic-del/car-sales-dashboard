@@ -3376,3 +3376,9 @@ button.soc-ic { padding: 0; cursor: pointer; font: inherit; }
 .tw-say-word { margin-top: 10px; font-size: 26px !important; }
 .tw-hint-ar { margin-top: 4px; font-weight: 700; color: var(--ink); }
 .tw-blank { display: inline-block; min-width: 56px; height: 1.1em; margin: 0 3px; vertical-align: -3px; border-bottom: 2px dashed var(--muted); }
+
+/* 🃏 flashcard front: level + type small in the top-left corner, the word with its pronunciation in the middle, only the green flip button below */
+.fc-corner { position: absolute; top: 14px; left: 14px; right: auto; display: flex; gap: 6px; direction: ltr; }
+.fc-corner .chip { font-size: 11.5px; padding: 3px 9px; }
+.fc-say { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.fc-say .say-ar { font-size: 16px; color: var(--muted); }
