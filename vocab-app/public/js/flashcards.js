@@ -38,9 +38,8 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
                 <div class="row" style="gap:4px"><button class="btn icon sm ghost" data-say="${esc(w.term)}" data-rate="1" aria-label="عادي">${icon.speaker}</button>
                 </div></div>
               <div><div class="tiny muted">المعنى</div><div style="font-size:21px;font-weight:700">${w.arabic ? esc(w.arabic) : '<span class="muted" style="font-size:15px">بدون معنى محفوظ</span>'}</div></div>
-              ${w.context_sentence ? `<div class="quote"><div class="tiny muted" style="margin-bottom:4px">من الفيديو ${w.timestamp_seconds != null ? `<button class="ts-btn" data-ts style="padding:1px 7px;font-size:11.5px">▶ ${Math.floor(w.timestamp_seconds / 60)}:${String(w.timestamp_seconds % 60).padStart(2, '0')}</button>` : ''}</div>
-                <p class="en">“${highlight(w.context_sentence, w.term)}”</p>${w.context_arabic ? `<p class="small ink-2" style="margin-top:4px">${esc(w.context_arabic)}</p>` : ''}</div>` : ''}
               ${easy ? `<div><div class="tiny muted">مثال</div><p class="en">${highlight(easy.sentence, w.term)} <button class="btn icon sm ghost" data-say="${esc(easy.sentence)}" data-rate="0.9" aria-label="استمع للمثال" style="vertical-align:middle">${icon.speaker}</button></p>${easy.arabic ? `<p class="fc-ex-ar">${esc(easy.arabic)}</p>` : ''}</div>` : ''}
+              ${w.source?.id && w.timestamp_seconds != null ? `<button type="button" class="fc-vid" data-ts>${icon.play} مثال من الفيديو <span class="en-inline">${Math.floor(w.timestamp_seconds / 60)}:${String(Math.floor(w.timestamp_seconds % 60)).padStart(2, '0')}</span></button>` : ''}
             </div>
           </div>
         </div>
