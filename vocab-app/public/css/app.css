@@ -3391,3 +3391,18 @@ button.soc-ic { padding: 0; cursor: pointer; font: inherit; }
 .fc-ex { display: grid; gap: 2px; }
 .fc-ex-en { font-size: 15px !important; color: var(--ink-2, var(--muted)); margin: 0 !important; line-height: 1.5; }
 .fc-ex-ar { font-size: 14px !important; font-weight: 500 !important; color: var(--muted) !important; margin: 0 !important; }
+
+/* 🎧 listening: one list, the word being read is highlighted, one pause button */
+.lt2 { display: grid; gap: 12px; }
+.lt2-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 14px; position: sticky; top: 58px; z-index: 5; }
+.lt2-count { font-weight: 700; color: var(--muted); }
+.lt2-pp { min-width: 160px; justify-content: center; }
+.lt2-pp svg { width: 18px; height: 18px; }
+.lt2-list { list-style: none; margin: 0; padding: 6px; display: grid; gap: 2px; }
+.lt2-list li { display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 10px; padding: 12px 10px; border-radius: 14px; cursor: pointer; border: 1.5px solid transparent; }
+.lt2-n { color: var(--muted); font-size: 12px; text-align: center; }
+.lt2-en { font-size: 18px; font-weight: 700; }
+.lt2-ar { color: var(--ink-2, var(--muted)); font-weight: 600; text-align: end; }
+.lt2-list li.done { opacity: .55; }
+.lt2-list li.on { background: var(--tf-light, #e0f6f5); border-color: var(--accent); opacity: 1; }
+.lt2-list li.on .lt2-en { color: var(--accent); }

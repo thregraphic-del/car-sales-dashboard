@@ -90,6 +90,9 @@ function playUrl(url, rate) {
 let sayGen = 0; // bumps on every stop(): a late fallback for an older word is dropped
 let speaking = null; // keep the utterance referenced (Chrome drops events of collected ones)
 
+/** iPhone/iPad: sound may only start from a tap — a page that wants to read aloud by itself must wait for the first tap. */
+export const needsTap = () => IOS;
+
 export function stop() {
   sayGen += 1;
   if (currentAudio) {
