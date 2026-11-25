@@ -1,5 +1,5 @@
 // App shell: four everyday destinations + settings, and a tiny hash router.
-import { api } from './api.js';
+import { api, warm } from './api.js';
 import { state, loadGroups } from './state.js';
 import { stop as stopAudio, speak } from './audio.js';
 import { closeWordPanel, openWordPanel } from './components.js';
@@ -176,11 +176,16 @@ async function route() {
   void view.offsetWidth;
   view.style.animation = '';
   view.className = `view page-${page}`;
+  // ⚡ if the page takes more than a blink, show its outline at once (the tap feels answered) instead of the old page hanging
+  let phase = 0; // 0: the page's code is loading (the old page still shows) · 1: the page is drawing itself
+  const skel = setTimeout(() => { if (my === token && (phase === 0 || !view.firstElementChild)) view.innerHTML = '<div class="skel" aria-hidden="true"><i class="w1"></i><i></i><i></i><i></i><i class="h"></i></div>'; }, 120);
   try {
     const mod = await pages[page]();
     if (my !== token) return;
+    phase = 1;
     view.innerHTML = '';
     const out = await mod.render(view, { segments, params });
+    clearTimeout(skel);
     if (my !== token) {
       if (typeof out === 'function') out();
       return;
@@ -189,6 +194,7 @@ async function route() {
     guestReminder(base);
     if (!params.t && !params.line) window.scrollTo({ top: 0 });
   } catch (err) {
+    clearTimeout(skel);
     if (err.status === 401) return; // the login screen takes over
     console.error(err);
     // a tab left open across an update still holds the OLD scripts in memory while the new page asks for newer ones:
@@ -210,6 +216,21 @@ async function route() {
 }
 
 watchForUpdates();
+// ⚡ a tap is coming: start the page's code and its lists the moment a finger / pointer reaches a link (no wasted request otherwise)
+const WARM = { '/words': ['words', ['/api/words', '/api/groups']], '/practice': ['practice', ['/api/words', '/api/groups']], '/add': ['add', []], '/settings': ['settings', []] };
+const warmLink = (e) => {
+  const a = e.target.closest?.('a[href^="#/"]');
+  if (!a) return;
+  const base = a.getAttribute('href').slice(1).split('?')[0];
+  const w = WARM[base];
+  if (!w) return;
+  pages[w[0]]().catch(() => {});
+  w[1].forEach((u) => warm(u));
+};
+document.addEventListener('pointerdown', warmLink, { passive: true });
+document.addEventListener('pointerover', (e) => { if (e.pointerType === 'mouse') warmLink(e); }, { passive: true });
+// the pages' code (small static files) is fetched quietly a few seconds after the first page: the first tap on any tab has nothing to download
+setTimeout(() => { ['words', 'practice', 'add', 'settings'].forEach((k) => pages[k]().catch(() => {})); }, 3000);
 // a link with ?ref=CODE (from a team member) is remembered until the visitor registers
 try { const r = new URLSearchParams(location.search).get('ref'); if (r) localStorage.setItem('lt.ref', r.trim().toUpperCase().slice(0, 20)); } catch { /* ignore */ }
 startReminder();

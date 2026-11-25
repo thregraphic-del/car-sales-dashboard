@@ -3413,3 +3413,11 @@ button.soc-ic { padding: 0; cursor: pointer; font: inherit; }
 .question .prompt b { color: var(--ink); }
 .question .q-sentence-ar { color: var(--ink-2, var(--ink)); }
 .question .small.muted { color: var(--ink-2, var(--muted)); }
+
+/* ⚡ page outline shown while a page loads */
+.skel { display: grid; gap: 14px; padding: 6px 0; }
+.skel i { display: block; height: 78px; border-radius: 22px; background: linear-gradient(90deg, var(--surface) 0%, color-mix(in srgb, var(--line) 55%, var(--surface)) 50%, var(--surface) 100%); background-size: 220% 100%; border: 1px solid var(--line); animation: skelMove 1.2s ease-in-out infinite; }
+.skel i.w1 { height: 34px; width: 46%; border-radius: 12px; }
+.skel i.h { height: 160px; }
+@keyframes skelMove { 0% { background-position: 120% 0; } 100% { background-position: -120% 0; } }
+@media (prefers-reduced-motion: reduce) { .skel i { animation: none; } }

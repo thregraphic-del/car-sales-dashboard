@@ -26,8 +26,47 @@ const afterSave = (p, { wait = false } = {}) => p.then(async (r) => {
   return r;
 });
 
-// Thin JSON client for the LexiTube API.
+// ⚡ Moving between pages must feel instant: the two big lists (the words, the groups) are kept for this visit.
+// Fresh (under 20 s) → straight from memory; older (under 10 min) → shown at once and refreshed quietly for next time;
+// any change (save, answer, edit…) throws the copy away so nothing is ever stale after you changed it yourself.
+const LISTS = new Map(); // url → { t, data, p }
+let gen = 0; // bumps on every change: an answer that was already on its way is not kept
+const FRESH_MS = 20000;
+const STALE_MS = 600000;
+const isList = (method, url) => method === 'GET' && (url === '/api/words' || url === '/api/groups');
+function listRequest(url) {
+  const hit = LISTS.get(url);
+  const load = () => {
+    const g = gen;
+    const p = rawRequest('GET', url).then((data) => { if (g === gen) LISTS.set(url, { t: Date.now(), data, p: null }); return data; }, (err) => { if (g === gen) LISTS.delete(url); throw err; });
+    LISTS.set(url, { ...(LISTS.get(url) || {}), p });
+    return p;
+  };
+  if (hit?.p) return hit.data ? Promise.resolve([...hit.data]) : hit.p.then((d) => [...d]); // already on its way
+  if (hit?.data) {
+    const age = Date.now() - hit.t;
+    if (age < FRESH_MS) return Promise.resolve([...hit.data]);
+    if (age < STALE_MS) { load().catch(() => {}); return Promise.resolve([...hit.data]); }
+  }
+  return load().then((d) => [...d]);
+}
+/** Start loading a list now (a tap on its page is coming) — nothing is asked twice. */
+export const warm = (url) => { if (isList('GET', url) && !LISTS.get(url)?.p) listRequest(url).catch(() => {}); };
+
 async function request(method, url, body, retried = false) {
+  if (isList(method, url)) return listRequest(url);
+  // the quiet tidy-up calls change nothing most of the time: only a real change throws the copies away
+  if (/^\/api\/words\/(tidy|simplify)$|^\/api\/levels$/.test(url)) {
+    const r = await rawRequest(method, url, body, retried);
+    if (r?.changed || r?.levelled || r?.simplified) { LISTS.clear(); gen += 1; }
+    return r;
+  }
+  if (method !== 'GET' && !/^\/api\/(channels|social|notes|feedback|team|streak|me|ai\/(say|examples))(\/|$)/.test(url)) { LISTS.clear(); gen += 1; } // these never change the words or groups
+  return rawRequest(method, url, body, retried);
+}
+
+// Thin JSON client for the LexiTube API.
+async function rawRequest(method, url, body, retried = false) {
   let res;
   try {
     res = await fetch(url, {
@@ -39,7 +78,7 @@ async function request(method, url, body, retried = false) {
     // a read that lost its connection is tried once more, quietly
     if (method === 'GET' && !retried) {
       await new Promise((r) => setTimeout(r, 1200));
-      return request(method, url, body, true);
+      return rawRequest(method, url, body, true);
     }
     throw Object.assign(new Error('ما قدرنا نتصل بالخادم. تأكد أن التطبيق يعمل ثم حاول مرة ثانية.'), { status: 0 });
   }

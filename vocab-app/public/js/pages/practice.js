@@ -34,7 +34,7 @@ function saveSeen(id, set) {
 }
 
 export async function render(view, { params }) {
-  await loadGroups();
+  const groupsP = loadGroups(); // started now, awaited where the groups are first needed (the lists load side by side)
   if (params.mode === 'twins') {
     view.innerHTML = `<div class="page-head compact"><div><h1>المتشابهة</h1></div><a class="btn sm ghost" href="#/practice">${icon.prev} عد إلى الألعاب</a></div><div id="stage"></div>`;
     const stopTwins = await runTwins(view.querySelector('#stage'));
@@ -50,7 +50,13 @@ export async function render(view, { params }) {
   let words;
   let distractors;
   let label = null;
-  if (mode === 'story' && !params.ids) {
+  // the plain page (the filters + the ten games) needs no word list from the server: the builder reads «كلماتي» itself
+  const isBuilder = !params.ids && !params.session && !params.source && !params.group && !params.focus && !params.type && mode !== 'story' && params.area !== 'grammar';
+  const wordsP = isBuilder && params.mode !== 'twins' ? api.words().catch(() => []) : null;
+  if (isBuilder) {
+    words = [];
+    distractors = [];
+  } else if (mode === 'story' && !params.ids) {
     words = [];
     distractors = [];
   } else if (params.session === 'today') {
@@ -70,6 +76,7 @@ export async function render(view, { params }) {
     distractors = r.distractors;
     if (params.ids) label = params.review ? 'مراجعة كلمات آخر يوم' : params.rescue ? '🔥 رجّع حماسك' : params.yesterday ? 'كلمات أمس' : params.replay ? 'الكلمات التي أخطأت فيها' : 'كلمات مختارة';
   }
+  await groupsP;
   const groupObj = state.groups.find((g) => g.id === group);
   if (groupObj) label = `مجموعة: ${groupObj.name}`;
 
@@ -110,7 +117,7 @@ export async function render(view, { params }) {
       cleanup = stopGrammar;
       return () => cleanup?.();
     }
-    const all = await api.words();
+    const all = await (wordsP || api.words());
     if (!all.length) {
       stage.innerHTML = twinsCard() + emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`);
       return;
