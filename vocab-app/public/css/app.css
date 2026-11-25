@@ -1665,7 +1665,7 @@ a.ch-main { text-decoration: none; color: inherit; }
 .goal-bar .gb-fill { height: 100%; background: var(--accent); border-radius: 99px; }
 
 /* 🎨 word marks — the learner's look (⚙ «شكل الكلمات»): new words vs «كلماتي», highlight or frame */
-:root { --mk-new: #FF8A24; --mk-mine: #4FD6D0; }
+:root { --mk-new: #22A35A; --mk-mine: #4FD6D0; }
 .transcript .mark, .reader-hint .mark, .lt-note .mark { color: inherit; font-weight: inherit; border: 0; border-radius: 5px; padding: 0 3px; box-shadow: none; }
 .transcript .mark:not(.s-saved), .transcript .mark.s-saved.s-newhere, .reader-hint .mark:not(.s-saved), .lt-note .mark:not(.s-saved), .lt-note .mark.s-saved.s-newhere { background: color-mix(in srgb, var(--mk-new) 44%, transparent); box-shadow: none; }
 .transcript .mark.s-light:not(.s-saved) { background: color-mix(in srgb, var(--mk-new) 28%, transparent); }

@@ -69,9 +69,13 @@ export async function unsaveWord(userId, uvId) {
 
 /** Remove several words at once (progress included). Returns how many. */
 export async function unsaveWords(userId, uvIds) {
+  // a few big statements (200 words each) instead of one query per word: hundreds of words must finish inside the server's time limit
   return tx(async () => {
     let n = 0;
-    for (const id of uvIds) n += (await run('DELETE FROM user_vocabulary WHERE id = ? AND user_id = ?', id, userId)).changes;
+    for (let i = 0; i < uvIds.length; i += 200) {
+      const part = uvIds.slice(i, i + 200);
+      n += (await run(`DELETE FROM user_vocabulary WHERE user_id = ? AND id IN (${part.map(() => '?').join(',')})`, userId, ...part)).changes;
+    }
     return n;
   });
 }

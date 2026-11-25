@@ -42,11 +42,11 @@ const setPref = (k, v) => {
 };
 
 // 🎨 word colours (the learner picks; kept for every video)
-const MK_NEW = [['#FF8A24', 'برتقالي'], ['#0ABAB5', 'تيفاني'], ['#22a35a', 'أخضر'], ['#3b82f6', 'أزرق'], ['#ec4899', 'وردي']];
+const MK_NEW = [['#22A35A', 'أخضر'], ['#FF8A24', 'برتقالي'], ['#0ABAB5', 'تيفاني'], ['#3b82f6', 'أزرق'], ['#ec4899', 'وردي']]; // new words = green · saved words = tiffany (agreed)
 const MK_MINE = [['#4FD6D0', 'تيفاني فاتح'], ['#0B7F7B', 'تيفاني غامق'], ['#8b5cf6', 'بنفسجي'], ['#64748b', 'رمادي'], ['#3b82f6', 'أزرق']];
 function applyMarkLook() {
   const r = document.documentElement;
-  r.style.setProperty('--mk-new', pref('reader.mkNew', MK_NEW[0][0]));
+  r.style.setProperty('--mk-new', pref('reader.mkNew2', MK_NEW[0][0]));
   r.style.setProperty('--mk-mine', pref('reader.mkMine', MK_MINE[0][0]));
   r.dataset.mk = 'fill'; // always a highlight (the frame option was removed)
 }
@@ -714,9 +714,10 @@ export async function render(view, { segments, params }) {
   let wbN = 10; // fixed: every 10 words
   let wbOn = pref('reader.wbOn3', '1') === '1' && !params.jump; // on by default
   let wbWhen = 'after'; // fixed: shown after
-  const shownKey = `reader.shown.${id}`;
-  const shown = new Set((() => { try { return JSON.parse(localStorage.getItem(shownKey) || '[]'); } catch { return []; } })());
-  const saveShown = () => { try { localStorage.setItem(shownKey, JSON.stringify([...shown])); } catch { /* storage unavailable */ } };
+  // the words already listed are remembered for THIS play only: playing the clip again (or going back to an earlier part) lists them again
+  const shown = new Set();
+  const saveShown = () => {};
+  let maxT = 0; // the furthest point reached in this play
   const passed = new Map(); // vocabulary_id → item (words heard, not listed yet)
   const showWb = () => {
     const on = $('#wbOn', view); if (on) on.checked = wbOn;
@@ -1080,7 +1081,7 @@ export async function render(view, { segments, params }) {
   applyBg();
   const drawLook = () => {
     view.querySelectorAll('[data-mks]').forEach((b) => b.classList.toggle('active', b.dataset.mks === pref('reader.mkStyle', 'fill')));
-    view.querySelectorAll('[data-mkn]').forEach((b) => b.classList.toggle('on', b.dataset.mkn === pref('reader.mkNew', MK_NEW[0][0])));
+    view.querySelectorAll('[data-mkn]').forEach((b) => b.classList.toggle('on', b.dataset.mkn === pref('reader.mkNew2', MK_NEW[0][0])));
     view.querySelectorAll('[data-mkm]').forEach((b) => b.classList.toggle('on', b.dataset.mkm === pref('reader.mkMine', MK_MINE[0][0])));
     view.querySelectorAll('[data-rbg]').forEach((b) => b.classList.toggle('active', b.dataset.rbg === rbgOf()));
   };
@@ -1099,7 +1100,7 @@ export async function render(view, { segments, params }) {
     const b = e.target.closest('[data-mks],[data-mkn],[data-mkm],[data-rbg]');
     if (!b) return;
     if (b.dataset.mks) setPref('reader.mkStyle', b.dataset.mks);
-    if (b.dataset.mkn) setPref('reader.mkNew', b.dataset.mkn);
+    if (b.dataset.mkn) setPref('reader.mkNew2', b.dataset.mkn);
     if (b.dataset.mkm) setPref('reader.mkMine', b.dataset.mkm);
     if (b.dataset.rbg !== undefined) { setPref('reader.bg', b.dataset.rbg); applyBg(); }
     applyMarkLook();
@@ -2210,6 +2211,8 @@ export async function render(view, { segments, params }) {
     setCurrent(entry ? entry.id : null, { force: jumped });
     setWord(pos.word);
     if (jumped) gapDoneFor = null; // after a seek, pause again at the end of the sentence reached
+    // back to an earlier part (or the whole clip played again): the 10-word lists start over
+    if (t > maxT) maxT = t; else if (t < maxT - 40) { shown.clear(); passed.clear(); previewSet.clear(); previewDone = false; maxT = t; }
     // 🔁 the end of a green paragraph heard once: back to its start for a second time
     if (repeatPara && playing && entry && !gapTimer) {
       const back = (e) => {

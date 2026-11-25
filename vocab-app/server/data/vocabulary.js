@@ -40,7 +40,8 @@ export async function findVocabulary(term) {
  */
 export async function upsertVocabulary(item) {
   const term = String(item.term || '').trim();
-  const existing = await findVocabulary(term);
+  // exact: the spelling asked for is its own word (clothes ≠ cloth, besides ≠ beside) — no «simple form» matching
+  const existing = item.exact ? ((await get('SELECT * FROM vocabulary WHERE match_key = ?', matchKey(term))) || null) : await findVocabulary(term);
   const values = {
     item_type: item.item_type || (term.includes(' ') ? 'expression' : 'word'),
     part_of_speech: item.part_of_speech || item.pos || null,

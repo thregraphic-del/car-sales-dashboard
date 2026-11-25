@@ -38,7 +38,7 @@ export async function saveTwins(userId, groups) {
         const others = items.filter((o) => o !== it).map((o) => o.term);
         const { id: vid } = await upsertVocabulary({
           term: it.term, arabic: it.arabic || null, pronunciation: it.ipa || null, simple_english: it.def || null,
-          level: LEVELS.includes(it.level) ? it.level : null, similar: others, origin: 'twins', example: it.exEn || null, example_arabic: it.exAr || null,
+          level: LEVELS.includes(it.level) ? it.level : null, similar: others, origin: 'twins', exact: true, example: it.exEn || null, example_arabic: it.exAr || null,
         });
         const have = await get('SELECT id, state, user_arabic FROM user_vocabulary WHERE user_id = ? AND vocabulary_id = ?', userId, vid);
         let uv;

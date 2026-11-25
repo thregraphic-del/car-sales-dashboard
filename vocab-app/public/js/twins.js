@@ -67,7 +67,15 @@ export async function runTwins(stage, { onExit } = {}) {
       box.querySelectorAll('[data-src]').forEach((x) => { x.disabled = true; });
       b.querySelector('span').innerHTML = '<span class="spinner"></span> نضيفها لكلماتك…';
       try {
-        const r = await api.saveTwins(TWINS.map((g) => g.words.map((w) => ({ term: w.term, arabic: w.ar, ipa: w.pr, def: w.def, level: g.level }))));
+        // the 100 groups go in steps of 12 (each step is a short request), with a counter
+        const label = b.querySelector('span');
+        const r = { added: 0, existed: 0, group_id: null };
+        const STEP = 12;
+        for (let i = 0; i < TWINS.length; i += STEP) {
+          const out = await api.saveTwins(TWINS.slice(i, i + STEP).map((g) => g.words.map((w) => ({ term: w.term, arabic: w.ar, ipa: w.pr, def: w.def, level: g.level }))));
+          r.added += out.added; r.existed += out.existed; r.group_id = out.group_id;
+          label.innerHTML = `<span class="spinner"></span> نضيفها لكلماتك… ${Math.min(TWINS.length, i + STEP)}/${TWINS.length}`;
+        }
         toast(`انضافت ${r.added} ${r.added === 1 ? 'كلمة' : 'كلمات'} لكلماتك في «المتشابهات» ✓${r.existed ? ` (${r.existed} كانت عندك)` : ''}`);
         try { mine = await api.words(); } catch { /* keep the old list */ }
         myGroups = groupsFromMyWords(mine);
