@@ -257,6 +257,8 @@ export async function listWords(userId, filters = {}) {
     sql += ` AND ${clause}`;
     params.push(...p);
   };
+  // suggested sentences live only inside their groups: the plain «كلماتي» list (no group / ids / source asked for) leaves them out
+  if (!filters.group_id && !filters.ids && !filters.source_id && !filters.with_sentences) and("v.item_type <> 'sentence'");
   if (filters.level) and('v.level = ?', filters.level);
   if (filters.source_id) and('uv.source_id = ?', Number(filters.source_id));
   if (filters.group_id) and('uv.id IN (SELECT user_vocabulary_id FROM word_group_items WHERE group_id = ?)', Number(filters.group_id));

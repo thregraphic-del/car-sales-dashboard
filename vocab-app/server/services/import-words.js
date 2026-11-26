@@ -11,6 +11,7 @@ import { analyzeText, isArabicText } from './sources.js';
 import { matchKey, quickTier, sentenceKey, singularCandidates, sameArabicMeaning, BASIC_WORDS } from '../../public/js/shared/text.js';
 import { findVocabulary, upsertVocabulary, addExample, examplesOf } from '../data/vocabulary.js';
 import { userStateFor, saveWord } from '../data/words.js';
+import { run } from '../db/index.js';
 import { sourceView } from '../data/sources.js';
 
 export const ENRICH_BATCH = 10;
@@ -161,6 +162,7 @@ export async function save(items, { groupIds = [] } = {}, userId) {
     const userArabic = it.meaning_from === 'you' && it.arabic && !sameArabicMeaning(it.arabic, before?.arabic) ? it.arabic : null;
     const hadUserArabic = stateBefore.user_arabic;
     const groupsBefore = new Set(stateBefore.groups || []);
+    if (it.item_type === 'sentence') await run("UPDATE vocabulary SET item_type = 'sentence' WHERE id = ? AND item_type <> 'sentence'", vocabId); // a suggested sentence: kept in its group, not in the main list
     const { uv_id, already } = await saveWord(userId, vocabId, { userArabic, groupIds });
     const joinedGroup = groupIds.some((g) => !groupsBefore.has(Number(g)));
     let result = 'added';

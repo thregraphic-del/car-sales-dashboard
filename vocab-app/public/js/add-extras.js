@@ -372,7 +372,7 @@ export function bindSuggestWords(view) {
             gids = [found ? found.id : (await api.createGroup(gname)).id];
           }
           const res = await api.importSave(chosen.map((it) => ({
-            term: it.term, arabic: it.arabic, level: it.level, meaning_from: 'ai', item_type: kind === 'sentences' ? 'expression' : undefined,
+            term: it.term, arabic: it.arabic, level: it.level, meaning_from: 'ai', item_type: kind === 'sentences' ? 'sentence' : undefined,
             examples: it.example ? [{ sentence: it.example, arabic: it.example_ar || null }] : [],
           })), gids);
           const n = res.results.filter((x) => x.result !== 'unchanged').length;
