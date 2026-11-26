@@ -82,7 +82,7 @@ export async function render(view, { params }) {
     { mode: 'twins', icon: icon.search, name: 'المتشابهة' },
     ...GAME_ORDER.map((k) => ({ mode: 'games', type: k, icon: icon[TYPES[k].icon] || '🎮', name: TYPES[k].name })),
   ];
-  const practiceSet = () => (select && selected.size ? shown.filter((w) => selected.has(w.uv_id)) : shown);
+  const practiceSet = () => shown;
   function drawPractice() {
     $('#selectBar').innerHTML = '';
     const set = practiceSet();
@@ -90,7 +90,7 @@ export async function render(view, { params }) {
     const filtered = f.filter !== 'all' || f.group || f.levels.length || f.when || f.source || f.q || f.count;
     $('#list').innerHTML = !all.length ? emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`)
       : `<div class="wd-prac">
-        <div class="card pb-start wd-prac-top"><div class="wd-prac-n"><b class="en-inline">${n.toLocaleString('en-US')}</b> كلمة للتدريب<small>${select && selected.size ? 'الكلمات اللي حدّدتها' : filtered ? 'حسب الفلاتر فوق' : 'كل كلماتك — استخدم الفلاتر فوق لتختار'}</small></div>
+        <div class="card pb-start wd-prac-top"><div class="wd-prac-n"><b class="en-inline">${n.toLocaleString('en-US')}</b> كلمة للتدريب<small>${filtered ? 'حسب الفلاتر فوق' : 'كل كلماتك — استخدم الفلاتر والمجموعات فوق لتختار'}</small></div>
           <button type="button" class="btn primary pb-go" data-pg="quiz:" ${n ? '' : 'disabled'}>تدرّب ${icon.play}</button></div>
         <div class="pb-grid">${GAME_TILES.map((g) => `<button type="button" class="pb-game pb-tile" data-pg="${g.mode}:${g.type || ''}" ${n || g.mode === 'twins' ? '' : 'disabled'}><span class="pb-gi">${g.icon}</span><b>${g.name}</b></button>`).join('')}</div>
         ${n ? '' : '<p class="small muted" style="text-align:center;margin-top:10px">ما فيه كلمات بهذي الفلاتر — جرّب تغيّر الفلتر.</p>'}
@@ -110,7 +110,9 @@ export async function render(view, { params }) {
       const k = b.dataset.wt;
       b.classList.toggle('on', k === 'view' ? f.view === 'clear' : panel === k || (k === 'filter' && fbOpen && panel === 'filter'));
     });
+    if (tab === 'practice') { select = false; selected.clear(); } // no ticking in «تدرّب»: only the filters and the groups
     $('#selectToggle').classList.toggle('on', select);
+    $('#selectToggle').classList.toggle('hidden', tab === 'practice');
     $('#wsearch').classList.toggle('hidden', panel !== 'search' && !f.q);
     const defs = barDefs();
     $('#filters').innerHTML = panel === 'filter' ? `<div class="pb-filters wd-fl">${filterBarHtml(defs, fbOpen)}</div>` : '';
