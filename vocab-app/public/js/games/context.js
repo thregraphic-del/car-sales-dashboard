@@ -1,7 +1,7 @@
 // Game: تحدّي السياق (Context challenge)
 import { esc, highlight } from '../ui.js';
 import { distractors, choice } from './shared.js';
-import { sayBtns } from './shared.js';
+import { sayBtns, isFullSentence } from './shared.js';
 
 export default {
   key: 'context',
@@ -10,7 +10,8 @@ export default {
   icon: 'quote',
   description: 'جملة حقيقية: ماذا تعني الكلمة هنا؟',
   /** Can this word be asked in this format? */
-  can: (w) => !!(w.context_sentence && w.arabic && w.context_sentence.trim().split(/\s+/).length >= 5),
+  // a whole sentence with its translation (a cut transcript line would make the question confusing)
+  can: (w) => !!(w.context_sentence && w.context_arabic && w.arabic && isFullSentence(w.context_sentence)),
   /** Ask one word; resolves true (correct) or false. */
   // 🔁 mixes the languages: sometimes the English sentence with Arabic choices,
   // sometimes the Arabic sentence with English choices

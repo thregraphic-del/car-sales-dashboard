@@ -5,6 +5,7 @@ import { speak } from './audio.js';
 import { esc, icon, levelChip, typeLabel, highlight, BUCKET_AR, toast } from './ui.js';
 import { bindSpeech } from './components.js';
 import { refreshStats } from './app.js';
+import { isFullSentence } from './games/shared.js';
 
 export function runFlashcards(container, words, { source = 'flashcard', onDone, doneActions = '', hardHref = null } = {}) {
   const queue = [...words];
@@ -36,12 +37,13 @@ export function runFlashcards(container, words, { source = 'flashcard', onDone, 
   function card() {
     const w = queue[idx];
     // the example, best first: a saved one that has its Arabic → one written once by AI (saved for everyone) → any saved one → the video's own sentence
-    const found = w.examples?.find((e) => e.kind === 'easy' && e.arabic) || w.examples?.find((e) => e.arabic) || w.examples?.find((e) => e.kind === 'easy') || w.examples?.[0];
+    const okEx = (w.examples || []).filter((e) => isFullSentence(e.sentence));
+    const found = okEx.find((e) => e.kind === 'easy' && e.arabic) || okEx.find((e) => e.arabic) || okEx.find((e) => e.kind === 'easy') || okEx[0];
     const gen = generated.get(String(w.term).toLowerCase());
     const easy = found?.arabic ? { sentence: found.sentence, arabic: found.arabic }
       : gen ? { sentence: gen.sentence, arabic: gen.arabic }
         : found ? { sentence: found.sentence, arabic: found.arabic }
-          : w.context_sentence ? { sentence: w.context_sentence, arabic: w.context_arabic } : null;
+          : w.context_sentence && w.context_arabic && isFullSentence(w.context_sentence) ? { sentence: w.context_sentence, arabic: w.context_arabic } : null; // never a cut transcript line
     const pct = Math.round((100 * finished) / total);
     container.innerHTML = `
       <div class="fc-wrap">

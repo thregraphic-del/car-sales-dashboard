@@ -5,6 +5,12 @@ import { esc, shuffle, termRegex, highlight } from '../ui.js';
 export const letters = (w) => w.term.replace(/\b(something|someone)\b/gi, '').replace(/\s+/g, ' ').trim();
 
 const wordCount = (s) => String(s || '').trim().split(/\s+/).filter(Boolean).length;
+/** A whole, readable sentence: starts with a capital, ends with . ? ! and has 5–30 words (a cut transcript line is not one). */
+export const isFullSentence = (s) => {
+  const t = String(s || '').trim();
+  const n = wordCount(t);
+  return n >= 5 && n <= 30 && /^[\s"'“(]*[A-Z0-9]/.test(t) && /[.?!]['"’)”]?\s*$/.test(t);
+};
 
 /**
  * Example sentences with their Arabic, best first: a translated sentence of a
@@ -12,8 +18,9 @@ const wordCount = (s) => String(s || '').trim().split(/\s+/).filter(Boolean).len
  */
 export function examplesFor(w) {
   const list = [];
-  if (w.context_sentence) list.push({ sentence: w.context_sentence, arabic: w.context_arabic || '' });
-  for (const e of w.examples || []) if (e?.sentence) list.push({ sentence: e.sentence, arabic: e.arabic || '', kind: e.kind });
+  // the video's own sentence only when it is a whole sentence WITH its translation (a cut transcript line is confusing)
+  if (w.context_sentence && w.context_arabic && isFullSentence(w.context_sentence)) list.push({ sentence: w.context_sentence, arabic: w.context_arabic });
+  for (const e of w.examples || []) if (e?.sentence && isFullSentence(e.sentence)) list.push({ sentence: e.sentence, arabic: e.arabic || '', kind: e.kind });
   const seen = new Set();
   const unique = list.filter((e) => {
     const k = e.sentence.trim().toLowerCase();
