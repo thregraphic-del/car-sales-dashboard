@@ -3664,3 +3664,20 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 /* the filter button, lit while filters are set: a small × tells that tapping it clears every filter */
 .wd-t.clr, .pb-fbtn.clr { position: relative; }
 .wd-t.clr::after, .pb-fbtn.clr::after { content: '×'; position: absolute; top: 3px; inset-inline-end: 8px; width: 17px; height: 17px; border-radius: 50%; background: #fff; color: var(--accent); font: 800 14px/16px var(--font-en, inherit); text-align: center; }
+
+/* ===== home: «today» fits one phone screen, no scrolling — tighter gaps, a lower chart, a one-line summary ===== */
+.th { gap: 10px; }
+.th-review { padding: 13px; font-size: 17px; border-radius: 22px; }
+.th-act { padding: 12px 14px 12px; }
+.th-act .ch { margin-bottom: 6px; }
+.cal.is-today .today-bars { height: 175px; gap: 30px; }
+.cal.is-today .today-bars .cb { grid-template-rows: 18px 1fr 22px 0; }
+.cal.is-today .today-bars .cb span { height: 22px; line-height: 22px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; font-size: 12.5px; }
+.cal.is-today .today-bars .cb-ic { display: inline; font-size: 14px; }
+.cal.is-today .today-bars .cb-goal { bottom: calc(24px + (100% - 44px) * var(--g)); }
+.cal.is-today .th-act .det-one, .cal.is-today .det-one { margin-top: 4px; padding-top: 6px; }
+.cal.is-today .cd-avg-top > span { font-size: 12.5px; }
+.cal.is-today .avg-pct { font-size: 22px !important; line-height: 1.1; }
+.cal.is-today .cd-delta { font-size: 11.5px; }
+.cal.is-today .act-foot { margin-top: 6px; }
+.cal.is-today .act-foot .act-edit { padding: 6px 12px; }

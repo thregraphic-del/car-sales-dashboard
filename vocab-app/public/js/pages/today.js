@@ -315,7 +315,7 @@ function mountActivity(box) {
     const S = summ(b ? [b] : V.list);
     const what = b ? 'عن الفترة السابقة' : WHAT[unitKey];
     const label = b ? bTitle(b) : UNITS.find((u) => u[0] === unitKey)[2];
-    return `<div class="det det-one"><div class="det-top"><span class="det-lbl">${esc(label)}</span>${lineHtml(S)}</div>${avgBlock(S, deltaHtml(avgOf(S), avgOf(before(S)), what))}</div>`;
+    return `<div class="det det-one">${unitKey === 'today' ? '' : `<div class="det-top"><span class="det-lbl">${esc(label)}</span>${lineHtml(S)}</div>`}${avgBlock(S, deltaHtml(avgOf(S), avgOf(before(S)), what))}</div>`;
   };
 
   // 🎯 the goals editor (two basics). Changing a goal never deletes what was done: the days stay as counted.
@@ -355,7 +355,7 @@ function mountActivity(box) {
     const nextK = mets[mi + 1]?.[0]; const prevK = mets[mi - 1]?.[0];
     // a small pulsing tiffany arrow at the end of the chart: «swipe left for the other goal» (or back to the first)
     const arrow = showSw && (nextK || prevK) ? `<button type="button" class="sw-arrow ${nextK ? 'to-next' : 'to-prev'}" data-cm="${nextK || prevK}" aria-label="${nextK ? 'الهدف التالي' : 'الهدف السابق'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${nextK ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7'}"/></svg></button>` : '';
-    box.innerHTML = `<div class="cal act">
+    box.innerHTML = `<div class="cal act${unitKey === 'today' ? ' is-today' : ''}">
       <div class="ch"><b>إنجازك</b><span class="ch-tools">${sw}<button type="button" class="per-btn${open ? ' on' : ''}" data-fltoggle aria-expanded="${open}" aria-label="فلتر الفترة">${esc(UNITS.find((u) => u[0] === unitKey)[2])} ${CHEV_IC}</button></span></div>
       ${open ? `<div class="act-menu per-menu">${UNITS.map(([k, , d], i) => `${i === 1 ? '<hr>' : ''}<button type="button" class="${unitKey === k ? 'on' : ''}" data-unit="${k}"><span>${d}</span>${unitKey === k ? '<span>✓</span>' : ''}</button>`).join('')}</div>` : ''}
       ${trimmed ? `<div class="since-note">📅 بياناتك تبدأ من ${esc(sinceTxt())} — نعرض الفترة المتاحة فقط</div>` : ''}
