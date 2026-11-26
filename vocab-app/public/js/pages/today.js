@@ -134,17 +134,6 @@ function openBell(items, onAct) {
   });
 }
 
-const GOAL_ROW = { pass: ['📚', 'كلمات جديدة', 'words'], practice: ['🎮', 'أسئلة تدريب', 'practice'], watch: ['⏱', 'وقت في الموقع', 'time'], rules: ['📖', 'قواعد', 'rules'] };
-/** Today's goals: one line each with a thin bar (only the goals that are on). */
-function goalsToday() {
-  const now = new Date(); now.setHours(12, 0, 0, 0);
-  const a = dayAll(now, {});
-  return `<div class="card th-goals">${goalTypes().map((g) => {
-    const [ic, name, k] = GOAL_ROW[g]; const got = a[k]; const goal = goalFor(g);
-    return `<div class="thg"><span class="thg-i">${ic}</span><div class="thg-m"><b>${name}</b><i class="thg-bar"><b style="width:${Math.min(100, Math.round((100 * got) / goal))}%"></b></i></div><span class="thg-v en-inline" dir="ltr">${got}<small> / ${goal}</small></span></div>`;
-  }).join('')}</div>`;
-}
-
 export async function render(view) {
   const home = (await takePreloadedToday()) || await api.today();
   const { stats } = home;
@@ -185,9 +174,7 @@ export async function render(view) {
     </div>
     ${lostCard}
     ${task}
-    <div class="th-sec">إنجاز اليوم</div>
-    ${goalsToday()}
-    ${fresh ? '<div class="card th-act th-empty"><b>آخر ٧ أيام</b><p>أضف أول مقطع وتبدأ أعمدتك تطلع</p></div>' : '<div class="card th-act" id="actBox"></div>'}
+    ${fresh ? '<div class="card th-act th-empty"><b>إنجازك</b><p>أضف أول مقطع وتبدأ أعمدتك تطلع</p></div>' : '<div class="card th-act" id="actBox"></div>'}
   </div>`;
   if (!fresh) mountActivity(view.querySelector('#actBox'));
 
@@ -221,11 +208,10 @@ function mountActivity(box) {
   const key = (d) => d.toISOString().slice(0, 10);
   const ny = now.getFullYear(); const nm = now.getMonth();
   // ⚙️ one filter, three choices: days (the last 30) · weeks (the last 8) · months (the last 12) — nothing else
-  const UNITS = [['d7', 'أيام', 'آخر ٧ أيام'], ['day', 'أيام', 'آخر ٣٠ يوم'], ['week', 'أسابيع', 'آخر ٨ أسابيع'], ['month', 'شهور', 'آخر ١٢ شهر']];
-  let unitKey = 'd7';
+  const UNITS = [['today', 'اليوم', 'اليوم'], ['d7', 'أيام', 'آخر ٧ أيام'], ['day', 'أيام', 'آخر ٣٠ يوم'], ['week', 'أسابيع', 'آخر ٨ أسابيع'], ['month', 'شهور', 'آخر ١٢ شهر']];
+  let unitKey = 'today';
   let open = false;
   let pick = '';
-  let pickAuto = true; // the newest day / week / month is picked when the view changes
   const memo = new Map();
   const A = (d) => { const k = key(d); if (!memo.has(k)) memo.set(k, dayAll(d, days)); return memo.get(k); };
   const goalN = () => goalFor(METRICS[metric].goal); // the learner's own number for the chosen measure
@@ -243,11 +229,12 @@ function mountActivity(box) {
   const monB = (yy, mm) => mkB(new Date(yy, mm, 1, 12), new Date(yy, mm + 1, 0, 12), 'month', 0, String(mm + 1), MONTHS[mm].slice(0, 3), MONTHS[mm]);
   const build = () => {
     const list = [];
-    if (unitKey === 'd7') for (let i = 6; i >= 0; i -= 1) list.push(dayB(addD(now, -i)));
+    if (unitKey === 'today') list.push(dayB(now));
+    else if (unitKey === 'd7') for (let i = 6; i >= 0; i -= 1) list.push(dayB(addD(now, -i)));
     else if (unitKey === 'day') for (let i = 29; i >= 0; i -= 1) list.push(dayB(addD(now, -i)));
     else if (unitKey === 'week') for (let i = 7; i >= 0; i -= 1) { const to = addD(now, -7 * i); const f = addD(to, -6); list.push(mkB(f, to, 'week', 0, String(f.getDate()), String(f.getMonth() + 1), `${f.getDate()}/${f.getMonth() + 1}`)); }
     else for (let i = 11; i >= 0; i -= 1) { const d = new Date(ny, nm - i, 1, 12); list.push(monB(d.getFullYear(), d.getMonth())); }
-    return { gran: unitKey === 'd7' ? 'day' : unitKey, list };
+    return { gran: ['d7', 'today'].includes(unitKey) ? 'day' : unitKey, list };
   };
   const GRAN = { day: 'يوم', week: 'أسبوع', month: 'شهر' };
   let V = build();
@@ -259,7 +246,19 @@ function mountActivity(box) {
   const FLAME = flameFull('in-bar');
 
   // 📊 columns only; the goal line sits in the MIDDLE of the chart (a value of twice the goal fills the column)
+  const NAMES = { time: 'وقت في الموقع', words: 'كلمات جديدة', practice: 'أسئلة تدريب', rules: 'قواعد' };
+  // 🎯 «اليوم»: one column for each goal (new words · practice …) against its own goal line
+  const todayBars = () => {
+    const a = A(now);
+    const cols = Object.entries(METRICS).filter(([, mt]) => activeG().includes(mt.goal)).map(([k, mt]) => {
+      const v = a[k]; const g = goalFor(mt.goal); const mx = g * 2;
+      const pct = v ? Math.max(6, Math.min(100, Math.round((100 * v) / mx))) : 0;
+      return `<div class="cb${v >= g ? ' hit' : ''}${v > g ? ' over' : ''}"><em>${v || 0}<small class="cb-of"> / ${g}</small>${v > g ? FLAME : ''}</em><i><b class="${lvl(v, mx)}" style="height:${pct}%"></b></i><span><u class="cb-ic">${mt.label.split(' ')[0]}</u> ${NAMES[k]}</span><small></small></div>`;
+    });
+    return `<div class="cal-bars today-bars n${cols.length}" style="--g:.5"><div class="cb-goal" aria-hidden="true"></div>${cols.join('')}</div>`;
+  };
   const bars = () => {
+    if (unitKey === 'today') return todayBars();
     const mx = lineGoal() * 2; const n = V.list.length; const step = Math.ceil(n / 12);
     return `<div class="cal-bars${n > 16 ? ' dense' : ''}" style="--g:.5"><div class="cb-goal" aria-hidden="true"><span>الهدف ${goalTxt()}</span></div>${V.list.map((b, i) => {
       const v = val(b);
@@ -290,24 +289,15 @@ function mountActivity(box) {
   const colsHtml = (S) => { const rs = rows4(S); return `<div class="cd-cols" style="--n:${rs.length}">${rs.map((x) => `<div class="cd-col${x.pct >= 1 ? ' ok' : ''}"><b class="en-inline cd-v">${x.got}</b><i class="cd-tr"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal}</small></div>`).join('')}</div>`; };
 
   const lineHtml = (S) => `<div class="det-line" dir="ltr">${rows4(S).map((x) => `<span>${x.mt.label.split(' ')[0]} <b class="en-inline">${x.got}</b></span>`).join('<i>·</i>')}</div>`;
-  // ONE short summary under the chart. «الإجمالي · …» is a button: tap it to choose the period (يومي · أسبوعي · شهري · سنوي);
-  // each one is compared with the equal period just before it. It starts on «اليوم» (or follows the chart's own filter).
-  const SCOPES = { day: ['اليومي', 'اليوم', 'عن اليوم السابق'], week: ['الأسبوعي', 'آخر ٧ أيام', 'عن الـ٧ أيام السابقة'], month: ['الشهري', 'آخر ٣٠ يوم', 'عن الـ٣٠ يوم السابقة'], year: ['السنوي', 'آخر ١٢ شهر', 'عن الـ١٢ شهر السابقة'] };
-  const SPAN = { week: 7, month: 30, year: 365 };
-  let scope = 'day';
-  let scopeOpen = false;
+  // ONE short summary under the chart, compared with the equal period just before it (a tapped column shows its own numbers)
+  const WHAT = { today: 'عن اليوم السابق', d7: 'عن الـ٧ أيام السابقة', day: 'عن الـ٣٠ يوم السابقة', week: 'عن الـ٨ أسابيع السابقة', month: 'عن الـ١٢ شهر السابقة' };
   const dash = () => {
     if (!V.list.length) return '';
-    const b = pick ? V.list.find((x) => x.id === pick) : null;
-    let S; let label; let what = SCOPES[scope][2];
-    if (scope === 'day') {
-      const one = b && b.gran === 'day' ? b : dayB(now); // a tapped day shows its own numbers; a tapped week/month is read from the chart itself
-      S = summ([one]);
-      label = one.from.getTime() === now.getTime() ? 'اليوم' : bTitle(one);
-      if (one.from.getTime() !== now.getTime()) what = 'عن اليوم السابق';
-    } else { S = summ([mkB(addD(now, 1 - SPAN[scope]), now, 'x', 0, '', '', '')]); label = SCOPES[scope][1]; }
-    const menu = scopeOpen ? `<div class="wz-list act-menu det-menu">${Object.entries(SCOPES).map(([k, [n, d]]) => `<button type="button" class="wz-opt${scope === k ? ' on' : ''}" data-scope="${k}"><span>${n}</span></button>`).join('')}</div>` : '';
-    return `<div class="det det-one"><div class="det-top"><button type="button" class="det-sel${scopeOpen ? ' on' : ''}" data-scopetoggle aria-expanded="${scopeOpen}">الإجمالي · ${esc(label)} <i aria-hidden="true">▾</i></button>${menu}${lineHtml(S)}</div>${avgBlock(S, deltaHtml(avgOf(S), avgOf(before(S)), what))}</div>`;
+    const b = unitKey !== 'today' && pick ? V.list.find((x) => x.id === pick) : null;
+    const S = summ(b ? [b] : V.list);
+    const what = b ? 'عن الفترة السابقة' : WHAT[unitKey];
+    const label = b ? bTitle(b) : UNITS.find((u) => u[0] === unitKey)[2];
+    return `<div class="det det-one"><div class="det-top"><span class="det-lbl">${esc(label)}</span>${lineHtml(S)}</div>${avgBlock(S, deltaHtml(avgOf(S), avgOf(before(S)), what))}</div>`;
   };
 
   // 🎯 the goals editor (two basics). Changing a goal never deletes what was done: the days stay as counted.
@@ -329,21 +319,26 @@ function mountActivity(box) {
       <div class="btn-row" style="justify-content:center"><button class="btn primary" data-donegoals>تم</button></div></div>`;
   };
 
-  const FILTER_IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 5h17l-6.5 8v5.5L10 20v-7z"/></svg>';
+  const CHEV_IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>';
+  let hintN = Number(ls('today.swhint', '0')) || 0; let hintSeen = false; // the «tap to switch» arrow shows only the first 3 times
   const draw = () => {
     if (editing) return drawGoals();
     if (!METRICS[metric] || !activeG().includes(METRICS[metric].goal)) metric = Object.keys(METRICS).find((k) => activeG().includes(METRICS[k].goal)) || 'words';
     V = build();
-    if (pickAuto) { pick = V.list[V.list.length - 1]?.id || ''; pickAuto = false; }
+    if (unitKey === 'today') pick = '';
     if (pick && !V.list.some((b) => b.id === pick)) pick = '';
-    const title = UNITS.find((u) => u[0] === unitKey)[2];
     const mets = Object.entries(METRICS).filter(([, mt]) => activeG().includes(mt.goal));
+    const showSw = mets.length > 1 && unitKey !== 'today';
+    const showHint = showSw && hintN < 3;
+    if (showHint && !hintSeen) { hintSeen = true; lsSet('today.swhint', String(hintN + 1)); }
+    const HINT_IC = '<svg viewBox="0 0 46 34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M40 6c-14-6-30 2-30 18"/><path d="M4 18l6 8 7-7"/></svg>';
     box.innerHTML = `<div class="cal act">
-      <div class="ch"><b>${title}</b><span class="ch-tools">${mets.length > 1 ? `<span class="segmented seg-mini" id="calMetric">${mets.map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'active' : ''}" aria-label="${mt.label.replace(/^\S+\s/, '')}">${mt.label.split(' ')[0]}</button>`).join('')}</span>` : ''}<button type="button" class="flt${open ? ' on' : ''}" data-fltoggle aria-expanded="${open}" aria-label="فلتر الفترة">${FILTER_IC}</button></span></div>
-      ${open ? `<div class="wz-list act-menu">${UNITS.map(([k, , d]) => `<button type="button" class="wz-opt${unitKey === k ? ' on' : ''}" data-unit="${k}"><span>${d}</span></button>`).join('')}</div>` : ''}
+      <div class="ch"><b>إنجازك</b><button type="button" class="per-btn${open ? ' on' : ''}" data-fltoggle aria-expanded="${open}" aria-label="فلتر الفترة">${esc(UNITS.find((u) => u[0] === unitKey)[2])} ${CHEV_IC}</button></div>
+      ${open ? `<div class="act-menu per-menu">${UNITS.map(([k, , d], i) => `${i === 1 ? '<hr>' : ''}<button type="button" class="${unitKey === k ? 'on' : ''}" data-unit="${k}"><span>${d}</span>${unitKey === k ? '<span>✓</span>' : ''}</button>`).join('')}</div>` : ''}
+      ${showSw ? `<div class="sw-wrap"><div class="u-switch" id="calMetric">${mets.map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'on' : ''}"><b>${mt.label.split(' ')[0]}</b><span>${esc(mt.label.replace(/^\S+\s/, ''))}</span></button>`).join('')}</div>${showHint ? `<div class="sw-hint">${HINT_IC}<span>اضغط للتبديل</span></div>` : ''}</div>` : ''}
       <div class="cal-shape">${bars()}</div>
       ${dash()}
-      <div class="cal-key tiny"><span class="cal-gkey"><i></i> الهدف ${goalTxt()}</span></div>
+      ${unitKey === 'today' ? '' : `<div class="cal-key tiny"><span class="cal-gkey"><i></i> الهدف ${goalTxt()}</span></div>`}
       <button type="button" class="act-edit" data-editgoals>✏️ عدّل أهدافك</button>
     </div>`;
   };
@@ -369,13 +364,10 @@ function mountActivity(box) {
     const gm = e.target.closest('[data-gm]');
     if (gm) { const [k, m] = gm.dataset.gm.split(':'); lsSet(`goal.mode.${k}`, m); if (m === 'total') { const t = totalOf(k); setGoalN(k, Math.ceil(t.n / (t.per * t.u))); } drawGoals(); return; }
     const cm = e.target.closest('[data-cm]');
-    if (cm && METRICS[cm.dataset.cm]) { metric = cm.dataset.cm; lsSet('today.metric', metric); draw(); return; }
+    if (cm && METRICS[cm.dataset.cm]) { metric = cm.dataset.cm; lsSet('today.metric', metric); hintN = 3; lsSet('today.swhint', '3'); draw(); return; }
     if (e.target.closest('[data-fltoggle]')) { open = !open; draw(); return; }
     const un = e.target.closest('[data-unit]');
-    if (un) { unitKey = un.dataset.unit; open = false; pickAuto = true; scope = { d7: 'day', day: 'day', week: 'week', month: 'month' }[unitKey]; scopeOpen = false; draw(); return; } // the summary follows the chart's filter
-    if (e.target.closest('[data-scopetoggle]')) { scopeOpen = !scopeOpen; draw(); return; }
-    const sc = e.target.closest('[data-scope]');
-    if (sc && SCOPES[sc.dataset.scope]) { scope = sc.dataset.scope; scopeOpen = false; if (scope === 'day') pickAuto = true; draw(); return; }
+    if (un) { unitKey = un.dataset.unit; open = false; pick = ''; draw(); return; }
     if (e.target.closest('[data-clearpick]')) { pick = ''; draw(); return; }
     const d = e.target.closest('[data-d]');
     if (d) { pick = pick === d.dataset.d ? '' : d.dataset.d; draw(); } // a tap picks that day/week/month; the same tap again goes back to the summary of the whole period
