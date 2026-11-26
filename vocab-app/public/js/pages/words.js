@@ -102,10 +102,14 @@ export async function render(view, { params }) {
         ${n ? '' : '<p class="small muted" style="text-align:center;margin-top:10px">ما فيه كلمات بهذي الفلاتر — جرّب تغيّر الفلتر.</p>'}
         <a class="btn sm ghost wd-prac-gram" href="#/practice?area=grammar" data-grammar-only>📚 تدرّب على القواعد</a>
       </div>`;
+    // 🔽 in «تدرّب» the filter panel opens UNDER the count card, not above it
+    const fl = $('#filters'); const top = $('#list .pb-top');
+    if (fl && top) { top.after(fl); placeMenus(fl); }
     $('#wCount').textContent = shown.length ? `(${shown.length.toLocaleString('en-US')})` : '';
   }
 
   function draw() {
+    { const fl = view.querySelector('#filters'); if (fl && fl.parentElement !== view) view.insertBefore(fl, view.querySelector('#groups')); } // back to its place (in «تدرّب» it sits under the count)
     // which icon is lit, and which panel is open under the row
     view.querySelectorAll('[data-wt]').forEach((b) => {
       const k = b.dataset.wt;

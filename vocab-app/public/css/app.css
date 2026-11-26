@@ -643,7 +643,7 @@ body.auth-mode .shell { grid-template-columns: 1fr; }
 .split:hover span, .split:active span { background: var(--accent); }
 /* live word: the spoken word stands out in a different colour */
 .line.current { background: color-mix(in srgb, var(--accent) 10%, transparent); }
-.line.current .w-now { background: #f5b301; color: #111; border-radius: 4px; box-shadow: 0 0 0 2px #f5b301; }
+.line.current .w-now { background: #0B7A76; color: #fff; border-radius: 4px; box-shadow: 0 0 0 2px #0B7A76; }
 .line.current .w-said { opacity: 1; color: var(--accent); }
 
 .usage-wrap { overflow-x: auto; max-width: 100%; }
@@ -706,7 +706,7 @@ body.reader-focus .page-reader .transcript { max-height: calc(100dvh - 90px); }
 .transcript .line-ar, .transcript.bilingual .line-ar { font-size: calc(var(--reader-font) - 1px); }
 .line.current .line-ar { color: var(--ink); }
 .line.current .aw.w-said { color: var(--accent); }
-.line.current .aw.w-now { color: var(--accent); font-weight: 700; text-decoration: underline; text-decoration-color: #f5b301; text-decoration-thickness: 3px; text-underline-offset: 6px; }
+.line.current .aw.w-now { color: var(--accent); font-weight: 700; text-decoration: underline; text-decoration-color: #0B7A76; text-decoration-thickness: 3px; text-underline-offset: 6px; }
 .aw { transition: color .2s; }
 
 /* Playback mode */
@@ -788,7 +788,7 @@ body.reader-focus .page-reader .transcript { max-height: calc(100dvh - 90px); }
 .chunk .c-en { font-size: var(--reader-font); line-height: 1.6; }
 .chunk .c-ar { direction: rtl; text-align: right; font-size: calc(var(--reader-font) - 1px); line-height: 1.6; color: var(--ink-2); border-left: 1px solid var(--line); padding-left: 12px; }
 .line.current .chunk.c-said .c-ar { color: var(--accent); }
-.line.current .chunk.c-now { background: color-mix(in srgb, #f5b301 22%, transparent); }
+.line.current .chunk.c-now { background: color-mix(in srgb, #0B7A76 20%, transparent); }
 .line.current .chunk.c-now .c-ar { color: var(--ink); font-weight: 700; }
 .transcript.hide-ar .line-body.chunked { display: block; }
 .transcript.hide-ar .chunk { display: inline; padding: 0; background: none; }
@@ -863,7 +863,7 @@ body.reader-focus .page-reader .transcript { max-height: calc(100dvh - 90px); }
 .wp-overlay .word-pop.sheet { width: 100% !important; max-height: 88dvh !important; }
 
 /* 🔁 the sentence being repeated */
-.line.looping { box-shadow: inset 3px 0 0 #f5b301; }
+.line.looping { box-shadow: inset 3px 0 0 #0B7A76; }
 /* 🙈 Arabic hidden until touched */
 .transcript.ar-hidden .c-ar:not(.ar-shown), .transcript.ar-hidden .line-ar:not(.ar-shown) { filter: blur(6px); opacity: .55; cursor: pointer; user-select: none; transition: filter .2s, opacity .2s; }
 .transcript.ar-hidden .c-ar.ar-shown, .transcript.ar-hidden .line-ar.ar-shown { filter: none; opacity: 1; }
@@ -965,7 +965,7 @@ a.day-tile:hover { border-color: var(--accent); }
 .transcript .line.para-now.para-first { border-top-left-radius: 14px; border-top-right-radius: 14px; }
 .transcript .line.para-now.para-last { border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; }
 .transcript .line.para-now + .line.para-now { border-top-color: transparent; }
-.transcript .line.current .line-body:not(.chunked) { background: color-mix(in srgb, #f5b301 22%, transparent); border-radius: 14px; padding: 4px 8px; margin: -4px -8px; }
+.transcript .line.current .line-body:not(.chunked) { background: color-mix(in srgb, #0B7A76 18%, transparent); border-radius: 14px; padding: 4px 8px; margin: -4px -8px; }
 .transcript .line.para-now:not(.current) .line-en { color: var(--ink); }
 /* Slim reader top: tiny grey title + ⚙ panel */
 .reader-head.slim { margin-bottom: 6px; gap: 6px; min-height: 36px; }
@@ -1380,7 +1380,7 @@ body.reader-focus .reader-grid[data-tab="words"] .reader-main { display: none !i
 .words-btn.primary { background: var(--on) !important; border-color: var(--on) !important; color: #fff !important; }
 @keyframes wordsGlow { 50% { box-shadow: 0 0 12px 3px color-mix(in srgb, var(--gold) 60%, transparent); } }
 .line.current .w-now { background: var(--yellow); box-shadow: 0 0 0 2px var(--yellow); color: #1B263A; }
-.line.current .chunk.c-now { background: color-mix(in srgb, var(--yellow) 28%, transparent); }
+.line.current .chunk.c-now { background: color-mix(in srgb, #0B7A76 20%, transparent); }
 .transcript .line.current .line-body:not(.chunked) { background: color-mix(in srgb, var(--yellow) 26%, transparent); }
 .line.current .aw.w-now { text-decoration-color: var(--yellow); }
 .yday-btn { border-color: var(--yellow); }
@@ -3543,3 +3543,4 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 .pg-done .pg-fl svg{width:72px;height:72px;animation:flBreath 1.6s ease-in-out infinite}
 .pg-done h2{margin:6px 0 2px}
 .pg-act{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+[data-theme="dark"] .line.current .w-now{background:#2FD6D0;color:#04302E;box-shadow:0 0 0 2px #2FD6D0}
