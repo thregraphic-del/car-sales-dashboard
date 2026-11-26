@@ -3656,3 +3656,8 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 .pw-row:last-child { border-bottom: 0; }
 .pw-row b { text-align: left; direction: ltr; font-weight: 800; color: var(--ink); }
 .pw-ar { text-align: right; direction: rtl; color: var(--ink-2); }
+/* listening list: two parallel columns (English left · Arabic right); the current row is a soft 10% tiffany band, no outline */
+.lt2-list li { direction: ltr; grid-template-columns: 26px minmax(0, 1fr) minmax(0, 1fr); border: 0; }
+.lt2-en { text-align: left; }
+.lt2-ar { direction: rtl; text-align: right; }
+.lt2-list li.on { background: color-mix(in srgb, var(--tiffany) 10%, transparent); border: 0; }
