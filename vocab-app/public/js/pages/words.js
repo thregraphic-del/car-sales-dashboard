@@ -47,7 +47,6 @@ export async function render(view, { params }) {
   let panel = ''; // which icon's panel is open: search · filter · sort · groups
   view.innerHTML = `
     <div class="page-head compact"><div><h1>كلماتي</h1></div><div class="wd-corner"><button type="button" class="wd-t wd-sm" data-wt="search" aria-label="بحث" title="بحث">${icon.search}</button><button type="button" class="wd-t wd-sm" id="exportBtn" aria-label="تنزيل" title="تنزيل">${icon.download}</button></div></div>
-    <div class="card wd-stats" id="summary"></div>
     <div class="lib-tabs segmented wd-seg" role="tablist"><a href="#/words" role="tab" class="${tab === 'words' ? 'active' : ''}">الكلمات <b id="wCount"></b></a><a href="#/words?tab=practice" role="tab" class="${tab === 'practice' ? 'active' : ''}">تدرّب</a><a href="#/words?tab=grammar" role="tab" data-grammar-only>القواعد <b id="gCount"></b></a></div>
     <div class="wd-tools" id="wdTools">
       <button type="button" class="wd-t" data-wt="filter" aria-label="فلاتر" title="فلاتر">${WI.filter}<span>فلاتر</span></button>
@@ -107,11 +106,6 @@ export async function render(view, { params }) {
   }
 
   function draw() {
-    const mastered = all.filter((w) => w.state === 'mastered').length;
-    const practice = all.filter((w) => w.state === 'review' || w.state === 'hard').length;
-    $('#summary').innerHTML = all.length
-      ? `<span class="wd-sl">إجمالي الكلمات</span><b class="wd-sn en-inline">${all.length.toLocaleString('en-US')}</b><span class="wd-ss">${num(mastered)} متقنة · ${num(practice)} مراجعة</span>`
-      : '<span class="wd-sl">ما حفظت كلمات للحين</span>';
     // which icon is lit, and which panel is open under the row
     view.querySelectorAll('[data-wt]').forEach((b) => {
       const k = b.dataset.wt;
@@ -342,7 +336,7 @@ export async function render(view, { params }) {
   };
 
   view.addEventListener('click', async (e) => {
-    if (!document.getElementById('summary')) return; // left «كلماتي» (the page area is reused)
+    if (!document.getElementById('wdTools')) return; // left «كلماتي» (the page area is reused)
     if (e.target.closest('.wd-seg a')) { try { sessionStorage.setItem('words.carry', JSON.stringify(f)); } catch { /* ignore */ } return undefined; }
     const sv = e.target.closest('[data-sortv]');
     if (sv) { f.sort = sv.dataset.sortv; panel = ''; return draw(); }

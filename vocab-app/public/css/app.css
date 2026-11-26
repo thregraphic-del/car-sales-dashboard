@@ -3490,5 +3490,5 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 
 /* كلماتي | تدرّب: the two tabs are teal so they read as buttons */
 .wd-seg a { color: var(--accent); font-weight: 700; }
-.wd-seg a.active { color: var(--accent); background: var(--surface); box-shadow: 0 0 0 1.5px var(--accent) inset, var(--shadow-sm); }
+.wd-seg a.active { color: var(--tiffany); background: color-mix(in srgb, var(--tiffany) 10%, var(--surface)); box-shadow: 0 0 0 1.5px var(--tiffany) inset, var(--shadow-sm); }
 .wd-seg a:not(.active):hover, .wd-seg a:not(.active):active { background: color-mix(in srgb, var(--accent) 10%, transparent); }
