@@ -4,7 +4,6 @@
 import { api } from '../api.js';
 import { speak } from '../audio.js';
 import { esc, shuffle } from '../ui.js';
-import { isSentenceItem } from '../shared/text.js';
 
 // Well-known confusing pairs, used when the learner's own words give too few groups.
 const CLASSIC = [
@@ -181,7 +180,7 @@ export default {
     stage.innerHTML = '<p class="muted"><span class="spinner"></span> نجمع الكلمات المتشابهة…</p>';
     let mine = [];
     try {
-      mine = (await api.words()).filter((w) => !isSentenceItem(w));
+      mine = await api.words();
     } catch {
       mine = words;
     }

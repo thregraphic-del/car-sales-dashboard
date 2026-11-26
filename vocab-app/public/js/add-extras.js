@@ -287,7 +287,6 @@ const FIELD_EN = { 'عام': 'general everyday English', 'عمل وإدارة': 
 export const suggestWordsHtml = () => `
   <div class="card suggest-words hidden" id="swCard">
     <div class="row between wrap" style="gap:8px"><b>✨ اقترح لي</b><span class="tiny muted">جديدة — ليست عندك في «كلماتي»</span></div>
-    <div class="segmented sw-kind" id="swKind" style="margin-top:10px"><button type="button" class="active" data-swk="words">كلمات</button><button type="button" data-swk="sentences">جمل</button></div>
     <div class="row wrap" style="gap:10px;margin-top:10px">
       <label class="small">العدد <select class="input sm" id="swCount"><option>10</option><option selected>20</option><option>30</option><option>50</option></select></label>
       <label class="small">المستوى <select class="input sm" id="swLevel"><option value="">كل المستويات (مزيج)</option><option>A1</option><option>A2</option><option>B1</option><option>B2</option><option>C1</option><option>C2</option></select></label>
@@ -303,12 +302,7 @@ export function bindSuggestWords(view) {
   if (!box) return;
   $('#swTile', view)?.addEventListener('click', () => { const c = $('#swCard', view); c.classList.toggle('hidden'); $('#swTile', view).classList.toggle('on', !c.classList.contains('hidden')); });
   const topicEl = $('#swTopic', view);
-  let kind = 'words'; // كلمات أو جمل
-  view.querySelectorAll('[data-swk]').forEach((b) => b.addEventListener('click', () => {
-    kind = b.dataset.swk;
-    view.querySelectorAll('[data-swk]').forEach((x) => x.classList.toggle('active', x === b));
-    box.innerHTML = '';
-  }));
+  const kind = 'words';
   view.querySelectorAll('[data-field]').forEach((b) => b.addEventListener('click', () => {
     view.querySelectorAll('[data-field]').forEach((x) => x.classList.toggle('on', x === b && !b.classList.contains('on')));
     topicEl.value = b.classList.contains('on') ? b.dataset.field : '';
@@ -320,7 +314,7 @@ export function bindSuggestWords(view) {
     }
     const btn = $('#swGo', view);
     btn.disabled = true;
-    box.innerHTML = `<p class="tiny muted" style="margin-top:10px"><span class="spinner"></span> نختار ${kind === 'sentences' ? 'جمل' : 'كلمات'} جديدة لك…</p>`;
+    box.innerHTML = `<p class="tiny muted" style="margin-top:10px"><span class="spinner"></span> نختار كلمات جديدة لك…</p>`;
     const topic = topicEl.value.trim();
     try {
       // ⚡ Small parallel batches of 10, and more rounds until the number asked for is reached
@@ -346,10 +340,10 @@ export function bindSuggestWords(view) {
         if (items.length === before && round > 0) break; // nothing new any more
       }
       if (!items.length && lastErr) throw lastErr;
-      box.innerHTML = `${items.length < want ? `<p class="tiny muted" style="margin-top:10px">لقينا ${items.length} ${kind === 'sentences' ? 'جملة' : 'كلمة'} جديدة بس في هذا المجال (الباقي عندك في «كلماتي») — اضغط «اقترح» مرة ثانية لمزيد.</p>` : ''}
+      box.innerHTML = `${items.length < want ? `<p class="tiny muted" style="margin-top:10px">لقينا ${items.length} كلمة جديدة بس في هذا المجال (الباقي عندك في «كلماتي») — اضغط «اقترح» مرة ثانية لمزيد.</p>` : ''}
         <div class="sw-list">${items.map((it, k) => `<label class="sw-item"><input type="checkbox" class="check" data-k="${k}" checked>
           <div style="min-width:0"><b class="en-inline">${esc(it.term)}</b> <span class="chip">${esc(it.level)}</span> <span class="ink-2">${esc(it.arabic)}</span>
-          ${it.example ? `<div class="${kind === 'sentences' ? 'tiny muted' : 'en small'}" dir="${kind === 'sentences' ? 'auto' : 'ltr'}">${esc(kind === 'sentences' ? `📍 ${it.example_ar || it.example}` : it.example)}</div>${kind === 'sentences' ? '' : `<div class="tiny muted">${esc(it.example_ar)}</div>`}` : ''}</div></label>`).join('')}</div>
+          ${it.example ? `<div class="en small" dir="ltr">${esc(it.example)}</div><div class="tiny muted">${esc(it.example_ar)}</div>` : ''}</div></label>`).join('')}</div>
         <div class="btn-row" style="margin-top:10px"><button class="btn primary" id="swSave">احفظ المحدد في كلماتي</button><button class="btn ghost" id="swAll">تحديد/إلغاء الكل</button></div>`;
       $('#swAll', view).addEventListener('click', () => {
         const boxes = [...box.querySelectorAll('input[data-k]')];
@@ -362,24 +356,12 @@ export function bindSuggestWords(view) {
         const save = $('#swSave', view);
         save.disabled = true;
         try {
-          // sentences go into ONE group called «جمل» (made once, every later save adds to it) — never into the main word list
-          let gids;
-          let gname = '';
-          if (kind === 'sentences') {
-            gname = 'جمل'; // every sentence (suggested or taken from a clip) lives in this one group
-            const all = await api.groups();
-            const found = all.find((g) => g.name === gname);
-            gids = [found ? found.id : (await api.createGroup(gname)).id];
-          }
           const res = await api.importSave(chosen.map((it) => ({
-            term: it.term, arabic: it.arabic, level: it.level, meaning_from: 'ai', item_type: kind === 'sentences' ? 'sentence' : undefined,
+            term: it.term, arabic: it.arabic, level: it.level, meaning_from: 'ai', 
             examples: it.example ? [{ sentence: it.example, arabic: it.example_ar || null }] : [],
-          })), gids);
-          const n = res.results.filter((x) => x.result !== 'unchanged').length;
-          toast(kind === 'sentences' ? `تم حفظ ${n} جملة في مجموعة «${gname}» ✓` : `تم حفظ ${n} كلمة ✓`);
-          box.innerHTML = kind === 'sentences'
-            ? `<p class="small" style="margin-top:10px">✓ حُفظت في مجموعة «${esc(gname)}». <a href="#/words">افتحها</a> أو اضغط «اقترح» لجمل أخرى تنضاف لها.</p>`
-            : '<p class="small" style="margin-top:10px">✓ حُفظت في «كلماتي». <a href="#/words">افتحها</a> أو اضغط «اقترح» لكلمات أخرى.</p>';
+          })));
+          toast(`تم حفظ ${res.results.filter((x) => x.result !== 'unchanged').length} كلمة ✓`);
+          box.innerHTML = '<p class="small" style="margin-top:10px">✓ حُفظت في «كلماتي». <a href="#/words">افتحها</a> أو اضغط «اقترح» لكلمات أخرى.</p>';
         } catch (err) {
           save.disabled = false;
           toast(err.message);

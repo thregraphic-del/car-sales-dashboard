@@ -5,7 +5,6 @@ import { wrap, idList } from '../http.js';
 import { httpError } from '../lib/errors.js';
 import * as importer from '../services/import-words.js';
 import { guardGuest } from '../lib/guest.js';
-import { markSentencesDirty } from '../data/words.js';
 
 const router = Router();
 
@@ -27,9 +26,7 @@ router.post('/save', wrap(async (req) => {
   if (!Array.isArray(items)) throw httpError(400, 'items must be an array');
   if (items.length > config.limits.importItems) throw httpError(413, `احفظ ${config.limits.importItems} كلمة في كل مرة على الأكثر.`);
   await guardGuest(req.user, 'words', items.length);
-  const results = await importer.save(items, { groupIds: idList(req.body?.group_ids, 50) }, req.userId);
-  markSentencesDirty(req.userId);
-  return { results };
+  return { results: await importer.save(items, { groupIds: idList(req.body?.group_ids, 50) }, req.userId) };
 }));
 
 export default router;

@@ -131,25 +131,6 @@ export async function userStateFor(userId, vocabularyId) {
   return { uv_id: uv.id, state: uv.state, user_arabic: uv.user_arabic, groups: await groupIdsFor(uv.id) };
 }
 
-/** A whole sentence (not a word or a short phrase): the suggested/extracted ones, or an older saved item that reads like one (4+ words ending with . ? !). */
-export const SENTENCE_SQL = "(v.item_type = 'sentence' OR (v.item_type = 'expression' AND v.term LIKE '% % % %' AND (v.term LIKE ? OR v.term LIKE ? OR v.term LIKE ?)))";
-const SENTENCE_PARAMS = ['%.', '%?', '%!']; // as parameters: a literal ? inside the SQL text would be read as a placeholder
-const SENTENCES_GROUP = 'جمل';
-const sentenceFixed = new Set();
-/** Every sentence of the learner lives in ONE group called «جمل» (older ones are moved there once per run of the server). */
-export const markSentencesDirty = (userId) => sentenceFixed.delete(userId); // after a save: look again on the next list
-export async function ensureSentencesGroup(userId) {
-  if (sentenceFixed.has(userId)) return;
-  sentenceFixed.add(userId);
-  const rows = await all(`SELECT uv.id FROM user_vocabulary uv JOIN vocabulary v ON v.id = uv.vocabulary_id
-    WHERE uv.user_id = ? AND uv.state = 'saved' AND ${SENTENCE_SQL}
-      AND uv.id NOT IN (SELECT gi.user_vocabulary_id FROM word_group_items gi JOIN word_groups g ON g.id = gi.group_id WHERE g.user_id = ? AND g.name = ?)`, userId, ...SENTENCE_PARAMS, userId, SENTENCES_GROUP);
-  if (!rows.length) return;
-  let g = await get('SELECT id FROM word_groups WHERE user_id = ? AND name = ?', userId, SENTENCES_GROUP);
-  if (!g) g = { id: await insert('INSERT INTO word_groups (user_id, name) VALUES (?, ?)', userId, SENTENCES_GROUP) };
-  for (const r of rows) await run('INSERT INTO word_group_items (group_id, user_vocabulary_id) VALUES (?, ?) ON CONFLICT DO NOTHING', g.id, r.id);
-}
-
 const WORD_SELECT = `
   SELECT uv.*, uv.id AS uv_id,
     v.term, v.item_type, v.part_of_speech, v.level, v.band, v.usefulness, v.pronunciation, v.arabic AS arabic_general,
@@ -276,8 +257,6 @@ export async function listWords(userId, filters = {}) {
     sql += ` AND ${clause}`;
     params.push(...p);
   };
-  // suggested sentences live only inside their groups: the plain «كلماتي» list (no group / ids / source asked for) leaves them out
-  if (!filters.group_id && !filters.ids && !filters.source_id && !filters.with_sentences) and(`NOT (${SENTENCE_SQL})`, ...SENTENCE_PARAMS);
   if (filters.level) and('v.level = ?', filters.level);
   if (filters.source_id) and('uv.source_id = ?', Number(filters.source_id));
   if (filters.group_id) and('uv.id IN (SELECT user_vocabulary_id FROM word_group_items WHERE group_id = ?)', Number(filters.group_id));

@@ -173,5 +173,3 @@ export function lineAt(lines, t, lead = 0.3) {
   return found;
 }
 
-/** A whole sentence kept in the group «جمل» (suggested / extracted ones, or an older saved item that reads like one) — not part of the plain word list. */
-export const isSentenceItem = (w) => w?.item_type === 'sentence' || (w?.item_type === 'expression' && /\S+\s+\S+\s+\S+\s+\S+/.test(w.term || '') && /[.?!]\s*$/.test(w.term || ''));

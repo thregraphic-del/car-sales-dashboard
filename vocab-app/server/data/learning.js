@@ -131,7 +131,7 @@ async function planView(userId, plan, words = null) {
  */
 export async function practiceSet(userId, { ids, exact = false, group_id, source_id, vids, seen, focus = 'smart', size = 10 } = {}) {
   if (source_id) return sourcePractice(userId, source_id, size, { vids, seen });
-  const everything = await listWords(userId, { with_sentences: !!group_id });
+  const everything = await listWords(userId);
   const now = Date.now();
   const need = (w) => {
     let s = 0;
@@ -230,7 +230,7 @@ export async function stats(userId, loaded = null) {
 export async function listGroups(userId) {
   const groups = await all('SELECT * FROM word_groups WHERE user_id = ? ORDER BY lower(name), id', userId);
   if (!groups.length) return [];
-  const words = await listWords(userId, { with_sentences: true }); // a group counts its sentences too
+  const words = await listWords(userId);
   return groups.map((g) => {
     const ws = words.filter((w) => w.group_ids.includes(g.id));
     return {
