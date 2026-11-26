@@ -273,6 +273,7 @@ function mountActivity(box) {
     });
     return `<div class="cal-bars today-bars n${cols.length}" style="--g:.5"><div class="cb-goal" aria-hidden="true"></div>${cols.join('')}</div>`;
   };
+  const goalsLine = () => Object.entries(METRICS).filter(([, mt]) => activeG().includes(mt.goal)).map(([, mt]) => `${goalFor(mt.goal)} ${mt.unit}`).join(' · ');
   const sinceTxt = () => { const f = findFirst(); return f ? `${f.getDate()} ${MONTHS[f.getMonth()]}` : ''; };
   const bars = () => {
     if (unitKey === 'today') return todayBars();
@@ -349,16 +350,18 @@ function mountActivity(box) {
     const showHint = showSw && hintN < 3;
     if (showHint && !hintSeen) { hintSeen = true; lsSet('today.swhint', String(hintN + 1)); }
     const HINT_IC = '<svg viewBox="0 0 46 34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M40 6c-14-6-30 2-30 18"/><path d="M4 18l6 8 7-7"/></svg>';
-    const sw = showSw ? `<span class="u-switch" id="calMetric">${mets.map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'on' : ''}" aria-label="${esc(mt.label.replace(/^\S+\s/, ''))}">${mt.label.split(' ')[0]}</button>`).join('')}</span>` : '';
+    const sw = showSw ? `<span class="u-switch" id="calMetric">${mets.map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'on' : ''}" aria-label="${esc(mt.label.replace(/^\S+\s/, ''))}"><b>${mt.label.split(' ')[0]}</b><span>${esc(mt.label.replace(/^\S+\s/, ''))}</span></button>`).join('')}</span>` : '';
+    const mi = mets.findIndex(([k]) => k === metric);
+    const nextK = mets[mi + 1]?.[0]; const prevK = mets[mi - 1]?.[0];
+    // a small pulsing tiffany arrow at the end of the chart: «swipe left for the other goal» (or back to the first)
+    const arrow = showSw && (nextK || prevK) ? `<button type="button" class="sw-arrow ${nextK ? 'to-next' : 'to-prev'}" data-cm="${nextK || prevK}" aria-label="${nextK ? 'الهدف التالي' : 'الهدف السابق'}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${nextK ? 'M15 5l-7 7 7 7' : 'M9 5l7 7-7 7'}"/></svg></button>` : '';
     box.innerHTML = `<div class="cal act">
       <div class="ch"><b>إنجازك</b><span class="ch-tools">${sw}<button type="button" class="per-btn${open ? ' on' : ''}" data-fltoggle aria-expanded="${open}" aria-label="فلتر الفترة">${esc(UNITS.find((u) => u[0] === unitKey)[2])} ${CHEV_IC}</button></span></div>
       ${open ? `<div class="act-menu per-menu">${UNITS.map(([k, , d], i) => `${i === 1 ? '<hr>' : ''}<button type="button" class="${unitKey === k ? 'on' : ''}" data-unit="${k}"><span>${d}</span>${unitKey === k ? '<span>✓</span>' : ''}</button>`).join('')}</div>` : ''}
-      ${showHint ? `<div class="sw-hint">${HINT_IC}<span>اضغط أو اسحب للتبديل</span></div>` : ''}
       ${trimmed ? `<div class="since-note">📅 بياناتك تبدأ من ${esc(sinceTxt())} — نعرض الفترة المتاحة فقط</div>` : ''}
-      <div class="cal-shape">${bars()}</div>
+      <div class="cal-shape">${bars()}${arrow}</div>
       ${dash()}
-      ${unitKey === 'today' ? '' : `<div class="cal-key tiny"><span class="cal-gkey"><i></i> الهدف ${goalTxt()}</span></div>`}
-      <button type="button" class="act-edit" data-editgoals>✏️ عدّل أهدافك</button>
+      <div class="act-foot"><span class="cal-gkey tiny"><i></i> ${unitKey === 'today' ? `الهدف: ${goalsLine()}` : `الهدف ${goalTxt()}`}</span><button type="button" class="act-edit" data-editgoals>✏️ عدّل أهدافك</button></div>
     </div>`;
   };
   box.addEventListener('change', (e) => {
