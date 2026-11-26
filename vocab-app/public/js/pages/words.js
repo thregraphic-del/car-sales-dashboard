@@ -96,8 +96,9 @@ export async function render(view, { params }) {
     const filtered = f.filter !== 'all' || f.group || f.levels.length || f.when || f.source || f.q || f.count;
     $('#list').innerHTML = !all.length ? emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`)
       : `<div class="wd-prac">
-        <div class="card pb-start wd-prac-top"><div class="wd-prac-n"><b class="en-inline">${n.toLocaleString('en-US')}</b> كلمة للتدريب<small>${filtered ? 'حسب الفلاتر فوق' : 'كل كلماتك — استخدم الفلاتر والمجموعات فوق لتختار'}</small></div>
-          <button type="button" class="btn primary pb-go" data-pg="quiz:" ${n ? '' : 'disabled'}>تدرّب ${icon.play}</button></div>
+        <div class="pb-top"><button type="button" class="pb-fbtn${panel === 'filter' ? ' on' : ''}${filtered ? ' set' : ''}" data-wt="filter" aria-expanded="${panel === 'filter'}" aria-label="الفلاتر" title="الفلاتر">${WI.filter}</button>
+        <div class="card pb-start wd-prac-top"><div class="wd-prac-n"><b class="en-inline">${n.toLocaleString('en-US')}</b> كلمة للتدريب<small>${filtered ? 'حسب الفلتر' : 'كل كلماتك — اختر بالفلتر'}</small></div>
+          <button type="button" class="btn primary pb-go" data-pg="quiz:" ${n ? '' : 'disabled'}>تدرّب ${icon.play}</button></div></div>
         <div class="pb-grid">${GAME_TILES.map((g) => `<button type="button" class="pb-game pb-tile" data-pg="${g.mode}:${g.type || ''}" ${n || g.mode === 'twins' ? '' : 'disabled'}><span class="pb-gi">${g.icon}</span><b>${g.name}</b></button>`).join('')}</div>
         ${n ? '' : '<p class="small muted" style="text-align:center;margin-top:10px">ما فيه كلمات بهذي الفلاتر — جرّب تغيّر الفلتر.</p>'}
         <a class="btn sm ghost wd-prac-gram" href="#/practice?area=grammar" data-grammar-only>📚 تدرّب على القواعد</a>
@@ -119,6 +120,7 @@ export async function render(view, { params }) {
     if (tab === 'practice') { select = false; selected.clear(); } // no ticking in «تدرّب»: only the filters and the groups
     $('#selectToggle').classList.toggle('on', select);
     $('#selectToggle').classList.toggle('hidden', tab === 'practice');
+    $('#wdTools').classList.toggle('hidden', tab === 'practice'); // «تدرّب»: the funnel sits beside the count instead
     view.querySelector('[data-wt="groups"]')?.classList.toggle('hidden', tab === 'practice'); // «تدرّب»: the groups are a filter instead
     $('#wsearch').classList.toggle('hidden', panel !== 'search' && !f.q);
     const defs = barDefs();

@@ -3486,3 +3486,4 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 .pg-lv6 { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
 .pg-lv6 .gchip { display: grid; justify-items: center; gap: 1px; padding: 6px 0; font-size: 13px; }
 .pg-lv6 .gchip:disabled { opacity: .4; }
+.wd-prac-top .pb-go { white-space: nowrap; flex: none; }
