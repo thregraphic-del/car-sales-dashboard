@@ -3492,3 +3492,6 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 .wd-seg a { color: var(--accent); font-weight: 700; }
 .wd-seg a.active { color: var(--tiffany); background: color-mix(in srgb, var(--tiffany) 10%, var(--surface)); box-shadow: 0 0 0 1.5px var(--tiffany) inset, var(--shadow-sm); }
 .wd-seg a:not(.active):hover, .wd-seg a:not(.active):active { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+/* «إعدادات المقطع»: the title stays on ONE line and small, whatever the screen width */
+.page-clipset .cs-head h1 { font-size: clamp(15px, 4.2vw, 20px); line-height: 1.3; white-space: nowrap; flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
