@@ -3681,3 +3681,15 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 .cal.is-today .cd-delta { font-size: 11.5px; }
 .cal.is-today .act-foot { margin-top: 6px; }
 .cal.is-today .act-foot .act-edit { padding: 6px 12px; }
+
+/* ===== تدرّب: all the game tiles on one phone screen, no scrolling ===== */
+.pb-top { gap: 8px; }
+.pb-top .pb-start { padding: 7px 12px; }
+.pb-n b { font-size: 26px; } .pb-n { font-size: 15px; }
+.pb-fbtn { width: 50px; }
+.pb-grid { gap: 8px; }
+.pb-tile { padding: 8px 4px; min-height: 72px; gap: 3px; border-radius: 22px; }
+.pb-tile .pb-gi svg { width: 24px; height: 24px; }
+.pb-tile b { font-size: 13.5px; line-height: 1.25; }
+.wd-seg { margin-bottom: 8px; }
+#filters:empty { display: none; }
