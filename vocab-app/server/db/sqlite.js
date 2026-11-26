@@ -9,7 +9,7 @@ import { learningSignals } from '../lib/srs.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 export const ROOT = path.resolve(here, '..', '..');
-export const SCHEMA_VERSION = 13;
+export const SCHEMA_VERSION = 14;
 export const DEFAULT_SQLITE_PATH = path.join(ROOT, 'data', 'lexitube.db');
 
 export function resolvePath(p) {
@@ -178,6 +178,18 @@ export function migrate(d) {
         amount_cents INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending', note TEXT, seen INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL, decided_at TEXT);
       CREATE INDEX IF NOT EXISTS payout_requests_member ON payout_requests (member_id, status);
     `);
+  }
+  if (version < 14) {
+    // v14: «المحذوفات» — a deleted word waits in the trash (state «trashed») and can be restored. The CHECK of the old tables is widened in place.
+    try {
+      const row = d.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'user_vocabulary'").get();
+      if (row?.sql?.includes("CHECK (state IN ('saved','dismissed'))")) {
+        const fixed = row.sql.replace("CHECK (state IN ('saved','dismissed'))", "CHECK (state IN ('saved','dismissed','trashed'))");
+        d.exec('PRAGMA writable_schema = ON;');
+        d.prepare("UPDATE sqlite_master SET sql = ? WHERE type = 'table' AND name = 'user_vocabulary'").run(fixed);
+        d.exec('PRAGMA writable_schema = OFF;');
+      }
+    } catch { /* a fresh schema already has it */ }
   }
   d.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }

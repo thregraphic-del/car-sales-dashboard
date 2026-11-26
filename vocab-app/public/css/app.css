@@ -3475,3 +3475,10 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 .pg-bar { display: grid; gap: 10px; }
 .pg-title { font-weight: 800; }
 .pg-lv { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* 🗑 المحذوفات (settings) */
+.trash-box > summary { list-style: none; cursor: pointer; }
+.trash-box > summary::-webkit-details-marker { display: none; }
+.trash-list { display: grid; gap: 10px; padding: 10px 2px 2px; }
+.trash-rows { display: grid; gap: 6px; max-height: 340px; overflow-y: auto; }
+.trash-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }

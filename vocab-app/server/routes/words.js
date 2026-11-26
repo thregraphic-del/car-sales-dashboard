@@ -62,6 +62,9 @@ router.post('/words/reset', wrap(async (req) => {
   await words.resetVocabularyState(req.userId, id);
   return { ok: true };
 }));
+router.get('/words/trash', wrap(async (req) => ({ items: await words.trashedWords(req.userId) })));
+router.post('/words/restore', wrap(async (req) => ({ restored: await words.restoreWords(req.userId, idList(req.body?.uv_ids)) })));
+router.post('/words/purge', wrap(async (req) => ({ purged: await words.purgeWords(req.userId, idList(req.body?.uv_ids)) })));
 router.post('/words/delete', wrap(async (req) => ({ deleted: await words.unsaveWords(req.userId, idList(req.body?.uv_ids)) })));
 
 router.get('/words', wrap(async (req) => {

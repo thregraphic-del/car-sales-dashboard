@@ -63,18 +63,50 @@ export async function dismissWord(userId, vocabularyId) {
   return insert(`INSERT INTO user_vocabulary (user_id, vocabulary_id, state) VALUES (?,?, 'dismissed')`, userId, vocabularyId);
 }
 
+/** «حذف» moves a word to the trash (state «trashed»): its progress and groups wait there, and it can be restored from the settings. */
 export async function unsaveWord(userId, uvId) {
-  await run('DELETE FROM user_vocabulary WHERE id = ? AND user_id = ?', uvId, userId);
+  await run("UPDATE user_vocabulary SET state = 'trashed' WHERE id = ? AND user_id = ? AND state = 'saved'", uvId, userId);
 }
 
-/** Remove several words at once (progress included). Returns how many. */
+/** Move several words to the trash at once (a few big statements, not one query per word). Returns how many. */
 export async function unsaveWords(userId, uvIds) {
-  // a few big statements (200 words each) instead of one query per word: hundreds of words must finish inside the server's time limit
   return tx(async () => {
     let n = 0;
     for (let i = 0; i < uvIds.length; i += 200) {
       const part = uvIds.slice(i, i + 200);
-      n += (await run(`DELETE FROM user_vocabulary WHERE user_id = ? AND id IN (${part.map(() => '?').join(',')})`, userId, ...part)).changes;
+      n += (await run(`UPDATE user_vocabulary SET state = 'trashed' WHERE user_id = ? AND state = 'saved' AND id IN (${part.map(() => '?').join(',')})`, userId, ...part)).changes;
+    }
+    return n;
+  });
+}
+
+/** The words in the trash, newest first. */
+export async function trashedWords(userId) {
+  return all(
+    `SELECT uv.id AS uv_id, v.term, v.level, COALESCE(uv.user_arabic, v.arabic) AS arabic, uv.saved_at
+     FROM user_vocabulary uv JOIN vocabulary v ON v.id = uv.vocabulary_id
+     WHERE uv.user_id = ? AND uv.state = 'trashed' ORDER BY uv.id DESC LIMIT 2000`, userId);
+}
+
+/** Back from the trash into «كلماتي» (progress and groups intact). */
+export async function restoreWords(userId, uvIds) {
+  return tx(async () => {
+    let n = 0;
+    for (let i = 0; i < uvIds.length; i += 200) {
+      const part = uvIds.slice(i, i + 200);
+      n += (await run(`UPDATE user_vocabulary SET state = 'saved' WHERE user_id = ? AND state = 'trashed' AND id IN (${part.map(() => '?').join(',')})`, userId, ...part)).changes;
+    }
+    return n;
+  });
+}
+
+/** Gone for good (only from the trash). */
+export async function purgeWords(userId, uvIds) {
+  return tx(async () => {
+    let n = 0;
+    for (let i = 0; i < uvIds.length; i += 200) {
+      const part = uvIds.slice(i, i + 200);
+      n += (await run(`DELETE FROM user_vocabulary WHERE user_id = ? AND state = 'trashed' AND id IN (${part.map(() => '?').join(',')})`, userId, ...part)).changes;
     }
     return n;
   });
@@ -95,7 +127,7 @@ export async function updateWord(userId, uvId, patch) {
 /** State of a vocabulary item for the learner (for panels and imports). */
 export async function userStateFor(userId, vocabularyId) {
   const uv = await get('SELECT id, state, user_arabic FROM user_vocabulary WHERE user_id = ? AND vocabulary_id = ?', userId, vocabularyId);
-  if (!uv) return { uv_id: null, state: null, user_arabic: null, groups: [] };
+  if (!uv || uv.state === 'trashed') return { uv_id: uv?.id ?? null, state: null, user_arabic: null, groups: [] };
   return { uv_id: uv.id, state: uv.state, user_arabic: uv.user_arabic, groups: await groupIdsFor(uv.id) };
 }
 

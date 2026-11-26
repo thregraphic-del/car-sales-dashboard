@@ -123,7 +123,7 @@ export async function render(view, { params }) {
     const gSel = state.groups.find((x) => x.id === f.group);
     groupsOpen = panel === 'groups';
     $('#groups').innerHTML = groupsOpen ? `<div class="grp-panel">${state.groups.map((g) => `<button class="gchip ${f.group === g.id ? 'on' : ''}" data-g="${g.id}">${esc(g.name)} <span class="en-inline tiny">${g.count}</span></button>`).join('') || '<span class="tiny muted">ما عندك مجموعات بعد.</span>'}
-        <div class="grp-actions"><button class="gchip new" id="newGroup">+ مجموعة جديدة</button>${state.groups.length > 1 ? '<button class="gchip new" id="manageGroups">⚙ إدارة المجموعات</button>' : ''}</div></div>` : (gSel ? `<span class="gchip on">${esc(gSel.name)}</span>` : '');
+        <div class="grp-actions"><button class="gchip new" id="newGroup">+ مجموعة جديدة</button>${state.groups.length > 1 ? '<button class="gchip new" id="manageGroups">⚙ إدارة المجموعات</button>' : ''}</div></div>` : (gSel ? `<button type="button" class="gchip on" data-ungroup title="إلغاء المجموعة والرجوع للكل" aria-label="إلغاء المجموعة">${esc(gSel.name)}</button>` : '');
     const g = state.groups.find((x) => x.id === f.group);
     $('#groupHead').innerHTML = g ? `
       <div class="card group-head">
@@ -368,6 +368,7 @@ export async function render(view, { params }) {
       panel = ''; groupsOpen = false;
       return draw();
     }
+    if (e.target.closest('[data-ungroup]')) { f.group = null; return draw(); } // × beside the group name: back to all the words
     if (e.target.closest('#newGroup')) {
       const box = openModal(`<h2 style="margin:0 0 6px">مجموعة جديدة</h2>
         <p class="small muted" style="margin:0 0 12px">اكتب اسمها، وبعدها تحدّد كلماتها: حسب المستوى، أو بيدك، أو الكل.</p>
@@ -468,9 +469,9 @@ export async function render(view, { params }) {
     }
     if (e.target.closest('#deleteSelected')) {
       if (!selected.size) return;
-      if (!confirm(`حذف ${selected.size} ${selected.size === 1 ? 'كلمة' : 'كلمات'} من كلماتك؟ سيُحذف تقدّمك فيها أيضًا.`)) return;
+      if (!confirm(`حذف ${selected.size} ${selected.size === 1 ? 'كلمة' : 'كلمات'}؟ تنتقل إلى «المحذوفات» في الإعدادات وتقدرين تسترجعينها.`)) return;
       const r = await api.deleteWords([...selected]);
-      toast(`حُذفت ${r.deleted} ${r.deleted === 1 ? 'كلمة' : 'كلمات'}`);
+      toast(`نُقلت ${r.deleted === 1 ? 'كلمة وحدة' : r.deleted === 2 ? 'كلمتان' : `${r.deleted} كلمة`} إلى «المحذوفات» — الإعدادات ← المظهر والتفضيلات`, 4500);
       selected.clear();
       select = false;
       return reload();

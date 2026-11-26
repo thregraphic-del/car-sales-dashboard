@@ -347,7 +347,7 @@ export async function sourceView(sourceId, userId) {
     `SELECT o.*, v.term, v.item_type, v.part_of_speech, v.level, v.band, v.pronunciation, v.arabic AS arabic_general, v.simple_english,
        v.similar_json, v.topic, uv.id AS uv_id, uv.state AS user_state, uv.user_arabic, uv.source_id AS uv_source_id
      FROM occurrences o JOIN vocabulary v ON v.id = o.vocabulary_id
-     LEFT JOIN user_vocabulary uv ON uv.vocabulary_id = v.id AND uv.user_id = ?
+     LEFT JOIN user_vocabulary uv ON uv.vocabulary_id = v.id AND uv.user_id = ? AND uv.state <> 'trashed'
      WHERE o.source_id = ? ORDER BY o.rank, o.id`,
     userId, sourceId,
   );

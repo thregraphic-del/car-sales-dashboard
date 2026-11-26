@@ -114,7 +114,7 @@ CREATE TABLE IF NOT EXISTS user_vocabulary (
   vocabulary_id     INTEGER NOT NULL REFERENCES vocabulary(id) ON DELETE CASCADE,
   occurrence_id     INTEGER REFERENCES occurrences(id) ON DELETE SET NULL, -- context it was saved from
   source_id         INTEGER REFERENCES sources(id) ON DELETE SET NULL,
-  state             TEXT    NOT NULL DEFAULT 'saved' CHECK (state IN ('saved','dismissed')),
+  state             TEXT    NOT NULL DEFAULT 'saved' CHECK (state IN ('saved','dismissed','trashed')),
   user_arabic       TEXT,                            -- the learner's own meaning
   saved_at          TEXT    NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
   review_count      INTEGER NOT NULL DEFAULT 0,

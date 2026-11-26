@@ -68,6 +68,9 @@ export async function render(view) {
         ${swItem('gramSw', 'وضع القواعد', 'يعرض القواعد في الكلمات والتدريب والمقاطع (مطفي للمبتدئ)', '', grammarOn())}
         ${swItem('wideSw', 'المقطع يفتح بشاشة موسّعة', '', '', ls('app.openWide2', '0') === '1')}
         ${swItem('autoSw', 'احفظ كلمات المقطع تلقائيًا', '', '', ls('app.autoSave', '0') === '1')}
+        <h4 class="set-sub">المحذوفات</h4>
+        <details class="trash-box" id="trashBox"><summary class="set-rowbtn trash-sum"><span class="ss-i sm">${icon.trash}</span><span><b>الكلمات المحذوفة <span class="en-inline" id="trashN"></span></b><small>اللي حذفتيها من كلماتي — تقدرين تسترجعينها</small></span></summary>
+          <div id="trashList" class="trash-list"><p class="small muted">…</p></div></details>
       </div></details>
 
       <details class="set-sec"><summary><span class="ss-i">${icon.chat}</span><b>التواصل</b></summary><div class="ss-body">
@@ -173,6 +176,35 @@ ${cfg.can_set_paid ? '<a class="set-rowbtn" href="/admin.html"><span class="ss-i
     } catch (err) {
       toast(err.message);
     }
+  });
+  // 🗑 المحذوفات: the words deleted from «كلماتي» wait here (loaded when the box is opened) — restore one, restore all, or remove for good
+  const trashBox = $('#trashBox');
+  const drawTrash = async () => {
+    const list = $('#trashList');
+    try {
+      const { items } = await api.wordsTrash();
+      $('#trashN').textContent = items.length ? `(${items.length})` : '';
+      list.innerHTML = items.length
+        ? `<div class="btn-row"><button type="button" class="btn sm" id="trAll">↩ استرجاع الكل</button><button type="button" class="btn sm ghost" id="trPurge" style="color:var(--bad)">حذف نهائي للكل</button></div>
+          <div class="trash-rows">${items.slice(0, 300).map((w) => `<div class="trash-row"><span><b class="en">${esc(w.term)}</b> <small class="muted">${esc(w.arabic || '')}</small></span><button type="button" class="btn sm" data-restore="${w.uv_id}">↩ استرجاع</button></div>`).join('')}${items.length > 300 ? `<p class="tiny muted">و${items.length - 300} كلمة أخرى — «استرجاع الكل» يشملها.</p>` : ''}</div>`
+        : '<p class="small muted">ما فيه كلمات محذوفة.</p>';
+      list._ids = items.map((w) => w.uv_id);
+    } catch (err) { list.innerHTML = `<p class="small muted">${esc(err.message)}</p>`; }
+  };
+  trashBox?.addEventListener('toggle', () => { if (trashBox.open) drawTrash(); });
+  api.wordsTrash().then((r) => { if (r.items.length) $('#trashN').textContent = `(${r.items.length})`; }).catch(() => {}); // the count only
+  $('#trashList')?.addEventListener('click', async (e) => {
+    const list = $('#trashList');
+    try {
+      const one = e.target.closest('[data-restore]');
+      if (one) { await api.restoreWords([Number(one.dataset.restore)]); toast('رجعت الكلمة لكلماتي ✓'); refreshStats(); return drawTrash(); }
+      if (e.target.closest('#trAll')) { const r = await api.restoreWords(list._ids || []); toast(`رجعت ${r.restored} كلمة لكلماتي ✓`); refreshStats(); return drawTrash(); }
+      if (e.target.closest('#trPurge')) {
+        if (!confirm('حذف نهائي لكل الكلمات المحذوفة؟ ما تقدرين تسترجعينها بعدها.')) return undefined;
+        const r = await api.purgeWords(list._ids || []); toast(`حُذفت ${r.purged} كلمة نهائيًا`); return drawTrash();
+      }
+    } catch (err) { toast(err.message); }
+    return undefined;
   });
   $('#logout')?.addEventListener('click', async () => {
     await api.logout().catch(() => {});
