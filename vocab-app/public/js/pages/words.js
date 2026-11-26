@@ -29,6 +29,8 @@ export async function render(view, { params }) {
   const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
   const WHEN = { today: () => [startOfToday(), Infinity], yesterday: () => [startOfToday() - DAY, startOfToday()], week: () => [startOfToday() - 6 * DAY, Infinity], month: () => [startOfToday() - 29 * DAY, Infinity] };
   let select = false;
+  let pendingGroup = null; // a group just created: pick its words (by level, one by one, or all) then add them
+  if (window.__pg) { pendingGroup = window.__pg; window.__pg = null; select = true; } // created from the «تدرّب» section: continue here
   const selected = new Set();
   let shown = [];
 
@@ -160,7 +162,18 @@ export async function render(view, { params }) {
     const allShownSelected = shown.length > 0 && shown.every((w) => selected.has(w.uv_id));
     const inGroup = state.groups.find((x) => x.id === f.group);
     const none = selected.size ? '' : 'disabled';
-    $('#selectBar').innerHTML = select ? `
+    const lvOf = (l) => shown.filter((w) => w.level === l);
+    $('#selectBar').innerHTML = pendingGroup ? `
+      <div class="select-bar pg-bar">
+        <div class="pg-title">📁 «${esc(pendingGroup.name)}» — حدّد كلماتها</div>
+        <div class="pg-lv">
+          <button type="button" class="gchip${shown.length && shown.every((w) => selected.has(w.uv_id)) ? ' on' : ''}" data-pgall>الكل (${shown.length})</button>
+          ${LEVELS.filter((l) => lvOf(l).length).map((l) => `<button type="button" class="gchip${lvOf(l).every((w) => selected.has(w.uv_id)) ? ' on' : ''}" data-pglv="${l}">${l} <span class="en-inline tiny">${lvOf(l).length}</span></button>`).join('')}
+        </div>
+        <p class="tiny muted" style="margin:0">اختر مستوى أو «الكل»، أو اضغط الكلمات وحدّد بيدك.</p>
+        <div class="row between"><span><b class="en-inline">${selected.size}</b> محددة</span>
+          <span class="btn-row"><button type="button" class="btn ghost sm" id="pgCancel">تخطّي</button><button type="button" class="btn primary" id="pgAdd" ${selected.size ? '' : 'disabled'}>أضفها إلى المجموعة</button></span></div>
+      </div>` : select ? `
       <div class="select-bar">
         <div class="row" style="gap:10px">
           <button class="btn sm" id="selAll">${allShownSelected ? 'إلغاء تحديد الكل' : `تحديد الكل (${shown.length})`}</button>
@@ -356,18 +369,53 @@ export async function render(view, { params }) {
       return draw();
     }
     if (e.target.closest('#newGroup')) {
-      const name = prompt('اسم المجموعة (مثال: Finance، Data Analysis، Work، University)');
-      if (!name?.trim()) return;
-      try {
-        const g = await api.createGroup(name.trim());
-        if (g.existed) toast('عندك مجموعة بهذا الاسم');
-        await loadGroups();
-        f.group = g.id;
-        draw();
-      } catch (err) {
-        toast(err.message);
-      }
+      const box = openModal(`<h2 style="margin:0 0 6px">مجموعة جديدة</h2>
+        <p class="small muted" style="margin:0 0 12px">اكتب اسمها، وبعدها تحدّد كلماتها: حسب المستوى، أو بيدك، أو الكل.</p>
+        <input class="input" id="ngName" maxlength="60" placeholder="مثال: Work، University، Finance" autocomplete="off">
+        <div class="btn-row" style="margin-top:14px"><button type="button" class="btn primary" id="ngGo">التالي ← تحديد الكلمات</button></div>`);
+      const input = box.querySelector('#ngName');
+      setTimeout(() => input.focus(), 150);
+      const go = async () => {
+        const name = input.value.trim();
+        if (!name) { input.focus(); return; }
+        try {
+          const g = await api.createGroup(name);
+          if (g.existed) toast('عندك مجموعة بهذا الاسم — نضيف لها');
+          await loadGroups();
+          closeModal();
+          if (tab === 'practice') { window.__pg = { id: g.id, name: g.name || name }; location.hash = '#/words'; return; }
+          f.group = null; f.filter = 'all'; panel = '';
+          pendingGroup = { id: g.id, name: g.name || name };
+          select = true; selected.clear();
+          draw();
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (err) { toast(err.message); }
+      };
+      box.querySelector('#ngGo').addEventListener('click', go);
+      input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); go(); } });
       return;
+    }
+    if (e.target.closest('[data-pgall]')) {
+      const allSel = shown.length > 0 && shown.every((w) => selected.has(w.uv_id));
+      shown.forEach((w) => (allSel ? selected.delete(w.uv_id) : selected.add(w.uv_id)));
+      return draw();
+    }
+    const pgl = e.target.closest('[data-pglv]');
+    if (pgl) {
+      const list = shown.filter((w) => w.level === pgl.dataset.pglv);
+      const allSel = list.every((w) => selected.has(w.uv_id));
+      list.forEach((w) => (allSel ? selected.delete(w.uv_id) : selected.add(w.uv_id)));
+      return draw();
+    }
+    if (e.target.closest('#pgCancel')) { pendingGroup = null; select = false; selected.clear(); return draw(); }
+    if (e.target.closest('#pgAdd')) {
+      if (!pendingGroup || !selected.size) return undefined;
+      const n = selected.size;
+      const g = pendingGroup;
+      await api.addToGroup(g.id, [...selected]);
+      toast(`أضفنا ${n} ${n === 1 ? 'كلمة' : 'كلمات'} إلى «${g.name}» ✓`);
+      pendingGroup = null; select = false; selected.clear(); f.group = g.id;
+      return reload();
     }
     const gact = e.target.closest('[data-gact]')?.dataset.gact;
     if (gact === 'rename') {
@@ -402,6 +450,7 @@ export async function render(view, { params }) {
     }
     if (e.target.closest('#selectToggle')) {
       select = !select;
+      pendingGroup = null;
       selected.clear();
       return draw();
     }
