@@ -362,12 +362,24 @@ export function bindSuggestWords(view) {
         const save = $('#swSave', view);
         save.disabled = true;
         try {
+          // sentences go into a group named after the chosen field (made once, then every later «اقترح» adds to the same group)
+          let gids;
+          let gname = '';
+          if (kind === 'sentences') {
+            gname = topic || 'جمل مقترحة';
+            const all = await api.groups();
+            const found = all.find((g) => g.name === gname);
+            gids = [found ? found.id : (await api.createGroup(gname)).id];
+          }
           const res = await api.importSave(chosen.map((it) => ({
             term: it.term, arabic: it.arabic, level: it.level, meaning_from: 'ai', item_type: kind === 'sentences' ? 'expression' : undefined,
             examples: it.example ? [{ sentence: it.example, arabic: it.example_ar || null }] : [],
-          })));
-          toast(`تم حفظ ${res.results.filter((x) => x.result !== 'unchanged').length} كلمة ✓`);
-          box.innerHTML = '<p class="small" style="margin-top:10px">✓ حُفظت في «كلماتي». <a href="#/words">افتحها</a> أو اضغط «اقترح» لكلمات أخرى.</p>';
+          })), gids);
+          const n = res.results.filter((x) => x.result !== 'unchanged').length;
+          toast(kind === 'sentences' ? `تم حفظ ${n} جملة في مجموعة «${gname}» ✓` : `تم حفظ ${n} كلمة ✓`);
+          box.innerHTML = kind === 'sentences'
+            ? `<p class="small" style="margin-top:10px">✓ حُفظت في مجموعة «${esc(gname)}». <a href="#/words">افتحها</a> أو اضغط «اقترح» لجمل أخرى تنضاف لنفس المجموعة.</p>`
+            : '<p class="small" style="margin-top:10px">✓ حُفظت في «كلماتي». <a href="#/words">افتحها</a> أو اضغط «اقترح» لكلمات أخرى.</p>';
         } catch (err) {
           save.disabled = false;
           toast(err.message);
