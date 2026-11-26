@@ -255,6 +255,8 @@ function mountActivity(box) {
   const lineGoal = () => goalN() * Math.max(1, ...V.list.map((b) => b.span));
   const goalTxt = () => `${lineGoal()} ${METRICS[metric].unit} في ${{ day: 'اليوم', week: 'الأسبوع', month: 'الشهر' }[V.gran]}`;
   const hit = (b) => b.span > 0 && val(b) >= goalN() * b.span;
+  const over = (b) => b.span > 0 && val(b) > goalN() * b.span; // went PAST the goal → a breathing flame beside its number
+  const FLAME = '<svg class="fl" viewBox="0 0 24 24" aria-label="تعدّى الهدف" role="img"><path fill="#FF5A00" d="M12 1.5c.3 3.3 2.2 4.9 4.1 7.2 1.7 2 2.9 4.1 2.9 6.6a7 7 0 0 1-14 0c0-2.4 1.1-4.3 2.6-5.9.1 1.5.7 2.6 1.7 3.2C9 8.6 10.3 4.8 12 1.5z"/><path fill="#FF9A1F" d="M12 22a5.2 5.2 0 0 1-5.2-5.2c0-2.3 1.5-3.7 2.6-5.5.6 1 1.3 1.6 2 2.1.5-.9.8-1.9.8-3 1.6 1.6 3 3.6 3 6.4A5.2 5.2 0 0 1 12 22z"/><path fill="#FFE36A" d="M12 22a3 3 0 0 1-3-3c0-1.5 1.1-2.4 1.8-3.6.5.7 1 1 1.4 1.3.3-.5.5-1 .5-1.6 1 1 1.3 2.2 1.3 3.9a3 3 0 0 1-2 3z"/></svg>';
 
   // 📊 columns only; the goal line sits in the MIDDLE of the chart (a value of twice the goal fills the column)
   const bars = () => {
@@ -263,7 +265,7 @@ function mountActivity(box) {
       const v = val(b);
       const pct = v ? Math.max(6, Math.min(100, Math.round((100 * v) / mx))) : 0;
       const showL = n <= 16 || i % step === 0 || i === n - 1;
-      return `<button type="button" class="cb${pick === b.id ? ' pick' : ''}${b.from <= now && b.to >= now ? ' today' : ''}${hit(b) ? ' hit' : ''}" data-d="${b.id}"><em>${n > 16 ? '' : (v || '')}</em><i><b class="${lvl(v, mx)}" style="height:${pct}%"></b></i><span>${showL ? b.label : ''}</span><small>${n > 16 ? '' : b.sub}</small></button>`;
+      return `<button type="button" class="cb${pick === b.id ? ' pick' : ''}${b.from <= now && b.to >= now ? ' today' : ''}${hit(b) ? ' hit' : ''}${over(b) ? ' over' : ''}" data-d="${b.id}"><em>${n > 16 ? '' : (v || '')}${over(b) ? FLAME : ''}</em><i><b class="${lvl(v, mx)}" style="height:${pct}%"></b></i><span>${showL ? b.label : ''}</span><small>${n > 16 ? '' : b.sub}</small></button>`;
     }).join('')}</div>`;
   };
   const bTitle = (b) => (b.gran === 'day' ? `${DAY_NAMES[b.from.getDay()]} ${b.from.getDate()}/${b.from.getMonth() + 1}` : b.gran === 'week' ? `من ${b.from.getDate()}/${b.from.getMonth() + 1} إلى ${b.to.getDate()}/${b.to.getMonth() + 1}` : `${MONTHS[b.from.getMonth()]} ${b.from.getFullYear()}`);
