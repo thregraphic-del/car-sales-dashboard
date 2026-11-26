@@ -322,3 +322,6 @@ Object.assign(icon, {
   bell: svg('<path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>'),
   help: svg('<circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6V14M12 17.5h.01"/>'),
 });
+
+/** 🔥 the FULL flame (three layers: red-orange · orange · yellow), not an outline — breathes through the `.fl` class in the CSS. */
+export const flameFull = (cls = '') => `<svg class="fl ${cls}" viewBox="0 0 24 24" aria-hidden="true"><path fill="#FF5A00" d="M12 1.5c.3 3.3 2.2 4.9 4.1 7.2 1.7 2 2.9 4.1 2.9 6.6a7 7 0 0 1-14 0c0-2.4 1.1-4.3 2.6-5.9.1 1.5.7 2.6 1.7 3.2C9 8.6 10.3 4.8 12 1.5z"/><path fill="#FF9A1F" d="M12 22a5.2 5.2 0 0 1-5.2-5.2c0-2.3 1.5-3.7 2.6-5.5.6 1 1.3 1.6 2 2.1.5-.9.8-1.9.8-3 1.6 1.6 3 3.6 3 6.4A5.2 5.2 0 0 1 12 22z"/><path fill="#FFE36A" d="M12 22a3 3 0 0 1-3-3c0-1.5 1.1-2.4 1.8-3.6.5.7 1 1 1.4 1.3.3-.5.5-1 .5-1.6 1 1 1.3 2.2 1.3 3.9a3 3 0 0 1-2 3z"/></svg>`;

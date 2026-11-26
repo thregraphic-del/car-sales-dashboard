@@ -3,7 +3,7 @@ import { api, warm } from './api.js';
 import { state, loadGroups, applyGrammarMode } from './state.js';
 import { stop as stopAudio, speak } from './audio.js';
 import { closeWordPanel, openWordPanel } from './components.js';
-import { icon, $, closeModal, esc, openModal, toast, applyTheme } from './ui.js';
+import { icon, $, closeModal, esc, openModal, toast, applyTheme, flameFull } from './ui.js';
 import { startIcons } from './emoji-icons.js';
 import { BUILD_ID } from './build-id.js';
 import { watchForUpdates } from './update-check.js';
@@ -68,7 +68,7 @@ function renderNav(active) {
   const tabActive = active === '/practice' ? '/words' : active;
   $('#tabbar').innerHTML = tabs.map((n) => `<a class="${n.path === tabActive ? 'active' : ''}" href="#${n.path}" ${n.path === tabActive ? 'aria-current="page"' : ''}>${icon[n.icon]}<span>${n.label}</span></a>`).join('');
   const top = $('#topStreak');
-  if (top && s) top.innerHTML = `🔥 <b class="en-inline">${s.streak.current}</b>${s.streak.rescue ? SAD_BADGE : ''}`;
+  if (top && s) top.innerHTML = `${flameFull()} <b class="en-inline">${s.streak.current}</b>${s.streak.rescue ? SAD_BADGE : ''}`;
   const guestChip = state.user?.guest ? '<div class="guest-chip">👤 أنت ضيف — <a href="/register"><b>سجّل حسابك المجاني</b></a> وتنحفظ كلماتك. عندك حساب؟ <a href="/login"><b>ادخل</b></a></div>' : '';
   $('#sidebarFoot').innerHTML = s
     ? `${guestChip}${socialRow(state.config?.contact)}

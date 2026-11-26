@@ -6,7 +6,7 @@ import { maybeTour } from '../tour.js';
 import { maybeOnboard } from '../onboarding.js';
 import { state } from '../state.js';
 import { noteStatsFresh, takePreloadedToday } from '../app.js';
-import { esc, icon, openModal, closeModal, toast } from '../ui.js';
+import { esc, icon, openModal, closeModal, toast, flameFull } from '../ui.js';
 import { dayStr, goalFor, dayCounts, GOAL_TYPES, goalTypes, setGoalTypes, setGoalN, progress, ADVANCED_GOALS } from '../goal.js';
 import { setPending, checkDouble, doubleInfo } from '../streak-rescue.js';
 import { getReminder, reminderSummary, openReminderFlow } from '../reminder.js';
@@ -180,7 +180,7 @@ export async function render(view) {
   view.innerHTML = `<div class="th">
     <div class="th-top th-top-min">
       <button type="button" class="th-bell${unseen ? ' dot' : ''}" id="bell" aria-label="الجديد والتذكير">${icon.bell}</button>
-      <button type="button" class="th-flame-btn${grey ? ' grey' : ''}" id="flame" aria-label="أيامك المتتالية"><span class="th-fl">🔥</span><b>${flameN}</b></button>
+      <button type="button" class="th-flame-btn${grey ? ' grey' : ''}" id="flame" aria-label="أيامك المتتالية"><span class="th-fl">${flameFull()}</span><b>${flameN}</b></button>
       <span class="th-spent2">قضيت ${todayMinutes().toLocaleString('ar-EG')} د في المقاطع</span>
     </div>
     ${lostCard}
@@ -256,7 +256,7 @@ function mountActivity(box) {
   const goalTxt = () => `${lineGoal()} ${METRICS[metric].unit} في ${{ day: 'اليوم', week: 'الأسبوع', month: 'الشهر' }[V.gran]}`;
   const hit = (b) => b.span > 0 && val(b) >= goalN() * b.span;
   const over = (b) => b.span > 0 && val(b) > goalN() * b.span; // went PAST the goal → a breathing flame beside its number
-  const FLAME = '<svg class="fl" viewBox="0 0 24 24" aria-label="تعدّى الهدف" role="img"><path fill="#FF5A00" d="M12 1.5c.3 3.3 2.2 4.9 4.1 7.2 1.7 2 2.9 4.1 2.9 6.6a7 7 0 0 1-14 0c0-2.4 1.1-4.3 2.6-5.9.1 1.5.7 2.6 1.7 3.2C9 8.6 10.3 4.8 12 1.5z"/><path fill="#FF9A1F" d="M12 22a5.2 5.2 0 0 1-5.2-5.2c0-2.3 1.5-3.7 2.6-5.5.6 1 1.3 1.6 2 2.1.5-.9.8-1.9.8-3 1.6 1.6 3 3.6 3 6.4A5.2 5.2 0 0 1 12 22z"/><path fill="#FFE36A" d="M12 22a3 3 0 0 1-3-3c0-1.5 1.1-2.4 1.8-3.6.5.7 1 1 1.4 1.3.3-.5.5-1 .5-1.6 1 1 1.3 2.2 1.3 3.9a3 3 0 0 1-2 3z"/></svg>';
+  const FLAME = flameFull('in-bar');
 
   // 📊 columns only; the goal line sits in the MIDDLE of the chart (a value of twice the goal fills the column)
   const bars = () => {

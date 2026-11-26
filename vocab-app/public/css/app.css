@@ -3525,3 +3525,10 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 .det-one .det-menu { position: static; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 0; background: none; border: 0; box-shadow: none; margin: 2px 0 4px; }
 .det-menu .wz-opt { padding: 6px 12px; min-height: 0; border-radius: 999px; font-size: 13px; font-weight: 700; width: auto; }
 .det-menu .wz-opt span { white-space: nowrap; }
+
+/* 🔥 the full flame beside the streak (home chip + top bar): same breathing as the chart's flame */
+.fl { display: inline-block; transform-origin: 50% 100%; filter: drop-shadow(0 0 4px rgba(255,106,0,.6)); animation: flBreath 1.5s ease-in-out infinite; }
+.th-flame-btn .th-fl svg.fl { width: 26px; height: 30px; }
+.th-flame-btn.grey .fl { animation: none; filter: grayscale(1); }
+#topStreak .fl { width: 17px; height: 20px; vertical-align: -4px; }
+@media (prefers-reduced-motion: reduce) { .fl { animation: none; } }
