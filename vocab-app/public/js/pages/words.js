@@ -25,6 +25,7 @@ export async function render(view, { params }) {
   try { const c = sessionStorage.getItem('words.carry'); if (c) { Object.assign(f, JSON.parse(c)); sessionStorage.removeItem('words.carry'); } } catch { /* ignore */ }
   let tab = params.tab === 'practice' ? 'practice' : 'words'; // كلماتي = الكلمات | تدرّب (| القواعد when the grammar mode is on)
   let fbOpen = '';
+  let pgTouched = false; // the learner changed a filter in «تدرّب»: then the quiz follows the filter, not the default
   let groupsOpen = false;
   let clusters = null; // «الأوضح»: words with one meaning under the simplest one
   const DAY = 86400000;
@@ -47,7 +48,6 @@ export async function render(view, { params }) {
   let panel = ''; // which icon's panel is open: search · filter · sort · groups
   view.innerHTML = `
     <div class="page-head compact"><div><h1>كلماتي</h1></div><div class="wd-corner"><button type="button" class="wd-t wd-sm" data-wt="search" aria-label="بحث" title="بحث">${icon.search}</button><button type="button" class="wd-t wd-sm" id="exportBtn" aria-label="تنزيل" title="تنزيل">${icon.download}</button></div></div>
-    <div class="card wd-stats" id="summary"></div>
     <div class="lib-tabs segmented wd-seg" role="tablist"><a href="#/words" role="tab" class="${tab === 'words' ? 'active' : ''}">الكلمات <b id="wCount"></b></a><a href="#/words?tab=practice" role="tab" class="${tab === 'practice' ? 'active' : ''}">تدرّب</a><a href="#/words?tab=grammar" role="tab" data-grammar-only>القواعد <b id="gCount"></b></a></div>
     <div class="wd-tools" id="wdTools">
       <button type="button" class="wd-t" data-wt="filter" aria-label="فلاتر" title="فلاتر">${WI.filter}<span>فلاتر</span></button>
@@ -81,7 +81,7 @@ export async function render(view, { params }) {
 
   // 🎮 «تدرّب»: the same filters as the list — the words you see (or the ones you ticked) are the ones you train on
   const GAME_TILES = [
-    { mode: 'quiz', icon: icon.check, name: 'اختبار' },
+    { mode: 'quiz', icon: icon.check, name: 'ألعاب متعددة', cls: ' pb-multi' },
     { mode: 'cards', icon: icon.cards, name: 'البطاقات' },
     { mode: 'listen', icon: icon.headphones, name: 'استماع' },
     { mode: 'story', icon: icon.bookOpen, name: 'قصة' },
@@ -89,29 +89,37 @@ export async function render(view, { params }) {
     ...GAME_ORDER.map((k) => ({ mode: 'games', type: k, icon: icon[TYPES[k].icon] || '🎮', name: TYPES[k].name })),
   ];
   const practiceSet = () => shown;
+  // 🎲 default of «ألعاب متعددة»: 10 words of today (any clip, shuffled) — unless the learner set a filter
+  const defaultSet = () => {
+    const [from, to] = WHEN.today();
+    const today = all.filter((w) => { const t = new Date(w.saved_at).getTime(); return t >= from && t < to; });
+    const pool = (today.length ? today : all).slice();
+    for (let i = pool.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    return { list: pool.slice(0, 10), today: !!today.length };
+  };
   function drawPractice() {
     $('#selectBar').innerHTML = '';
     const set = practiceSet();
-    const n = set.length;
+    const useDef = !pgTouched && !f.q && !f.group && !f.source && !f.levels.length && !f.when && !f.count && f.filter === 'all';
+    const dflt = useDef ? defaultSet() : null;
+    const n = dflt ? dflt.list.length : set.length;
     const filtered = f.filter !== 'all' || f.group || f.levels.length || f.when || f.source || f.q || f.count;
     $('#list').innerHTML = !all.length ? emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`)
       : `<div class="wd-prac">
         <div class="pb-top"><button type="button" class="pb-fbtn${panel === 'filter' ? ' on' : ''}${filtered ? ' set' : ''}" data-wt="filter" aria-expanded="${panel === 'filter'}" aria-label="الفلاتر" title="الفلاتر">${WI.filter}</button>
-        <div class="card pb-start wd-prac-top"><div class="wd-prac-n"><b class="en-inline">${n.toLocaleString('en-US')}</b> كلمة للتدريب<small>${filtered ? 'حسب الفلتر' : 'كل كلماتك — اختر بالفلتر'}</small></div>
-          <button type="button" class="btn primary pb-go" data-pg="quiz:" ${n ? '' : 'disabled'}>تدرّب ${icon.play}</button></div></div>
-        <div class="pb-grid">${GAME_TILES.map((g) => `<button type="button" class="pb-game pb-tile" data-pg="${g.mode}:${g.type || ''}" ${n || g.mode === 'twins' ? '' : 'disabled'}><span class="pb-gi">${g.icon}</span><b>${g.name}</b></button>`).join('')}</div>
+        <div class="card pb-start wd-prac-top"><div class="wd-prac-n"><b class="en-inline">${n.toLocaleString('en-US')}</b> كلمة للتدريب<small>${dflt ? (dflt.today ? 'عشوائي من كلمات اليوم — غيّر الفلتر لو تبغى غيرها' : 'عشوائي من كل كلماتك — غيّر الفلتر لو تبغى غيرها') : 'حسب الفلتر'}</small></div></div></div>
+        <div class="pb-grid">${GAME_TILES.map((g) => `<button type="button" class="pb-game pb-tile${g.cls || ''}" data-pg="${g.mode}:${g.type || ''}" ${n || g.mode === 'twins' ? '' : 'disabled'}><span class="pb-gi">${g.icon}</span><b>${g.name}</b></button>`).join('')}</div>
         ${n ? '' : '<p class="small muted" style="text-align:center;margin-top:10px">ما فيه كلمات بهذي الفلاتر — جرّب تغيّر الفلتر.</p>'}
         <a class="btn sm ghost wd-prac-gram" href="#/practice?area=grammar" data-grammar-only>📚 تدرّب على القواعد</a>
       </div>`;
+    // 🔽 in «تدرّب» the filter panel opens UNDER the count card, not above it
+    const fl = $('#filters'); const top = $('#list .pb-top');
+    if (fl && top) { top.after(fl); placeMenus(fl); }
     $('#wCount').textContent = shown.length ? `(${shown.length.toLocaleString('en-US')})` : '';
   }
 
   function draw() {
-    const mastered = all.filter((w) => w.state === 'mastered').length;
-    const practice = all.filter((w) => w.state === 'review' || w.state === 'hard').length;
-    $('#summary').innerHTML = all.length
-      ? `<span class="wd-sl">إجمالي الكلمات</span><b class="wd-sn en-inline">${all.length.toLocaleString('en-US')}</b><span class="wd-ss">${num(mastered)} متقنة · ${num(practice)} مراجعة</span>`
-      : '<span class="wd-sl">ما حفظت كلمات للحين</span>';
+    { const fl = view.querySelector('#filters'); if (fl && fl.parentElement !== view) view.insertBefore(fl, view.querySelector('#groups')); } // back to its place (in «تدرّب» it sits under the count)
     // which icon is lit, and which panel is open under the row
     view.querySelectorAll('[data-wt]').forEach((b) => {
       const k = b.dataset.wt;
@@ -293,11 +301,11 @@ export async function render(view, { params }) {
   // Merge or delete several groups at once.
   function openGroupManager() {
     const box = openModal(`<h2 style="margin-bottom:4px">إدارة المجموعات</h2>
-      <p class="small ink-2" style="margin-bottom:12px">حدّد مجموعتين أو أكثر لدمجها في واحدة، أو حدّد ما تريد حذفه (الكلمات نفسها لا تُحذف).</p>
+      <p class="small ink-2" style="margin-bottom:12px">حدّد مجموعتين أو أكثر لدمجها في واحدة. «استخراج» يحذف أسماء المجموعات وتبقى كلماتها بدون تصنيف. «حذف المحدد» يحذف المجموعة مع كلماتها.</p>
       <div class="gm-list">${state.groups.map((g) => `<label class="gm-item"><input type="checkbox" class="check" value="${g.id}"> <b>${esc(g.name)}</b> <span class="tiny muted en-inline">${g.count}</span></label>`).join('')}</div>
       <div class="row wrap" style="gap:8px;margin-top:10px"><button class="btn sm" id="gmAll">تحديد الكل</button></div>
       <label class="field" style="margin-top:12px">اسم المجموعة بعد الدمج<input class="input" id="gmName" placeholder="مثلًا: مفردات العمل"></label>
-      <div class="btn-row" style="margin-top:12px"><button class="btn primary" id="gmMerge">دمج المحدد</button><button class="btn bad" id="gmDelete">حذف المحدد</button><button class="btn ghost" data-close>إغلاق</button></div>`);
+      <div class="btn-row" style="margin-top:12px"><button class="btn primary" id="gmMerge">دمج المحدد</button><button class="btn" id="gmExtract">استخراج</button><button class="btn bad" id="gmDelete">حذف المحدد</button><button class="btn ghost" data-close>إغلاق</button></div>`);
     const picked = () => [...box.querySelectorAll('.gm-item input:checked')].map((x) => Number(x.value));
     box.querySelector('#gmAll').addEventListener('click', () => {
       const boxes = [...box.querySelectorAll('.gm-item input')];
@@ -322,15 +330,39 @@ export async function render(view, { params }) {
         toast(err.message);
       }
     });
+    const wordsOf = (ids) => all.filter((w) => (w.group_ids || []).some((g) => ids.includes(g))).map((w) => w.uv_id);
+    let busy = false;
+    const finish = async (ids, msg) => {
+      closeModal();
+      toast(msg);
+      if (ids.includes(f.group)) f.group = null;
+      await reload();
+    };
+    // «استخراج»: the group names go, the words stay saved without a group
+    box.querySelector('#gmExtract').addEventListener('click', async () => {
+      const ids = picked();
+      if (!ids.length) return toast('حدّد مجموعة واحدة على الأقل');
+      if (busy) return;
+      if (!confirm(`استخراج كلمات ${ids.length} ${ids.length === 1 ? 'مجموعة' : 'مجموعات'} وحذف أسمائها؟ الكلمات تبقى محفوظة بدون تصنيف.`)) return;
+      busy = true;
+      try {
+        await api.deleteGroups(ids);
+        await finish(ids, 'حُذفت أسماء المجموعات وبقيت الكلمات بدون تصنيف ✓');
+      } catch (err) { busy = false; toast(err.message); }
+    });
+    // «حذف المحدد»: the group AND its words (the words go to «المحذوفات», so they can be restored)
     box.querySelector('#gmDelete').addEventListener('click', async () => {
       const ids = picked();
       if (!ids.length) return toast('حدّد مجموعة واحدة على الأقل');
-      if (!confirm(`حذف ${ids.length} ${ids.length === 1 ? 'مجموعة' : 'مجموعات'}؟ الكلمات نفسها لن تُحذف.`)) return;
-      for (const g of ids) await api.deleteGroup(g);
-      closeModal();
-      toast('حُذفت المجموعات ✓');
-      if (ids.includes(f.group)) f.group = null;
-      await reload();
+      if (busy) return;
+      const uv = wordsOf(ids);
+      if (!confirm(`حذف ${ids.length} ${ids.length === 1 ? 'مجموعة' : 'مجموعات'} مع ${uv.length} كلمة؟ الكلمات تنتقل إلى «المحذوفات» في الإعدادات وتقدرين تسترجعينها.`)) return;
+      busy = true;
+      try {
+        if (uv.length) await api.deleteWords(uv);
+        await api.deleteGroups(ids);
+        await finish(ids, `حُذفت ${ids.length} ${ids.length === 1 ? 'مجموعة' : 'مجموعات'} مع كلماتها ✓`);
+      } catch (err) { busy = false; toast(err.message); }
     });
   }
 
@@ -342,7 +374,7 @@ export async function render(view, { params }) {
   };
 
   view.addEventListener('click', async (e) => {
-    if (!document.getElementById('summary')) return; // left «كلماتي» (the page area is reused)
+    if (!document.getElementById('wdTools')) return; // left «كلماتي» (the page area is reused)
     if (e.target.closest('.wd-seg a')) { try { sessionStorage.setItem('words.carry', JSON.stringify(f)); } catch { /* ignore */ } return undefined; }
     const sv = e.target.closest('[data-sortv]');
     if (sv) { f.sort = sv.dataset.sortv; panel = ''; return draw(); }
@@ -354,6 +386,7 @@ export async function render(view, { params }) {
         else if (fb.k === 'source') f.source = Number(fb.value) || null;
         else if (fb.k === 'group') f.group = Number(fb.value) || null;
         else f[fb.k] = fb.value;
+        pgTouched = true;
         if (fb.k === 'filter') f.view = 'list';
         if (fb.close) fbOpen = '';
       }
@@ -385,9 +418,13 @@ export async function render(view, { params }) {
         <div class="btn-row" style="margin-top:14px"><button type="button" class="btn primary" id="ngGo">التالي ← تحديد الكلمات</button></div>`);
       const input = box.querySelector('#ngName');
       setTimeout(() => input.focus(), 150);
+      let busy = false; // one tap = one group: Enter + the button (or a slow connection and a second tap) must not run it twice
+      const goBtn = box.querySelector('#ngGo');
       const go = async () => {
         const name = input.value.trim();
         if (!name) { input.focus(); return; }
+        if (busy) return;
+        busy = true; goBtn.disabled = true; goBtn.textContent = 'لحظة…';
         try {
           const g = await api.createGroup(name);
           if (g.existed) toast('عندك مجموعة بهذا الاسم — نضيف لها');
@@ -399,9 +436,9 @@ export async function render(view, { params }) {
           select = true; selected.clear();
           draw();
           window.scrollTo({ top: 0, behavior: 'smooth' });
-        } catch (err) { toast(err.message); }
+        } catch (err) { busy = false; goBtn.disabled = false; goBtn.textContent = 'التالي ← تحديد الكلمات'; toast(err.message); }
       };
-      box.querySelector('#ngGo').addEventListener('click', go);
+      goBtn.addEventListener('click', go);
       input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); go(); } });
       return;
     }
@@ -455,7 +492,8 @@ export async function render(view, { params }) {
     if (pg) {
       const [mode, type] = pg.dataset.pg.split(':');
       if (mode === 'twins') { location.hash = '#/practice?mode=twins'; return undefined; }
-      const ids = practiceSet().map((w) => w.uv_id).slice(0, mode === 'story' ? 30 : 1000).join(',');
+      const useDef = mode === 'quiz' && !pgTouched && !f.q && !f.group && !f.source && !f.levels.length && !f.when && !f.count && f.filter === 'all';
+      const ids = (useDef ? defaultSet().list : practiceSet()).map((w) => w.uv_id).slice(0, mode === 'story' ? 30 : 1000).join(',');
       if (!ids) return undefined;
       const q = new URLSearchParams({ mode, ...(type ? { type } : {}), ids, exact: 1, n: Date.now() });
       location.hash = `#/practice?${q}`;

@@ -3,7 +3,7 @@ import { api, warm } from './api.js';
 import { state, loadGroups, applyGrammarMode } from './state.js';
 import { stop as stopAudio, speak } from './audio.js';
 import { closeWordPanel, openWordPanel } from './components.js';
-import { icon, $, closeModal, esc, openModal, toast, applyTheme } from './ui.js';
+import { icon, $, closeModal, esc, openModal, toast, applyTheme, flameFull } from './ui.js';
 import { startIcons } from './emoji-icons.js';
 import { BUILD_ID } from './build-id.js';
 import { watchForUpdates } from './update-check.js';
@@ -68,7 +68,7 @@ function renderNav(active) {
   const tabActive = active === '/practice' ? '/words' : active;
   $('#tabbar').innerHTML = tabs.map((n) => `<a class="${n.path === tabActive ? 'active' : ''}" href="#${n.path}" ${n.path === tabActive ? 'aria-current="page"' : ''}>${icon[n.icon]}<span>${n.label}</span></a>`).join('');
   const top = $('#topStreak');
-  if (top && s) top.innerHTML = `🔥 <b class="en-inline">${s.streak.current}</b>${s.streak.rescue ? SAD_BADGE : ''}`;
+  if (top && s) top.innerHTML = `${flameFull()} <b class="en-inline">${s.streak.current}</b>${s.streak.rescue ? SAD_BADGE : ''}`;
   const guestChip = state.user?.guest ? '<div class="guest-chip">👤 أنت ضيف — <a href="/register"><b>سجّل حسابك المجاني</b></a> وتنحفظ كلماتك. عندك حساب؟ <a href="/login"><b>ادخل</b></a></div>' : '';
   $('#sidebarFoot').innerHTML = s
     ? `${guestChip}${socialRow(state.config?.contact)}
@@ -435,6 +435,12 @@ async function init() {
   window.addEventListener('lexitube:ended', () => guestAsk(true));
   // 🎯 the chosen daily goal reached outside a video (the video page celebrates by itself)
   window.addEventListener('lexitube:goal-reached', (e) => { if (!location.hash.startsWith('#/source/') && localStorage.getItem('goal.off') !== '1') toast(`🎉 وصلت هدف اليوم — ${goalText(e.detail)}`); });
+  // 🎮 the practice goal reached while playing: flame + well done, then continue or see the goals
+  window.addEventListener('lexitube:practice-goal', (e) => {
+    if (localStorage.getItem('goal.off') === '1') return;
+    const d = e.detail || {};
+    openModal(`<div class="pg-done"><div class="pg-fl">${flameFull()}</div><h2>أحسنت! 👏</h2><p>حققت هدف التدريب على الكلمات</p><p class="tiny muted en-inline">${d.count} / ${d.n}</p><div class="pg-act"><button class="btn primary" data-close>أكمل التدريب</button><a class="btn ghost" href="#/" data-close>لوحة الأهداف</a></div></div>`);
+  });
   window.addEventListener('offline', () => toast('انقطع الإنترنت — بنكمل أول ما يرجع'));
   window.addEventListener('online', () => toast('رجع الإنترنت ✓'));
   window.addEventListener('lexitube:auth', () => {

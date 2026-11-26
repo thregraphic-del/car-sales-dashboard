@@ -131,7 +131,7 @@ export function bindAttach(view, { input, go, status }) {
 /* ------------------------------------------------------- ready-made packs */
 
 export const packsHtml = () => `
-  <div class="tile-row">${PACKS.filter((p) => p.key !== 'phrasal-100').map((p) => `<button class="tile" data-pack="${p.key}" title="${esc(p.description)}"><span class="tile-ic">${p.key.includes('phrasal') ? icon.layers : icon.library}</span><span>${esc(p.name.replace(/\s*\(.*\)/, ''))}</span></button>`).join('')}
+  <div class="tile-row">${PACKS.map((p) => `<button class="tile" data-pack="${p.key}" title="${esc(p.description)}"><span class="tile-ic">${p.key.includes('phrasal') ? icon.layers : icon.library}</span><span>${esc(p.name.replace(/\s*\(.*\)/, ''))}</span></button>`).join('')}
     <button class="tile" id="swTile"><span class="tile-ic">${icon.stars}</span><span>اقترح لي</span></button></div>`;
 
 async function savePack(pack, mode, onProgress) {

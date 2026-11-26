@@ -43,7 +43,7 @@ const setPref = (k, v) => {
 };
 
 // 🎨 word colours (the learner picks; kept for every video)
-const MK_NEW = [['#22A35A', 'أخضر'], ['#FF8A24', 'برتقالي'], ['#0ABAB5', 'تيفاني'], ['#3b82f6', 'أزرق'], ['#ec4899', 'وردي']]; // new words = green · saved words = tiffany (agreed)
+const MK_NEW = [['#FF8A24', 'برتقالي'], ['#22A35A', 'أخضر'], ['#0ABAB5', 'تيفاني'], ['#3b82f6', 'أزرق'], ['#ec4899', 'وردي']]; // new words = orange (default, 26 Nov 2026) · saved words = tiffany
 const MK_MINE = [['#4FD6D0', 'تيفاني فاتح'], ['#0B7F7B', 'تيفاني غامق'], ['#8b5cf6', 'بنفسجي'], ['#64748b', 'رمادي'], ['#3b82f6', 'أزرق']];
 function applyMarkLook() {
   const r = document.documentElement;

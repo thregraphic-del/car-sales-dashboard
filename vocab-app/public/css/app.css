@@ -643,7 +643,7 @@ body.auth-mode .shell { grid-template-columns: 1fr; }
 .split:hover span, .split:active span { background: var(--accent); }
 /* live word: the spoken word stands out in a different colour */
 .line.current { background: color-mix(in srgb, var(--accent) 10%, transparent); }
-.line.current .w-now { background: #f5b301; color: #111; border-radius: 4px; box-shadow: 0 0 0 2px #f5b301; }
+.line.current .w-now { background: #0B7A76; color: #fff; border-radius: 4px; box-shadow: 0 0 0 2px #0B7A76; }
 .line.current .w-said { opacity: 1; color: var(--accent); }
 
 .usage-wrap { overflow-x: auto; max-width: 100%; }
@@ -706,7 +706,7 @@ body.reader-focus .page-reader .transcript { max-height: calc(100dvh - 90px); }
 .transcript .line-ar, .transcript.bilingual .line-ar { font-size: calc(var(--reader-font) - 1px); }
 .line.current .line-ar { color: var(--ink); }
 .line.current .aw.w-said { color: var(--accent); }
-.line.current .aw.w-now { color: var(--accent); font-weight: 700; text-decoration: underline; text-decoration-color: #f5b301; text-decoration-thickness: 3px; text-underline-offset: 6px; }
+.line.current .aw.w-now { color: var(--accent); font-weight: 700; text-decoration: underline; text-decoration-color: #0B7A76; text-decoration-thickness: 3px; text-underline-offset: 6px; }
 .aw { transition: color .2s; }
 
 /* Playback mode */
@@ -788,7 +788,7 @@ body.reader-focus .page-reader .transcript { max-height: calc(100dvh - 90px); }
 .chunk .c-en { font-size: var(--reader-font); line-height: 1.6; }
 .chunk .c-ar { direction: rtl; text-align: right; font-size: calc(var(--reader-font) - 1px); line-height: 1.6; color: var(--ink-2); border-left: 1px solid var(--line); padding-left: 12px; }
 .line.current .chunk.c-said .c-ar { color: var(--accent); }
-.line.current .chunk.c-now { background: color-mix(in srgb, #f5b301 22%, transparent); }
+.line.current .chunk.c-now { background: color-mix(in srgb, #0B7A76 20%, transparent); }
 .line.current .chunk.c-now .c-ar { color: var(--ink); font-weight: 700; }
 .transcript.hide-ar .line-body.chunked { display: block; }
 .transcript.hide-ar .chunk { display: inline; padding: 0; background: none; }
@@ -863,7 +863,7 @@ body.reader-focus .page-reader .transcript { max-height: calc(100dvh - 90px); }
 .wp-overlay .word-pop.sheet { width: 100% !important; max-height: 88dvh !important; }
 
 /* 🔁 the sentence being repeated */
-.line.looping { box-shadow: inset 3px 0 0 #f5b301; }
+.line.looping { box-shadow: inset 3px 0 0 #0B7A76; }
 /* 🙈 Arabic hidden until touched */
 .transcript.ar-hidden .c-ar:not(.ar-shown), .transcript.ar-hidden .line-ar:not(.ar-shown) { filter: blur(6px); opacity: .55; cursor: pointer; user-select: none; transition: filter .2s, opacity .2s; }
 .transcript.ar-hidden .c-ar.ar-shown, .transcript.ar-hidden .line-ar.ar-shown { filter: none; opacity: 1; }
@@ -965,7 +965,7 @@ a.day-tile:hover { border-color: var(--accent); }
 .transcript .line.para-now.para-first { border-top-left-radius: 14px; border-top-right-radius: 14px; }
 .transcript .line.para-now.para-last { border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; }
 .transcript .line.para-now + .line.para-now { border-top-color: transparent; }
-.transcript .line.current .line-body:not(.chunked) { background: color-mix(in srgb, #f5b301 22%, transparent); border-radius: 14px; padding: 4px 8px; margin: -4px -8px; }
+.transcript .line.current .line-body:not(.chunked) { background: color-mix(in srgb, #0B7A76 18%, transparent); border-radius: 14px; padding: 4px 8px; margin: -4px -8px; }
 .transcript .line.para-now:not(.current) .line-en { color: var(--ink); }
 /* Slim reader top: tiny grey title + ⚙ panel */
 .reader-head.slim { margin-bottom: 6px; gap: 6px; min-height: 36px; }
@@ -1380,7 +1380,7 @@ body.reader-focus .reader-grid[data-tab="words"] .reader-main { display: none !i
 .words-btn.primary { background: var(--on) !important; border-color: var(--on) !important; color: #fff !important; }
 @keyframes wordsGlow { 50% { box-shadow: 0 0 12px 3px color-mix(in srgb, var(--gold) 60%, transparent); } }
 .line.current .w-now { background: var(--yellow); box-shadow: 0 0 0 2px var(--yellow); color: #1B263A; }
-.line.current .chunk.c-now { background: color-mix(in srgb, var(--yellow) 28%, transparent); }
+.line.current .chunk.c-now { background: color-mix(in srgb, #0B7A76 20%, transparent); }
 .transcript .line.current .line-body:not(.chunked) { background: color-mix(in srgb, var(--yellow) 26%, transparent); }
 .line.current .aw.w-now { text-decoration-color: var(--yellow); }
 .yday-btn { border-color: var(--yellow); }
@@ -1665,7 +1665,7 @@ a.ch-main { text-decoration: none; color: inherit; }
 .goal-bar .gb-fill { height: 100%; background: var(--accent); border-radius: 99px; }
 
 /* 🎨 word marks — the learner's look (⚙ «شكل الكلمات»): new words vs «كلماتي», highlight or frame */
-:root { --mk-new: #22A35A; --mk-mine: #4FD6D0; }
+:root { --mk-new: #FF8A24; --mk-mine: #4FD6D0; }
 .transcript .mark, .reader-hint .mark, .lt-note .mark { color: inherit; font-weight: inherit; border: 0; border-radius: 5px; padding: 0 3px; box-shadow: none; }
 .transcript .mark:not(.s-saved), .transcript .mark.s-saved.s-newhere, .reader-hint .mark:not(.s-saved), .lt-note .mark:not(.s-saved), .lt-note .mark.s-saved.s-newhere { background: color-mix(in srgb, var(--mk-new) 44%, transparent); box-shadow: none; }
 .transcript .mark.s-light:not(.s-saved) { background: color-mix(in srgb, var(--mk-new) 28%, transparent); }
@@ -3461,8 +3461,15 @@ html[data-grammar="off"] [data-grammar-only] { display: none !important; }
 .onb-chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .onb-chip { flex: 1; min-width: 56px; padding: 12px 0; border-radius: 14px; border: 1.5px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 800; font-size: 17px; cursor: pointer; }
 .onb-chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink, #fff); }
-.onb-banner { display: grid; gap: 4px; padding: 12px 14px; margin-bottom: 12px; border-radius: 16px; background: var(--tf-light, #e0f6f5); border: 1.5px solid var(--accent); color: var(--ink); }
-.onb-banner span { font-size: 14px; color: var(--ink-2, var(--muted)); }
+.onb-banner { display: grid; gap: 10px; padding: 16px 16px 14px; margin-bottom: 14px; border-radius: 22px; background: linear-gradient(160deg, color-mix(in srgb, #FF8A24 9%, var(--surface)), var(--surface)); border: 1.5px solid color-mix(in srgb, #FF8A24 35%, var(--line)); color: var(--ink); box-shadow: 0 10px 28px -16px rgba(255,122,0,.55); }
+.onb-ban-title { font-size: 20px; font-weight: 800; line-height: 1.3; color: var(--ink); letter-spacing: 0; }
+.onb-ban-cue { display: flex; align-items: center; gap: 12px; }
+.onb-ban-cue em { font-style: normal; font-size: 16px; font-weight: 800; line-height: 1.55; color: #E56A00; }
+.onb-arrow { position: relative; flex: none; width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; color: #FF7A00; background: radial-gradient(circle, rgba(255,138,36,.22), rgba(255,138,36,.06) 70%); animation: onbGlow 1.6s ease-in-out infinite; }
+.onb-arrow svg { width: 32px; height: 32px; filter: drop-shadow(0 0 7px rgba(255,122,0,.85)); animation: onbBob 1.6s ease-in-out infinite; }
+@keyframes onbBob { 0%, 100% { transform: translateY(-3px); } 50% { transform: translateY(4px); } }
+@keyframes onbGlow { 0%, 100% { box-shadow: 0 0 0 0 rgba(255,138,36,.5); transform: scale(1); } 50% { box-shadow: 0 0 0 12px rgba(255,138,36,0); transform: scale(1.07); } }
+@media (prefers-reduced-motion: reduce) { .onb-arrow, .onb-arrow svg { animation: none; } }
 
 /* 🎮 كلماتي: the «تدرّب» section (same filters) — the seg stays; only the rules tab hides when the grammar mode is off */
 html[data-grammar="off"] .wd-seg { display: flex !important; }
@@ -3490,5 +3497,51 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 
 /* كلماتي | تدرّب: the two tabs are teal so they read as buttons */
 .wd-seg a { color: var(--accent); font-weight: 700; }
-.wd-seg a.active { color: var(--accent); background: var(--surface); box-shadow: 0 0 0 1.5px var(--accent) inset, var(--shadow-sm); }
+.wd-seg a.active { color: var(--tiffany); background: color-mix(in srgb, var(--tiffany) 10%, var(--surface)); box-shadow: 0 0 0 1.5px var(--tiffany) inset, var(--shadow-sm); }
 .wd-seg a:not(.active):hover, .wd-seg a:not(.active):active { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+/* «إعدادات المقطع»: the title stays on ONE line and small, whatever the screen width */
+.page-clipset .cs-head h1 { font-size: clamp(15px, 4.2vw, 20px); line-height: 1.3; white-space: nowrap; flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* 🔥 a bar that went PAST the goal: a full, breathing flame (not an outline) instead of the ✓ */
+.cb.over em::after { content: none; }
+.cb em .fl { width: 14px; height: 16px; margin-inline-start: 2px; vertical-align: -4px; transform-origin: 50% 100%; filter: drop-shadow(0 0 4px rgba(255,106,0,.65)); animation: flBreath 1.5s ease-in-out infinite; }
+.cal-bars.dense .cb em .fl { width: 11px; height: 13px; }
+@keyframes flBreath { 0%, 100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 3px rgba(255,106,0,.5)); } 40% { transform: scale(1.14, 1.22) rotate(-3deg); filter: drop-shadow(0 0 7px rgba(255,140,0,.95)); } 70% { transform: scale(.96, 1.06) rotate(2deg); } }
+@media (prefers-reduced-motion: reduce) { .cb em .fl { animation: none; } }
+
+/* the one short summary under the chart: a «الإجمالي · …» button (opens the period list), the numbers, the goal % and the change — all close together */
+.th-act .det-one { margin-top: 8px; padding-top: 10px; display: grid; gap: 2px; position: relative; }
+.det-one .det-top { flex-direction: column; align-items: center; gap: 4px; }
+.det-sel { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, #0ABAB5 45%, var(--line)); background: color-mix(in srgb, #0ABAB5 10%, var(--surface)); color: var(--ink); font: 800 15px inherit; font-family: inherit; cursor: pointer; }
+.det-sel i { font-style: normal; font-size: 12px; color: #0ABAB5; transition: transform .15s; }
+.det-sel.on i { transform: rotate(180deg); }
+.det-one .det-line { font-size: 15px; }
+.det-menu { position: absolute; top: 46px; inset-inline: 12px; z-index: 5; }
+.det-one .cd-avg.cd-avg-s { margin-top: 2px; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px 12px; }
+.cal-key { margin-top: 4px; }
+.det-menu { padding: 8px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 14px 30px -14px rgba(0,0,0,.35); margin: 0; }
+/* the period list: four small pills in one row under the button (not a tall list on top of the numbers) */
+.det-one .det-menu { position: static; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 0; background: none; border: 0; box-shadow: none; margin: 2px 0 4px; }
+.det-menu .wz-opt { padding: 6px 12px; min-height: 0; border-radius: 999px; font-size: 13px; font-weight: 700; width: auto; }
+.det-menu .wz-opt span { white-space: nowrap; }
+
+/* 🔥 the full flame beside the streak (home chip + top bar): same breathing as the chart's flame */
+.fl { display: inline-block; transform-origin: 50% 100%; filter: drop-shadow(0 0 4px rgba(255,106,0,.6)); animation: flBreath 1.5s ease-in-out infinite; }
+.th-flame-btn .th-fl svg.fl { width: 26px; height: 30px; }
+.th-flame-btn.grey .fl { animation: none; filter: grayscale(1); }
+#topStreak .fl { width: 17px; height: 20px; vertical-align: -4px; }
+@media (prefers-reduced-motion: reduce) { .fl { animation: none; } }
+
+/* تحدّي السياق: الفراغ */
+.q-cloze{margin-top:8px;font-size:1.05rem;line-height:1.7}
+.cz-blank{display:inline-block;min-width:4.5em;border-bottom:2px dashed var(--tiffany,#0abab5);color:var(--tiffany,#0abab5);text-align:center;font-weight:700}
+.cd-avg-note{margin-top:2px;line-height:1.5}.cd-avg-note i{font-style:normal;opacity:.6}
+
+/* إشعار تحقيق هدف التدريب */
+.pg-done{text-align:center;padding:8px 4px}
+.pg-done .pg-fl svg{width:72px;height:72px;animation:flBreath 1.6s ease-in-out infinite}
+.pg-done h2{margin:6px 0 2px}
+.pg-act{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+[data-theme="dark"] .line.current .w-now{background:#2FD6D0;color:#04302E;box-shadow:0 0 0 2px #2FD6D0}
+.pb-tile.pb-multi{background:color-mix(in srgb,var(--tf-light,#7FDCD7) 38%,var(--surface,#fff));border-color:var(--tf-light,#7FDCD7)}.pb-tile.pb-multi b{color:#0B5F5C}

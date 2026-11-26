@@ -65,7 +65,10 @@ function goalScreen() {
 
 /** The «add» page: a banner that says the three clips are a trial. Returns the HTML (or ''). */
 export const pickBannerHtml = () => (get() === 'pick'
-  ? '<div class="onb-banner" id="onbBanner"><b>🎯 هذي تجربة للموقع</b><span>اختر واحد من المقاطع الثلاثة تحت — نجهّز لك كلماته ونوريك كيف يشتغل كل شي.</span></div>'
+  ? `<div class="onb-banner" id="onbBanner">
+      <b class="onb-ban-title">هذي تجربة للموقع</b>
+      <div class="onb-ban-cue"><span class="onb-arrow" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M24 6v30M11 25l13 14 13-14" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></span><em>اختر مقطع من تحت ونوريك كيف يشتغل</em></div>
+    </div>`
   : '');
 export const onPicked = () => { if (get() === 'pick') set('tour'); };
 export const toastDone = () => toast('🎉 جاهز! الحين ابدأ تتعلم');

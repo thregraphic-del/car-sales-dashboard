@@ -9,6 +9,7 @@ const COLOR = /^[a-z]{3,12}$/;
 
 router.get('/', wrap(async (req) => listGroups(req.userId)));
 router.post('/', wrap(async (req) => groups.createGroup(req.userId, str(req.body?.name, 100), COLOR.test(req.body?.color || '') ? req.body.color : null)));
+router.post('/delete-many', wrap(async (req) => ({ deleted: await groups.deleteGroups(req.userId, idList(req.body?.ids)) })));
 router.patch('/:id', wrap(async (req) => groups.renameGroup(req.userId, idParam(req), str(req.body?.name, 100))));
 router.delete('/:id', wrap(async (req) => {
   await groups.deleteGroup(req.userId, idParam(req));
