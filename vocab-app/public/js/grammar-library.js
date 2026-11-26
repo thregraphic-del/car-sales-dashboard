@@ -15,6 +15,7 @@ const norm = (s) => String(s || '').toLowerCase().replace(/[أإآ]/g, 'ا').rep
 export function libTabs(active) {
   return `<div class="lib-tabs segmented" role="tablist">
     <a href="#/words" role="tab" class="${active === 'words' ? 'active' : ''}">🔤 الكلمات</a>
+    <a href="#/words?tab=practice" role="tab">🎮 تدرّب</a>
     <a href="#/words?tab=grammar" role="tab" class="${active === 'grammar' ? 'active' : ''}">📚 القواعد</a></div>`;
 }
 

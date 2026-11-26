@@ -52,6 +52,8 @@ export async function render(view, { params }) {
   let label = null;
   // the plain page (the filters + the ten games) needs no word list from the server: the builder reads «كلماتي» itself
   const isBuilder = !params.ids && !params.session && !params.source && !params.group && !params.focus && !params.type && mode !== 'story' && params.area !== 'grammar';
+  // the plain «تدرّب» page is a section of «كلماتي» now (same filters)
+  if (isBuilder && params.area !== 'grammar' && params.mode !== 'twins') { location.replace('#/words?tab=practice'); return undefined; }
   const wordsP = isBuilder && params.mode !== 'twins' ? api.words().catch(() => []) : null;
   if (isBuilder) {
     words = [];

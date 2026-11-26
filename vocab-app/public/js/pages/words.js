@@ -4,6 +4,7 @@ import { state, loadGroups, grammarOn } from '../state.js';
 import { esc, icon, emptyState, toast, openModal, closeModal, num, levelChip } from '../ui.js';
 import { wordRowHtml, bindWordList, openWordCard, bindSpeech } from '../components.js';
 import { libTabs } from '../grammar-library.js';
+import { TYPES, GAME_ORDER } from '../quiz.js';
 import { filterBarHtml, filterBarClick, placeMenus, closeOnOutside, ytThumb, LEVELS, WHEN_OPTS } from '../filter-bar.js';
 
 // ✅ states from the quiz answers (see answerState on the server)
@@ -20,6 +21,7 @@ export async function render(view, { params }) {
   if (params.tab === 'grammar' && grammarOn()) return (await import('../grammar-library.js')).render(view, { params });
   let [all] = await Promise.all([api.words(), loadGroups()]); // both at once
   const f = { filter: params.filter || 'all', group: params.group ? Number(params.group) : null, q: '', levels: [], when: params.when || '', source: params.source ? Number(params.source) : null, sort: 'new', count: 0, view: 'list' };
+  let tab = params.tab === 'practice' ? 'practice' : 'words'; // كلماتي = الكلمات | تدرّب (| القواعد when the grammar mode is on)
   let fbOpen = '';
   let groupsOpen = false;
   let clusters = null; // «الأوضح»: words with one meaning under the simplest one
@@ -41,7 +43,7 @@ export async function render(view, { params }) {
   view.innerHTML = `
     <div class="page-head compact"><div><h1>كلماتي</h1></div><div class="wd-corner"><button type="button" class="wd-t wd-sm" data-wt="search" aria-label="بحث" title="بحث">${icon.search}</button><button type="button" class="wd-t wd-sm" id="exportBtn" aria-label="تنزيل" title="تنزيل">${icon.download}</button></div></div>
     <div class="card wd-stats" id="summary"></div>
-    <div class="lib-tabs segmented wd-seg" role="tablist"><a href="#/words" role="tab" class="active">الكلمات <b id="wCount"></b></a><a href="#/words?tab=grammar" role="tab">القواعد <b id="gCount"></b></a></div>
+    <div class="lib-tabs segmented wd-seg" role="tablist"><a href="#/words" role="tab" class="${tab === 'words' ? 'active' : ''}">الكلمات <b id="wCount"></b></a><a href="#/words?tab=practice" role="tab" class="${tab === 'practice' ? 'active' : ''}">تدرّب</a><a href="#/words?tab=grammar" role="tab" data-grammar-only>القواعد <b id="gCount"></b></a></div>
     <div class="wd-tools" id="wdTools">
       <button type="button" class="wd-t" data-wt="filter" aria-label="فلاتر" title="فلاتر">${WI.filter}<span>فلاتر</span></button>
       <button type="button" class="wd-t" id="selectToggle" aria-label="تحديد" title="تحديد">${icon.check}<span>تحديد</span></button>
@@ -70,6 +72,32 @@ export async function render(view, { params }) {
     if (q && !`${w.term} ${w.arabic || ''} ${w.arabic_general || ''}`.toLowerCase().includes(q)) return false;
     return true;
   };
+
+  // 🎮 «تدرّب»: the same filters as the list — the words you see (or the ones you ticked) are the ones you train on
+  const GAME_TILES = [
+    { mode: 'quiz', icon: icon.check, name: 'اختبار' },
+    { mode: 'cards', icon: icon.cards, name: 'البطاقات' },
+    { mode: 'listen', icon: icon.headphones, name: 'استماع' },
+    { mode: 'story', icon: icon.bookOpen, name: 'قصة' },
+    { mode: 'twins', icon: icon.search, name: 'المتشابهة' },
+    ...GAME_ORDER.map((k) => ({ mode: 'games', type: k, icon: icon[TYPES[k].icon] || '🎮', name: TYPES[k].name })),
+  ];
+  const practiceSet = () => (select && selected.size ? shown.filter((w) => selected.has(w.uv_id)) : shown);
+  function drawPractice() {
+    $('#selectBar').innerHTML = '';
+    const set = practiceSet();
+    const n = set.length;
+    const filtered = f.filter !== 'all' || f.group || f.levels.length || f.when || f.source || f.q || f.count;
+    $('#list').innerHTML = !all.length ? emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`)
+      : `<div class="wd-prac">
+        <div class="card pb-start wd-prac-top"><div class="wd-prac-n"><b class="en-inline">${n.toLocaleString('en-US')}</b> كلمة للتدريب<small>${select && selected.size ? 'الكلمات اللي حدّدتها' : filtered ? 'حسب الفلاتر فوق' : 'كل كلماتك — استخدم الفلاتر فوق لتختار'}</small></div>
+          <button type="button" class="btn primary pb-go" data-pg="quiz:" ${n ? '' : 'disabled'}>تدرّب ${icon.play}</button></div>
+        <div class="pb-grid">${GAME_TILES.map((g) => `<button type="button" class="pb-game pb-tile" data-pg="${g.mode}:${g.type || ''}" ${n || g.mode === 'twins' ? '' : 'disabled'}><span class="pb-gi">${g.icon}</span><b>${g.name}</b></button>`).join('')}</div>
+        ${n ? '' : '<p class="small muted" style="text-align:center;margin-top:10px">ما فيه كلمات بهذي الفلاتر — جرّب تغيّر الفلتر.</p>'}
+        <a class="btn sm ghost wd-prac-gram" href="#/practice?area=grammar" data-grammar-only>📚 تدرّب على القواعد</a>
+      </div>`;
+    $('#wCount').textContent = shown.length ? `(${shown.length.toLocaleString('en-US')})` : '';
+  }
 
   function draw() {
     const mastered = all.filter((w) => w.state === 'mastered').length;
@@ -114,6 +142,7 @@ export async function render(view, { params }) {
     const sorters = { old: (a, b) => new Date(a.saved_at) - new Date(b.saved_at), az: (a, b) => a.term.localeCompare(b.term), hard: (a, b) => (b.difficulty || 0) - (a.difficulty || 0) || a.mastery - b.mastery };
     if (sorters[f.sort]) shown.sort(sorters[f.sort]);
     if (f.count) shown = shown.slice(0, f.count);
+    if (tab === 'practice') { drawPractice(); return; }
     $('#list').innerHTML = shown.length
       ? `<div class="word-list">${shown.slice(0, renderLimit).map((w) => wordRowHtml(w, { selectable: select, selected: selected.has(w.uv_id), compact: true })).join('')}</div>${shown.length > renderLimit ? `<button type="button" class="btn ghost wd-more" id="wdMore">عرض المزيد · ${(shown.length - renderLimit).toLocaleString('en-US')} كلمة</button>` : ''}`
       : all.length
@@ -358,6 +387,16 @@ export async function render(view, { params }) {
       f.group = null;
       await reload();
       return;
+    }
+    const pg = e.target.closest('[data-pg]');
+    if (pg) {
+      const [mode, type] = pg.dataset.pg.split(':');
+      if (mode === 'twins') { location.hash = '#/practice?mode=twins'; return undefined; }
+      const ids = practiceSet().map((w) => w.uv_id).slice(0, mode === 'story' ? 30 : 1000).join(',');
+      if (!ids) return undefined;
+      const q = new URLSearchParams({ mode, ...(type ? { type } : {}), ids, exact: 1, n: Date.now() });
+      location.hash = `#/practice?${q}`;
+      return undefined;
     }
     if (e.target.closest('#selectToggle')) {
       select = !select;

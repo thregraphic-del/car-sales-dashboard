@@ -3463,3 +3463,11 @@ html[data-grammar="off"] [data-grammar-only] { display: none !important; }
 .onb-chip.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink, #fff); }
 .onb-banner { display: grid; gap: 4px; padding: 12px 14px; margin-bottom: 12px; border-radius: 16px; background: var(--tf-light, #e0f6f5); border: 1.5px solid var(--accent); color: var(--ink); }
 .onb-banner span { font-size: 14px; color: var(--ink-2, var(--muted)); }
+
+/* 🎮 كلماتي: the «تدرّب» section (same filters) — the seg stays; only the rules tab hides when the grammar mode is off */
+html[data-grammar="off"] .wd-seg { display: flex !important; }
+.wd-prac { display: grid; gap: 12px; }
+.wd-prac-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; }
+.wd-prac-n b { font-size: 26px; margin-inline-end: 6px; }
+.wd-prac-n small { display: block; color: var(--muted); font-size: 12.5px; }
+.wd-prac-gram { justify-self: center; }

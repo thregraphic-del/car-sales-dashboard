@@ -138,7 +138,7 @@ export async function refreshStats({ lazy = false } = {}) {
   }
 }
 
-const activeNav = (base) => (base === '/source' || base === '/clip-settings' ? '/add' : base);
+const activeNav = (base) => (base === '/source' || base === '/clip-settings' ? '/add' : base === '/words' && /[?&]tab=practice/.test(location.hash) ? '/practice' : base);
 
 let cleanup = null;
 let token = 0;
