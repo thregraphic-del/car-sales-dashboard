@@ -90,7 +90,10 @@ export async function render(view, { params }) {
   ];
   const practiceSet = () => shown;
   // 🎲 default of «ألعاب متعددة»: 10 words of today (any clip, shuffled) — unless the learner set a filter
-  const defaultSet = () => {
+  let dfltCache = null; // the same ten words for this visit (what the card shows is exactly what every game plays)
+  const usingDefault = () => !pgTouched && !f.q && !f.group && !f.source && !f.levels.length && !f.when && !f.count && f.filter === 'all';
+  const defaultSet = () => (dfltCache ||= computeDefault());
+  const computeDefault = () => {
     const [from, to] = WHEN.today();
     const today = all.filter((w) => { const t = new Date(w.saved_at).getTime(); return t >= from && t < to; });
     const pool = (today.length ? today : all).slice();
@@ -100,8 +103,7 @@ export async function render(view, { params }) {
   function drawPractice() {
     $('#selectBar').innerHTML = '';
     const set = practiceSet();
-    const useDef = !pgTouched && !f.q && !f.group && !f.source && !f.levels.length && !f.when && !f.count && f.filter === 'all';
-    const dflt = useDef ? defaultSet() : null;
+    const dflt = usingDefault() ? defaultSet() : null;
     const n = dflt ? dflt.list.length : set.length;
     const filtered = f.filter !== 'all' || f.group || f.levels.length || f.when || f.source || f.q || f.count;
     $('#list').innerHTML = !all.length ? emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`)
@@ -367,7 +369,7 @@ export async function render(view, { params }) {
   }
 
   const reload = async () => {
-    clusters = null;
+    clusters = null; dfltCache = null;
     all = await api.words();
     await loadGroups();
     draw();
@@ -492,8 +494,7 @@ export async function render(view, { params }) {
     if (pg) {
       const [mode, type] = pg.dataset.pg.split(':');
       if (mode === 'twins') { location.hash = '#/practice?mode=twins'; return undefined; }
-      const useDef = mode === 'quiz' && !pgTouched && !f.q && !f.group && !f.source && !f.levels.length && !f.when && !f.count && f.filter === 'all';
-      const ids = (useDef ? defaultSet().list : practiceSet()).map((w) => w.uv_id).slice(0, mode === 'story' ? 30 : 1000).join(',');
+      const ids = (usingDefault() ? defaultSet().list : practiceSet()) // EVERY game plays the set the card shows (the ten of today, or what the filters give).map((w) => w.uv_id).slice(0, mode === 'story' ? 30 : 1000).join(',');
       if (!ids) return undefined;
       const q = new URLSearchParams({ mode, ...(type ? { type } : {}), ids, exact: 1, n: Date.now() });
       location.hash = `#/practice?${q}`;

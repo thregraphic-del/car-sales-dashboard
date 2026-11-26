@@ -181,7 +181,7 @@ export async function render(view) {
     <div class="th-top th-top-min">
       <button type="button" class="th-bell${unseen ? ' dot' : ''}" id="bell" aria-label="الجديد والتذكير">${icon.bell}</button>
       <button type="button" class="th-flame-btn${grey ? ' grey' : ''}" id="flame" aria-label="أيامك المتتالية"><span class="th-fl">${flameFull()}</span><b>${flameN}</b></button>
-      <span class="th-spent2">قضيت ${todayMinutes().toLocaleString('ar-EG')} د في المقاطع</span>
+      <span class="th-spent2">قضيت ${todayMinutes().toLocaleString('ar-EG')} د في التعلم</span>
     </div>
     ${lostCard}
     ${task}
@@ -282,6 +282,8 @@ function mountActivity(box) {
       const pc = Math.round((100 * (cur - prev)) / prev);
       if (pc > 0) { cls = 'up'; sym = '▲'; txt = `+${pc}٪`; } else if (pc < 0) { cls = 'down'; sym = '▼'; txt = `−${Math.abs(pc)}٪`; }
     }
+    // the same as the period before: not «٠٪» — a clear, kind line
+    if (prev && cur && cls === 'flat') return `<div class="cd-delta flat"><b>💪 أداء قوي ${String(what).replace(/^عن\s*/, 'مثل ')}</b></div>`;
     return `<div class="cd-delta ${cls}"><span class="cd-arr">${sym}</span><b class="en-inline">${txt}</b><small>${what}</small></div>`;
   };
   const avgBlock = (S, deltaH) => { const rs = rows4(S); const parts = rs.map((x) => `${x.mt.label} <b class="en-inline">${Math.min(100, Math.round(100 * x.pct))}٪</b>`).join(' <i>+</i> '); return `<div class="cd-avg cd-avg-s"><div class="cd-avg-top"><span>نسبة تحقيق الهدف</span><b class="en-inline">${avgOf(S)}٪</b></div>${rs.length > 1 ? `<div class="cd-avg-note tiny muted">متوسط الهدفين مع بعض: ${parts}</div>` : ''}${deltaH}</div>`; };
