@@ -3544,3 +3544,4 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 .pg-done h2{margin:6px 0 2px}
 .pg-act{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}
 [data-theme="dark"] .line.current .w-now{background:#2FD6D0;color:#04302E;box-shadow:0 0 0 2px #2FD6D0}
+.pb-tile.pb-multi{background:color-mix(in srgb,var(--tf-light,#7FDCD7) 38%,var(--surface,#fff));border-color:var(--tf-light,#7FDCD7)}.pb-tile.pb-multi b{color:#0B5F5C}

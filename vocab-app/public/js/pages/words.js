@@ -25,6 +25,7 @@ export async function render(view, { params }) {
   try { const c = sessionStorage.getItem('words.carry'); if (c) { Object.assign(f, JSON.parse(c)); sessionStorage.removeItem('words.carry'); } } catch { /* ignore */ }
   let tab = params.tab === 'practice' ? 'practice' : 'words'; // كلماتي = الكلمات | تدرّب (| القواعد when the grammar mode is on)
   let fbOpen = '';
+  let pgTouched = false; // the learner changed a filter in «تدرّب»: then the quiz follows the filter, not the default
   let groupsOpen = false;
   let clusters = null; // «الأوضح»: words with one meaning under the simplest one
   const DAY = 86400000;
@@ -80,7 +81,7 @@ export async function render(view, { params }) {
 
   // 🎮 «تدرّب»: the same filters as the list — the words you see (or the ones you ticked) are the ones you train on
   const GAME_TILES = [
-    { mode: 'quiz', icon: icon.check, name: 'اختبار' },
+    { mode: 'quiz', icon: icon.check, name: 'ألعاب متعددة', cls: ' pb-multi' },
     { mode: 'cards', icon: icon.cards, name: 'البطاقات' },
     { mode: 'listen', icon: icon.headphones, name: 'استماع' },
     { mode: 'story', icon: icon.bookOpen, name: 'قصة' },
@@ -88,17 +89,26 @@ export async function render(view, { params }) {
     ...GAME_ORDER.map((k) => ({ mode: 'games', type: k, icon: icon[TYPES[k].icon] || '🎮', name: TYPES[k].name })),
   ];
   const practiceSet = () => shown;
+  // 🎲 default of «ألعاب متعددة»: 10 words of today (any clip, shuffled) — unless the learner set a filter
+  const defaultSet = () => {
+    const [from, to] = WHEN.today();
+    const today = all.filter((w) => { const t = new Date(w.saved_at).getTime(); return t >= from && t < to; });
+    const pool = (today.length ? today : all).slice();
+    for (let i = pool.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    return { list: pool.slice(0, 10), today: !!today.length };
+  };
   function drawPractice() {
     $('#selectBar').innerHTML = '';
     const set = practiceSet();
-    const n = set.length;
+    const useDef = !pgTouched && !f.q && !f.group && !f.source && !f.levels.length && !f.when && !f.count && f.filter === 'all';
+    const dflt = useDef ? defaultSet() : null;
+    const n = dflt ? dflt.list.length : set.length;
     const filtered = f.filter !== 'all' || f.group || f.levels.length || f.when || f.source || f.q || f.count;
     $('#list').innerHTML = !all.length ? emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`)
       : `<div class="wd-prac">
         <div class="pb-top"><button type="button" class="pb-fbtn${panel === 'filter' ? ' on' : ''}${filtered ? ' set' : ''}" data-wt="filter" aria-expanded="${panel === 'filter'}" aria-label="الفلاتر" title="الفلاتر">${WI.filter}</button>
-        <div class="card pb-start wd-prac-top"><div class="wd-prac-n"><b class="en-inline">${n.toLocaleString('en-US')}</b> كلمة للتدريب<small>${filtered ? 'حسب الفلتر' : 'كل كلماتك — اختر بالفلتر'}</small></div>
-          <button type="button" class="btn primary pb-go" data-pg="quiz:" ${n ? '' : 'disabled'}>تدرّب ${icon.play}</button></div></div>
-        <div class="pb-grid">${GAME_TILES.map((g) => `<button type="button" class="pb-game pb-tile" data-pg="${g.mode}:${g.type || ''}" ${n || g.mode === 'twins' ? '' : 'disabled'}><span class="pb-gi">${g.icon}</span><b>${g.name}</b></button>`).join('')}</div>
+        <div class="card pb-start wd-prac-top"><div class="wd-prac-n"><b class="en-inline">${n.toLocaleString('en-US')}</b> كلمة للتدريب<small>${dflt ? (dflt.today ? 'عشوائي من كلمات اليوم — غيّر الفلتر لو تبغى غيرها' : 'عشوائي من كل كلماتك — غيّر الفلتر لو تبغى غيرها') : 'حسب الفلتر'}</small></div></div></div>
+        <div class="pb-grid">${GAME_TILES.map((g) => `<button type="button" class="pb-game pb-tile${g.cls || ''}" data-pg="${g.mode}:${g.type || ''}" ${n || g.mode === 'twins' ? '' : 'disabled'}><span class="pb-gi">${g.icon}</span><b>${g.name}</b></button>`).join('')}</div>
         ${n ? '' : '<p class="small muted" style="text-align:center;margin-top:10px">ما فيه كلمات بهذي الفلاتر — جرّب تغيّر الفلتر.</p>'}
         <a class="btn sm ghost wd-prac-gram" href="#/practice?area=grammar" data-grammar-only>📚 تدرّب على القواعد</a>
       </div>`;
@@ -376,6 +386,7 @@ export async function render(view, { params }) {
         else if (fb.k === 'source') f.source = Number(fb.value) || null;
         else if (fb.k === 'group') f.group = Number(fb.value) || null;
         else f[fb.k] = fb.value;
+        pgTouched = true;
         if (fb.k === 'filter') f.view = 'list';
         if (fb.close) fbOpen = '';
       }
@@ -481,7 +492,8 @@ export async function render(view, { params }) {
     if (pg) {
       const [mode, type] = pg.dataset.pg.split(':');
       if (mode === 'twins') { location.hash = '#/practice?mode=twins'; return undefined; }
-      const ids = practiceSet().map((w) => w.uv_id).slice(0, mode === 'story' ? 30 : 1000).join(',');
+      const useDef = mode === 'quiz' && !pgTouched && !f.q && !f.group && !f.source && !f.levels.length && !f.when && !f.count && f.filter === 'all';
+      const ids = (useDef ? defaultSet().list : practiceSet()).map((w) => w.uv_id).slice(0, mode === 'story' ? 30 : 1000).join(',');
       if (!ids) return undefined;
       const q = new URLSearchParams({ mode, ...(type ? { type } : {}), ids, exact: 1, n: Date.now() });
       location.hash = `#/practice?${q}`;
