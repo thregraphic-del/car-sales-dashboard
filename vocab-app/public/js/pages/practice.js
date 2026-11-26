@@ -12,6 +12,7 @@ import { refreshStats } from '../app.js';
 import { renderBuilder } from '../practice-builder.js';
 import { renderGrammarSection } from '../grammar-practice.js';
 import { runTwins } from '../twins.js';
+import { isSentenceItem } from '../shared/text.js';
 
 const twinsCard = () => `<a class="card tw-entry" href="#/practice?mode=twins"><span class="tw-entry-ic">${icon.search}</span><span><b>المتشابهة</b><small>كلمات متشابهة في النطق أو الكتابة — تعرّف عليها واختبر نفسك</small></span><span class="tw-entry-go" aria-hidden="true">‹</span></a>`;
 
@@ -120,7 +121,7 @@ export async function render(view, { params }) {
       return () => cleanup?.();
     }
     const all0 = await (wordsP || api.words());
-    const all = group ? all0 : all0.filter((w) => w.item_type !== 'sentence'); // suggested sentences are practised from their group only
+    const all = group ? all0 : all0.filter((w) => !isSentenceItem(w)); // suggested sentences are practised from their group only
     if (!all.length) {
       stage.innerHTML = twinsCard() + emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`);
       return;

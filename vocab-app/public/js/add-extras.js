@@ -362,11 +362,11 @@ export function bindSuggestWords(view) {
         const save = $('#swSave', view);
         save.disabled = true;
         try {
-          // sentences go into a group named after the chosen field (made once, then every later «اقترح» adds to the same group)
+          // sentences go into ONE group called «جمل» (made once, every later save adds to it) — never into the main word list
           let gids;
           let gname = '';
           if (kind === 'sentences') {
-            gname = topic || 'جمل مقترحة';
+            gname = 'جمل'; // every sentence (suggested or taken from a clip) lives in this one group
             const all = await api.groups();
             const found = all.find((g) => g.name === gname);
             gids = [found ? found.id : (await api.createGroup(gname)).id];
@@ -378,7 +378,7 @@ export function bindSuggestWords(view) {
           const n = res.results.filter((x) => x.result !== 'unchanged').length;
           toast(kind === 'sentences' ? `تم حفظ ${n} جملة في مجموعة «${gname}» ✓` : `تم حفظ ${n} كلمة ✓`);
           box.innerHTML = kind === 'sentences'
-            ? `<p class="small" style="margin-top:10px">✓ حُفظت في مجموعة «${esc(gname)}». <a href="#/words">افتحها</a> أو اضغط «اقترح» لجمل أخرى تنضاف لنفس المجموعة.</p>`
+            ? `<p class="small" style="margin-top:10px">✓ حُفظت في مجموعة «${esc(gname)}». <a href="#/words">افتحها</a> أو اضغط «اقترح» لجمل أخرى تنضاف لها.</p>`
             : '<p class="small" style="margin-top:10px">✓ حُفظت في «كلماتي». <a href="#/words">افتحها</a> أو اضغط «اقترح» لكلمات أخرى.</p>';
         } catch (err) {
           save.disabled = false;

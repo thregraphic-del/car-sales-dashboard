@@ -69,6 +69,7 @@ router.post('/words/delete', wrap(async (req) => ({ deleted: await words.unsaveW
 
 router.get('/words', wrap(async (req) => {
   const q = req.query;
+  await words.ensureSentencesGroup(req.userId); // sentences all live in the group «جمل»
   return words.listWords(req.userId, {
     with_sentences: true, // the words page keeps suggested sentences for their groups (the page hides them from the plain list)
     q: str(q.q, 80),

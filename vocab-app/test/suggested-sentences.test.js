@@ -25,3 +25,14 @@ test('sentences saved into a group stay out of the main list, and a second save 
   const inGroup = (await call('GET', `/api/words?group_id=${g.id}`)).body;
   assert.equal(inGroup.filter((w) => w.item_type === 'sentence').length, 2, 'both sentences are inside the group');
 });
+
+test('an older saved item that reads like a sentence is moved into the group «جمل» and hidden from the plain list', async () => {
+  await call('POST', '/api/import/save', { items: [{ term: 'What challenges are we facing this quarter?', arabic: 'ما التحديات؟', level: 'B1', item_type: 'expression' }] });
+  const first = (await call('GET', '/api/words')).body; // the first load tidies it into the group
+  const groups = (await call('GET', '/api/groups')).body;
+  const g = groups.find((x) => x.name === 'جمل');
+  assert.ok(g, 'the group «جمل» exists');
+  const inG = (await call('GET', `/api/words?group_id=${g.id}`)).body;
+  assert.ok(inG.some((w) => /challenges are we facing/.test(w.term)), 'the old sentence is inside «جمل»');
+  assert.ok(first.some((w) => /challenges are we facing/.test(w.term)), 'the words page still receives it (hides it itself)');
+});

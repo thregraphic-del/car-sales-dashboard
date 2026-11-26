@@ -6,6 +6,7 @@ import { wordRowHtml, bindWordList, openWordCard, bindSpeech } from '../componen
 import { libTabs } from '../grammar-library.js';
 import { TYPES, GAME_ORDER } from '../quiz.js';
 import { filterBarHtml, filterBarClick, placeMenus, closeOnOutside, ytThumb, LEVELS, WHEN_OPTS } from '../filter-bar.js';
+import { isSentenceItem } from '../shared/text.js';
 
 // ✅ states from the quiz answers (see answerState on the server)
 const FILTERS = [
@@ -20,7 +21,7 @@ export async function render(view, { params }) {
   // 📚 «القواعد» lives beside the words in the same library
   if (params.tab === 'grammar' && grammarOn()) return (await import('../grammar-library.js')).render(view, { params });
   // suggested sentences (item_type «sentence») live only inside their group: `raw` has everything, `all` is the plain word list
-  const isSent = (w) => w.item_type === 'sentence';
+  const isSent = isSentenceItem;
   let [raw] = await Promise.all([api.words(), loadGroups()]); // both at once
   let all = raw.filter((w) => !isSent(w));
   const f = { filter: params.filter || 'all', group: params.group ? Number(params.group) : null, q: '', levels: [], when: params.when || '', source: params.source ? Number(params.source) : null, sort: 'new', count: 0, view: 'list' };
