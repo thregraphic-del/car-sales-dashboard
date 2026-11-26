@@ -3509,3 +3509,19 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 .cal-bars.dense .cb em .fl { width: 11px; height: 13px; }
 @keyframes flBreath { 0%, 100% { transform: scale(1) rotate(0deg); filter: drop-shadow(0 0 3px rgba(255,106,0,.5)); } 40% { transform: scale(1.14, 1.22) rotate(-3deg); filter: drop-shadow(0 0 7px rgba(255,140,0,.95)); } 70% { transform: scale(.96, 1.06) rotate(2deg); } }
 @media (prefers-reduced-motion: reduce) { .cb em .fl { animation: none; } }
+
+/* the one short summary under the chart: a «الإجمالي · …» button (opens the period list), the numbers, the goal % and the change — all close together */
+.th-act .det-one { margin-top: 8px; padding-top: 10px; display: grid; gap: 2px; position: relative; }
+.det-one .det-top { flex-direction: column; align-items: center; gap: 4px; }
+.det-sel { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; border: 1.5px solid color-mix(in srgb, #0ABAB5 45%, var(--line)); background: color-mix(in srgb, #0ABAB5 10%, var(--surface)); color: var(--ink); font: 800 15px inherit; font-family: inherit; cursor: pointer; }
+.det-sel i { font-style: normal; font-size: 12px; color: #0ABAB5; transition: transform .15s; }
+.det-sel.on i { transform: rotate(180deg); }
+.det-one .det-line { font-size: 15px; }
+.det-menu { position: absolute; top: 46px; inset-inline: 12px; z-index: 5; }
+.det-one .cd-avg.cd-avg-s { margin-top: 2px; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px 12px; }
+.cal-key { margin-top: 4px; }
+.det-menu { padding: 8px; border-radius: 18px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 14px 30px -14px rgba(0,0,0,.35); margin: 0; }
+/* the period list: four small pills in one row under the button (not a tall list on top of the numbers) */
+.det-one .det-menu { position: static; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 0; background: none; border: 0; box-shadow: none; margin: 2px 0 4px; }
+.det-menu .wz-opt { padding: 6px 12px; min-height: 0; border-radius: 999px; font-size: 13px; font-weight: 700; width: auto; }
+.det-menu .wz-opt span { white-space: nowrap; }

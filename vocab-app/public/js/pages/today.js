@@ -288,18 +288,24 @@ function mountActivity(box) {
   const colsHtml = (S) => { const rs = rows4(S); return `<div class="cd-cols" style="--n:${rs.length}">${rs.map((x) => `<div class="cd-col${x.pct >= 1 ? ' ok' : ''}"><b class="en-inline cd-v">${x.got}</b><i class="cd-tr"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal}</small></div>`).join('')}</div>`; };
 
   const lineHtml = (S) => `<div class="det-line" dir="ltr">${rows4(S).map((x) => `<span>${x.mt.label.split(' ')[0]} <b class="en-inline">${x.got}</b></span>`).join('<i>·</i>')}</div>`;
+  // ONE short summary under the chart. «الإجمالي · …» is a button: tap it to choose the period (يومي · أسبوعي · شهري · سنوي);
+  // each one is compared with the equal period just before it. It starts on «اليوم» (or follows the chart's own filter).
+  const SCOPES = { day: ['اليومي', 'اليوم', 'عن اليوم السابق'], week: ['الأسبوعي', 'آخر ٧ أيام', 'عن الـ٧ أيام السابقة'], month: ['الشهري', 'آخر ٣٠ يوم', 'عن الـ٣٠ يوم السابقة'], year: ['السنوي', 'آخر ١٢ شهر', 'عن الـ١٢ شهر السابقة'] };
+  const SPAN = { week: 7, month: 30, year: 365 };
+  let scope = 'day';
+  let scopeOpen = false;
   const dash = () => {
     if (!V.list.length) return '';
     const b = pick ? V.list.find((x) => x.id === pick) : null;
-    const title = UNITS.find((u) => u[0] === unitKey)[2];
-    const block = (S, t1, what, back = '') => `<div class="det"><div class="det-top"><b>${esc(t1)}</b>${back}${lineHtml(S)}</div>${avgBlock(S, deltaHtml(avgOf(S), avgOf(before(S)), what))}</div>`;
-    const whatAll = { d7: 'عن الـ٧ أيام السابقة', day: 'عن الـ٣٠ يوم السابقة', week: 'عن الأسابيع الـ٨ السابقة', month: 'عن الشهور الـ١٢ السابقة' }[unitKey];
-    // the total of the whole chart is ALWAYS shown; the tapped bar (a day / week / month) adds its own block above it
-    const total = block(summ(V.list), `الإجمالي · ${title}`, whatAll);
-    if (!b) return total;
-    const t1 = b.from <= now && b.to >= now && b.gran === 'day' ? 'اليوم' : bTitle(b);
-    const whatOne = { day: 'عن اليوم السابق', week: 'عن الأسبوع السابق', month: 'عن الشهر السابق' }[b.gran];
-    return block(summ([b]), t1, whatOne) + total;
+    let S; let label; let what = SCOPES[scope][2];
+    if (scope === 'day') {
+      const one = b && b.gran === 'day' ? b : dayB(now); // a tapped day shows its own numbers; a tapped week/month is read from the chart itself
+      S = summ([one]);
+      label = one.from.getTime() === now.getTime() ? 'اليوم' : bTitle(one);
+      if (one.from.getTime() !== now.getTime()) what = 'عن اليوم السابق';
+    } else { S = summ([mkB(addD(now, 1 - SPAN[scope]), now, 'x', 0, '', '', '')]); label = SCOPES[scope][1]; }
+    const menu = scopeOpen ? `<div class="wz-list act-menu det-menu">${Object.entries(SCOPES).map(([k, [n, d]]) => `<button type="button" class="wz-opt${scope === k ? ' on' : ''}" data-scope="${k}"><span>${n}</span></button>`).join('')}</div>` : '';
+    return `<div class="det det-one"><div class="det-top"><button type="button" class="det-sel${scopeOpen ? ' on' : ''}" data-scopetoggle aria-expanded="${scopeOpen}">الإجمالي · ${esc(label)} <i aria-hidden="true">▾</i></button>${menu}${lineHtml(S)}</div>${avgBlock(S, deltaHtml(avgOf(S), avgOf(before(S)), what))}</div>`;
   };
 
   // 🎯 the goals editor (two basics). Changing a goal never deletes what was done: the days stay as counted.
@@ -364,7 +370,10 @@ function mountActivity(box) {
     if (cm && METRICS[cm.dataset.cm]) { metric = cm.dataset.cm; lsSet('today.metric', metric); draw(); return; }
     if (e.target.closest('[data-fltoggle]')) { open = !open; draw(); return; }
     const un = e.target.closest('[data-unit]');
-    if (un) { unitKey = un.dataset.unit; open = false; pickAuto = true; draw(); return; }
+    if (un) { unitKey = un.dataset.unit; open = false; pickAuto = true; scope = { d7: 'day', day: 'day', week: 'week', month: 'month' }[unitKey]; scopeOpen = false; draw(); return; } // the summary follows the chart's filter
+    if (e.target.closest('[data-scopetoggle]')) { scopeOpen = !scopeOpen; draw(); return; }
+    const sc = e.target.closest('[data-scope]');
+    if (sc && SCOPES[sc.dataset.scope]) { scope = sc.dataset.scope; scopeOpen = false; if (scope === 'day') pickAuto = true; draw(); return; }
     if (e.target.closest('[data-clearpick]')) { pick = ''; draw(); return; }
     const d = e.target.closest('[data-d]');
     if (d) { pick = pick === d.dataset.d ? '' : d.dataset.d; draw(); } // a tap picks that day/week/month; the same tap again goes back to the summary of the whole period
