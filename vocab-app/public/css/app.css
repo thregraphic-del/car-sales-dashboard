@@ -3693,3 +3693,16 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 .pb-tile b { font-size: 13.5px; line-height: 1.25; }
 .wd-seg { margin-bottom: 8px; }
 #filters:empty { display: none; }
+
+/* add page: a shorter top card and tighter «نشاطي» so more of the content shows without scrolling */
+.add-hero { padding: 12px 14px 12px; }
+.add-hero .ah-title { margin-bottom: 8px; }
+.add-hero .add-field .add-input { min-height: 104px; }
+.add-hero .add-ph { gap: 4px; padding: 10px 14px; }
+.add-hero .ph-rest { gap: 1px; font-size: 12.5px; }
+.add-hero .ah-foot { margin-top: 8px; }
+#srcSec { margin-top: 0; }
+#srcSec .section-title { margin: 0 0 6px; }
+.act-bar { margin-bottom: 6px; }
+.add-hero .add-field .add-input { min-height: 114px; }
+#srcSec { padding-top: 10px; }
