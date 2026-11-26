@@ -180,7 +180,7 @@ export default {
     stage.innerHTML = '<p class="muted"><span class="spinner"></span> نجمع الكلمات المتشابهة…</p>';
     let mine = [];
     try {
-      mine = await api.words();
+      mine = (await api.words()).filter((w) => w.item_type !== 'sentence');
     } catch {
       mine = words;
     }

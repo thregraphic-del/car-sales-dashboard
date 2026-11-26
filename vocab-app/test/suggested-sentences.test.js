@@ -20,7 +20,7 @@ test('sentences saved into a group stay out of the main list, and a second save 
   await call('POST', '/api/import/save', { items: [mk('Can you share the latest sales figures with me?'), { term: 'procrastinate', arabic: 'يماطل', level: 'B2' }], group_ids: [g.id] });
   const main = (await call('GET', '/api/words')).body;
   assert.ok(main.some((w) => w.term === 'procrastinate'), 'a normal word stays in the list');
-  assert.ok(!main.some((w) => /sales figures/.test(w.term)), 'the sentence is not in the main list');
+  assert.ok(main.some((w) => /sales figures/.test(w.term)), 'the words page gets the sentences too (it hides them itself) so a group can show them');
   await call('POST', '/api/import/save', { items: [mk("Let's review the action items from our last meeting.")], group_ids: [g.id] });
   const inGroup = (await call('GET', `/api/words?group_id=${g.id}`)).body;
   assert.equal(inGroup.filter((w) => w.item_type === 'sentence').length, 2, 'both sentences are inside the group');

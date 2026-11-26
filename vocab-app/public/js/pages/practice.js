@@ -119,7 +119,8 @@ export async function render(view, { params }) {
       cleanup = stopGrammar;
       return () => cleanup?.();
     }
-    const all = await (wordsP || api.words());
+    const all0 = await (wordsP || api.words());
+    const all = group ? all0 : all0.filter((w) => w.item_type !== 'sentence'); // suggested sentences are practised from their group only
     if (!all.length) {
       stage.innerHTML = twinsCard() + emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`);
       return;

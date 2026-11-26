@@ -19,7 +19,10 @@ const FILTERS = [
 export async function render(view, { params }) {
   // 📚 «القواعد» lives beside the words in the same library
   if (params.tab === 'grammar' && grammarOn()) return (await import('../grammar-library.js')).render(view, { params });
-  let [all] = await Promise.all([api.words(), loadGroups()]); // both at once
+  // suggested sentences (item_type «sentence») live only inside their group: `raw` has everything, `all` is the plain word list
+  const isSent = (w) => w.item_type === 'sentence';
+  let [raw] = await Promise.all([api.words(), loadGroups()]); // both at once
+  let all = raw.filter((w) => !isSent(w));
   const f = { filter: params.filter || 'all', group: params.group ? Number(params.group) : null, q: '', levels: [], when: params.when || '', source: params.source ? Number(params.source) : null, sort: 'new', count: 0, view: 'list' };
   // switching between «الكلمات» and «تدرّب» keeps the same filters (the page is drawn again: they travel through the session)
   try { const c = sessionStorage.getItem('words.carry'); if (c) { Object.assign(f, JSON.parse(c)); sessionStorage.removeItem('words.carry'); } } catch { /* ignore */ }
@@ -160,7 +163,7 @@ export async function render(view, { params }) {
     // the list is drawn in slices (60 first, more as you scroll): thousands of rows at once make a phone slow
     const sig = JSON.stringify([f.filter, f.group, f.q, f.levels, f.when, f.source, f.sort, f.count, f.view, pgLevel]);
     if (sig !== listSig) { listSig = sig; renderLimit = 60; }
-    shown = all.filter(matches);
+    shown = (f.group ? raw : all).filter(matches);
     const sorters = { old: (a, b) => new Date(a.saved_at) - new Date(b.saved_at), az: (a, b) => a.term.localeCompare(b.term), hard: (a, b) => (b.difficulty || 0) - (a.difficulty || 0) || a.mastery - b.mastery };
     if (sorters[f.sort]) shown.sort(sorters[f.sort]);
     if (f.count) shown = shown.slice(0, f.count);
@@ -264,7 +267,7 @@ export async function render(view, { params }) {
               b.outerHTML = `<span class="btn icon sm saved" title="محفوظة">${icon.check}</span>`;
               toast(`تم الحفظ ✓ ${it.term}`);
               clusters = null;
-              all = await api.words();
+              raw = await api.words(); all = raw.filter((w) => !isSent(w));
             } catch (err) {
               b.disabled = false;
               toast(err.message);
@@ -321,7 +324,7 @@ export async function render(view, { params }) {
       const name = box.querySelector('#gmName').value.trim() || first.name;
       try {
         const target = name === first.name ? first : await api.createGroup(name);
-        const uv = all.filter((w) => w.group_ids.some((g) => ids.includes(g))).map((w) => w.uv_id);
+        const uv = raw.filter((w) => w.group_ids.some((g) => ids.includes(g))).map((w) => w.uv_id);
         if (uv.length) await api.addToGroup(target.id, uv);
         for (const g of ids) if (g !== target.id) await api.deleteGroup(g);
         closeModal();
@@ -332,7 +335,7 @@ export async function render(view, { params }) {
         toast(err.message);
       }
     });
-    const wordsOf = (ids) => all.filter((w) => (w.group_ids || []).some((g) => ids.includes(g))).map((w) => w.uv_id);
+    const wordsOf = (ids) => raw.filter((w) => (w.group_ids || []).some((g) => ids.includes(g))).map((w) => w.uv_id);
     let busy = false;
     const finish = async (ids, msg) => {
       closeModal();
@@ -370,7 +373,7 @@ export async function render(view, { params }) {
 
   const reload = async () => {
     clusters = null; dfltCache = null;
-    all = await api.words();
+    raw = await api.words(); all = raw.filter((w) => !isSent(w));
     await loadGroups();
     draw();
   };
@@ -446,7 +449,7 @@ export async function render(view, { params }) {
     }
     if (e.target.closest('[data-pgall]')) {
       pgLevel = '';
-      const list = all.filter(matches);
+      const list = (f.group ? raw : all).filter(matches);
       const allSel = list.length > 0 && list.every((w) => selected.has(w.uv_id));
       selected.clear();
       if (!allSel) list.forEach((w) => selected.add(w.uv_id));
@@ -456,7 +459,7 @@ export async function render(view, { params }) {
     if (pgl) {
       pgLevel = pgLevel === pgl.dataset.pglv ? '' : pgl.dataset.pglv; // only this level stays on the screen
       selected.clear();
-      if (pgLevel) all.filter(matches).forEach((w) => selected.add(w.uv_id));
+      if (pgLevel) (f.group ? raw : all).filter(matches).forEach((w) => selected.add(w.uv_id));
       return draw();
     }
     if (e.target.closest('#pgCancel')) { pendingGroup = null; pgLevel = ''; select = false; selected.clear(); return draw(); }

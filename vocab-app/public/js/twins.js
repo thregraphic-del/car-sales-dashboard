@@ -40,7 +40,7 @@ export async function runTwins(stage, { onExit } = {}) {
   const stop = () => { stopped = true; clearTimeout(timer); stopSound(); };
 
   let mine = [];
-  try { mine = await api.words(); } catch { /* the file still works */ }
+  try { mine = (await api.words()).filter((w) => w.item_type !== 'sentence'); } catch { /* the file still works */ }
   let myGroups = groupsFromMyWords(mine);
   // the file is «added» once its words are in كلماتي: from then on the game plays straight from there
   const fileAdded = () => TWINS.filter((g) => myGroups.some((m) => m.id === g.id)).length >= Math.ceil(TWINS.length / 2) && myGroups.length >= PART;
@@ -77,7 +77,7 @@ export async function runTwins(stage, { onExit } = {}) {
           label.innerHTML = `<span class="spinner"></span> نضيفها لكلماتك… ${Math.min(TWINS.length, i + STEP)}/${TWINS.length}`;
         }
         toast(`انضافت ${r.added} ${r.added === 1 ? 'كلمة' : 'كلمات'} لكلماتك في «المتشابهات» ✓${r.existed ? ` (${r.existed} كانت عندك)` : ''}`);
-        try { mine = await api.words(); } catch { /* keep the old list */ }
+        try { mine = (await api.words()).filter((w) => w.item_type !== 'sentence'); } catch { /* keep the old list */ }
         myGroups = groupsFromMyWords(mine);
         closeModal();
         playMine();
