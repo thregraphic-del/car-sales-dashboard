@@ -21,6 +21,8 @@ export async function render(view, { params }) {
   if (params.tab === 'grammar' && grammarOn()) return (await import('../grammar-library.js')).render(view, { params });
   let [all] = await Promise.all([api.words(), loadGroups()]); // both at once
   const f = { filter: params.filter || 'all', group: params.group ? Number(params.group) : null, q: '', levels: [], when: params.when || '', source: params.source ? Number(params.source) : null, sort: 'new', count: 0, view: 'list' };
+  // switching between «الكلمات» and «تدرّب» keeps the same filters (the page is drawn again: they travel through the session)
+  try { const c = sessionStorage.getItem('words.carry'); if (c) { Object.assign(f, JSON.parse(c)); sessionStorage.removeItem('words.carry'); } } catch { /* ignore */ }
   let tab = params.tab === 'practice' ? 'practice' : 'words'; // كلماتي = الكلمات | تدرّب (| القواعد when the grammar mode is on)
   let fbOpen = '';
   let groupsOpen = false;
@@ -117,17 +119,19 @@ export async function render(view, { params }) {
     if (tab === 'practice') { select = false; selected.clear(); } // no ticking in «تدرّب»: only the filters and the groups
     $('#selectToggle').classList.toggle('on', select);
     $('#selectToggle').classList.toggle('hidden', tab === 'practice');
+    view.querySelector('[data-wt="groups"]')?.classList.toggle('hidden', tab === 'practice'); // «تدرّب»: the groups are a filter instead
     $('#wsearch').classList.toggle('hidden', panel !== 'search' && !f.q);
     const defs = barDefs();
     $('#filters').innerHTML = panel === 'filter' ? `<div class="pb-filters wd-fl">${filterBarHtml(defs, fbOpen)}</div>` : '';
     placeMenus($('#filters'));
     // 📁 groups: the panel of every group + «مجموعة جديدة» + «إدارة المجموعات» (opened by the folder icon)
     const gSel = state.groups.find((x) => x.id === f.group);
+    if (tab === 'practice' && panel === 'groups') panel = '';
     groupsOpen = panel === 'groups';
     $('#groups').innerHTML = groupsOpen ? `<div class="grp-panel">${state.groups.map((g) => `<button class="gchip ${f.group === g.id ? 'on' : ''}" data-g="${g.id}">${esc(g.name)} <span class="en-inline tiny">${g.count}</span></button>`).join('') || '<span class="tiny muted">ما عندك مجموعات بعد.</span>'}
-        <div class="grp-actions"><button class="gchip new" id="newGroup">+ مجموعة جديدة</button>${state.groups.length > 1 ? '<button class="gchip new" id="manageGroups">⚙ إدارة المجموعات</button>' : ''}</div></div>` : (gSel ? `<button type="button" class="gchip on" data-ungroup title="إلغاء المجموعة والرجوع للكل" aria-label="إلغاء المجموعة">${esc(gSel.name)}</button>` : '');
+        <div class="grp-actions"><button class="gchip new" id="newGroup">+ مجموعة جديدة</button>${state.groups.length > 1 ? '<button class="gchip new" id="manageGroups">⚙ إدارة المجموعات</button>' : ''}</div></div>` : (gSel && tab !== 'practice' ? `<button type="button" class="gchip on" data-ungroup title="إلغاء المجموعة والرجوع للكل" aria-label="إلغاء المجموعة">${esc(gSel.name)}</button>` : '');
     const g = state.groups.find((x) => x.id === f.group);
-    $('#groupHead').innerHTML = g ? `
+    $('#groupHead').innerHTML = g && tab !== 'practice' ? `
       <div class="card group-head">
         <div><b style="font-size:17px">${esc(g.name)}</b><div class="small ink-2">${g.count} كلمة · ${g.due} للمراجعة · ${g.difficult} تحتاج تدريب · التقدّم ${g.progress}%</div></div>
         <div class="btn-row">
@@ -272,6 +276,7 @@ export async function render(view, { params }) {
       { k: 'source', t: 'المقطع', video: true, value: String(f.source || ''),
         opts: [['', 'كل المقاطع', all.length], ...sourcesOf().map((x) => [String(x.id), x.title, n((w) => w.source?.id === x.id), ytThumb(x)])] },
       { k: 'when', t: 'الوقت', value: f.when, opts: WHEN_OPTS },
+      ...(tab === 'practice' ? [{ k: 'group', t: 'المجموعة', value: String(f.group || ''), opts: [['', 'كل المجموعات', all.length], ...state.groups.map((g) => [String(g.id), g.name, g.count])] }] : []), // in «تدرّب» the groups are a filter (made and edited in «الكلمات»)
       { k: 'sort', t: 'الترتيب', value: f.sort, opts: [['new', 'الأحدث'], ['old', 'الأقدم'], ['az', 'أبجدي']] },
     ].filter((d) => !(tab === 'practice' && d.k === 'sort')); // the order matters for the list only: «تدرّب» shows five filters
   }
@@ -336,6 +341,7 @@ export async function render(view, { params }) {
 
   view.addEventListener('click', async (e) => {
     if (!document.getElementById('summary')) return; // left «كلماتي» (the page area is reused)
+    if (e.target.closest('.wd-seg a')) { try { sessionStorage.setItem('words.carry', JSON.stringify(f)); } catch { /* ignore */ } return undefined; }
     const sv = e.target.closest('[data-sortv]');
     if (sv) { f.sort = sv.dataset.sortv; panel = ''; return draw(); }
     const fb = filterBarClick(e, barDefs(), fbOpen);
@@ -344,6 +350,7 @@ export async function render(view, { params }) {
       else {
         if (fb.k === 'count') f.count = Number(fb.value) || 0;
         else if (fb.k === 'source') f.source = Number(fb.value) || null;
+        else if (fb.k === 'group') f.group = Number(fb.value) || null;
         else f[fb.k] = fb.value;
         if (fb.k === 'filter') f.view = 'list';
         if (fb.close) fbOpen = '';
