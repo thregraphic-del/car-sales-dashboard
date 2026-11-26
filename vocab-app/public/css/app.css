@@ -3642,3 +3642,11 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 .fd-tools .fd-sq, .act-bar .fd-sq { width: 40px; height: 40px; border-radius: 16px; }
 .fd-tools .fd-selbtn, .act-bar .fd-selbtn { height: 40px; }
 .fd-tools, .act-bar { align-items: center; }
+
+/* الكلمات | تدرّب: both tabs clearly visible — dark-tiffany outline that gently pulses + a 10% tiffany fill; the chosen one is solid dark tiffany with white text */
+.wd-seg { background: transparent; padding: 0; gap: 8px; }
+.wd-seg a { border: 2px solid var(--accent); background: color-mix(in srgb, var(--tiffany) 10%, var(--surface)); color: var(--accent); font-weight: 800; border-radius: 16px; box-shadow: none; animation: wdPulse 2s ease-in-out infinite; }
+.wd-seg a.active { background: var(--accent); color: #fff; box-shadow: 0 8px 16px -10px color-mix(in srgb, var(--accent) 80%, transparent); animation: none; }
+.wd-seg a b { color: inherit; }
+@keyframes wdPulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 35%, transparent); } 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 0%, transparent); } }
+@media (prefers-reduced-motion: reduce) { .wd-seg a { animation: none; } }
