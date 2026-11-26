@@ -1416,7 +1416,6 @@ export async function render(view, { segments, params }) {
           <button type="button" class="sh-tool${sidePop === 'save' ? ' open' : ''}" data-pop="save" title="حفظ">${icon.bookmark}<span>حفظ</span><i class="sh-caret">▾</i></button>
           <button type="button" class="sh-tool${sideF.level ? ' on' : ''}${sidePop === 'lv' ? ' open' : ''}" data-pop="lv" title="فلتر المستوى">${icon.sliders}<span>${sideF.level || 'فلتر'}</span></button>
           <button type="button" class="sh-tool sh-ic${sideF.q ? ' on' : ''}" data-pop="q" title="بحث" aria-label="بحث">${icon.search}</button>
-          <button type="button" class="sh-tool" id="sentBtn" title="أشهر الجمل المفيدة في المقطع (تجربة)">💬<span>جمل</span></button>
         </div>
         ${sidePop === 'save' ? `<div class="sv-menu">
           <button type="button" class="sv-opt" id="saveAll" ${unsavedAll.length ? '' : 'disabled'}>${icon.bookmark}<span>حفظ الكل</span><b class="en-inline">${unsavedAll.length}</b></button>
@@ -1436,49 +1435,7 @@ export async function render(view, { segments, params }) {
         ${shown.length > sideLimit ? `<button class="btn sm ghost" id="sideMore" style="width:100%;margin-top:8px">عرض ${Math.min(150, shown.length - sideLimit)} أخرى (${shown.length - sideLimit} متبقية)</button>` : ''}</div>`;
   };
   const saveSideF = () => setPref(sideKey, JSON.stringify(sideF));
-  // 💬 «جمل» (trial): the most useful everyday sentences of this clip, with their Arabic — saved only into the group «جمل», never into the word list
-  const usefulSentences = () => {
-    const merged = []; let en = ''; let ar = '';
-    for (const l of data.lines) {
-      en = `${en} ${l.text || ''}`.replace(/\s+/g, ' ').trim(); ar = `${ar} ${l.text_ar || ''}`.replace(/\s+/g, ' ').trim();
-      if (/[.?!]["'”’)]?\s*$/.test(en)) { merged.push({ en, ar }); en = ''; ar = ''; }
-    }
-    const talk = /\b(i|you|we|can|could|would|let's|how|what|why|do|don't|it's|that's|please|thank|sorry|need|want|think|feel|know|going)\b/i;
-    const seen = new Set();
-    const scored = merged.map((m, i) => {
-      const n = m.en.split(/\s+/).length;
-      const caps = (m.en.slice(1).match(/\b[A-Z][a-z]+/g) || []).length;
-      if (n < 5 || n > 16 || !/^["'“(]*[A-Z]/.test(m.en) || /\d|\[|\(/.test(m.en) || /\b(\w+) \1\b/i.test(m.en) || caps > 1) return null;
-      const k = m.en.toLowerCase(); if (seen.has(k)) return null; seen.add(k);
-      const score = (talk.test(m.en) ? 2 : 0) + (/\b(i|you|we)\b/i.test(m.en) ? 1 : 0) + (m.en.endsWith('?') ? 1 : 0) + (n >= 7 && n <= 12 ? 2 : 1) + (m.ar ? 1 : 0);
-      return { ...m, i, score };
-    }).filter(Boolean);
-    return scored.sort((a, b) => b.score - a.score).slice(0, 12).sort((a, b) => a.i - b.i);
-  };
-  const openSentences = () => {
-    const list = usefulSentences();
-    const box = openModal('');
-    box.innerHTML = `<div class="stack"><h3 style="margin:0">💬 جمل مفيدة من المقطع</h3>
-      <p class="tiny muted" style="margin:0">تجربة: جمل كاملة ونافعة في الكلام اليومي. تنحفظ في مجموعة «جمل» فقط (مو في قائمة كلماتك).</p>
-      ${list.length ? `<div class="sw-list">${list.map((it, k) => `<label class="sw-item"><input type="checkbox" class="check" data-k="${k}" checked><div style="min-width:0"><div class="en" dir="ltr">${esc(it.en)}</div>${it.ar ? `<div class="tiny muted">${esc(it.ar)}</div>` : ''}</div></label>`).join('')}</div>
-        <div class="btn-row"><button class="btn primary" id="sentSave">احفظ المحدد في «جمل»</button><button class="btn ghost" id="sentAll">تحديد/إلغاء الكل</button></div>`
-    : '<p class="small muted">ما لقينا جمل كاملة مناسبة في هذا المقطع.</p>'}</div>`;
-    box.querySelector('#sentAll')?.addEventListener('click', () => { const bx = [...box.querySelectorAll('input[data-k]')]; const all = bx.every((x) => x.checked); bx.forEach((x) => { x.checked = !all; }); });
-    box.querySelector('#sentSave')?.addEventListener('click', async (ev) => {
-      const chosen = [...box.querySelectorAll('input[data-k]:checked')].map((x) => list[Number(x.dataset.k)]);
-      if (!chosen.length) return toast('اختر جملة وحدة على الأقل');
-      ev.target.disabled = true;
-      try {
-        const gs = await api.groups();
-        const g = gs.find((x) => x.name === 'جمل') || await api.createGroup('جمل');
-        const res = await api.importSave(chosen.map((it) => ({ term: it.en, arabic: it.ar || undefined, meaning_from: it.ar ? 'you' : undefined, item_type: 'sentence', examples: [] })), [g.id]);
-        closeModal();
-        toast(`تم حفظ ${res.results.filter((x) => x.result !== 'unchanged').length} جملة في مجموعة «جمل» ✓`);
-      } catch (err) { ev.target.disabled = false; toast(err.message); }
-    });
-  };
   side.addEventListener('click', (e) => {
-    if (e.target.closest('#sentBtn')) { openSentences(); return; }
     const pop = e.target.closest('[data-pop]');
     if (pop) { sidePop = sidePop === pop.dataset.pop ? '' : pop.dataset.pop; drawSide(); if (sidePop === 'q') $('#sideQ', view)?.focus(); return; }
     if (e.target.closest('[data-clearq]')) { sideF.q = ''; sidePop = ''; saveSideF(); drawSide(); return; }
