@@ -190,7 +190,7 @@ export function bindPacks(view) {
       <p class="small ink-2">${esc(pack.description)}</p>
       <div class="tiny muted" style="margin:10px 0 6px">تحتوي ${total} كلمة في ${categories.length} مجموعة:</div>
       <div class="pack-cats">${categories.map((c) => `<details class="pack-cat"><summary><b>${esc(c.name)}</b> <span class="tiny muted">${c.list.length} كلمة · ${c.level}</span></summary>
-        <div class="pack-words">${c.list.map((w) => `<span><b class="en-inline">${esc(w.term)}</b> <span class="muted">${esc(w.arabic)}</span></span>`).join('')}</div></details>`).join('')}</div>
+        <div class="pack-words pw-grid">${c.list.map((w) => `<div class="pw-row"><b class="en-inline">${esc(w.term)}</b><span class="pw-ar">${esc(w.arabic)}</span></div>`).join('')}</div></details>`).join('')}</div>
       <div class="divider"></div>
       <div class="stack" style="gap:8px">
         <label class="row small" style="gap:8px"><input type="radio" name="packMode" value="grouped" checked> تنزيل في مجموعات مصنفة (${categories.length} مجموعة)</label>

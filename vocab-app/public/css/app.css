@@ -3650,3 +3650,9 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 .wd-seg a b { color: inherit; }
 @keyframes wdPulse { 0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 35%, transparent); } 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--accent) 0%, transparent); } }
 @media (prefers-reduced-motion: reduce) { .wd-seg a { animation: none; } }
+/* pack preview: two tidy columns — English on the left, its Arabic on the right, one word per row */
+.pack-words.pw-grid { display: block; direction: ltr; padding: 4px 0 2px; }
+.pw-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: baseline; gap: 12px; padding: 7px 2px; border-bottom: 1px dashed var(--line); font-size: 14px; }
+.pw-row:last-child { border-bottom: 0; }
+.pw-row b { text-align: left; direction: ltr; font-weight: 800; color: var(--ink); }
+.pw-ar { text-align: right; direction: rtl; color: var(--ink-2); }
