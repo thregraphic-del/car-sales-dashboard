@@ -1584,8 +1584,7 @@ export async function render(view, { segments, params }) {
     translating = true;
     try {
       for (let step = 0; alive && showAr && step < APP_CONFIG.maxAiSteps; step += 1) {
-        const have = data.lines.filter((l) => l.text_ar).length;
-        setTrNote(`<span class="spinner"></span> ${source.ar2en ? 'نترجم الفيديو للإنجليزي (تقدر تتابع المشاهدة)…' : 'نجهّز الترجمة العربية…'} ${have}/${data.lines.length}`);
+        setTrNote(''); // quiet: the translation is prepared silently
         // a step that timed out or lost its connection is tried again quietly (3 times)
         let r;
         for (let t = 0; ; t++) {
@@ -1630,7 +1629,7 @@ export async function render(view, { segments, params }) {
       for (let i = 0; alive && i < 40; i++) {
         const r = await api.repairTranslation(id);
         fixed += r.fixed || 0;
-        if (r.fixed) setTrNote('<span class="spinner"></span> نصحّح ترجمة بعض السطور لتطابق الإنجليزي سطرًا بسطر…');
+        if (r.fixed) setTrNote(''); // quiet
         if (!r.more) break;
       }
     } catch { /* try again next time */ }
@@ -1647,7 +1646,7 @@ export async function render(view, { segments, params }) {
     toggleSet(false);
     try {
       await api.retranslate(id);
-      setTrNote('<span class="spinner"></span> نعيد ترجمة المقطع بدقة أكثر…');
+      setTrNote(''); // quiet
       repairing = false;
       await repairTranslation();
       toast('تمت الترجمة الأدق ✓');
