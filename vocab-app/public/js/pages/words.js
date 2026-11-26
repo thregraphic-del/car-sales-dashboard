@@ -46,6 +46,7 @@ export async function render(view, { params }) {
   };
   let renderLimit = 60; let listSig = ''; let moreObs = null;
   let panel = ''; // which icon's panel is open: search · filter · sort · groups
+  const barSet = () => f.filter !== 'all' || f.levels.length > 0 || !!f.when || !!f.source || !!f.count || f.sort !== 'new'; // any filter of the filter bar is on
   view.innerHTML = `
     <div class="page-head compact"><div><h1>كلماتي</h1></div><div class="wd-corner"><button type="button" class="wd-t wd-sm" data-wt="search" aria-label="بحث" title="بحث">${icon.search}</button><button type="button" class="wd-t wd-sm" id="exportBtn" aria-label="تنزيل" title="تنزيل">${icon.download}</button></div></div>
     <div class="lib-tabs segmented wd-seg" role="tablist"><a href="#/words" role="tab" class="${tab === 'words' ? 'active' : ''}">الكلمات <b id="wCount"></b></a><a href="#/words?tab=practice" role="tab" class="${tab === 'practice' ? 'active' : ''}">تدرّب</a><a href="#/words?tab=grammar" role="tab" data-grammar-only>القواعد <b id="gCount"></b></a></div>
@@ -108,7 +109,7 @@ export async function render(view, { params }) {
     const filtered = f.filter !== 'all' || f.group || f.levels.length || f.when || f.source || f.q || f.count;
     $('#list').innerHTML = !all.length ? emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`)
       : `<div class="wd-prac">
-        <div class="pb-top"><button type="button" class="pb-fbtn${panel === 'filter' ? ' on' : ''}${filtered ? ' set' : ''}" data-wt="filter" aria-expanded="${panel === 'filter'}" aria-label="الفلاتر" title="الفلاتر">${WI.filter}</button>
+        <div class="pb-top"><button type="button" class="pb-fbtn${panel === 'filter' ? ' on' : ''}${panel === 'filter' && barSet() ? ' clr' : ''}${filtered ? ' set' : ''}" data-wt="filter" aria-expanded="${panel === 'filter'}" aria-label="الفلاتر" title="الفلاتر">${WI.filter}</button>
         <div class="card pb-start wd-prac-top"><div class="wd-prac-n"><b class="en-inline">${n.toLocaleString('en-US')}</b> كلمة للتدريب<small>${dflt ? (dflt.today ? 'عشوائي من كلمات اليوم — غيّر الفلتر لو تبغى غيرها' : 'عشوائي من كل كلماتك — غيّر الفلتر لو تبغى غيرها') : 'حسب الفلتر'}</small></div></div></div>
         <div class="pb-grid">${GAME_TILES.map((g) => `<button type="button" class="pb-game pb-tile${g.cls || ''}" data-pg="${g.mode}:${g.type || ''}" ${n || g.mode === 'twins' ? '' : 'disabled'}><span class="pb-gi">${g.icon}</span><b>${g.name}</b></button>`).join('')}</div>
         ${n ? '' : '<p class="small muted" style="text-align:center;margin-top:10px">ما فيه كلمات بهذي الفلاتر — جرّب تغيّر الفلتر.</p>'}
@@ -126,6 +127,7 @@ export async function render(view, { params }) {
     view.querySelectorAll('[data-wt]').forEach((b) => {
       const k = b.dataset.wt;
       b.classList.toggle('on', k === 'view' ? f.view === 'clear' : panel === k || (k === 'filter' && fbOpen && panel === 'filter'));
+      b.classList.toggle('clr', k === 'filter' && panel === 'filter' && barSet()); // lit with filters set: a tap clears them all (shown by a small ×)
     });
     if (tab === 'practice') { select = false; selected.clear(); } // no ticking in «تدرّب»: only the filters and the groups
     $('#selectToggle').classList.toggle('on', select);
@@ -399,6 +401,11 @@ export async function render(view, { params }) {
     const wt = e.target.closest('[data-wt]');
     if (wt) {
       const k = wt.dataset.wt;
+      if (k === 'filter' && panel === 'filter' && barSet()) { // lit + filters set: back to the original, no filter at all
+        Object.assign(f, { filter: 'all', levels: [], when: '', source: null, count: 0, sort: 'new', view: 'list' });
+        fbOpen = ''; pgTouched = false; dfltCache = null;
+        return draw();
+      }
       if (k === 'view') { f.view = f.view === 'clear' ? 'list' : 'clear'; return draw(); }
       panel = panel === k ? '' : k;
       fbOpen = '';
