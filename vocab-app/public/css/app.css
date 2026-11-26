@@ -3627,3 +3627,10 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 :root { --rd-grey: color-mix(in srgb, var(--ink) 4.5%, transparent); --rd-grey-2: color-mix(in srgb, var(--ink) 9%, transparent); --rd-grey-line: color-mix(in srgb, var(--ink) 18%, transparent); }
 .line.has-words.current .w-said, .line.current .w-said, .line.current .aw.w-said, .line.current .w-now { opacity: 1 !important; color: var(--ink) !important; }
 .line.current .w-now { font-weight: 700; }
+
+/* add page: the title sits on the right (like «نشاطي») with a small, always-pulsing arrow down at the left */
+.add-hero .ah-title { justify-content: space-between; }
+.ah-t { display: inline-flex; align-items: center; gap: 10px; }
+.ah-down { width: 24px; height: 24px; fill: none; stroke: var(--tiffany); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; animation: ahBob 1.3s ease-in-out infinite; }
+@keyframes ahBob { 0%, 100% { transform: translateY(-2px); opacity: .55; } 50% { transform: translateY(4px); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ah-down { animation: none; } }

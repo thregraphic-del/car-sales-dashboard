@@ -41,7 +41,7 @@ export async function render(view, { params }) {
   try { cached = JSON.parse(localStorage.getItem(srcKey()) || '[]'); } catch { /* none yet */ }
   view.innerHTML = `
     <div class="card add-box add-hero">
-      <h1 class="ah-title"><svg class="ah-spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3.5l-3.2 5.2M11.5 8.2 5 6.2M9.8 14.8 3.5 17"/></svg>أضف محتوى للتعلّم</h1>
+      <h1 class="ah-title"><span class="ah-t"><svg class="ah-spark" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 3.5l-3.2 5.2M11.5 8.2 5 6.2M9.8 14.8 3.5 17"/></svg>أضف محتوى للتعلّم</span><svg class="ah-down" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></h1>
       <span class="add-kind hidden" id="kindChip"></span>
       <input type="file" id="attachInput" accept="image/*,.pdf,.txt,.csv,.md,.srt,.vtt,.docx" hidden>
       <input type="file" id="attachCam" accept="image/*" capture="environment" hidden>

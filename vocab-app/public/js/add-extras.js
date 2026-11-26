@@ -535,7 +535,7 @@ const chkCache = (() => { try { return JSON.parse(localStorage.getItem(CHK_KEY) 
 const saveChk = () => { try { localStorage.setItem(CHK_KEY, JSON.stringify(chkCache)); } catch { /* ignore */ } };
 
 export const fieldsHtml = () => `
-  <div class="section-title"><h2 id="fdTitle">مصادر لتعلّم الإنجليزي</h2></div>
+  <div class="section-title"><h2 id="fdTitle">مصادر التعلم</h2></div>
   <div class="fd-tools" id="fdTools">
     <div class="segmented fd-kind" id="fdKind"><button type="button" class="active" data-fk="channels">${icon.video} قنوات</button><button type="button" data-fk="sites">${icon.globe} مواقع</button></div>
     <span class="fd-sp"></span>
