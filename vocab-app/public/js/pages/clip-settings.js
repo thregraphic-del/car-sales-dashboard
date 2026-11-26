@@ -48,7 +48,7 @@ export async function render(view, { segments, params }) {
         <h2>الشكل</h2>
         ${row('يكبّر خط النص أو يصغّره. بعد ما تضغط ينقلك للمقطع تشوف التغيير وتعتمده بعلامة ✓.', 'حجم الخط', '', `<span class="cs-font"><button type="button" class="sopt" data-font="-1" aria-label="تصغير الخط">−</button><b class="en-inline" id="csFont">${font}</b><button type="button" class="sopt" data-font="1" aria-label="تكبير الخط">+</button></span>`)}
         ${isVideo ? row('مكان الفيديو: فوق النص أو تحته.', 'مكان الفيديو', '', `<div class="cs-chips" id="csVp"><button type="button" class="sopt${vp === 'top' ? ' active' : ''}" data-vp="top">فوق</button><button type="button" class="sopt${vp === 'bottom' ? ' active' : ''}" data-vp="bottom">تحت</button></div>`) : ''}
-        ${isVideo && hasTimes ? row('شريط صغير تحت الفيديو يوريك وين وصلت وكم باقي.', 'شريط الوقت', 'يوريك وين وصلت في المقطع', sw('csStrip', pref('reader.strip', small ? '0' : '1') === '1')) : ''}
+        ${isVideo && hasTimes ? row('شريط صغير تحت الفيديو يوريك وين وصلت وكم باقي.', 'شريط الوقت', 'يوريك وين وصلت في المقطع', sw('csStrip', pref('reader.strip', '1') === '1')) : ''}
         ${hasTimes ? row('يكتب وقت كل جملة بجنبها، وتضغطه تروح لنفس اللحظة.', 'وقت كل جملة', 'يظهر وقت الجملة بجنبها', sw('csTimes', pref('reader.times', small ? '0' : '1') === '1')) : ''}
         ${hasTimes ? '<p class="cs-note">الشريط والأوقات مخفيّين تلقائيًا في الجوال الصغير، وتشغّلهم متى تبي.</p>' : ''}
       </section>

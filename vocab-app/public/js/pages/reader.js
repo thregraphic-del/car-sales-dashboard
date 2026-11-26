@@ -2599,7 +2599,7 @@ export async function render(view, { segments, params }) {
   const applyTimes = () => { linesEl.classList.toggle('no-times', !showTimes); const c = $('#timesToggle', view); if (c) c.checked = showTimes; const t = $('#timesTxt', view); if (t) t.textContent = showTimes ? 'ظاهر' : 'مخفي'; };
   applyTimes();
   // ⏱ the time strip under the video: always there by default (so you know where you are), its own switch — separate from the line times
-  let showStrip = pref('reader.strip', window.innerWidth < 700 ? '0' : '1') === '1'; // hidden by default on small phones
+  let showStrip = pref('reader.strip', '1') === '1'; // on by default (turn it off in the clip settings)
   const applyStrip = () => { $('#timeStrip', view)?.classList.toggle('hidden', !showStrip); const c = $('#stripToggle', view); if (c) c.checked = showStrip; const s = $('#stripTxt', view); if (s) s.textContent = showStrip ? 'ظاهر' : 'مخفي'; };
   applyStrip();
   $('#stripToggle', view)?.addEventListener('change', (e) => { showStrip = e.target.checked; setPref('reader.strip', showStrip ? '1' : '0'); applyStrip(); });
