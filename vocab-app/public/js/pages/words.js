@@ -379,9 +379,13 @@ export async function render(view, { params }) {
         <div class="btn-row" style="margin-top:14px"><button type="button" class="btn primary" id="ngGo">التالي ← تحديد الكلمات</button></div>`);
       const input = box.querySelector('#ngName');
       setTimeout(() => input.focus(), 150);
+      let busy = false; // one tap = one group: Enter + the button (or a slow connection and a second tap) must not run it twice
+      const goBtn = box.querySelector('#ngGo');
       const go = async () => {
         const name = input.value.trim();
         if (!name) { input.focus(); return; }
+        if (busy) return;
+        busy = true; goBtn.disabled = true; goBtn.textContent = 'لحظة…';
         try {
           const g = await api.createGroup(name);
           if (g.existed) toast('عندك مجموعة بهذا الاسم — نضيف لها');
@@ -393,9 +397,9 @@ export async function render(view, { params }) {
           select = true; selected.clear();
           draw();
           window.scrollTo({ top: 0, behavior: 'smooth' });
-        } catch (err) { toast(err.message); }
+        } catch (err) { busy = false; goBtn.disabled = false; goBtn.textContent = 'التالي ← تحديد الكلمات'; toast(err.message); }
       };
-      box.querySelector('#ngGo').addEventListener('click', go);
+      goBtn.addEventListener('click', go);
       input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); go(); } });
       return;
     }
