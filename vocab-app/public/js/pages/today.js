@@ -237,7 +237,23 @@ function mountActivity(box) {
     return { gran: ['d7', 'today'].includes(unitKey) ? 'day' : unitKey, list };
   };
   const GRAN = { day: 'يوم', week: 'أسبوع', month: 'شهر' };
-  let V = build();
+  // the first day anything was done: columns before it are not drawn (an empty chart only discourages)
+  let firstDay = null; let firstKnown = false;
+  const findFirst = () => {
+    if (firstKnown) return firstDay;
+    firstKnown = true; firstDay = null;
+    for (let i = 400; i >= 0; i -= 1) { const d = addD(now, -i); if (dayActive(d, days)) { firstDay = d; break; } }
+    return firstDay;
+  };
+  let trimmed = 0;
+  const trim = (b) => {
+    const f = findFirst(); trimmed = 0;
+    if (!f || b.gran === 'x') return b;
+    const keep = b.list.filter((x) => x.to >= f);
+    trimmed = b.list.length - keep.length;
+    return keep.length ? { ...b, list: keep } : (trimmed = 0, b);
+  };
+  let V = trim(build());
   const val = (b) => b.t[metric];
   const lineGoal = () => goalN() * Math.max(1, ...V.list.map((b) => b.span));
   const goalTxt = () => `${lineGoal()} ${METRICS[metric].unit} في ${{ day: 'اليوم', week: 'الأسبوع', month: 'الشهر' }[V.gran]}`;
@@ -257,6 +273,7 @@ function mountActivity(box) {
     });
     return `<div class="cal-bars today-bars n${cols.length}" style="--g:.5"><div class="cb-goal" aria-hidden="true"></div>${cols.join('')}</div>`;
   };
+  const sinceTxt = () => { const f = findFirst(); return f ? `${f.getDate()} ${MONTHS[f.getMonth()]}` : ''; };
   const bars = () => {
     if (unitKey === 'today') return todayBars();
     const mx = lineGoal() * 2; const n = V.list.length; const step = Math.ceil(n / 12);
@@ -324,7 +341,7 @@ function mountActivity(box) {
   const draw = () => {
     if (editing) return drawGoals();
     if (!METRICS[metric] || !activeG().includes(METRICS[metric].goal)) metric = Object.keys(METRICS).find((k) => activeG().includes(METRICS[k].goal)) || 'words';
-    V = build();
+    firstKnown = false; V = trim(build());
     if (unitKey === 'today') pick = '';
     if (pick && !V.list.some((b) => b.id === pick)) pick = '';
     const mets = Object.entries(METRICS).filter(([, mt]) => activeG().includes(mt.goal));
@@ -332,10 +349,12 @@ function mountActivity(box) {
     const showHint = showSw && hintN < 3;
     if (showHint && !hintSeen) { hintSeen = true; lsSet('today.swhint', String(hintN + 1)); }
     const HINT_IC = '<svg viewBox="0 0 46 34" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M40 6c-14-6-30 2-30 18"/><path d="M4 18l6 8 7-7"/></svg>';
+    const sw = showSw ? `<span class="u-switch" id="calMetric">${mets.map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'on' : ''}" aria-label="${esc(mt.label.replace(/^\S+\s/, ''))}">${mt.label.split(' ')[0]}</button>`).join('')}</span>` : '';
     box.innerHTML = `<div class="cal act">
-      <div class="ch"><b>إنجازك</b><button type="button" class="per-btn${open ? ' on' : ''}" data-fltoggle aria-expanded="${open}" aria-label="فلتر الفترة">${esc(UNITS.find((u) => u[0] === unitKey)[2])} ${CHEV_IC}</button></div>
+      <div class="ch"><b>إنجازك</b><span class="ch-tools">${sw}<button type="button" class="per-btn${open ? ' on' : ''}" data-fltoggle aria-expanded="${open}" aria-label="فلتر الفترة">${esc(UNITS.find((u) => u[0] === unitKey)[2])} ${CHEV_IC}</button></span></div>
       ${open ? `<div class="act-menu per-menu">${UNITS.map(([k, , d], i) => `${i === 1 ? '<hr>' : ''}<button type="button" class="${unitKey === k ? 'on' : ''}" data-unit="${k}"><span>${d}</span>${unitKey === k ? '<span>✓</span>' : ''}</button>`).join('')}</div>` : ''}
-      ${showSw ? `<div class="sw-wrap"><div class="u-switch" id="calMetric">${mets.map(([k, mt]) => `<button type="button" data-cm="${k}" class="${metric === k ? 'on' : ''}"><b>${mt.label.split(' ')[0]}</b><span>${esc(mt.label.replace(/^\S+\s/, ''))}</span></button>`).join('')}</div>${showHint ? `<div class="sw-hint">${HINT_IC}<span>اضغط للتبديل</span></div>` : ''}</div>` : ''}
+      ${showHint ? `<div class="sw-hint">${HINT_IC}<span>اضغط أو اسحب للتبديل</span></div>` : ''}
+      ${trimmed ? `<div class="since-note">📅 بياناتك تبدأ من ${esc(sinceTxt())} — نعرض الفترة المتاحة فقط</div>` : ''}
       <div class="cal-shape">${bars()}</div>
       ${dash()}
       ${unitKey === 'today' ? '' : `<div class="cal-key tiny"><span class="cal-gkey"><i></i> الهدف ${goalTxt()}</span></div>`}
@@ -358,6 +377,16 @@ function mountActivity(box) {
     }
     drawGoals();
   });
+  // 👆 swipe the chart: left → practice · right → words (when the switch is there)
+  let tx = null; let ty = 0;
+  box.addEventListener('touchstart', (e) => { const t = e.touches[0]; tx = e.target.closest('.cal-shape') ? t.clientX : null; ty = t.clientY; }, { passive: true });
+  box.addEventListener('touchend', (e) => {
+    if (tx == null || editing || unitKey === 'today') return;
+    const t = e.changedTouches[0]; const dx = t.clientX - tx; const dy = t.clientY - ty; tx = null;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    const want = dx < 0 ? 'practice' : 'words';
+    if (want !== metric && METRICS[want] && activeG().includes(METRICS[want].goal)) { metric = want; lsSet('today.metric', metric); hintN = 3; lsSet('today.swhint', '3'); draw(); }
+  }, { passive: true });
   box.addEventListener('click', (e) => {
     if (e.target.closest('[data-editgoals]')) { editing = true; draw(); return; }
     if (e.target.closest('[data-donegoals]')) { editing = false; draw(); return; }
@@ -373,5 +402,5 @@ function mountActivity(box) {
     if (d) { pick = pick === d.dataset.d ? '' : d.dataset.d; draw(); } // a tap picks that day/week/month; the same tap again goes back to the summary of the whole period
   });
   draw();
-  api.calendar().then((r) => { days = r.days || {}; memo.clear(); if (!editing) draw(); }).catch(() => {});
+  api.calendar().then((r) => { days = r.days || {}; memo.clear(); firstKnown = false; if (!editing) draw(); }).catch(() => {});
 }
