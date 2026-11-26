@@ -32,6 +32,20 @@ export async function deleteGroup(userId, id) {
   await run('DELETE FROM word_groups WHERE id = ? AND user_id = ?', id, userId);
 }
 
+/** Delete several groups in ONE request (the words stay, without a group). Returns how many groups went. */
+export async function deleteGroups(userId, ids) {
+  return tx(async () => {
+    let n = 0;
+    for (let i = 0; i < ids.length; i += 200) {
+      const part = ids.slice(i, i + 200);
+      const ph = part.map(() => '?').join(',');
+      await run(`DELETE FROM word_group_items WHERE group_id IN (${ph}) AND group_id IN (SELECT id FROM word_groups WHERE user_id = ?)`, ...part, userId);
+      n += (await run(`DELETE FROM word_groups WHERE user_id = ? AND id IN (${ph})`, userId, ...part)).changes;
+    }
+    return n;
+  });
+}
+
 async function ownGroup(userId, groupId) {
   const g = await get('SELECT * FROM word_groups WHERE id = ? AND user_id = ?', groupId, userId);
   if (!g) throw httpError(404, 'ما لقينا هذه المجموعة.');

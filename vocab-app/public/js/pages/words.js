@@ -287,11 +287,11 @@ export async function render(view, { params }) {
   // Merge or delete several groups at once.
   function openGroupManager() {
     const box = openModal(`<h2 style="margin-bottom:4px">إدارة المجموعات</h2>
-      <p class="small ink-2" style="margin-bottom:12px">حدّد مجموعتين أو أكثر لدمجها في واحدة، أو حدّد ما تريد حذفه (الكلمات نفسها لا تُحذف).</p>
+      <p class="small ink-2" style="margin-bottom:12px">حدّد مجموعتين أو أكثر لدمجها في واحدة. «استخراج» يحذف أسماء المجموعات وتبقى كلماتها بدون تصنيف. «حذف المحدد» يحذف المجموعة مع كلماتها.</p>
       <div class="gm-list">${state.groups.map((g) => `<label class="gm-item"><input type="checkbox" class="check" value="${g.id}"> <b>${esc(g.name)}</b> <span class="tiny muted en-inline">${g.count}</span></label>`).join('')}</div>
       <div class="row wrap" style="gap:8px;margin-top:10px"><button class="btn sm" id="gmAll">تحديد الكل</button></div>
       <label class="field" style="margin-top:12px">اسم المجموعة بعد الدمج<input class="input" id="gmName" placeholder="مثلًا: مفردات العمل"></label>
-      <div class="btn-row" style="margin-top:12px"><button class="btn primary" id="gmMerge">دمج المحدد</button><button class="btn bad" id="gmDelete">حذف المحدد</button><button class="btn ghost" data-close>إغلاق</button></div>`);
+      <div class="btn-row" style="margin-top:12px"><button class="btn primary" id="gmMerge">دمج المحدد</button><button class="btn" id="gmExtract">استخراج</button><button class="btn bad" id="gmDelete">حذف المحدد</button><button class="btn ghost" data-close>إغلاق</button></div>`);
     const picked = () => [...box.querySelectorAll('.gm-item input:checked')].map((x) => Number(x.value));
     box.querySelector('#gmAll').addEventListener('click', () => {
       const boxes = [...box.querySelectorAll('.gm-item input')];
@@ -316,15 +316,39 @@ export async function render(view, { params }) {
         toast(err.message);
       }
     });
+    const wordsOf = (ids) => all.filter((w) => (w.group_ids || []).some((g) => ids.includes(g))).map((w) => w.uv_id);
+    let busy = false;
+    const finish = async (ids, msg) => {
+      closeModal();
+      toast(msg);
+      if (ids.includes(f.group)) f.group = null;
+      await reload();
+    };
+    // «استخراج»: the group names go, the words stay saved without a group
+    box.querySelector('#gmExtract').addEventListener('click', async () => {
+      const ids = picked();
+      if (!ids.length) return toast('حدّد مجموعة واحدة على الأقل');
+      if (busy) return;
+      if (!confirm(`استخراج كلمات ${ids.length} ${ids.length === 1 ? 'مجموعة' : 'مجموعات'} وحذف أسمائها؟ الكلمات تبقى محفوظة بدون تصنيف.`)) return;
+      busy = true;
+      try {
+        await api.deleteGroups(ids);
+        await finish(ids, 'حُذفت أسماء المجموعات وبقيت الكلمات بدون تصنيف ✓');
+      } catch (err) { busy = false; toast(err.message); }
+    });
+    // «حذف المحدد»: the group AND its words (the words go to «المحذوفات», so they can be restored)
     box.querySelector('#gmDelete').addEventListener('click', async () => {
       const ids = picked();
       if (!ids.length) return toast('حدّد مجموعة واحدة على الأقل');
-      if (!confirm(`حذف ${ids.length} ${ids.length === 1 ? 'مجموعة' : 'مجموعات'}؟ الكلمات نفسها لن تُحذف.`)) return;
-      for (const g of ids) await api.deleteGroup(g);
-      closeModal();
-      toast('حُذفت المجموعات ✓');
-      if (ids.includes(f.group)) f.group = null;
-      await reload();
+      if (busy) return;
+      const uv = wordsOf(ids);
+      if (!confirm(`حذف ${ids.length} ${ids.length === 1 ? 'مجموعة' : 'مجموعات'} مع ${uv.length} كلمة؟ الكلمات تنتقل إلى «المحذوفات» في الإعدادات وتقدرين تسترجعينها.`)) return;
+      busy = true;
+      try {
+        if (uv.length) await api.deleteWords(uv);
+        await api.deleteGroups(ids);
+        await finish(ids, `حُذفت ${ids.length} ${ids.length === 1 ? 'مجموعة' : 'مجموعات'} مع كلماتها ✓`);
+      } catch (err) { busy = false; toast(err.message); }
     });
   }
 

@@ -175,6 +175,7 @@ export const api = {
   groups: () => request('GET', '/api/groups'),
   createGroup: (name) => request('POST', '/api/groups', { name }),
   renameGroup: (id, name) => request('PATCH', `/api/groups/${id}`, { name }),
+  deleteGroups: (ids) => request('POST', '/api/groups/delete-many', { ids }),
   deleteGroup: (id) => request('DELETE', `/api/groups/${id}`),
   addToGroup: (id, uv_ids) => request('POST', `/api/groups/${id}/words`, { uv_ids }),
 
