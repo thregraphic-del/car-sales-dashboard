@@ -303,7 +303,7 @@ function mountActivity(box) {
     if (prev && cur && cls === 'flat') return `<div class="cd-delta flat"><b>💪 أداء قوي ${String(what).replace(/^عن\s*/, 'مثل ')}</b></div>`;
     return `<div class="cd-delta ${cls}"><span class="cd-arr">${sym}</span><b class="en-inline">${txt}</b><small>${what}</small></div>`;
   };
-  const avgBlock = (S, deltaH) => { const rs = rows4(S); const parts = rs.map((x) => `${x.mt.label} <b class="en-inline">${Math.min(100, Math.round(100 * x.pct))}٪</b>`).join(' <i>+</i> '); return `<div class="cd-avg cd-avg-s"><div class="cd-avg-top"><span>نسبة تحقيق الهدف</span><b class="en-inline">${avgOf(S)}٪</b></div>${rs.length > 1 ? `<div class="cd-avg-note tiny muted">متوسط الهدفين مع بعض: ${parts}</div>` : ''}${deltaH}</div>`; };
+  const avgBlock = (S, deltaH) => { const rs = rows4(S); const names = rs.map((x) => x.mt.label.replace(/^\S+\s/, '')).reverse().join(' و'); const a = avgOf(S); return `<div class="cd-avg cd-avg-s"><div class="cd-avg-top"><span>متوسط تحقيق الأهداف${names ? ` (${names})` : ''}</span><b class="en-inline avg-pct ${a > 50 ? 'ok' : 'low'}">${a}٪</b></div>${deltaH}</div>`; };
   const colsHtml = (S) => { const rs = rows4(S); return `<div class="cd-cols" style="--n:${rs.length}">${rs.map((x) => `<div class="cd-col${x.pct >= 1 ? ' ok' : ''}"><b class="en-inline cd-v">${x.got}</b><i class="cd-tr"><b style="height:${Math.min(100, Math.round(100 * x.pct))}%"></b></i><span class="cd-n">${x.mt.label}</span><small class="tiny muted en-inline">${x.goal}</small></div>`).join('')}</div>`; };
 
   const lineHtml = (S) => `<div class="det-line" dir="ltr">${rows4(S).map((x) => `<span>${x.mt.label.split(' ')[0]} <b class="en-inline">${x.got}</b></span>`).join('<i>·</i>')}</div>`;

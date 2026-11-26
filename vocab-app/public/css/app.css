@@ -3619,3 +3619,7 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 .line.current .w-said, .line.current .aw.w-said, .line.current .chunk.c-said .c-ar { color: inherit; }
 .line.current .aw.w-now { color: var(--ink); text-decoration-color: var(--rd-grey-line); }
 .line.current .chunk.c-now .c-ar { color: var(--ink); }
+.det-one .cd-avg-top { flex-direction: column; gap: 2px; }
+.det-one .cd-avg-top > span { font-size: 13px; font-weight: 800; }
+.avg-pct { font-size: 26px !important; font-weight: 800; }
+.avg-pct.ok { color: #1f9d55 !important; } .avg-pct.low { color: #d93025 !important; }
