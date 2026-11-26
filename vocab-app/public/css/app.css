@@ -3634,3 +3634,11 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 .ah-down { width: 24px; height: 24px; fill: none; stroke: var(--tiffany); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; animation: ahBob 1.3s ease-in-out infinite; }
 @keyframes ahBob { 0%, 100% { transform: translateY(-2px); opacity: .55; } 50% { transform: translateY(4px); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .ah-down { animation: none; } }
+
+/* one size for both rows (نشاطي / مصادر التعلم): a medium pill — not fat, not thin — and the same 40px square buttons */
+.fd-tools .fd-kind, .act-bar .fd-kind { padding: 3px; border-radius: 18px; flex-wrap: nowrap; align-items: center; }
+.fd-tools .fd-kind button, .act-bar .fd-kind button { height: 34px; padding: 0 12px; font-size: 13.5px; gap: 6px; border-radius: 15px; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+.fd-tools .fd-kind button svg, .act-bar .fd-kind button svg { width: 16px; height: 16px; }
+.fd-tools .fd-sq, .act-bar .fd-sq { width: 40px; height: 40px; border-radius: 16px; }
+.fd-tools .fd-selbtn, .act-bar .fd-selbtn { height: 40px; }
+.fd-tools, .act-bar { align-items: center; }
