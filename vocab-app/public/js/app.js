@@ -64,8 +64,9 @@ function renderNav(active) {
   $('#nav').innerHTML = `${links}<div class="nav-sep"></div><a class="nav-link ${active === '/notes' ? 'active' : ''}" href="#/notes">${icon.bookOpen}<span>أفكار</span></a><a class="nav-link ${active === '/settings' ? 'active' : ''}" href="#/settings">${icon.settings}<span>الإعدادات</span></a>`;
   // bottom bar on phones: only the three working pages (اليوم · الإعدادات · أصدقائي live in the ☰ menu)
   // «أضف» sits in the middle of the bar, in its own colour (inside the bar, not floating above it)
-  const tabs = ['/words', '/add', '/practice'].map((pa) => NAV.find((n) => n.path === pa));
-  $('#tabbar').innerHTML = tabs.map((n) => `<a class="${n.path === active ? 'active' : ''}" href="#${n.path}" ${n.path === active ? 'aria-current="page"' : ''}>${icon[n.icon]}<span>${n.label}</span></a>`).join('');
+  const tabs = ['/words', '/add'].map((pa) => NAV.find((n) => n.path === pa)); // «تدرّب» lives inside «كلماتي» now
+  const tabActive = active === '/practice' ? '/words' : active;
+  $('#tabbar').innerHTML = tabs.map((n) => `<a class="${n.path === tabActive ? 'active' : ''}" href="#${n.path}" ${n.path === tabActive ? 'aria-current="page"' : ''}>${icon[n.icon]}<span>${n.label}</span></a>`).join('');
   const top = $('#topStreak');
   if (top && s) top.innerHTML = `🔥 <b class="en-inline">${s.streak.current}</b>${s.streak.rescue ? SAD_BADGE : ''}`;
   const guestChip = state.user?.guest ? '<div class="guest-chip">👤 أنت ضيف — <a href="/register"><b>سجّل حسابك المجاني</b></a> وتنحفظ كلماتك. عندك حساب؟ <a href="/login"><b>ادخل</b></a></div>' : '';

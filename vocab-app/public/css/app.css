@@ -3471,3 +3471,4 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 .wd-prac-n b { font-size: 26px; margin-inline-end: 6px; }
 .wd-prac-n small { display: block; color: var(--muted); font-size: 12.5px; }
 .wd-prac-gram { justify-self: center; }
+.tabbar { grid-template-columns: repeat(2, 1fr) !important; }
