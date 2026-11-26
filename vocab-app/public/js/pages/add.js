@@ -65,6 +65,11 @@ export async function render(view, { params }) {
       <div id="status"></div>
     </div>
     <div id="result"></div>
+    <section class="card yt-search" id="ytCard">
+      <h2 class="yt-h">🔎 ابحث عن فيديو في يوتيوب</h2>
+      <form class="yt-form" id="ytForm"><input class="input" id="ytQ" type="search" placeholder="مثال: job interview, small talk…" dir="ltr" autocomplete="off" maxlength="80"><button class="btn primary" id="ytGo" type="submit">ابحث</button></form>
+      <div id="ytRes"></div>
+    </section>
     <section class="add-sec hidden" id="sampleSec">
       ${pickBannerHtml()}
       <div class="section-title"><h2>جرّب بمقطع جاهز</h2></div>
@@ -169,6 +174,25 @@ export async function render(view, { params }) {
     if (!isYoutube(v)) manual.classList.add('hidden');
   };
   input.addEventListener('input', update);
+  // 🔎 search YouTube here; a tapped result goes into the box above and starts the same «استخرج» (the video then plays inside the site)
+  const ytRes = $('#ytRes', view); let ytLast = null;
+  const ytDraw = (data, more) => {
+    const items = data.items.map((v) => `<button type="button" class="yt-item" data-yt="${esc(v.id)}"><img src="${esc(v.thumb)}" alt="" loading="lazy"><span><b dir="auto">${esc(v.title)}</b><small>${esc(v.channel)} · ${esc(v.published)}</small></span></button>`).join('');
+    ytRes.innerHTML = `${more ? '' : ''}<div class="yt-list">${items}</div>${data.next ? '<button type="button" class="btn ghost sm" id="ytMore">المزيد</button>' : ''}${data.items.length ? '' : '<p class="small muted">ما لقينا نتائج — جرّب كلمات ثانية.</p>'}`;
+  };
+  const ytSearch = async (q, page = '') => {
+    $('#ytGo', view).disabled = true;
+    ytRes.innerHTML = '<p class="tiny muted"><span class="spinner"></span> نبحث…</p>';
+    try { const d = await api.youtubeSearch(q, page); ytLast = { q, d }; ytDraw(d); } catch (err) { ytRes.innerHTML = `<p class="small muted">${esc(err.message)}</p>`; } finally { $('#ytGo', view).disabled = false; }
+  };
+  $('#ytForm', view).addEventListener('submit', (e) => { e.preventDefault(); const q = $('#ytQ', view).value.trim(); if (q.length >= 2) ytSearch(q); });
+  ytRes.addEventListener('click', (e) => {
+    if (e.target.closest('#ytMore') && ytLast?.d.next) { ytSearch(ytLast.q, ytLast.d.next); return; }
+    const b = e.target.closest('[data-yt]'); if (!b) return;
+    input.value = `https://www.youtube.com/watch?v=${b.dataset.yt}`; input.dispatchEvent(new Event('input'));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => $('#go', view)?.click(), 250);
+  });
   view.querySelectorAll('.sample img').forEach((im) => im.addEventListener('error', () => { im.style.visibility = 'hidden'; }));
   view.querySelector('#sampleSec').addEventListener('click', (e) => {
     const b = e.target.closest('[data-sample]');

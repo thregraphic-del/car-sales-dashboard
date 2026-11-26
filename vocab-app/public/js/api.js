@@ -202,6 +202,7 @@ export const api = {
   calendar: () => request('GET', '/api/calendar'),
   simpleExamples: (words) => request('POST', '/api/ai/examples', { words }),
   sayArabic: (terms) => request('POST', '/api/ai/say', { terms }),
+  youtubeSearch: (q, page = '') => request('GET', `/api/youtube/search?q=${encodeURIComponent(q)}${page ? `&page=${encodeURIComponent(page)}` : ''}`),
   channelsMore: (body) => request('POST', '/api/channels/more', body),
   channelCheck: (handles) => request('POST', '/api/channels/check', { handles }),
   vidPrefs: () => request('GET', '/api/social/vidprefs'),

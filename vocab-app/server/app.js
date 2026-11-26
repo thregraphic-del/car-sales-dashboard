@@ -20,6 +20,7 @@ import dataRoutes from './routes/data.js';
 import ttsRoutes from './routes/tts.js';
 import feedbackRoutes from './routes/feedback.js';
 import channelRoutes from './routes/channels.js';
+import youtubeRoutes from './routes/youtube.js';
 import noteRoutes from './routes/notes.js';
 import aiRoutes from './routes/ai.js';
 import grammarRoutes from './routes/grammar.js';
@@ -173,6 +174,7 @@ export function createApp() {
   app.use('/api/ai', aiRoutes);
   app.use('/api/feedback', feedbackRoutes);
   app.use('/api/channels', channelRoutes);
+  app.use('/api/youtube', youtubeRoutes);
   app.use('/api/notes', noteRoutes);
   app.use('/api/grammar', grammarRoutes);
   app.use('/api/social', socialRoutes);
