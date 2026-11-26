@@ -29,6 +29,7 @@ export async function render(view, { params }) {
   const startOfToday = () => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); };
   const WHEN = { today: () => [startOfToday(), Infinity], yesterday: () => [startOfToday() - DAY, startOfToday()], week: () => [startOfToday() - 6 * DAY, Infinity], month: () => [startOfToday() - 29 * DAY, Infinity] };
   let select = false;
+  let pgLevel = ''; // while filling a new group: the one level shown (and ticked)
   let pendingGroup = null; // a group just created: pick its words (by level, one by one, or all) then add them
   if (window.__pg) { pendingGroup = window.__pg; window.__pg = null; select = true; } // created from the «تدرّب» section: continue here
   const selected = new Set();
@@ -64,6 +65,7 @@ export async function render(view, { params }) {
     if (f.filter === 'practice' && !(w.state === 'review' || w.state === 'hard')) return false;
     if (['new', 'review', 'hard', 'mastered'].includes(f.filter) && w.state !== f.filter) return false;
     if (f.levels.length && !f.levels.includes(w.level)) return false;
+    if (pendingGroup && pgLevel && w.level !== pgLevel) return false;
     if (f.when && WHEN[f.when]) {
       const t = new Date(w.saved_at).getTime();
       const [from, to] = WHEN[f.when]();
@@ -140,7 +142,7 @@ export async function render(view, { params }) {
       return;
     }
     // the list is drawn in slices (60 first, more as you scroll): thousands of rows at once make a phone slow
-    const sig = JSON.stringify([f.filter, f.group, f.q, f.levels, f.when, f.source, f.sort, f.count, f.view]);
+    const sig = JSON.stringify([f.filter, f.group, f.q, f.levels, f.when, f.source, f.sort, f.count, f.view, pgLevel]);
     if (sig !== listSig) { listSig = sig; renderLimit = 60; }
     shown = all.filter(matches);
     const sorters = { old: (a, b) => new Date(a.saved_at) - new Date(b.saved_at), az: (a, b) => a.term.localeCompare(b.term), hard: (a, b) => (b.difficulty || 0) - (a.difficulty || 0) || a.mastery - b.mastery };
@@ -162,15 +164,13 @@ export async function render(view, { params }) {
     const allShownSelected = shown.length > 0 && shown.every((w) => selected.has(w.uv_id));
     const inGroup = state.groups.find((x) => x.id === f.group);
     const none = selected.size ? '' : 'disabled';
-    const lvOf = (l) => shown.filter((w) => w.level === l);
+    const lvCount = (l) => all.filter((w) => w.level === l).length;
     $('#selectBar').innerHTML = pendingGroup ? `
       <div class="select-bar pg-bar">
         <div class="pg-title">📁 «${esc(pendingGroup.name)}» — حدّد كلماتها</div>
-        <div class="pg-lv">
-          <button type="button" class="gchip${shown.length && shown.every((w) => selected.has(w.uv_id)) ? ' on' : ''}" data-pgall>الكل (${shown.length})</button>
-          ${LEVELS.filter((l) => lvOf(l).length).map((l) => `<button type="button" class="gchip${lvOf(l).every((w) => selected.has(w.uv_id)) ? ' on' : ''}" data-pglv="${l}">${l} <span class="en-inline tiny">${lvOf(l).length}</span></button>`).join('')}
-        </div>
-        <p class="tiny muted" style="margin:0">اختر مستوى أو «الكل»، أو اضغط الكلمات وحدّد بيدك.</p>
+        <button type="button" class="gchip pg-all${!pgLevel && shown.length && shown.every((w) => selected.has(w.uv_id)) ? ' on' : ''}" data-pgall>الكل (${all.length})</button>
+        <div class="pg-lv6">${LEVELS.map((l) => `<button type="button" class="gchip${pgLevel === l ? ' on' : ''}" data-pglv="${l}" ${lvCount(l) ? '' : 'disabled'}>${l}<span class="en-inline tiny">${lvCount(l)}</span></button>`).join('')}</div>
+        <p class="tiny muted" style="margin:0">اضغط مستوى يظهر لك وحده، أو «الكل»، أو حدّد الكلمات بيدك.</p>
         <div class="row between"><span><b class="en-inline">${selected.size}</b> محددة</span>
           <span class="btn-row"><button type="button" class="btn ghost sm" id="pgCancel">تخطّي</button><button type="button" class="btn primary" id="pgAdd" ${selected.size ? '' : 'disabled'}>أضفها إلى المجموعة</button></span></div>
       </div>` : select ? `
@@ -397,25 +397,28 @@ export async function render(view, { params }) {
       return;
     }
     if (e.target.closest('[data-pgall]')) {
-      const allSel = shown.length > 0 && shown.every((w) => selected.has(w.uv_id));
-      shown.forEach((w) => (allSel ? selected.delete(w.uv_id) : selected.add(w.uv_id)));
+      pgLevel = '';
+      const list = all.filter(matches);
+      const allSel = list.length > 0 && list.every((w) => selected.has(w.uv_id));
+      selected.clear();
+      if (!allSel) list.forEach((w) => selected.add(w.uv_id));
       return draw();
     }
     const pgl = e.target.closest('[data-pglv]');
     if (pgl) {
-      const list = shown.filter((w) => w.level === pgl.dataset.pglv);
-      const allSel = list.every((w) => selected.has(w.uv_id));
-      list.forEach((w) => (allSel ? selected.delete(w.uv_id) : selected.add(w.uv_id)));
+      pgLevel = pgLevel === pgl.dataset.pglv ? '' : pgl.dataset.pglv; // only this level stays on the screen
+      selected.clear();
+      if (pgLevel) all.filter(matches).forEach((w) => selected.add(w.uv_id));
       return draw();
     }
-    if (e.target.closest('#pgCancel')) { pendingGroup = null; select = false; selected.clear(); return draw(); }
+    if (e.target.closest('#pgCancel')) { pendingGroup = null; pgLevel = ''; select = false; selected.clear(); return draw(); }
     if (e.target.closest('#pgAdd')) {
       if (!pendingGroup || !selected.size) return undefined;
       const n = selected.size;
       const g = pendingGroup;
       await api.addToGroup(g.id, [...selected]);
-      toast(`أضفنا ${n} ${n === 1 ? 'كلمة' : 'كلمات'} إلى «${g.name}» ✓`);
-      pendingGroup = null; select = false; selected.clear(); f.group = g.id;
+      toast(`تم حفظ ${n} ${n === 1 ? 'كلمة' : 'كلمات'} في مجموعة «${g.name}» ✓`);
+      pendingGroup = null; pgLevel = ''; select = false; selected.clear(); // the box closes: the words are in the group
       return reload();
     }
     const gact = e.target.closest('[data-gact]')?.dataset.gact;
@@ -451,7 +454,7 @@ export async function render(view, { params }) {
     }
     if (e.target.closest('#selectToggle')) {
       select = !select;
-      pendingGroup = null;
+      pendingGroup = null; pgLevel = '';
       selected.clear();
       return draw();
     }
