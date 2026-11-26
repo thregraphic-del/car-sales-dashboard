@@ -289,13 +289,15 @@ function mountActivity(box) {
   const dash = () => {
     if (!V.list.length) return '';
     const b = pick ? V.list.find((x) => x.id === pick) : null;
-    const S1 = b ? summ([b]) : summ(V.list);
     const title = UNITS.find((u) => u[0] === unitKey)[2];
-    const t1 = b ? (b.from <= now && b.to >= now && b.gran === 'day' ? 'اليوم' : bTitle(b)) : `الإجمالي · ${title}`;
-    const back = b ? '<button type="button" class="cd-back" data-clearpick>الإجمالي</button>' : '';
-    const prev = before(S1);
-    const what = b ? ({ day: 'عن اليوم السابق', week: 'عن الأسبوع السابق', month: 'عن الشهر السابق' }[b.gran]) : ({ d7: 'عن الـ٧ أيام السابقة', day: 'عن الـ٣٠ يوم السابقة', week: 'عن الأسابيع الـ٨ السابقة', month: 'عن الشهور الـ١٢ السابقة' }[unitKey]);
-    return `<div class="det"><div class="det-top"><b>${esc(t1)}</b>${back}${lineHtml(S1)}</div>${avgBlock(S1, deltaHtml(avgOf(S1), avgOf(prev), what))}</div>`;
+    const block = (S, t1, what, back = '') => `<div class="det"><div class="det-top"><b>${esc(t1)}</b>${back}${lineHtml(S)}</div>${avgBlock(S, deltaHtml(avgOf(S), avgOf(before(S)), what))}</div>`;
+    const whatAll = { d7: 'عن الـ٧ أيام السابقة', day: 'عن الـ٣٠ يوم السابقة', week: 'عن الأسابيع الـ٨ السابقة', month: 'عن الشهور الـ١٢ السابقة' }[unitKey];
+    // the total of the whole chart is ALWAYS shown; the tapped bar (a day / week / month) adds its own block above it
+    const total = block(summ(V.list), `الإجمالي · ${title}`, whatAll);
+    if (!b) return total;
+    const t1 = b.from <= now && b.to >= now && b.gran === 'day' ? 'اليوم' : bTitle(b);
+    const whatOne = { day: 'عن اليوم السابق', week: 'عن الأسبوع السابق', month: 'عن الشهر السابق' }[b.gran];
+    return block(summ([b]), t1, whatOne) + total;
   };
 
   // 🎯 the goals editor (two basics). Changing a goal never deletes what was done: the days stay as counted.
