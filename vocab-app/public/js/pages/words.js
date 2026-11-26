@@ -258,7 +258,7 @@ export async function render(view, { params }) {
         opts: [['', 'كل المقاطع', all.length], ...sourcesOf().map((x) => [String(x.id), x.title, n((w) => w.source?.id === x.id), ytThumb(x)])] },
       { k: 'when', t: 'الوقت', value: f.when, opts: WHEN_OPTS },
       { k: 'sort', t: 'الترتيب', value: f.sort, opts: [['new', 'الأحدث'], ['old', 'الأقدم'], ['az', 'أبجدي']] },
-    ];
+    ].filter((d) => !(tab === 'practice' && d.k === 'sort')); // the order matters for the list only: «تدرّب» shows five filters
   }
 
   // Videos the learner's words come from (for the filter).
