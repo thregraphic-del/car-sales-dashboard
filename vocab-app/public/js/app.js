@@ -435,6 +435,12 @@ async function init() {
   window.addEventListener('lexitube:ended', () => guestAsk(true));
   // 🎯 the chosen daily goal reached outside a video (the video page celebrates by itself)
   window.addEventListener('lexitube:goal-reached', (e) => { if (!location.hash.startsWith('#/source/') && localStorage.getItem('goal.off') !== '1') toast(`🎉 وصلت هدف اليوم — ${goalText(e.detail)}`); });
+  // 🎮 the practice goal reached while playing: flame + well done, then continue or see the goals
+  window.addEventListener('lexitube:practice-goal', (e) => {
+    if (localStorage.getItem('goal.off') === '1') return;
+    const d = e.detail || {};
+    openModal(`<div class="pg-done"><div class="pg-fl">${flameFull()}</div><h2>أحسنت! 👏</h2><p>حققت هدف التدريب على الكلمات</p><p class="tiny muted en-inline">${d.count} / ${d.n}</p><div class="pg-act"><button class="btn primary" data-close>أكمل التدريب</button><a class="btn ghost" href="#/" data-close>لوحة الأهداف</a></div></div>`);
+  });
   window.addEventListener('offline', () => toast('انقطع الإنترنت — بنكمل أول ما يرجع'));
   window.addEventListener('online', () => toast('رجع الإنترنت ✓'));
   window.addEventListener('lexitube:auth', () => {

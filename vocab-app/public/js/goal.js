@@ -157,8 +157,14 @@ export const noteWatched = () => noteActive();
 export function noteAnswer() {
   const before = progress();
   const k = `lt.answers.${dayStr()}`;
-  put(k, (Number(get(k, 0)) || 0) + 1);
+  const cnt = (Number(get(k, 0)) || 0) + 1;
+  put(k, cnt);
   after(before);
+  // 🎮 the practice goal reached (or passed): tell once a day
+  if (goalTypes().includes('practice') && cnt >= goalFor('practice') && get('goal.practiceShown', '') !== dayStr()) {
+    put('goal.practiceShown', dayStr());
+    window.dispatchEvent(new CustomEvent('lexitube:practice-goal', { detail: { count: cnt, n: goalFor('practice') } }));
+  }
 }
 
 /** «🎯 3 / 15 كلمة» · for a combined goal: «🎯 2 / 3 هدف» */

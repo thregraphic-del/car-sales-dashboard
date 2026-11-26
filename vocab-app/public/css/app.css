@@ -3532,3 +3532,14 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 .th-flame-btn.grey .fl { animation: none; filter: grayscale(1); }
 #topStreak .fl { width: 17px; height: 20px; vertical-align: -4px; }
 @media (prefers-reduced-motion: reduce) { .fl { animation: none; } }
+
+/* تحدّي السياق: الفراغ */
+.q-cloze{margin-top:8px;font-size:1.05rem;line-height:1.7}
+.cz-blank{display:inline-block;min-width:4.5em;border-bottom:2px dashed var(--tiffany,#0abab5);color:var(--tiffany,#0abab5);text-align:center;font-weight:700}
+.cd-avg-note{margin-top:2px;line-height:1.5}.cd-avg-note i{font-style:normal;opacity:.6}
+
+/* إشعار تحقيق هدف التدريب */
+.pg-done{text-align:center;padding:8px 4px}
+.pg-done .pg-fl svg{width:72px;height:72px;animation:flBreath 1.6s ease-in-out infinite}
+.pg-done h2{margin:6px 0 2px}
+.pg-act{display:flex;gap:8px;justify-content:center;margin-top:14px;flex-wrap:wrap}

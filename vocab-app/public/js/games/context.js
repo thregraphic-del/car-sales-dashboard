@@ -1,5 +1,14 @@
 // Game: تحدّي السياق (Context challenge)
-import { esc, highlight } from '../ui.js';
+import { esc, highlight, termRegex } from '../ui.js';
+
+// the English sentence with the word replaced by a blank: ____
+const cloze = (sentence, term) => {
+  const t = String(sentence || '');
+  const re = termRegex(term || '');
+  const m = re && t.match(re);
+  if (!m) return null;
+  return `${esc(t.slice(0, m.index))}<span class="cz-blank">&nbsp;______&nbsp;</span>${esc(t.slice(m.index + m[0].length))}`;
+};
 import { distractors, choice } from './shared.js';
 import { sayBtns } from './shared.js';
 
@@ -16,10 +25,12 @@ export default {
   // sometimes the Arabic sentence with English choices
   play: (stage, w, pool) => {
     const flip = !!w.context_arabic && Math.random() < 0.5;
-    if (flip) {
+    const blank = flip ? cloze(w.context_sentence, w.term) : null;
+    if (flip && blank) {
       return choice(stage, w, {
         prompt: `<div class="q-sentence" dir="rtl">«${esc(w.context_arabic)}»</div>
-          <div class="prompt" style="margin-top:12px">وش الكلمة الإنجليزية اللي معناها <b>${esc(String(w.arabic).split('/')[0].trim())}</b> في هالجملة؟</div>`,
+          <div class="q-sentence q-cloze en-inline" dir="ltr">${blank}</div>
+          <div class="prompt" style="margin-top:12px">اختر الكلمة الإنجليزية اللي تكمّل الفراغ <small class="muted">(معناها: <b>${esc(String(w.arabic).split('/')[0].trim())}</b>)</small></div>`,
         options: distractors(w, pool, 3, (x) => x.term.toLowerCase()),
         text: (o) => `<span class="en-inline">${esc(o.term)}</span>`,
         sentence: w.context_sentence,
