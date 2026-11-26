@@ -3609,3 +3609,13 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 @keyframes swPulse { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 color-mix(in srgb, var(--tiffany) 45%, transparent); } 50% { transform: scale(1.12); box-shadow: 0 0 0 7px color-mix(in srgb, var(--tiffany) 0%, transparent); } }
 @media (prefers-reduced-motion: reduce) { .sw-arrow { animation: none; } }
 @media (max-width: 370px) { .th-act .ch > b { display: none; } .th-act .ch { justify-content: center; } }
+
+/* ===== reader: soft GREY cursor + shading (no yellow / tiffany), read words stay plain ink ===== */
+:root { --rd-grey: color-mix(in srgb, var(--ink) 9%, transparent); --rd-grey-2: color-mix(in srgb, var(--ink) 16%, transparent); --rd-grey-line: color-mix(in srgb, var(--ink) 28%, transparent); }
+.transcript .line.current .w-now, [data-theme="dark"] .transcript .line.current .w-now { background: var(--rd-grey-2) !important; color: var(--ink) !important; box-shadow: 0 0 0 2px var(--rd-grey-2) !important; border-radius: 4px; }
+.transcript .line.para-now { background: var(--rd-grey); box-shadow: inset -3px 0 0 var(--rd-grey-line); }
+.transcript .line.current .line-body:not(.chunked) { background: var(--rd-grey-2); }
+.line.current .chunk.c-now { background: var(--rd-grey-2); }
+.line.current .w-said, .line.current .aw.w-said, .line.current .chunk.c-said .c-ar { color: inherit; }
+.line.current .aw.w-now { color: var(--ink); text-decoration-color: var(--rd-grey-line); }
+.line.current .chunk.c-now .c-ar { color: var(--ink); }
