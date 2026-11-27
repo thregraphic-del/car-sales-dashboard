@@ -6,6 +6,7 @@
 //   refineSource()    — AI chooses the learnable items, ~25 lines per call
 //   translateSource() — Arabic subtitles, ~15 lines per call
 // Each chunk is stored as soon as it is done, so nothing is lost or repeated.
+import { createHash } from 'node:crypto';
 import { run, get, all, tx } from '../db/index.js';
 import { config } from '../config.js';
 import { recordTranscript } from './ai.js';
@@ -52,7 +53,10 @@ export async function fetchTranscript(videoId, origin) {
   } catch { /* fetch it as usual */ }
   // 1) A configured transcript service: the most reliable path on hosted servers.
   //    Its monthly limit reached → don't call it again for an hour (every refused call is wasted).
-  const limited = Number((await get('SELECT value FROM app_settings WHERE key = ?', 'ytsvc:limit'))?.value || 0);
+  //    The wait belongs to the key that hit the limit: a new key (e.g. a renewed plan) starts clean.
+  const keyId = createHash('sha256').update(String(options.transcriptApiKey || options.transcriptApiUrl || '')).digest('hex').slice(0, 8);
+  const [limitAt, limitKey] = String((await get('SELECT value FROM app_settings WHERE key = ?', 'ytsvc:limit'))?.value || '').split(':');
+  const limited = limitKey === keyId ? Number(limitAt) || 0 : 0;
   if (Date.now() - limited < 3600000) throw new TranscriptError('service_limit', { details: ['transcript service limit reached (waiting an hour before trying again)'] });
   if (((options.transcriptProvider && options.transcriptApiKey) || options.transcriptApiUrl) && Date.now() - limited > 3600000) {
     try {
@@ -65,7 +69,7 @@ export async function fetchTranscript(videoId, origin) {
     } catch (err) {
       if (err.pending) throw err; // a long video: the service is still writing its transcript
       if (err.limit) {
-        await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', 'ytsvc:limit', String(Date.now()));
+        await run('INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT (key) DO UPDATE SET value = excluded.value', 'ytsvc:limit', `${Date.now()}:${keyId}`);
         throw new TranscriptError('service_limit', { details: [err.message] });
       }
       details.push(err.message.slice(0, 160));
