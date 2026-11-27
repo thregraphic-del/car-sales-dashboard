@@ -60,7 +60,8 @@ const SAD_BADGE = '<span class="sad-badge" title="شعلتك طفت — ضاعف
 function renderNav(active) {
   const s = state.stats;
   const left = s ? Math.max(0, s.plan.total - s.plan.completed) : 0;
-  const links = NAV.map((n) => `<a class="nav-link ${n.path === active ? 'active' : ''}${['/add', '/words', '/practice'].includes(n.path) ? ' tab-dup' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? `<span class="badge">${left}</span>` : ''}${n.path === '/' && s?.streak?.rescue ? SAD_BADGE : ''}</a>`).join('');
+  const navActive = active === '/practice' ? '/words' : active; // «تدرّب» is a tab inside «كلماتي» on every screen size (laptop sidebar too)
+  const links = NAV.filter((n) => n.path !== '/practice').map((n) => `<a class="nav-link ${n.path === navActive ? 'active' : ''}${['/add', '/words'].includes(n.path) ? ' tab-dup' : ''}" href="#${n.path}">${icon[n.icon]}<span>${n.label}</span>${n.badge && left ? `<span class="badge">${left}</span>` : ''}${n.path === '/' && s?.streak?.rescue ? SAD_BADGE : ''}</a>`).join('');
   $('#nav').innerHTML = `${links}<div class="nav-sep"></div><a class="nav-link ${active === '/notes' ? 'active' : ''}" href="#/notes">${icon.bookOpen}<span>أفكار</span></a><a class="nav-link ${active === '/settings' ? 'active' : ''}" href="#/settings">${icon.settings}<span>الإعدادات</span></a>`;
   // bottom bar on phones: only the three working pages (اليوم · الإعدادات · أصدقائي live in the ☰ menu)
   // «أضف» sits in the middle of the bar, in its own colour (inside the bar, not floating above it)
