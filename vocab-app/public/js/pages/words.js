@@ -20,7 +20,7 @@ export async function render(view, { params }) {
   // 📚 «القواعد» lives beside the words in the same library
   if (params.tab === 'grammar' && grammarOn()) return (await import('../grammar-library.js')).render(view, { params });
   let [all] = await Promise.all([api.words(), loadGroups()]); // both at once
-  const f = { filter: params.filter || 'all', group: params.group ? Number(params.group) : null, q: '', levels: [], when: params.when || '', source: params.source ? Number(params.source) : null, sort: 'new', count: 0, view: 'list' };
+  const f = { filter: params.filter || 'all', group: params.group ? Number(params.group) : null, q: '', levels: [], when: params.when !== undefined ? params.when : 'today', source: params.source ? Number(params.source) : null, sort: 'new', count: 0, view: 'list' };
   // switching between «الكلمات» and «تدرّب» keeps the same filters (the page is drawn again: they travel through the session)
   try { const c = sessionStorage.getItem('words.carry'); if (c) { Object.assign(f, JSON.parse(c)); sessionStorage.removeItem('words.carry'); } } catch { /* ignore */ }
   let tab = params.tab === 'practice' ? 'practice' : 'words'; // كلماتي = الكلمات | تدرّب (| القواعد when the grammar mode is on)
@@ -46,7 +46,8 @@ export async function render(view, { params }) {
   };
   let renderLimit = 60; let listSig = ''; let moreObs = null;
   let panel = ''; // which icon's panel is open: search · filter · sort · groups
-  const barSet = () => f.filter !== 'all' || f.levels.length > 0 || !!f.when || !!f.source || !!f.count || f.sort !== 'new'; // any filter of the filter bar is on
+  const whenSet = () => !!f.when && (pgTouched || f.when !== 'today'); // «اليوم» is the default view, not a filter until changed
+  const barSet = () => f.filter !== 'all' || f.levels.length > 0 || whenSet() || !!f.source || !!f.count || f.sort !== 'new'; // any filter of the filter bar is on
   view.innerHTML = `
     <div class="page-head compact"><div><h1>كلماتي</h1></div><div class="wd-corner"><button type="button" class="wd-t wd-sm" data-wt="search" aria-label="بحث" title="بحث">${icon.search}</button><button type="button" class="wd-t wd-sm" id="exportBtn" aria-label="تنزيل" title="تنزيل">${icon.download}</button></div></div>
     <div class="lib-tabs segmented wd-seg" role="tablist"><a href="#/words" role="tab" class="${tab === 'words' ? 'active' : ''}">الكلمات <b id="wCount"></b></a><a href="#/words?tab=practice" role="tab" class="${tab === 'practice' ? 'active' : ''}">تدرّب</a><a href="#/words?tab=grammar" role="tab" data-grammar-only>القواعد <b id="gCount"></b></a></div>
@@ -92,25 +93,37 @@ export async function render(view, { params }) {
   const practiceSet = () => shown;
   // 🎲 default of «ألعاب متعددة»: 10 words of today (any clip, shuffled) — unless the learner set a filter
   let dfltCache = null; // the same ten words for this visit (what the card shows is exactly what every game plays)
-  const usingDefault = () => !pgTouched && !f.q && !f.group && !f.source && !f.levels.length && !f.when && !f.count && f.filter === 'all';
+  const usingDefault = () => !pgTouched && !f.q && !f.group && !f.source && !f.levels.length && (!f.when || f.when === 'today') && !f.count && f.filter === 'all';
   const defaultSet = () => (dfltCache ||= computeDefault());
   const computeDefault = () => {
     const [from, to] = WHEN.today();
     const today = all.filter((w) => { const t = new Date(w.saved_at).getTime(); return t >= from && t < to; });
-    const pool = (today.length ? today : all).slice();
+    if (today.length) {
+      // today's words, in the order they were saved, in batches of 10: a word leaves the pool once it was practised today
+      const left = today.filter((w) => !(w.last_reviewed_at && new Date(w.last_reviewed_at).getTime() >= from)).sort((a, b) => new Date(a.saved_at) - new Date(b.saved_at));
+      return { list: left.slice(0, 10), today: true, total: today.length, left: left.length };
+    }
+    const pool = all.slice();
     for (let i = pool.length - 1; i > 0; i -= 1) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
-    return { list: pool.slice(0, 10), today: !!today.length };
+    return { list: pool.slice(0, 10), today: false };
+  };
+  // «كلمات اليوم»: كم كلمة اليوم، وكم خلصت، ومين المجموعة الجاية
+  const batchLine = (d) => {
+    const done = d.total - d.left;
+    if (!d.left) return `خلّصتي كلمات اليوم كلها (<span class="bt">${d.total}</span>) ✓`;
+    const next = Math.min(10, d.left);
+    return `كلمات اليوم <span class="bt en-inline">${d.total}</span> · تدرّبتي على <span class="bt en-inline">${done}</span> · متبقي <span class="bt en-inline">${d.left}</span><br><span class="bt-msg">${done ? `أحسنتي! كمّلي على المجموعة اللي بعدها (${next} كلمات)` : `المجموعة الأولى (${next} كلمات)`}</span>`;
   };
   function drawPractice() {
     $('#selectBar').innerHTML = '';
     const set = practiceSet();
     const dflt = usingDefault() ? defaultSet() : null;
     const n = dflt ? dflt.list.length : set.length;
-    const filtered = f.filter !== 'all' || f.group || f.levels.length || f.when || f.source || f.q || f.count;
+    const filtered = f.filter !== 'all' || f.group || f.levels.length || whenSet() || f.source || f.q || f.count;
     $('#list').innerHTML = !all.length ? emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات، ثم ارجع هنا للتدريب.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`)
       : `<div class="wd-prac">
         <div class="pb-top"><button type="button" class="pb-fbtn${panel === 'filter' ? ' on' : ''}${panel === 'filter' && barSet() ? ' clr' : ''}${filtered ? ' set' : ''}" data-wt="filter" aria-expanded="${panel === 'filter'}" aria-label="الفلاتر" title="الفلاتر">${WI.filter}</button>
-        <div class="card pb-start wd-prac-top"><div class="wd-prac-n"><b class="en-inline">${n.toLocaleString('en-US')}</b> كلمة للتدريب<small>${dflt ? (dflt.today ? 'عشوائي من كلمات اليوم — غيّر الفلتر لو تبغى غيرها' : 'عشوائي من كل كلماتك — غيّر الفلتر لو تبغى غيرها') : 'حسب الفلتر'}</small></div></div></div>
+        <div class="card pb-start wd-prac-top"><div class="wd-prac-n"><b class="en-inline">${n.toLocaleString('en-US')}</b> كلمة للتدريب<small>${dflt && dflt.today ? batchLine(dflt) : dflt ? 'عشوائي من كل كلماتك — غيّر الفلتر لو تبغى غيرها' : 'حسب الفلتر'}</small></div></div></div>
         <div class="pb-grid">${GAME_TILES.map((g) => `<button type="button" class="pb-game pb-tile${g.cls || ''}" data-pg="${g.mode}:${g.type || ''}" ${n || g.mode === 'twins' ? '' : 'disabled'}><span class="pb-gi">${g.icon}</span><b>${g.name}</b></button>`).join('')}</div>
         ${n ? '' : '<p class="small muted" style="text-align:center;margin-top:10px">ما فيه كلمات بهذي الفلاتر — جرّب تغيّر الفلتر.</p>'}
         <a class="btn sm ghost wd-prac-gram" href="#/practice?area=grammar" data-grammar-only>📚 تدرّب على القواعد</a>
@@ -170,7 +183,7 @@ export async function render(view, { params }) {
     $('#list').innerHTML = shown.length
       ? `<div class="word-list">${shown.slice(0, renderLimit).map((w) => wordRowHtml(w, { selectable: select, selected: selected.has(w.uv_id), compact: true })).join('')}</div>${shown.length > renderLimit ? `<button type="button" class="btn ghost wd-more" id="wdMore">عرض المزيد · ${(shown.length - renderLimit).toLocaleString('en-US')} كلمة</button>` : ''}`
       : all.length
-        ? emptyState('🔍', 'ما فيه كلمات هنا', f.group ? 'أضف كلمات إلى هذه المجموعة من بطاقة أي كلمة.' : 'جرّب بحثًا أو فلترًا آخر.')
+        ? (f.when === 'today' && !whenSet() ? emptyState('📅', 'ما حفظتي كلمات اليوم', 'أول ما تحفظين كلمة بتطلع هنا.', `<button type="button" class="btn ghost" data-allwhen>اعرض كل الكلمات</button>`) : emptyState('🔍', 'ما فيه كلمات هنا', f.group ? 'أضف كلمات إلى هذه المجموعة من بطاقة أي كلمة.' : 'جرّب بحثًا أو فلترًا آخر.'))
         : emptyState('📚', 'ما حفظت كلمات للحين', 'أضف فيديو أو كلمات وبنساعدك تختار اللي يستاهل.', `<a class="btn primary" href="#/add">${icon.plus} أضف</a>`);
     $('#wCount').textContent = shown.length ? `(${shown.length.toLocaleString('en-US')})` : '';
     moreObs?.disconnect();
@@ -398,6 +411,7 @@ export async function render(view, { params }) {
     }
     const cl = e.target.closest('[data-cl]');
     if (cl) return openLadder(clusters[Number(cl.dataset.cl)]);
+    if (e.target.closest('[data-allwhen]')) { f.when = ''; pgTouched = true; return draw(); }
     const wt = e.target.closest('[data-wt]');
     if (wt) {
       const k = wt.dataset.wt;

@@ -275,24 +275,8 @@ function mountActivity(box) {
   };
   const goalsLine = () => Object.entries(METRICS).filter(([, mt]) => activeG().includes(mt.goal)).map(([, mt]) => `${goalFor(mt.goal)} ${mt.unit}`).join(' · ');
   const sinceTxt = () => { const f = findFirst(); return f ? `${f.getDate()} ${MONTHS[f.getMonth()]}` : ''; };
-  // 🎯 «اليوم»: هدف واحد — تتعلّم N كلمة، وتتدرّب على نفس الكلمات (ما فيه هدف تدريب منفصل)
-  const oneGoal = () => {
-    const N = goalFor('pass'); const a = A(now);
-    const learned = Math.min(a.words, N); const done = Math.min(a.practice, N);
-    const pct = Math.min(100, Math.round((100 * (learned + done)) / (2 * N)));
-    const hasNew = learned > 0;
-    return `<div class="og">
-      <div class="og-steps">
-        <div class="og-step${learned >= N ? ' ok' : ''}"><span class="og-ic">📚</span><b class="en-inline">${learned}<small> / ${N}</small></b><small>كلمات جديدة</small></div>
-        <i class="og-arr" aria-hidden="true">←</i>
-        <div class="og-step${done >= N ? ' ok' : ''}"><span class="og-ic">🎮</span><b class="en-inline">${done}<small> / ${N}</small></b><small>تدرّب عليها</small></div>
-      </div>
-      <div class="og-bar"><i style="width:${pct}%"></i></div>
-      <button type="button" class="og-go" data-og="${hasNew ? 'today' : 'old'}">${hasNew ? 'درّب على كلمات اليوم ←' : 'درّب على كلمات قديمة ←'}</button>
-    </div>`;
-  };
   const bars = () => {
-    if (unitKey === 'today') return oneGoal();
+    if (unitKey === 'today') return todayBars();
     const mx = lineGoal() * 2; const n = V.list.length; const step = Math.ceil(n / 12);
     return `<div class="cal-bars${n > 16 ? ' dense' : ''}" style="--g:.5"><div class="cb-goal" aria-hidden="true"><span>الهدف ${goalTxt()}</span></div>${V.list.map((b, i) => {
       const v = val(b);
@@ -331,7 +315,6 @@ function mountActivity(box) {
     const S = summ(b ? [b] : V.list);
     const what = b ? 'عن الفترة السابقة' : WHAT[unitKey];
     const label = b ? bTitle(b) : UNITS.find((u) => u[0] === unitKey)[2];
-    if (unitKey === 'today') return '';
     return `<div class="det det-one">${unitKey === 'today' ? '' : `<div class="det-top"><span class="det-lbl">${esc(label)}</span>${lineHtml(S)}</div>`}${avgBlock(S, deltaHtml(avgOf(S), avgOf(before(S)), what))}</div>`;
   };
 
@@ -407,18 +390,7 @@ function mountActivity(box) {
     const want = dx < 0 ? 'practice' : 'words';
     if (want !== metric && METRICS[want] && activeG().includes(METRICS[want].goal)) { metric = want; lsSet('today.metric', metric); hintN = 3; lsSet('today.swhint', '3'); draw(); }
   }, { passive: true });
-  box.addEventListener('click', async (e) => {
-    const og = e.target.closest('[data-og]');
-    if (og) {
-      const N = goalFor('pass'); const k = dayStr();
-      let all = []; try { all = await api.words(); } catch { toast('ما قدرنا نجيب كلماتك الحين'); return; }
-      const list = og.dataset.og === 'today'
-        ? all.filter((w) => w.saved_at && dayStr(new Date(w.saved_at)) === k).slice(0, N)
-        : all.filter((w) => w.status !== 'mastered' && !(w.saved_at && dayStr(new Date(w.saved_at)) === k)).sort((x, y) => (y.difficulty || 0) - (x.difficulty || 0)).slice(0, 10);
-      if (!list.length) { toast('ما فيه كلمات للتدريب الحين'); return; }
-      startReview(list, { label: og.dataset.og === 'today' ? 'today' : 'old', rest: [] });
-      return;
-    }
+  box.addEventListener('click', (e) => {
     if (e.target.closest('[data-editgoals]')) { editing = true; draw(); return; }
     if (e.target.closest('[data-donegoals]')) { editing = false; draw(); return; }
     const gm = e.target.closest('[data-gm]');

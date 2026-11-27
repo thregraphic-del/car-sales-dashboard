@@ -3708,32 +3708,6 @@ html[data-grammar="off"] .wd-seg { display: flex !important; }
 /* the add page: the same space between every card */
 .add-hero { margin-bottom: 0; }
 .add-sec { margin-top: 14px; }
-
-/* ===== «اليوم»: ONE goal — learn N words, then practise those same words ===== */
-.og { display: grid; gap: 10px; padding: 4px 2px 2px; }
-.og-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-.og-top b { font-size: 16px; font-weight: 800; }
-.og-top span { font-size: 12.5px; color: var(--ink-2); }
-.og-steps { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
-.og-step { display: grid; justify-items: center; gap: 2px; padding: 10px 6px; border-radius: 18px; background: color-mix(in srgb, var(--ink) 4%, var(--surface)); border: 1.5px solid var(--line); }
-.og-step.ok { border-color: var(--accent); background: color-mix(in srgb, var(--tiffany) 12%, var(--surface)); }
-.og-ic { font-size: 18px; line-height: 1; }
-.og-step b { font-size: 22px; font-weight: 800; color: var(--ink); }
-.og-step b small { font-size: 13px; color: var(--muted); font-weight: 700; }
-.og-step small { font-size: 12px; color: var(--ink-2); font-weight: 700; }
-.og-arr { font-style: normal; font-size: 20px; color: var(--muted); font-weight: 800; }
-.og-bar { height: 8px; border-radius: 6px; background: color-mix(in srgb, var(--ink) 8%, var(--surface)); overflow: hidden; }
-.og-bar i { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--tiffany), var(--accent)); }
-.og-go { width: 100%; padding: 11px 12px; border-radius: 16px; border: 0; background: var(--accent); color: #fff; font: inherit; font-weight: 800; font-size: 14.5px; cursor: pointer; }
-.cal.is-today .og-step b { font-size: 19px; }
-.cal.is-today .og-ic { font-size: 16px; }
-.og { gap: 7px; }
-.og-step { padding: 6px 4px; gap: 1px; border-radius: 16px; }
-.og-ic { font-size: 15px; }
-.og-step b { font-size: 18px; }
-.og-step b small { font-size: 12px; }
-.og-step small { font-size: 11.5px; }
-.og-go { padding: 9px 12px; font-size: 14px; }
-.og-top b { font-size: 15px; }
-.cal.is-today .og-step b { font-size: 18px; }
-.cal.is-today .og-ic { font-size: 15px; }
+/* «كلمات اليوم» batch line inside the practice card: small and calm, not the big count */
+.wd-prac-n .bt { font-size: 13px; font-weight: 800; color: var(--ink); }
+.wd-prac-n .bt-msg { color: var(--accent); font-weight: 700; }
